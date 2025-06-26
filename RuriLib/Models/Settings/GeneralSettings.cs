@@ -7,7 +7,7 @@ namespace RuriLib.Models.Settings
     {
         public ParallelizerType ParallelizerType { get; set; } = ParallelizerType.TaskBased;
         public bool LogJobActivityToFile { get; set; } = false;
-        public bool RestrictBlocksToCWD { get; set; } = true;
+        public bool RestrictBlocksToCWD { get; set; } = false;
         public bool UseCustomUserAgentsList { get; set; } = false;
         public bool EnableBotLogging { get; set; } = false;
         public bool VerboseMode { get; set; } = false;

@@ -1,0 +1,323 @@
+# OpenBullet2 Native - Comprehensive Technical Documentation
+
+## Overview
+OpenBullet2 Native is a WPF-based desktop application for automation testing, data scraping, and proxy checking. It provides a comprehensive interface for managing configurations, jobs, wordlists, proxies, and monitoring execution results. The application uses MVVM architecture with dependency injection and real-time updates.
+
+## Application Architecture
+
+### Core Structure
+- **Framework**: WPF (.NET 8) with Metro UI styling (MahApps.Metro)
+- **Architecture**: MVVM (Model-View-ViewModel) with dependency injection
+- **Database**: SQLite with Entity Framework Core
+- **File System**: User data stored in `UserData/` directory
+- **Configuration**: appsettings.json for application settings
+
+### Service Layer (Dependency Injection)
+```
+├── Core Services
+│   ├── ConfigService - Manages automation configs
+│   ├── JobManagerService - Controls job execution
+│   ├── JobMonitorService - Real-time job monitoring
+│   ├── HitStorageService - Manages captured results
+│   └── ProxyReloadService - Handles proxy management
+├── Repositories
+│   ├── DbProxyRepository - Database proxy operations
+│   ├── DbHitRepository - Hit storage/retrieval
+│   ├── DiskConfigRepository - Config file management
+│   └── HybridWordlistRepository - Wordlist storage
+└── Utilities
+    ├── VolatileSettingsService - Runtime settings
+    ├── AnnouncementService - Update notifications
+    └── UpdateService - Auto-update functionality
+```
+
+## UI Architecture Analysis
+
+### Main Window Structure
+The application uses a **single-window, multi-page navigation pattern**:
+
+#### Top-Level Layout
+- **MetroWindow**: Main container with title bar, glow effects, resizing
+- **Navigation Menu**: Horizontal menu bar with main sections
+- **Content Frame**: Dynamic page container
+- **Loading Indicator**: Centralized progress ring for async operations
+
+#### Navigation System
+Primary navigation menu items:
+1. **Home** - Dashboard and announcements
+2. **Jobs** - Job management and execution
+3. **Monitor** - Real-time job monitoring
+4. **Proxies** - Proxy management
+5. **Wordlists** - Data source management
+6. **Configs** - Configuration editor (with submenu)
+7. **Hits** - Results viewing and management
+8. **Plugins** - Plugin management
+9. **OB Settings** - Application configuration
+10. **RL Settings** - RuriLib engine settings
+11. **About** - Version and license information
+
+#### Config Submenu (Dropdown)
+When a config is selected, additional navigation appears:
+- **Metadata** - Config information and settings
+- **Readme** - Documentation editor
+- **Stacker** - Visual block-based editor
+- **LoliCode** - Text-based scripting
+- **Settings** - Config-specific parameters
+- **C# Code** - Advanced C# scripting
+- **LoliScript** - Legacy scripting format
+
+### Page-Level UI Components
+
+#### 1. Home Page
+**Purpose**: Welcome screen and status overview
+- Centered welcome message
+- Action buttons (changelog, web UI link)
+- Update notifications (when available)
+- Dynamic announcements from server
+
+#### 2. Jobs Page
+**Purpose**: Job lifecycle management
+**Layout**: 
+- Top toolbar: New job, Remove all buttons
+- Job list: Scrollable items with:
+  - Status indicator (colored sidebar)
+  - Job details (config, data pool, bots, progress)
+  - Real-time metrics (hits, CPM, progress)
+  - Action buttons (edit, clone, remove)
+
+**Job Types Supported**:
+- **MultiRunJob**: Main automation jobs
+- **ProxyCheckJob**: Proxy validation jobs
+
+#### 3. Monitor Page
+**Purpose**: Real-time job monitoring (minimalist)
+- Likely contains embedded job viewer or status dashboard
+
+#### 4. MultiRunJobViewer (Detailed Job Interface)
+**Purpose**: Comprehensive job execution interface
+**Key Features**:
+- **Config Information**: Icon, name, author display
+- **Data Pool Info**: Type and source details
+- **Proxy Sources**: Multiple source management
+- **Hit Outputs**: Result destination configuration
+- **Custom Inputs**: Dynamic config parameters
+
+**Real-time Updates**:
+- **Bots Collection**: Live bot status and data processing
+- **Hits Collection**: Captured results with filtering
+- **Progress Tracking**: Percentage and timing information
+- **Status Controls**: Start/Stop/Pause/Resume/Abort buttons
+
+**Bot Monitoring**:
+- Individual bot status (ID, data, proxy, execution info)
+- Real-time updates every second via timer
+- Status-based UI state management
+
+**Hit Management**:
+- Filterable hit display (Hits, Custom, ToCheck)
+- Real-time hit capture with sound notifications
+- Hit details: timestamp, data, proxy, type, captured data
+
+## UX (User Experience) Design
+
+### Interaction Patterns
+
+#### Navigation UX
+- **Horizontal Menu**: Quick access to all major sections
+- **Keyboard Shortcuts**: CTRL+1-0 for rapid navigation
+- **Context Menus**: Right-click actions where appropriate
+- **Breadcrumbs**: Via config submenu for nested navigation
+
+#### Job Management UX
+- **Visual Status Indicators**: Color-coded job status
+- **Real-time Feedback**: Live metrics without page refresh
+- **Progressive Disclosure**: Basic info → detailed view pattern
+- **Batch Operations**: Remove all, bulk actions
+
+#### Feedback Mechanisms
+- **Sound Notifications**: Hit capture audio feedback
+- **Visual Indicators**: Progress bars, status colors, loading spinners
+- **Toast Notifications**: Update alerts, error messages
+- **Real-time Metrics**: CPM, progress, hit counts
+
+### Responsiveness Strategy
+- **Async Operations**: All long-running tasks use async/await
+- **Background Threading**: Service-based background processing
+- **Timer-based Updates**: Periodic UI refresh (1-second intervals)
+- **Cancellation Support**: Proper cancellation token usage
+
+### Error Handling UX
+- **Graceful Degradation**: Continue operation when possible
+- **Crash Reporting**: Automatic crash.log generation
+- **User Notifications**: Alert dialogs for critical errors
+- **Exception Handling**: Global exception catching
+
+## Data Flow Architecture
+
+### Job Execution Flow
+```
+1. User creates job → JobsViewModel
+2. Job configuration → MultiRunJobViewerViewModel
+3. Job start → JobManagerService
+4. Parallelizer selection → TaskBased/Thread/ParallelBased
+5. Real-time updates → Timer-based ViewModel updates
+6. Results capture → HitStorageService
+7. UI feedback → Observable collections, property binding
+```
+
+### Configuration Management
+```
+1. Config selection → ConfigsViewModel
+2. Config editing → Multiple specialized ViewModels
+3. File operations → DiskConfigRepository
+4. Validation → RuriLib engine
+5. Execution → Job system integration
+```
+
+### Data Binding Strategy
+- **MVVM Pattern**: Clean separation of concerns
+- **Observable Collections**: Real-time UI updates
+- **Property Binding**: Two-way data binding where needed
+- **Command Pattern**: Button actions and menu commands
+- **Converter Usage**: Data transformation for display
+
+## Performance Considerations
+
+### UI Performance
+- **Virtualization**: Large lists use virtualized controls
+- **Throttled Updates**: Timer-based rather than event-driven updates
+- **Background Operations**: Heavy work off UI thread
+- **Memory Management**: Proper disposal of resources
+
+### Parallelization Integration
+The Native UI integrates with three parallelizers:
+
+#### TaskBasedParallelizer
+- **Best for**: File operations, HTTP requests
+- **UI Integration**: Real-time bot monitoring
+- **Critical Pattern**: `.ContinueWith()` for task completion
+- **Performance**: High concurrency scenarios
+
+#### ThreadBasedParallelizer  
+- **Best for**: CPU-intensive operations
+- **UI Integration**: Thread-safe status updates
+- **Performance**: Lower overhead for simple operations
+
+#### ParallelBasedParallelizer
+- **Best for**: Batch processing
+- **UI Integration**: Batch-based progress updates
+- **Performance**: CPU-bound parallel work
+
+### Memory Management
+- **IDisposable**: Proper resource cleanup
+- **Timer Disposal**: Cleanup on ViewModel disposal
+- **Event Unsubscription**: Prevent memory leaks
+- **Service Lifetime**: Singleton services for shared resources
+
+## Real-time Update System
+
+### Timer-based Updates
+- **Bots Info Timer**: Updates every second for active jobs
+- **Seconds Ticker**: Updates time-based displays
+- **Status Monitoring**: Continuous job status checking
+
+### Event-driven Updates
+- **Result Events**: Immediate hit capture notifications
+- **Status Changes**: Job status transition updates
+- **Error Events**: Real-time error reporting
+- **Progress Updates**: Completion percentage changes
+
+### Observable Collections
+- **BotsCollection**: Live bot status monitoring
+- **HitsCollection**: Real-time hit capture
+- **JobsCollection**: Dynamic job list management
+
+## File System Integration
+
+### Directory Structure
+```
+UserData/
+├── Configs/           # Automation configurations
+├── Wordlists/         # Data sources
+├── Logs/Jobs/         # Job execution logs
+├── Plugins/           # Plugin assemblies
+└── Database files     # SQLite database
+```
+
+### File Operations
+- **Config Management**: Load/save/edit configurations
+- **Wordlist Handling**: Import/export data sources
+- **Log Generation**: Automatic job logging
+- **Plugin Loading**: Dynamic assembly loading
+
+## UI State Management
+
+### Job Status-based UI States
+```
+JobStatus.Idle       → Can start, edit options
+JobStatus.Starting   → Show loading, disable actions  
+JobStatus.Running    → Can pause, stop, abort
+JobStatus.Paused     → Can resume, stop, abort
+JobStatus.Stopping   → Show loading, disable actions
+JobStatus.Waiting    → Can skip wait, show countdown
+```
+
+### Button State Logic
+- **Context-sensitive**: Buttons enabled/disabled based on state
+- **Progressive Actions**: Logical flow from idle → running → stopped
+- **Safety Measures**: Confirmation dialogs for destructive actions
+
+## Debugging and Monitoring
+
+### Built-in Debugging
+- **Crash Logs**: Automatic crash report generation
+- **Job Logging**: Optional detailed execution logs
+- **Bot Monitoring**: Individual bot status tracking
+- **Performance Metrics**: CPM, progress, timing data
+
+### Developer Tools
+- **Screenshot Function**: Built-in screenshot capability
+- **Exception Handling**: Comprehensive error catching
+- **Service Monitoring**: Background service status
+- **Memory Tracking**: Resource usage monitoring
+
+## Common Patterns and Best Practices
+
+### MVVM Implementation
+- **ViewModelBase**: Common base class for property notification
+- **Command Pattern**: ICommand implementation for actions
+- **Data Binding**: Minimize code-behind, maximize binding
+- **Separation of Concerns**: Views only handle UI, ViewModels handle logic
+
+### Async/Await Usage
+- **ConfigureAwait(false)**: Consistent throughout codebase
+- **CancellationToken**: Proper cancellation support
+- **Task Coordination**: Proper task lifecycle management
+- **UI Thread Safety**: Dispatcher usage for UI updates
+
+### Resource Management
+- **Disposable Pattern**: IDisposable implementation
+- **Service Lifetime**: Appropriate service scoping
+- **Event Cleanup**: Proper event unsubscription
+- **Timer Management**: Cleanup on disposal
+
+## Critical Implementation Details
+
+### Parallelizer Integration
+- **Dynamic Selection**: User can choose parallelizer type
+- **Real-time Monitoring**: UI updates reflect parallelizer status
+- **Performance Metrics**: CPM calculation and display
+- **Status Coordination**: Proper status synchronization
+
+### File Locking
+- **Concurrent Access**: Thread-safe file operations
+- **Lock Management**: Proper lock acquisition and release
+- **Error Handling**: Graceful failure on lock conflicts
+
+### Hit Processing
+- **Real-time Capture**: Immediate hit processing
+- **Sound Notifications**: Audio feedback for hits
+- **Filtering**: Multiple hit type filters
+- **Export Capabilities**: Hit data export functionality
+
+This documentation provides a comprehensive understanding of OpenBullet2 Native's architecture, focusing specifically on the desktop application's UI/UX design, real-time capabilities, and integration with the underlying automation engine. 

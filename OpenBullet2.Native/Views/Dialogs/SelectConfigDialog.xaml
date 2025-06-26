@@ -105,8 +105,8 @@
                     </Setter>
                     <Setter Property="OverridesDefaultStyle" Value="True" />
                     <Setter Property="Foreground" Value="{DynamicResource ForegroundMain}" />
-                    <Setter Property="FontFamily" Value="pack://application:,,,/Fonts/#Century Gothic" />
-                    <Setter Property="FontSize" Value="14" />
+                    <Setter Property="FontFamily" Value="Segoe UI" />
+                    <Setter Property="FontSize" Value="13" />
                 </Style>
                 <Style TargetType="{x:Type ListViewItem}">
                     <EventSetter Event="MouseDoubleClick" Handler="ListItemDoubleClick" />

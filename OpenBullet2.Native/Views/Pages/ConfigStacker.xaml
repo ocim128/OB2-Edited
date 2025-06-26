@@ -9,89 +9,192 @@
       mc:Ignorable="d"
       d:DesignHeight="450" d:DesignWidth="800"
       KeyDown="PageKeyDown"
+      Focusable="True"
       Title="ConfigStacker"
       xmlns:mah="clr-namespace:MahApps.Metro.Controls;assembly=MahApps.Metro">
 
     <Page.Resources>
         <converters:BoolToThicknessConverter x:Key="BoolToThick" />
+        
+        <!-- Consistent Block Toolbar Button Style -->
+        <Style x:Key="ConsistentBlockButton" TargetType="Button">
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" 
+                                Background="{TemplateBinding Background}" 
+                                CornerRadius="6" 
+                                Padding="{TemplateBinding Padding}">
+                            <Border.Effect>
+                                <DropShadowEffect BlurRadius="6" Direction="270" Opacity="0.3" ShadowDepth="1"/>
+                            </Border.Effect>
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                              VerticalAlignment="Center"
+                                              Content="{TemplateBinding Content}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Opacity" Value="0.9"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="Opacity" Value="0.8"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Page.Resources>
 
-    <Grid>
+    <Grid Margin="12">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="180" />
-            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="240" MinWidth="180" MaxWidth="320" />
+            <ColumnDefinition Width="auto" />
+            <ColumnDefinition Width="*" MinWidth="250" />
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
-            <RowDefinition Height="35" />
+            <RowDefinition Height="auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <StackPanel Orientation="Horizontal" Margin="0 0 0 5" Grid.Row="0" Grid.Column="0">
-            <Button Click="AddBlock" Width="25" Height="20" ToolTip="Add a new block" Style="{StaticResource StyledSuccessButton}"> <StackPanel Orientation="Horizontal"> <iconPacks:PackIconMaterialDesign Kind="Add" Width="10" Height="10" /> </StackPanel> </Button>
-            <Button Click="RemoveBlock" Width="25" Height="20" ToolTip="Remove the selected block" Style="{StaticResource StyledDangerButton}"> <StackPanel Orientation="Horizontal"> <iconPacks:PackIconMaterial Kind="Close" Width="10" Height="10" /> </StackPanel> </Button>
-            <Button Click="MoveBlockUp" Width="25" Height="20" ToolTip="Move the selected block up" Style="{StaticResource StyledPrimaryButton}"> <StackPanel Orientation="Horizontal"> <iconPacks:PackIconUnicons Kind="AngleUp" Width="10" Height="10" /> </StackPanel> </Button>
-            <Button Click="MoveBlockDown" Width="25" Height="20" ToolTip="Move the selected block down" Style="{StaticResource StyledPrimaryButton}"> <StackPanel Orientation="Horizontal"> <iconPacks:PackIconUnicons Kind="AngleDown" Width="10" Height="10" /> </StackPanel> </Button>
-            <Button Click="CloneBlock" Width="25" Height="20" ToolTip="Clone the selected block" Style="{StaticResource StyledButton}"> <StackPanel Orientation="Horizontal"> <iconPacks:PackIconFontAwesome Kind="CloneSolid" Width="10" Height="10" /> </StackPanel> </Button>
-            <Button Click="EnableDisableBlock" Width="25" Height="20" ToolTip="Enable/Disable the selected block" Style="{StaticResource StyledButton}"> <StackPanel Orientation="Horizontal"> <iconPacks:PackIconForkAwesome Kind="Ban" Width="10" Height="10" /> </StackPanel> </Button>
-            <Button Click="Undo" Width="25" Height="20" ToolTip="Undo" Style="{StaticResource StyledButton}"> <StackPanel Orientation="Horizontal"> <iconPacks:PackIconMicrons Kind="Undo" Width="10" Height="10" /> </StackPanel> </Button>
-        </StackPanel> <Grid Grid.Row="1" Grid.Column="0">
+        <!-- Compact Toolbar for Block Actions -->
+        <Border Grid.Row="0" Grid.Column="0" Background="#80404040" CornerRadius="8" Padding="4,3" Margin="0,0,4,4">
+            <WrapPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Left">
+                <!-- Add Block - Primary Action -->
+                <Button Click="AddBlock" Width="26" Height="26" ToolTip="Add a new block" 
+                        Style="{StaticResource ConsistentBlockButton}"
+                        Background="#10B981" Margin="1,1" Padding="4">
+                    <iconPacks:PackIconMaterialDesign Kind="Add" Width="14" Height="14" Foreground="White"/>
+                </Button>
+                
+                <!-- Action Buttons -->
+                <Button Click="RemoveBlock" Width="24" Height="24" ToolTip="Remove the selected block" 
+                        Style="{StaticResource ConsistentBlockButton}"
+                        Background="#DC2626" Margin="1,1" Padding="3">
+                    <iconPacks:PackIconMaterial Kind="Close" Width="10" Height="10" Foreground="White"/>
+                </Button>
+                <Button Click="CloneBlock" Width="24" Height="24" ToolTip="Clone the selected block (or use Ctrl+C to copy, Ctrl+V to paste from clipboard)" 
+                        Style="{StaticResource ConsistentBlockButton}"
+                        Background="#6B7280" Margin="1,1" Padding="3">
+                    <iconPacks:PackIconFontAwesome Kind="CloneSolid" Width="10" Height="10" Foreground="White"/>
+                </Button>
+                <Button Click="MoveBlockUp" Width="24" Height="24" ToolTip="Move the selected block up" 
+                        Style="{StaticResource ConsistentBlockButton}"
+                        Background="#2563EB" Margin="1,1" Padding="3">
+                    <iconPacks:PackIconUnicons Kind="AngleUp" Width="10" Height="10" Foreground="White"/>
+                </Button>
+                <Button Click="MoveBlockDown" Width="24" Height="24" ToolTip="Move the selected block down" 
+                        Style="{StaticResource ConsistentBlockButton}"
+                        Background="#2563EB" Margin="1,1" Padding="3">
+                    <iconPacks:PackIconUnicons Kind="AngleDown" Width="10" Height="10" Foreground="White"/>
+                </Button>
+                <Button Click="EnableDisableBlock" Width="24" Height="24" ToolTip="Enable/Disable the selected block" 
+                        Style="{StaticResource ConsistentBlockButton}"
+                        Background="#F59E0B" Margin="1,1" Padding="3">
+                    <iconPacks:PackIconForkAwesome Kind="Ban" Width="10" Height="10" Foreground="White"/>
+                </Button>
+                <Button Click="Undo" Width="26" Height="26" ToolTip="Undo last action" 
+                        Style="{StaticResource ConsistentBlockButton}"
+                        Background="#7C3AED" Margin="1,1" Padding="4">
+                    <iconPacks:PackIconMicrons Kind="Undo" Width="14" Height="14" Foreground="White"/>
+                </Button>
+            </WrapPanel>
+        </Border>
+        
+        <!-- Modern Block List Sidebar -->
+        <Border Grid.Row="1" Grid.Column="0" Background="#C0353535" CornerRadius="8" Padding="8" Margin="0,0,4,0">
+            <Grid>
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/> <RowDefinition Height="*"/>   </Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
 
-            <TextBox Grid.Row="0" x:Name="SearchTextBox"
+                <!-- Modern Search Box -->
+                <Border Grid.Row="0" Background="#A0404040" CornerRadius="6" Padding="8" Margin="0,0,0,8">
+                    <TextBox x:Name="SearchTextBox"
                      TextChanged="SearchTextBox_TextChanged"
-                     Margin="5,5,5,0"
                      VerticalAlignment="Center"
                      ToolTip="Search blocks by name or label"
-                     TextWrapping="Wrap"
-                     mah:TextBoxHelper.Watermark="Search blocks..."/>
+                             Background="Transparent"
+                             BorderThickness="0"
+                             Foreground="White"
+                             FontSize="12"
+                             mah:TextBoxHelper.Watermark="Search blocks..."
+                             mah:TextBoxHelper.UseFloatingWatermark="False"/>
+                </Border>
 
-            <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled"
-                          VerticalScrollBarVisibility="Auto"> <ItemsControl
-                    Margin="0 4 0 0"
-                    ItemsSource="{Binding Stack}">
+                <!-- Compact Block List with Proper Spacing -->
+                <ScrollViewer Grid.Row="1" 
+                              HorizontalScrollBarVisibility="Disabled"
+                              VerticalScrollBarVisibility="Auto"
+                              Background="Transparent"
+                              Padding="0,0,8,0">
+                    <ItemsControl Margin="0,0,0,4" ItemsSource="{Binding Stack}">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
-                            <StackPanel Margin="-5" />
+                                <StackPanel />
                         </ItemsPanelTemplate>
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Button
-                                Style="{StaticResource MahApps.Styles.Button}"
-                                BorderBrush="White"
+                                <Button Style="{StaticResource MahApps.Styles.Button}"
+                                        BorderBrush="{Binding Selected, Converter={StaticResource ResourceKey=BoolToThick}, ConverterParameter='#FF1E90FF;Transparent'}"
                                 BorderThickness="{Binding Selected, Converter={StaticResource ResourceKey=BoolToThick}}"
                                 Background="{Binding BackgroundColor}"
-                                Width="180"
-                                Height="40"
-                                Margin="0 1"
+                                        HorizontalAlignment="Stretch"
+                                        Height="36"
+                                        Margin="0,1"
+                                        mah:ControlsHelper.CornerRadius="6"
                                 Tag="{Binding}"
                                 Click="SelectBlock">
-                                <TextBlock
-                                    MouseDown="SelectBlock"
-                                    Grid.Row="0"
-                                    FontSize="12"
+                                    <TextBlock MouseDown="SelectBlock"
+                                               FontSize="10"
+                                               FontWeight="SemiBold"
                                     HorizontalAlignment="Center"
                                     TextAlignment="Center"
                                     Foreground="{Binding ForegroundColor}"
                                     Text="{Binding Label}"
                                     Tag="{Binding}"
-                                    TextWrapping="Wrap" />
+                                               TextWrapping="Wrap"
+                                               Padding="6,4" />
                             </Button>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
             </ScrollViewer>
-        </Grid> <TextBlock Text="Block Information"
-           FontSize="14" FontWeight="SemiBold" HorizontalAlignment="Left" Margin="10 0 0 0" Foreground="{DynamicResource ForegroundCustom}"
-           VerticalAlignment="Center" Grid.Column="1" Grid.Row="0"/>
+            </Grid>
+        </Border>
+        
+        <!-- Resizable Splitter -->
+        <GridSplitter Grid.Row="0" Grid.Column="1" Grid.RowSpan="2"
+                      Width="8" 
+                      HorizontalAlignment="Center" 
+                      VerticalAlignment="Stretch"
+                      Background="Transparent"
+                      ResizeBehavior="PreviousAndNext"
+                      Margin="0,8,0,0"/>
+                      
+        <!-- Block Information Header -->
+        <TextBlock Text="Block Information"
+                   FontSize="14" 
+                   FontWeight="SemiBold" 
+                   HorizontalAlignment="Left" 
+                   Margin="10 0 0 0" 
+                   Foreground="{DynamicResource ForegroundCustom}"
+                   VerticalAlignment="Center" 
+                   Grid.Column="2" 
+                   Grid.Row="0"/>
 
-        <ScrollViewer
-            HorizontalScrollBarVisibility="Disabled"
-            VerticalScrollBarVisibility="Auto"
-            x:Name="blockInfo"
-            Grid.Row="1"
-            Grid.Column="1" />
+        <!-- Simple Block Information Content Area -->
+        <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+                      VerticalScrollBarVisibility="Auto"
+                      x:Name="blockInfo"
+                      Grid.Row="1"
+                      Grid.Column="2" />
 
     </Grid>
 </Page>

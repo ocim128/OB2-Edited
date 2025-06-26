@@ -20,7 +20,15 @@ namespace RuriLib.Functions.Http.Options
         public string CodePagesEncoding { get; set; } = string.Empty;
         public bool AlwaysSendContent { get; set; } = false;
         public bool DecodeHtml { get; set; } = false;
+        public bool DisableCookieParsing { get; set; } = false;
+        public bool DisableHeaderParsing { get; set; } = false;
         public bool ReadResponseContent { get; set; } = true;
+        
+        /// <summary>
+        /// Whether to allow HTTPS to HTTP redirects. This is disabled by default for security reasons.
+        /// When enabled, the handler will manually follow HTTPS to HTTP redirects.
+        /// </summary>
+        public bool AllowHttpsToHttpRedirect { get; set; } = false;
     }
 
     public enum HttpLibrary

@@ -380,6 +380,8 @@ namespace RuriLib.Models.Blocks.Custom
             writer.Write("CodePagesEncoding = " + GetSettingValue("codePagesEncoding") + ", ");
             writer.Write("AlwaysSendContent = " + GetSettingValue("alwaysSendContent") + ", ");
             writer.Write("DecodeHtml = " + GetSettingValue("decodeHtml") + ", ");
+            writer.Write("DisableCookieParsing = " + GetSettingValue("disableCookieParsing") + ", ");
+            writer.Write("DisableHeaderParsing = " + GetSettingValue("disableHeaderParsing") + ", ");
             writer.Write("UseCustomCipherSuites = " + GetSettingValue("useCustomCipherSuites") + ", ");
             writer.Write("CustomCipherSuites = " + GetSettingValue("customCipherSuites") + " ");
 

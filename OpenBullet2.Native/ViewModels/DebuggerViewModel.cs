@@ -121,6 +121,7 @@ namespace OpenBullet2.Native.ViewModels
                 OnPropertyChanged(nameof(CanStart));
                 OnPropertyChanged(nameof(CanTakeStep));
                 OnPropertyChanged(nameof(CanStop));
+                OnPropertyChanged(nameof(BotStatus));
             }
         }
 
@@ -167,6 +168,25 @@ namespace OpenBullet2.Native.ViewModels
         }
 
         public string MatchInfo => $"{CurrentMatchIndex + 1} of {Indices.Length}";
+
+        private int logLineCount = 0;
+        public int LogLineCount
+        {
+            get => logLineCount;
+            set
+            {
+                logLineCount = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public string BotStatus => Status switch
+        {
+            ConfigDebuggerStatus.Idle => "Ready",
+            ConfigDebuggerStatus.Running => "Running",
+            ConfigDebuggerStatus.WaitingForStep => "Waiting",
+            _ => "Unknown"
+        };
 
         public DebuggerViewModel()
         {
@@ -229,6 +249,7 @@ namespace OpenBullet2.Native.ViewModels
         public void ClearLog()
         {
             logger?.Clear();
+            LogLineCount = 0;
             LogCleared?.Invoke(this, EventArgs.Empty);
         }
 

@@ -8,16 +8,199 @@
         xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
         xmlns:converters="clr-namespace:OpenBullet2.Native.Converters"
         mc:Ignorable="d"
-        Title="OpenBullet 2 - Preview" Width="800" Height="600"
+        Title="OpenBullet 2 - 0.3.3 [Enhanced Edition]" 
+        MinWidth="1024" MinHeight="600"
         Background="{DynamicResource BackgroundMain}"
-        BorderThickness="0"
-        GlowBrush="Black"
+        BorderThickness="1"
+        BorderBrush="#FF1E1E1E"
+        GlowBrush="#FF3A82F7"
         ResizeMode="CanResizeWithGrip"
-        WindowTitleBrush="{DynamicResource BackgroundSecondary}"
+        WindowTitleBrush="#FF0F0F0F"
+        NonActiveWindowTitleBrush="#FF0A0A0A"
         WindowTransitionsEnabled="False"
         WindowStartupLocation="CenterScreen"
+        WindowState="Maximized"
         TitleCharacterCasing="Normal"
-        Icon="/Images/logohq_square_padded.png">
+        TitleForeground="#FFCCCCCC"
+        TitleAlignment="Left"
+        ShowMinButton="True"
+        ShowMaxRestoreButton="True"
+        ShowCloseButton="True"
+        Icon="/Images/logohq_square_padded.png"
+        UseLayoutRounding="True"
+        TextOptions.TextFormattingMode="Ideal"
+        TextOptions.TextRenderingMode="Auto"
+        TextOptions.TextHintingMode="Auto"
+        RenderOptions.BitmapScalingMode="LowQuality"
+        SnapsToDevicePixels="False"
+        StateChanged="OnWindowStateChanged"
+        SizeChanged="OnWindowSizeChanged"
+        Loaded="OnWindowLoaded">
+
+    <!-- Enhanced Window Commands in Title Bar -->
+    <mah:MetroWindow.RightWindowCommands>
+        <mah:WindowCommands>
+            <Button x:Name="screenshotButton" 
+                    Click="TakeScreenshot" 
+                    ToolTipService.ToolTip="📸 Take Screenshot"
+                    Content="Screenshot"
+                    FontSize="9"
+                    FontWeight="Medium"
+                    FontFamily="Segoe UI"
+                    Background="#FF3A82F7"
+                    Foreground="White"
+                    BorderThickness="0"
+                    Margin="0,0,8,0"
+                    Padding="6,3"
+                    Cursor="Hand">
+                <Button.Style>
+                    <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="Button">
+                                    <Border x:Name="border" 
+                                            Background="{TemplateBinding Background}"
+                                            CornerRadius="4"
+                                            BorderThickness="1"
+                                            BorderBrush="#FF5A9DF9"
+                                            Padding="{TemplateBinding Padding}">
+                                        <Border.Effect>
+                                            <DropShadowEffect Color="#FF000000" 
+                                                              Direction="270" 
+                                                              ShadowDepth="1" 
+                                                              BlurRadius="2" 
+                                                              Opacity="0.2"/>
+                                        </Border.Effect>
+                                        <ContentPresenter HorizontalAlignment="Center" 
+                                                          VerticalAlignment="Center"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="border" Property="Background" Value="#FF5A9DF9"/>
+                                            <Setter TargetName="border" Property="BorderBrush" Value="#FF7DB8FA"/>
+                                            <Setter TargetName="border" Property="RenderTransform">
+                                                <Setter.Value>
+                                                    <ScaleTransform ScaleX="1.05" ScaleY="1.05"/>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Trigger>
+                                        <Trigger Property="IsPressed" Value="True">
+                                            <Setter TargetName="border" Property="Background" Value="#FF2563EB"/>
+                                            <Setter TargetName="border" Property="BorderBrush" Value="#FF1D4ED8"/>
+                                            <Setter TargetName="border" Property="RenderTransform">
+                                                <Setter.Value>
+                                                    <ScaleTransform ScaleX="0.98" ScaleY="0.98"/>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </Button.Style>
+            </Button>
+        </mah:WindowCommands>
+    </mah:MetroWindow.RightWindowCommands>
+
+    <!-- Clean Productive Title Bar -->
+    <mah:MetroWindow.TitleTemplate>
+        <DataTemplate>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="auto"/>
+                </Grid.ColumnDefinitions>
+                
+                <!-- Clean Title Text Only -->
+                <TextBlock Grid.Column="0" 
+                           Text="{Binding}"
+                           FontFamily="Segoe UI"
+                           FontSize="12"
+                           FontWeight="Medium"
+                           Foreground="#FFCCCCCC"
+                           VerticalAlignment="Center"
+                           Margin="8,0,0,0"/>
+                
+                <!-- Productivity Info -->
+                <StackPanel Grid.Column="1" 
+                            Orientation="Horizontal" 
+                            VerticalAlignment="Center"
+                            Margin="0,0,8,0">
+                    <TextBlock Text="🚀" 
+                               FontSize="11" 
+                               Foreground="#FF3A82F7" 
+                               VerticalAlignment="Center"
+                               Margin="0,0,4,0"/>
+                    <TextBlock Text="Ready" 
+                               FontFamily="Segoe UI"
+                               FontSize="10"
+                               FontWeight="Medium"
+                               Foreground="#FF4ADE80"
+                               VerticalAlignment="Center"/>
+                </StackPanel>
+            </Grid>
+        </DataTemplate>
+    </mah:MetroWindow.TitleTemplate>
+
+    <!-- Custom Window Button Styles -->
+    <mah:MetroWindow.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+        <Style x:Key="ModernWindowButtonStyle" TargetType="{x:Type Button}" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Background" Value="#FF2A2A2A"/>
+            <Setter Property="Foreground" Value="#FFCCCCCC"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Width" Value="46"/>
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="FontFamily" Value="Segoe MDL2 Assets"/>
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Button}">
+                        <Border x:Name="border" 
+                                Background="{TemplateBinding Background}"
+                                BorderThickness="0">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#FF404040"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#FF1A1A1A"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        
+        <Style x:Key="ModernCloseButtonStyle" TargetType="{x:Type Button}" BasedOn="{StaticResource ModernWindowButtonStyle}">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Button}">
+                        <Border x:Name="border" 
+                                Background="{TemplateBinding Background}"
+                                BorderThickness="0">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#FFE81123"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#FFC50E1F"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </mah:MetroWindow.Resources>
 
     <Window.InputBindings>
         <KeyBinding Command="{x:Static local:CustomCommands.NewConfig}" Gesture="CTRL+N" />
@@ -37,116 +220,134 @@
         <KeyBinding Command="{x:Static local:CustomCommands.NavigateToRLSettings}" Gesture="CTRL+D0" />
     </Window.InputBindings>
 
-    <Window.Resources>
-        <BooleanToVisibilityConverter x:Key="BoolToVis" />
-    </Window.Resources>
-
-    <Grid x:Name="Root" Margin="0">
+    <!-- Responsive Layout Grid -->
+    <Grid x:Name="Root">
 
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="10" />
+            <ColumnDefinition x:Name="LeftMarginColumn" Width="Auto" />
             <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="10" />
+            <ColumnDefinition x:Name="RightMarginColumn" Width="Auto" />
         </Grid.ColumnDefinitions>
 
         <Grid.RowDefinitions>
-            <RowDefinition Height="30" />
+            <RowDefinition x:Name="TopNavRow" Height="Auto" />
             <RowDefinition Height="*" />
-            <RowDefinition Height="10" />
+            <RowDefinition x:Name="BottomMarginRow" Height="Auto" />
         </Grid.RowDefinitions>
 
+        <!-- Responsive Navigation Header -->
+        <Border x:Name="NavigationHeader"
+                Grid.Row="0" Grid.Column="1" 
+                Background="#FF1E1E1E" 
+                CornerRadius="8" 
+                BorderBrush="#FF2E2E2E" 
+                BorderThickness="1">
+            <Grid x:Name="NavigationGrid">
+                <!-- Navigation Menu -->
+                <ScrollViewer x:Name="NavigationScrollViewer"
+                              HorizontalScrollBarVisibility="Auto" 
+                              VerticalScrollBarVisibility="Disabled" 
+                              PanningMode="HorizontalOnly" 
+                              HorizontalAlignment="Stretch">
+                    <StackPanel x:Name="topMenu" 
+                                Orientation="Horizontal" 
+                                VerticalAlignment="Center">
+                        <StackPanel.Resources>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="FontWeight" Value="Medium" />
+                                <Setter Property="Foreground" Value="#FFCCCCCC" />
+                                <Setter Property="FontFamily" Value="Segoe UI" />
+                                <Setter Property="VerticalAlignment" Value="Center" />
+                                <Setter Property="Background" Value="Transparent" />
+                                <Setter Property="Cursor" Value="Hand" />
+                                <Setter Property="Padding" Value="12,8" />
+                                <Setter Property="Margin" Value="2,4" />
+                                <Style.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" Value="#FF3A82F7" />
+                                        <Setter Property="Foreground" Value="White" />
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </StackPanel.Resources>
+                    
+                        <!-- Navigation Menu Items -->
+                        <TextBlock x:Name="menuOptionHome" Text="HOME" MouseDown="OpenHomePage" ToolTipService.ToolTip="Main dashboard (Ctrl+1)"/>
+                        <TextBlock x:Name="menuOptionJobs" Text="JOBS" MouseDown="OpenJobsPage" ToolTipService.ToolTip="Manage checking jobs (Ctrl+2)"/>
+                        <TextBlock x:Name="menuOptionMonitor" Text="MONITOR" MouseDown="OpenMonitorPage" ToolTipService.ToolTip="Monitor running jobs (Ctrl+3)"/>
+                        <TextBlock x:Name="menuOptionProxies" Text="PROXIES" MouseDown="OpenProxiesPage" ToolTipService.ToolTip="Manage proxy lists (Ctrl+4)"/>
+                        <TextBlock x:Name="menuOptionWordlists" Text="WORDLISTS" MouseDown="OpenWordlistsPage" ToolTipService.ToolTip="Manage wordlists (Ctrl+5)"/>
+                        <TextBlock x:Name="menuOptionConfigs" Text="CONFIGS" MouseDown="OpenConfigsPage" MouseEnter="ConfigsMenuOptionMouseEnter" MouseLeave="ConfigsMenuOptionMouseLeave" ToolTipService.ToolTip="Browse and edit configs (Ctrl+6)"/>
+                        <TextBlock x:Name="menuOptionHits" Text="HITS" MouseDown="OpenHitsPage" ToolTipService.ToolTip="View successful hits (Ctrl+7)"/>
+                        <TextBlock x:Name="menuOptionPlugins" Text="PLUGINS" MouseDown="OpenPluginsPage" ToolTipService.ToolTip="Manage plugins (Ctrl+8)"/>
+                        <TextBlock x:Name="menuOptionSettings" Text="SETTINGS" MouseDown="OpenOBSettingsPage" ToolTipService.ToolTip="OpenBullet settings (Ctrl+9)"/>
+                        <TextBlock x:Name="menuOptionRLSettings" Text="RL SETTINGS" MouseDown="OpenRLSettingsPage" ToolTipService.ToolTip="RuriLib settings (Ctrl+0)"/>
+                        <TextBlock x:Name="menuOptionAbout" Text="ABOUT" MouseDown="OpenAboutPage" ToolTipService.ToolTip="About this application"/>
+                    </StackPanel>
+                </ScrollViewer>
+            </Grid>
+        </Border>
 
-        <!-- Top Menu StackPanel -->
-        <Grid Grid.Row="0" Grid.Column="1">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="auto"/>
-            </Grid.ColumnDefinitions>
-
-            <StackPanel x:Name="topMenu" Margin="-5 2 0 0" Grid.Column="0" Orientation="Horizontal">
+        <!-- Modern Config Submenu -->
+        <Border x:Name="configSubmenu"
+                Background="#FF1E1E1E"
+                BorderBrush="#FF2E2E2E"
+                BorderThickness="1"
+                CornerRadius="8"
+                Grid.Row="0" Grid.Column="1" Grid.RowSpan="2"
+                Panel.ZIndex="1000"
+                Height="auto"
+                Width="160"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Top"
+                Visibility="Collapsed"
+                MouseEnter="ConfigSubmenuMouseEnter"
+                MouseLeave="ConfigSubmenuMouseLeave"
+                Padding="12">
+            <StackPanel>
                 <StackPanel.Resources>
                     <Style TargetType="TextBlock">
-                        <Setter Property="FontWeight" Value="Bold" />
-                        <Setter Property="Margin" Value="10 0 5 0" />
-                        <Setter Property="Foreground" Value="{DynamicResource ForegroundMain}" />
-                        <Setter Property="FontFamily" Value="pack://application:,,,/Fonts/#Century Gothic" />
-                        <Setter Property="FontSize" Value="14" />
+                        <Setter Property="FontWeight" Value="Medium" />
+                        <Setter Property="Margin" Value="2,1" />
+                        <Setter Property="Padding" Value="10,8" />
+                        <Setter Property="Foreground" Value="#FFCCCCCC" />
+                        <Setter Property="FontFamily" Value="Segoe UI" />
+                        <Setter Property="FontSize" Value="11" />
                         <Setter Property="VerticalAlignment" Value="Center" />
+                        <Setter Property="Cursor" Value="Hand" />
+                        <Setter Property="Background" Value="Transparent" />
+                        <Style.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#FF3A82F7" />
+                                <Setter Property="Foreground" Value="White" />
+                            </Trigger>
+                        </Style.Triggers>
                     </Style>
                 </StackPanel.Resources>
-                <TextBlock x:Name="menuOptionHome" Text="Home" MouseDown="OpenHomePage" ToolTipService.ToolTip="Go to the home page"/>
-                <TextBlock x:Name="menuOptionJobs" Text="Jobs" MouseDown="OpenJobsPage" ToolTipService.ToolTip="Manage your sniffing, cracking, and scraping jobs"/>
-                <TextBlock x:Name="menuOptionMonitor" Text="Monitor" MouseDown="OpenMonitorPage" ToolTipService.ToolTip="Monitor your running jobs"/>
-                <TextBlock x:Name="menuOptionProxies" Text="Proxies" MouseDown="OpenProxiesPage" ToolTipService.ToolTip="Manage your proxies"/>
-                <TextBlock x:Name="menuOptionWordlists" Text="Wordlists" MouseDown="OpenWordlistsPage" ToolTipService.ToolTip="Manage your wordlists"/>
-
-                <StackPanel 
-                    Orientation="Horizontal"
-                    MouseEnter="ConfigsMenuOptionMouseEnter"
-                    MouseLeave="ConfigsMenuOptionMouseLeave">
-                    <TextBlock x:Name="menuOptionConfigs" 
-                       Text="Configs" 
-                       MouseDown="OpenConfigsPage" ToolTipService.ToolTip="Manage your configs"/>
-                    <iconPacks:PackIconFontAwesome 
-                    Foreground="{DynamicResource ForegroundMain}"
-                    VerticalAlignment="Center"
-                    Margin="0 0 5 0"
-                    Height="10"
-                    Width="10"
-                    Visibility="{Binding IsConfigSelected, Converter={StaticResource ResourceKey=BoolToVis}}"
-                    Kind="CaretDownSolid" />
-                </StackPanel>
-
-                <TextBlock x:Name="menuOptionHits" Text="Hits" MouseDown="OpenHitsPage" ToolTipService.ToolTip="View and manage your captured hits"/>
-                <TextBlock x:Name="menuOptionPlugins" Text="Plugins" MouseDown="OpenPluginsPage" ToolTipService.ToolTip="Manage installed plugins"/>
-                <TextBlock x:Name="menuOptionOBSettings" Text="OB Settings" MouseDown="OpenOBSettingsPage" ToolTipService.ToolTip="Configure OpenBullet 2 settings"/>
-                <TextBlock x:Name="menuOptionRLSettings" Text="RL Settings" MouseDown="OpenRLSettingsPage" ToolTipService.ToolTip="Configure RuriLib settings"/>
-                <TextBlock x:Name="menuOptionAbout" Text="About" MouseDown="OpenAboutPage" ToolTipService.ToolTip="Learn more about OpenBullet 2"/>
+                
+                <!-- Config Editor Menu Items -->
+                <TextBlock x:Name="menuOptionMetadata" Text="📝 Metadata" MouseDown="OpenMetadataPage" ToolTipService.ToolTip="Edit config metadata"/>
+                <TextBlock x:Name="menuOptionReadme" Text="📄 Readme" MouseDown="OpenReadmePage" ToolTipService.ToolTip="Edit config readme"/>
+                <TextBlock x:Name="menuOptionStacker" Text="🔧 Stacker" MouseDown="OpenStackerPage" ToolTipService.ToolTip="Edit config stacker"/>
+                <TextBlock x:Name="menuOptionLoliCode" Text="💻 LoliCode" MouseDown="OpenLoliCodePage" ToolTipService.ToolTip="Edit config LoliCode"/>
+                <TextBlock x:Name="menuOptionConfigSettings" Text="⚙️ Settings" MouseDown="OpenConfigSettingsPage" ToolTipService.ToolTip="Edit config settings"/>
+                <TextBlock x:Name="menuOptionCSharpCode" Text="🔷 C# Code" MouseDown="OpenCSharpCodePage" ToolTipService.ToolTip="Edit config C# code"/>
+                <TextBlock x:Name="menuOptionLoliScript" Text="📜 LoliScript" MouseDown="OpenLoliScriptPage" ToolTipService.ToolTip="Edit config LoliScript"/>
             </StackPanel>
-
-            <Border Padding="1" Grid.Column="1">
-                <Button x:Name="screenshotButton" 
-                    Style="{StaticResource StyledButton}"
-                    Click="TakeScreenshot" ToolTipService.ToolTip="Take a screenshot of the current window">
-                    <StackPanel Orientation="Horizontal">
-                        <iconPacks:PackIconMaterial Kind="Camera" />
-                    </StackPanel>
-                </Button>
-            </Border>
-        </Grid>
-
-        <StackPanel 
-            x:Name="configSubmenu"
-            Background="{DynamicResource BackgroundMain}"
-            Grid.Row="0" Grid.Column="1" Grid.RowSpan="2"
-            Margin="305 28 0 0" Panel.ZIndex="1"
-            Height="180"
-            Width="80"
-            HorizontalAlignment="Left"
-            VerticalAlignment="Top"
-            Visibility="Collapsed"
-            MouseEnter="ConfigSubmenuMouseEnter"
-            MouseLeave="ConfigSubmenuMouseLeave">
-            <StackPanel.Resources>
-                <Style TargetType="TextBlock">
-                    <Setter Property="FontWeight" Value="Bold" />
-                    <Setter Property="Margin" Value="10 8 5 0" />
-                    <Setter Property="Foreground" Value="{DynamicResource ForegroundMain}" />
-                    <Setter Property="FontFamily" Value="pack://application:,,,/Fonts/#Century Gothic" />
-                    <Setter Property="FontSize" Value="14" />
-                    <Setter Property="VerticalAlignment" Value="Center" />
-                </Style>
-            </StackPanel.Resources>
-            <TextBlock x:Name="menuOptionMetadata" Text="Metadata" MouseDown="OpenMetadataPage" ToolTipService.ToolTip="Edit config metadata"/>
-            <TextBlock x:Name="menuOptionReadme" Text="Readme" MouseDown="OpenReadmePage" ToolTipService.ToolTip="Edit config readme"/>
-            <TextBlock x:Name="menuOptionStacker" Text="Stacker" MouseDown="OpenStackerPage" ToolTipService.ToolTip="Edit config stacker"/>
-            <TextBlock x:Name="menuOptionLoliCode" Text="LoliCode" MouseDown="OpenLoliCodePage" ToolTipService.ToolTip="Edit config LoliCode"/>
-            <TextBlock x:Name="menuOptionConfigSettings" Text="Settings" MouseDown="OpenConfigSettingsPage" ToolTipService.ToolTip="Edit config settings"/>
-            <TextBlock x:Name="menuOptionCSharpCode" Text="C# Code" MouseDown="OpenCSharpCodePage" ToolTipService.ToolTip="Edit config C# code"/>
-            <TextBlock x:Name="menuOptionLoliScript" Text="LoliScript" MouseDown="OpenLoliScriptPage" ToolTipService.ToolTip="Edit config LoliScript"/>
-        </StackPanel>
+        </Border>
         
-        <Frame Grid.Row="1" Grid.Column="1" x:Name="mainFrame" NavigationUIVisibility="Hidden" />
+        <!-- Main Content Area -->
+        <Border x:Name="MainContentBorder"
+                Grid.Row="1" Grid.Column="1" 
+                Background="Transparent" 
+                CornerRadius="8" 
+                BorderBrush="#FF333333"
+                BorderThickness="1">
+            <Frame x:Name="mainFrame" 
+                   NavigationUIVisibility="Hidden" 
+                   Background="Transparent"
+                   BorderThickness="0" />
+        </Border>
 
         <mah:ProgressRing 
             x:Name="loadingIndicator"

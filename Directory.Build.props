@@ -1,0 +1,47 @@
+<Project>
+  <!-- Global Build Optimization Properties -->
+  <PropertyGroup>
+    <!-- Enable parallel builds and use all CPU cores -->
+    <BuildInParallel>true</BuildInParallel>
+    <MaxCpuCount>0</MaxCpuCount>
+    
+    <!-- Faster package restore -->
+    <RestoreUseStaticGraphEvaluation>true</RestoreUseStaticGraphEvaluation>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <DisableImplicitNuGetFallbackFolder>true</DisableImplicitNuGetFallbackFolder>
+    
+    <!-- Compiler optimizations -->
+    <UseSharedCompilation>true</UseSharedCompilation>
+    <!-- <Features>strict</Features> DISABLED - Can cause issues -->
+    
+    <!-- Suppress common warnings to speed up build -->
+    <NoWarn>$(NoWarn);CS8618;CS8600;CS8602;CS8604;CS8625;CS8622;CS8601;CS8603;CS0618;SYSLIB0039;CA1416;CS1998</NoWarn>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <WarningsAsErrors />
+    
+    <!-- Memory optimizations -->
+    <ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>None</ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>
+    
+    <!-- Skip unnecessary tasks -->
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <IncludeSymbols>false</IncludeSymbols>
+    <IncludeSource>false</IncludeSource>
+    
+    <!-- Deterministic builds -->
+    <Deterministic>true</Deterministic>
+    <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+
+  <!-- Fast incremental builds -->
+  <PropertyGroup Condition="'$(Configuration)' == 'testing' OR '$(Configuration)' == 'Debug'">
+    <OptimizeImplicitlyTriggeredBuild>true</OptimizeImplicitlyTriggeredBuild>
+    <DisableFastUpToDateCheck>false</DisableFastUpToDateCheck>
+  </PropertyGroup>
+  
+  <!-- Performance optimization for release builds -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <TieredCompilation>true</TieredCompilation>
+    <TieredPGO>true</TieredPGO>
+  </PropertyGroup>
+</Project> 

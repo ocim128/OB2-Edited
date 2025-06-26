@@ -28,7 +28,8 @@ namespace OpenBullet2.Native.Views.Pages
         private GridViewColumnHeader listViewSortCol;
         private SortAdorner listViewSortAdorner;
 
-        private IEnumerable<HitViewModel> SelectedHits => hitsListView.SelectedItems.Cast<HitViewModel>().ToList();
+        private IEnumerable<HitViewModel> SelectedHits => resultsListView.SelectedItems.Cast<HitViewModel>().ToList();
+        private IEnumerable<BotViewModel> SelectedBots => botsListView.SelectedItems.Cast<BotViewModel>().ToList();
 
         public MultiRunJobViewer()
         {
@@ -61,8 +62,6 @@ namespace OpenBullet2.Native.Views.Pages
         {
             try
             {
-                Application.Current.Dispatcher.Invoke(() => jobLog.Clear());
-                jobLog.BufferSize = obSettingsService.Settings.GeneralSettings.LogBufferSize;
                 await vm.StartAsync();
             }
             catch (Exception ex)
@@ -148,6 +147,27 @@ namespace OpenBullet2.Native.Views.Pages
             }
         }
 
+        private void ResetSkip(object sender, MouseButtonEventArgs e)
+        {
+            try
+            {
+                var dialog = new ConfirmationDialog(
+                    "Reset Skip Confirmation",
+                    "Are you sure you want to reset the skip count to 0?\n\nThis will restart the job from the beginning of the data pool.");
+                
+                dialog.ShowDialog(Application.Current.MainWindow);
+
+                if (dialog.Result)
+                {
+                    vm.ResetSkip();
+                }
+            }
+            catch (Exception ex)
+            {
+                Alert.Exception(ex);
+            }
+        }
+
         private void CopySelectedHits(object sender, RoutedEventArgs e)
             => SelectedHits.CopyToClipboard(h => h.Data);
 
@@ -174,7 +194,7 @@ namespace OpenBullet2.Native.Views.Pages
             }
         }
 
-        private void SelectAll(object sender, RoutedEventArgs e) => hitsListView.SelectAll();
+        private void SelectAll(object sender, RoutedEventArgs e) => resultsListView.SelectAll();
 
         private void ShowBotLog(object sender, RoutedEventArgs e)
         {
@@ -220,12 +240,71 @@ namespace OpenBullet2.Native.Views.Pages
         }
 
         private void OnResultMessage(object sender, string message, Color color)
-            => Application.Current.Dispatcher.Invoke(() =>
+        {
+            // Log messages are now handled via right-click menu 
+            // on hits list, no longer displayed in main view
+        }
+
+        // Tab functionality for filtering hits by type
+        private void ShowHitsTab(object sender, RoutedEventArgs e)
+        {
+            SetActiveTab("Hits");
+            vm.HitsFilter = ViewModels.HitsFilter.Hits;
+        }
+
+        private void ShowCustomTab(object sender, RoutedEventArgs e)
+        {
+            SetActiveTab("Custom");
+            vm.HitsFilter = ViewModels.HitsFilter.Custom;
+        }
+
+        private void ShowToCheckTab(object sender, RoutedEventArgs e)
+        {
+            SetActiveTab("ToCheck");
+            vm.HitsFilter = ViewModels.HitsFilter.ToCheck;
+        }
+
+
+
+        private void SetActiveTab(string activeTab)
+        {
+            // Reset all tabs to inactive state
+            HitsTabButton.Background = new SolidColorBrush(Color.FromRgb(0x40, 0x40, 0x40));
+            HitsTabButton.Foreground = new SolidColorBrush(Color.FromRgb(0xCC, 0xCC, 0xCC));
+            CustomTabButton.Background = new SolidColorBrush(Color.FromRgb(0x40, 0x40, 0x40));
+            CustomTabButton.Foreground = new SolidColorBrush(Color.FromRgb(0xCC, 0xCC, 0xCC));
+            ToCheckTabButton.Background = new SolidColorBrush(Color.FromRgb(0x40, 0x40, 0x40));
+            ToCheckTabButton.Foreground = new SolidColorBrush(Color.FromRgb(0xCC, 0xCC, 0xCC));
+
+            // Set the active tab
+            switch (activeTab)
             {
-                if (obSettingsService.Settings.GeneralSettings.EnableJobLogging)
-                {
-                    jobLog.Append(message, color);
-                }
-            });
+                case "Hits":
+                    HitsTabButton.Background = new SolidColorBrush(Color.FromRgb(0x28, 0xA7, 0x45));
+                    HitsTabButton.Foreground = Brushes.White;
+                    break;
+                case "Custom":
+                    CustomTabButton.Background = new SolidColorBrush(Color.FromRgb(0x6F, 0x42, 0xC1));
+                    CustomTabButton.Foreground = Brushes.White;
+                    break;
+                case "ToCheck":
+                    ToCheckTabButton.Background = new SolidColorBrush(Color.FromRgb(0xFF, 0xC1, 0x07));
+                    ToCheckTabButton.Foreground = Brushes.White;
+                    break;
+            }
+        }
+
+        // Bot context menu methods
+        private void CopySelectedBotData(object sender, RoutedEventArgs e)
+            => SelectedBots.CopyToClipboard(b => b.Data ?? "");
+
+        private void CopySelectedBotProxy(object sender, RoutedEventArgs e)
+            => SelectedBots.CopyToClipboard(b => b.Proxy ?? "");
+
+        private void CopySelectedBotInfo(object sender, RoutedEventArgs e)
+            => SelectedBots.CopyToClipboard(b => b.Info ?? "");
+
+        private void SelectAllBots(object sender, RoutedEventArgs e) => botsListView.SelectAll();
+
     }
 }

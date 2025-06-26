@@ -3,46 +3,170 @@
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+      xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
       xmlns:local="clr-namespace:OpenBullet2.Native.Views.Dialogs"
       mc:Ignorable="d" 
       d:DesignHeight="450" d:DesignWidth="800"
       Title="Create a config">
 
-    <Grid Height="150" Width="250" Margin="5">
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="auto" />
-            <ColumnDefinition Width="*" />
-        </Grid.ColumnDefinitions>
+    <Border Background="{DynamicResource BackgroundSecondary}" 
+            CornerRadius="12" 
+            BorderBrush="{DynamicResource BorderLight}" 
+            BorderThickness="1"
+            MinWidth="420"
+            MaxWidth="480">
+        <Border.Effect>
+            <DropShadowEffect Color="#000000" Direction="270" ShadowDepth="8" BlurRadius="16" Opacity="0.15"/>
+        </Border.Effect>
+        
+        <Grid Margin="32,28,32,32">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
 
-        <Grid.RowDefinitions>
-            <RowDefinition Height="auto" />
-            <RowDefinition Height="auto" />
-            <RowDefinition Height="auto" />
-            <RowDefinition Height="auto" />
-            <RowDefinition Height="auto" />
-        </Grid.RowDefinitions>
+            <!-- Header Section -->
+            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,24">
+                <iconPacks:PackIconMaterial Kind="FileDocumentOutline"
+                                            Width="28"
+                                            Height="28"
+                                            Foreground="#3B82F6"
+                                            VerticalAlignment="Center"
+                                            Margin="0,0,12,0"/>
+                <StackPanel>
+                    <TextBlock Text="Create New Config"
+                               FontFamily="Segoe UI"
+                               FontSize="18"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource ForegroundMain}"
+                               Margin="0,0,0,2"/>
+                    <TextBlock Text="Set up a new configuration file"
+                               FontFamily="Segoe UI"
+                               FontSize="12"
+                               Foreground="#94A3B8"
+                               FontWeight="Medium"/>
+                </StackPanel>
+            </StackPanel>
 
-        <Grid.Resources>
-            <Style TargetType="{x:Type Label}">
-                <Setter Property="VerticalAlignment" Value="Center" />
-                <Setter Property="Foreground" Value="{DynamicResource ForegroundMain}" />
-            </Style>
-        </Grid.Resources>
+            <!-- Name Field -->
+            <StackPanel Grid.Row="1" Margin="0,0,0,16">
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                    <iconPacks:PackIconMaterial Kind="TagOutline" 
+                                                Width="16" Height="16" 
+                                                Foreground="#64748B"
+                                                VerticalAlignment="Center" 
+                                                Margin="0,0,8,0" />
+                    <TextBlock Text="Configuration Name"
+                               FontFamily="Segoe UI"
+                               FontSize="13"
+                               FontWeight="Medium"
+                               Foreground="{DynamicResource ForegroundMain}"
+                               VerticalAlignment="Center"/>
+                    <TextBlock Text="*" 
+                               Foreground="#EF4444" 
+                               FontWeight="Bold" 
+                               Margin="4,0,0,0"/>
+                </StackPanel>
+                <TextBox x:Name="nameTextbox" 
+                         Height="40"
+                         Padding="12,10"
+                         FontSize="13"
+                         Background="{DynamicResource BackgroundMain}"
+                         Foreground="{DynamicResource ForegroundMain}"
+                         BorderBrush="{DynamicResource BorderMain}"
+                         BorderThickness="1"
+                         Style="{DynamicResource {x:Type TextBox}}"
+                         KeyDown="TextboxKeyDown"/>
+            </StackPanel>
 
-        <Label Grid.Column="0" Grid.Row="0" Content="Name:" />
-        <TextBox x:Name="nameTextbox" Grid.Column="1" Grid.Row="0" Margin="5" KeyDown="TextboxKeyDown"/>
-        <Label Grid.Column="0" Grid.Row="1" Content="Category:" />
-        <ComboBox x:Name="categoryCombobox" Grid.Column="1" Grid.Row="1" Text="Default" IsEditable="True" Margin="5" KeyDown="TextboxKeyDown"/>
-        <Label Grid.Column="0" Grid.Row="2" Content="Author:" />
-        <TextBox x:Name="authorTextbox" Grid.Column="1" Grid.Row="2" Margin="5" KeyDown="TextboxKeyDown"/>
-        <Button 
-            Grid.Column="0" 
-            Grid.ColumnSpan="2" 
-            Grid.Row="4" 
-            x:Name="acceptButton" 
-            Content="ACCEPT"
-            Height="30"
-            Style="{StaticResource StyledSuccessButton}"
-            Click="Accept" Margin="5"/>
-    </Grid>
+            <!-- Category Field -->
+            <StackPanel Grid.Row="2" Margin="0,0,0,16">
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                    <iconPacks:PackIconMaterial Kind="FolderOutline" 
+                                                Width="16" Height="16" 
+                                                Foreground="#64748B"
+                                                VerticalAlignment="Center" 
+                                                Margin="0,0,8,0" />
+                    <TextBlock Text="Category"
+                               FontFamily="Segoe UI"
+                               FontSize="13"
+                               FontWeight="Medium"
+                               Foreground="{DynamicResource ForegroundMain}"
+                               VerticalAlignment="Center"/>
+                </StackPanel>
+                <ComboBox x:Name="categoryCombobox" 
+                          Height="40"
+                          Padding="12,8"
+                          FontSize="13"
+                          Text="Default" 
+                          IsEditable="True"
+                          Background="{DynamicResource BackgroundMain}"
+                          Foreground="{DynamicResource ForegroundMain}"
+                          BorderBrush="{DynamicResource BorderMain}"
+                          BorderThickness="1"
+                          KeyDown="TextboxKeyDown"/>
+            </StackPanel>
+
+            <!-- Author Field -->
+            <StackPanel Grid.Row="3" Margin="0,0,0,24">
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                    <iconPacks:PackIconMaterial Kind="AccountOutline" 
+                                                Width="16" Height="16" 
+                                                Foreground="#64748B"
+                                                VerticalAlignment="Center" 
+                                                Margin="0,0,8,0" />
+                    <TextBlock Text="Author"
+                               FontFamily="Segoe UI"
+                               FontSize="13"
+                               FontWeight="Medium"
+                               Foreground="{DynamicResource ForegroundMain}"
+                               VerticalAlignment="Center"/>
+                </StackPanel>
+                <TextBox x:Name="authorTextbox" 
+                         Height="40"
+                         Padding="12,10"
+                         FontSize="13"
+                         Background="{DynamicResource BackgroundMain}"
+                         Foreground="{DynamicResource ForegroundMain}"
+                         BorderBrush="{DynamicResource BorderMain}"
+                         BorderThickness="1"
+                         Style="{DynamicResource {x:Type TextBox}}"
+                         KeyDown="TextboxKeyDown"/>
+            </StackPanel>
+
+            <!-- Action Buttons -->
+            <StackPanel Grid.Row="6" 
+                        Orientation="Horizontal" 
+                        HorizontalAlignment="Right">
+                
+                <Button Content="Cancel"
+                        Width="100"
+                        Height="38"
+                        Style="{StaticResource StyledButton}"
+                        Margin="0,0,12,0"
+                        FontWeight="Medium"
+                        Click="Cancel"/>
+
+                <Button x:Name="acceptButton" 
+                        Width="130"
+                        Height="38"
+                        Style="{StaticResource StyledSuccessButton}"
+                        FontWeight="SemiBold"
+                        Click="Accept">
+                    <StackPanel Orientation="Horizontal">
+                        <iconPacks:PackIconMaterial Kind="Plus" 
+                                                    Width="16" Height="16" 
+                                                    VerticalAlignment="Center"
+                                                    Margin="0,0,6,0"/>
+                        <TextBlock Text="Create Config" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+        </Grid>
+    </Border>
 </Page>

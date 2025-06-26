@@ -23,12 +23,58 @@ namespace OpenBullet2.Native.Views.Pages
 
         public Jobs()
         {
+            try
+            {
+                System.Diagnostics.Debug.WriteLine("Jobs constructor started");
+                
+                // Initialize services with null checks
             mainWindow = SP.GetService<MainWindow>();
+                if (mainWindow == null)
+                    throw new InvalidOperationException("MainWindow service is null");
+                System.Diagnostics.Debug.WriteLine("MainWindow service retrieved");
+                
             jobRepo = SP.GetService<IJobRepository>();
-            vm = SP.GetService<ViewModelsService>().Jobs;
+                if (jobRepo == null)
+                    throw new InvalidOperationException("JobRepository service is null");
+                System.Diagnostics.Debug.WriteLine("JobRepository service retrieved");
+                
+                var viewModelsService = SP.GetService<ViewModelsService>();
+                if (viewModelsService == null)
+                    throw new InvalidOperationException("ViewModelsService is null");
+                System.Diagnostics.Debug.WriteLine("ViewModelsService retrieved");
+                
+                vm = viewModelsService.Jobs;
+                if (vm == null)
+                    throw new InvalidOperationException("Jobs ViewModel is null");
+                System.Diagnostics.Debug.WriteLine("JobsViewModel retrieved");
+                
+                // Try to set DataContext before InitializeComponent
             DataContext = vm;
+                System.Diagnostics.Debug.WriteLine("DataContext set");
 
+                // Initialize component with detailed logging
+                System.Diagnostics.Debug.WriteLine("About to call InitializeComponent");
             InitializeComponent();
+                System.Diagnostics.Debug.WriteLine("InitializeComponent completed successfully");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Jobs constructor error: {ex.GetType().Name}: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+                
+                try
+                {
+                    MessageBox.Show($"Failed to initialize Jobs page: {ex.Message}\n\nType: {ex.GetType().Name}", 
+                                  "Jobs Page Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+                catch
+                {
+                    // MessageBox might fail too, so fallback to console
+                    Console.WriteLine($"CRITICAL: Jobs constructor failed: {ex}");
+                }
+                
+                throw;
+            }
         }
 
         private void NewJob(object sender, RoutedEventArgs e)
@@ -59,14 +105,20 @@ namespace OpenBullet2.Native.Views.Pages
                 mainWindow.DisplayJob(jobVM);
             };
 
-            Page page = jobVM switch
+            if (jobVM is MultiRunJobViewModel)
             {
-                MultiRunJobViewModel => new MultiRunJobOptionsDialog(jobOptions as MultiRunJobOptions, onAccept),
-                ProxyCheckJobViewModel => new ProxyCheckJobOptionsDialog(jobOptions as ProxyCheckJobOptions, onAccept),
-                _ => throw new NotImplementedException()
-            };
-
+                var dialog = new MultiRunJobOptionsDialog(jobOptions as MultiRunJobOptions, onAccept);
+                dialog.ShowDialog();
+            }
+            else if (jobVM is ProxyCheckJobViewModel)
+            {
+                var page = new ProxyCheckJobOptionsDialog(jobOptions as ProxyCheckJobOptions, onAccept);
             new MainDialog(page, $"Edit job #{entity.Id}", 800, 600).ShowDialog();
+            }
+            else
+            {
+                throw new NotImplementedException();
+            }
         }
 
         private async void CloneJob(object sender, RoutedEventArgs e)
@@ -83,14 +135,20 @@ namespace OpenBullet2.Native.Views.Pages
                 mainWindow.DisplayJob(cloned);
             };
 
-            Page page = jobVM switch
+            if (jobVM is MultiRunJobViewModel)
             {
-                MultiRunJobViewModel => new MultiRunJobOptionsDialog(newOptions as MultiRunJobOptions, onAccept),
-                ProxyCheckJobViewModel => new ProxyCheckJobOptionsDialog(newOptions as ProxyCheckJobOptions, onAccept),
-                _ => throw new NotImplementedException()
-            };
-
+                var dialog = new MultiRunJobOptionsDialog(newOptions as MultiRunJobOptions, onAccept);
+                dialog.ShowDialog();
+            }
+            else if (jobVM is ProxyCheckJobViewModel)
+            {
+                var page = new ProxyCheckJobOptionsDialog(newOptions as ProxyCheckJobOptions, onAccept);
             new MainDialog(page, $"Clone job #{entity.Id}", 800, 600).ShowDialog();
+            }
+            else
+            {
+                throw new NotImplementedException();
+            }
         }
 
         private async void RemoveJob(object sender, RoutedEventArgs e)
@@ -108,6 +166,49 @@ namespace OpenBullet2.Native.Views.Pages
         public async void CreateJob(JobOptions options) => await vm.CreateJobAsync(options);
 
         private void ViewJob(object sender, MouseButtonEventArgs e)
-            => SP.GetService<MainWindow>().DisplayJob((JobViewModel)(sender as WrapPanel).Tag);
+        {
+            try
+            {
+                System.Diagnostics.Debug.WriteLine($"ViewJob called with sender: {sender?.GetType().Name}");
+                
+                if (sender is Grid grid)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Grid found, Tag type: {grid.Tag?.GetType().Name}");
+                    if (grid.Tag is JobViewModel jobVM)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"JobViewModel found: {jobVM.Id}");
+                        var mainWindow = SP.GetService<MainWindow>();
+                        System.Diagnostics.Debug.WriteLine("MainWindow service retrieved");
+                        mainWindow.DisplayJob(jobVM);
+                        System.Diagnostics.Debug.WriteLine("DisplayJob completed");
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine("Grid.Tag is not a JobViewModel");
+                    }
+                }
+                else if (sender is WrapPanel wrapPanel)
+                {
+                    System.Diagnostics.Debug.WriteLine($"WrapPanel found, Tag type: {wrapPanel.Tag?.GetType().Name}");
+                    if (wrapPanel.Tag is JobViewModel jobVM)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"JobViewModel found: {jobVM.Id}");
+                        var mainWindow = SP.GetService<MainWindow>();
+                        System.Diagnostics.Debug.WriteLine("MainWindow service retrieved");
+                        mainWindow.DisplayJob(jobVM);
+                        System.Diagnostics.Debug.WriteLine("DisplayJob completed");
+                    }
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"Unexpected sender type: {sender?.GetType().Name}");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"ViewJob Exception: {ex}");
+                Alert.Exception(ex);
+            }
+        }
     }
 }

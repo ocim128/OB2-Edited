@@ -10,7 +10,7 @@
       Title="Hits">
 
     <Page.Resources>
-        <ContextMenu x:Key="ItemContextMenu">
+        <ContextMenu x:Key="ItemContextMenu" Style="{StaticResource {x:Type ContextMenu}}">
             <MenuItem x:Name="copyMenu" Header="Copy Selected">
                 <MenuItem Header="Data" Click="CopySelected"/>
                 <MenuItem Header="Proxy" Click="CopySelectedProxies"/>
@@ -29,7 +29,7 @@
         </ContextMenu>
     </Page.Resources>
     
-    <Grid>
+    <Grid Background="Transparent">
         <Grid.RowDefinitions>
             <RowDefinition Height="40" />
             <RowDefinition Height="*" />
@@ -49,7 +49,7 @@
                     <TextBlock VerticalAlignment="Center" Margin="5 0">Delete Duplicates</TextBlock>
                 </StackPanel>
             </Button>
-            <Button Click="Purge" Margin="0 5 5 5" Style="{StaticResource StyledDangerButton}" ToolTip="Deletes missing wordlists from the list.">
+            <Button Click="Purge" Margin="0 5 5 5" Style="{StaticResource StyledDangerButton}" ToolTip="Deletes all hits from the database">
                 <StackPanel Orientation="Horizontal">
                     <iconPacks:PackIconMaterial Kind="Close" />
                     <TextBlock VerticalAlignment="Center" Margin="5 0">Purge</TextBlock>
@@ -127,8 +127,8 @@
                     </Setter>
                     <Setter Property="OverridesDefaultStyle" Value="True" />
                     <Setter Property="Foreground" Value="{DynamicResource ForegroundMain}" />
-                    <Setter Property="FontFamily" Value="pack://application:,,,/Fonts/#Century Gothic" />
-                    <Setter Property="FontSize" Value="14" />
+                    <Setter Property="FontFamily" Value="Segoe UI" />
+                    <Setter Property="FontSize" Value="13" />
                 </Style>
                 <Style TargetType="{x:Type ListViewItem}">
                     <EventSetter Event="MouseRightButtonDown" Handler="LVIMouseRightButtonDown" />
@@ -205,56 +205,16 @@
                             <GridViewColumnHeader Tag="Proxy" Click="ColumnHeaderClicked">Proxy</GridViewColumnHeader>
                         </GridViewColumn.Header>
                     </GridViewColumn>
-                    <GridViewColumn Width="5000" DisplayMemberBinding="{Binding CapturedData}">
+                    <GridViewColumn Width="80" DisplayMemberBinding="{Binding CapturedDataString}">
                         <GridViewColumn.Header>
-                            <GridViewColumnHeader Tag="CapturedData" Click="ColumnHeaderClicked">Captured Data</GridViewColumnHeader>
+                            <GridViewColumnHeader Tag="CapturedDataString" Click="ColumnHeaderClicked">Captured Data</GridViewColumnHeader>
                         </GridViewColumn.Header>
                     </GridViewColumn>
+
                 </GridView>
             </ListView.View>
         </ListView>
 
-        <Grid Grid.Row="2">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="auto" />
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="auto" />
-                <ColumnDefinition Width="auto" />
-                <ColumnDefinition Width="auto" />
-                <ColumnDefinition Width="auto" />
-                <ColumnDefinition Width="auto" />
-            </Grid.ColumnDefinitions>
-            <Label Content="Filters:" VerticalAlignment="Center" />
-            <TextBox
-                x:Name="filterTextbox"
-                Grid.Column="1"
-                Text="{Binding SearchString}"
-                Margin="10 5 5 5"
-                KeyDown="UpdateSearch"/>
-            <Button Style="{StaticResource StyledButton}" Click="Search" Margin="0 5 5 5" Grid.Column="2" >
-                <StackPanel Orientation="Horizontal">
-                    <iconPacks:PackIconMaterialDesign Kind="Search" />
-                    <TextBlock VerticalAlignment="Center" Margin="5 0">Search Capture</TextBlock>
-                </StackPanel>
-            </Button>
-            <Label
-                Grid.Column="3"
-                Content="Config:"
-                VerticalAlignment="Center" />
-            <ComboBox
-                ItemsSource="{Binding ConfigNames}"
-                Grid.Column="4"
-                Margin="0 5"
-                SelectedValue="{Binding ConfigFilter}"/>
-            <Label
-                Grid.Column="5"
-                Content="Type:"
-                VerticalAlignment="Center"/>
-            <ComboBox
-                ItemsSource="{Binding HitTypes}"
-                Grid.Column="6"
-                Margin="0 5"
-                SelectedValue="{Binding TypeFilter}"/>
-        </Grid>
+        <StatusBar Grid.Row="2" HorizontalAlignment="Stretch" VerticalAlignment="Bottom" Background="{DynamicResource BackgroundSecondary}" />
     </Grid>
 </Page>

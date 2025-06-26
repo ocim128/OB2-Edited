@@ -12,6 +12,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Media;
 
 namespace OpenBullet2.Native.ViewModels
 {
@@ -33,6 +34,18 @@ namespace OpenBullet2.Native.ViewModels
             }
         }
 
+        private string searchText = "";
+        public string SearchText
+        {
+            get => searchText;
+            set
+            {
+                searchText = value;
+                OnPropertyChanged();
+                FilterJobs();
+            }
+        }
+
         public JobsViewModel()
         {
             jobRepo = SP.GetService<IJobRepository>();
@@ -41,6 +54,34 @@ namespace OpenBullet2.Native.ViewModels
 
             CreateCollection();
             timer = new Timer(new TimerCallback(_ => RefreshJobs()), null, 1000, 1000);
+        }
+
+        private void FilterJobs()
+        {
+            var allJobs = jobManager.Jobs.Select(j => MakeViewModel(j));
+            
+            if (!string.IsNullOrWhiteSpace(SearchText))
+            {
+                allJobs = allJobs.Where(job => 
+                {
+                    if (job is MultiRunJobViewModel mrJob)
+                    {
+                        return mrJob.ConfigDisplayName.Contains(SearchText, StringComparison.OrdinalIgnoreCase) ||
+                               mrJob.DataPoolDisplayInfo.Contains(SearchText, StringComparison.OrdinalIgnoreCase) ||
+                               mrJob.Id.ToString().Contains(SearchText);
+                    }
+                    else if (job is ProxyCheckJobViewModel pcJob)
+                    {
+                        return pcJob.ConfigDisplayName.Contains(SearchText, StringComparison.OrdinalIgnoreCase) ||
+                               pcJob.DataPoolDisplayInfo.Contains(SearchText, StringComparison.OrdinalIgnoreCase) ||
+                               pcJob.Id.ToString().Contains(SearchText);
+                    }
+                    return job.Id.ToString().Contains(SearchText);
+                });
+            }
+
+            JobsCollection = new ObservableCollection<JobViewModel>(allJobs);
+            SortCollection();
         }
 
         private void RefreshJobs()
@@ -53,8 +94,7 @@ namespace OpenBullet2.Native.ViewModels
 
         private void CreateCollection()
         {
-            JobsCollection = new ObservableCollection<JobViewModel>(jobManager.Jobs.Select(j => MakeViewModel(j)));
-            SortCollection();
+            FilterJobs();
         }
 
         private void SortCollection()
@@ -191,9 +231,42 @@ namespace OpenBullet2.Native.ViewModels
         public int Id => Job.Id;
         public JobStatus Status => Job.Status;
 
+        // UI Display Properties
+        public virtual string StatusDisplayText => Status switch
+        {
+            JobStatus.Idle => "IDLE",
+            JobStatus.Starting => "STARTING",
+            JobStatus.Running => "RUNNING",
+            JobStatus.Pausing => "PAUSING",
+            JobStatus.Paused => "PAUSED",
+            JobStatus.Stopping => "STOPPING",
+            JobStatus.Resuming => "RESUMING",
+            _ => "UNKNOWN"
+        };
+
+        public virtual SolidColorBrush StatusColor => Status switch
+        {
+            JobStatus.Idle => new SolidColorBrush(Color.FromRgb(108, 117, 125)), // Gray
+            JobStatus.Starting => new SolidColorBrush(Color.FromRgb(255, 193, 7)), // Yellow
+            JobStatus.Running => new SolidColorBrush(Color.FromRgb(40, 167, 69)), // Green
+            JobStatus.Pausing => new SolidColorBrush(Color.FromRgb(255, 193, 7)), // Yellow
+            JobStatus.Paused => new SolidColorBrush(Color.FromRgb(253, 126, 20)), // Orange
+            JobStatus.Stopping => new SolidColorBrush(Color.FromRgb(220, 53, 69)), // Red
+            JobStatus.Resuming => new SolidColorBrush(Color.FromRgb(23, 162, 184)), // Blue
+            _ => new SolidColorBrush(Color.FromRgb(108, 117, 125))
+        };
+
         public JobViewModel(Job job)
         {
             Job = job;
+        }
+
+        public virtual void UpdateViewModel()
+        {
+            OnPropertyChanged(nameof(Status));
+            OnPropertyChanged(nameof(StatusDisplayText));
+            OnPropertyChanged(nameof(StatusColor));
+            OnPropertyChanged(nameof(IdAndStatus));
         }
     }
 
@@ -202,6 +275,11 @@ namespace OpenBullet2.Native.ViewModels
         private MultiRunJob MultiRunJob => Job as MultiRunJob;
 
         public string ConfigName => MultiRunJob.Config is null ? "No config" : MultiRunJob.Config.Metadata.Name;
+        public string ConfigDisplayName => MultiRunJob.Config is null ? "No Config Selected" : 
+            string.IsNullOrEmpty(MultiRunJob.Config.Metadata.Name) ? "Unnamed Config" : MultiRunJob.Config.Metadata.Name;
+        
+        public string JobTypeDisplay => "Multi-Run Job";
+        
         public string DataPoolInfo => MultiRunJob.DataPool switch
         {
             WordlistDataPool w => $"{w.Wordlist.Name} (Wordlist)",
@@ -210,6 +288,16 @@ namespace OpenBullet2.Native.ViewModels
             RangeDataPool => "Range",
             FileDataPool f => $"{Path.GetFileName(f.FileName)} (File)",
             _ => throw new NotImplementedException()
+        };
+
+        public string DataPoolDisplayInfo => MultiRunJob.DataPool switch
+        {
+            WordlistDataPool w => w.Wordlist.Name,
+            CombinationsDataPool => "Combinations",
+            InfiniteDataPool => "Infinite",
+            RangeDataPool => "Range",
+            FileDataPool f => Path.GetFileName(f.FileName),
+            _ => "Unknown"
         };
 
         public int Bots => MultiRunJob.Bots;
@@ -245,7 +333,19 @@ namespace OpenBullet2.Native.ViewModels
 
         public decimal CaptchaCredit => MultiRunJob.CaptchaCredit;
         public string ElapsedString => $"{(int)MultiRunJob.Elapsed.TotalDays} day(s) {MultiRunJob.Elapsed:hh\\:mm\\:ss}";
-        public string RemainingString => $"{(int)MultiRunJob.Remaining.TotalDays} day(s) {MultiRunJob.Remaining:hh\\:mm\\:ss}";
+        public string RemainingString 
+        {
+            get
+            {
+                // If job is completed, show 00:00:00 instead of continuing to calculate
+                if (MultiRunJob.Status == JobStatus.Idle || MultiRunJob.Status == JobStatus.Stopping || 
+                    MultiRunJob.Progress >= 1.0f || MultiRunJob.DataTested >= MultiRunJob.DataPool.Size)
+                {
+                    return "0 day(s) 00:00:00";
+                }
+                return $"{(int)MultiRunJob.Remaining.TotalDays} day(s) {MultiRunJob.Remaining:hh\\:mm\\:ss}";
+            }
+        }
 
         public int CPM => MultiRunJob.CPM;
 
@@ -296,6 +396,11 @@ namespace OpenBullet2.Native.ViewModels
         public void UpdateBots() => OnPropertyChanged(nameof(Bots));
 
         /// <summary>
+        /// Update the Skip property.
+        /// </summary>
+        public void UpdateSkip() => OnPropertyChanged(nameof(Skip));
+
+        /// <summary>
         /// Updates the status of the job.
         /// </summary>
         public void UpdateStatus()
@@ -303,11 +408,24 @@ namespace OpenBullet2.Native.ViewModels
             OnPropertyChanged(nameof(Status));
             OnPropertyChanged(nameof(IdAndStatus));
         }
+
+        public override void UpdateViewModel()
+        {
+            base.UpdateViewModel();
+            OnPropertyChanged(nameof(ConfigName));
+            OnPropertyChanged(nameof(ConfigDisplayName));
+            OnPropertyChanged(nameof(DataPoolInfo));
+            OnPropertyChanged(nameof(DataPoolDisplayInfo));
+        }
     }
 
     public class ProxyCheckJobViewModel : JobViewModel
     {
         private ProxyCheckJob ProxyCheckJob => Job as ProxyCheckJob;
+
+        public string ConfigDisplayName => "Proxy Check";
+        public string JobTypeDisplay => "Proxy Check Job";
+        public string DataPoolDisplayInfo => $"URL: {Url}";
 
         public int Bots => ProxyCheckJob.Bots;
         public string Url => ProxyCheckJob.Url;
@@ -320,12 +438,28 @@ namespace OpenBullet2.Native.ViewModels
         public int Working => ProxyCheckJob.Working;
         public int NotWorking => ProxyCheckJob.NotWorking;
 
+        // For consistency with MultiRun jobs
+        public int DataHits => Working;
+        public int DataCustom => 0; // Proxy check doesn't have custom results
+
         public float Progress => ProxyCheckJob.Progress;
         public string ProgressString => $"{Tested} / {Total} ({(Progress == -1 ? 0 : Progress * 100):0.00}%)";
 
         public int CPM => ProxyCheckJob.CPM;
         public string ElapsedString => $"{(int)ProxyCheckJob.Elapsed.TotalDays} day(s) {ProxyCheckJob.Elapsed:hh\\:mm\\:ss}";
-        public string RemainingString => $"{(int)ProxyCheckJob.Remaining.TotalDays} day(s) {ProxyCheckJob.Remaining:hh\\:mm\\:ss}";
+        public string RemainingString 
+        {
+            get
+            {
+                // If job is completed, show 00:00:00 instead of continuing to calculate
+                if (ProxyCheckJob.Status == JobStatus.Idle || ProxyCheckJob.Status == JobStatus.Stopping || 
+                    ProxyCheckJob.Progress >= 1.0f || ProxyCheckJob.Tested >= ProxyCheckJob.Total)
+                {
+                    return "0 day(s) 00:00:00";
+                }
+                return $"{(int)ProxyCheckJob.Remaining.TotalDays} day(s) {ProxyCheckJob.Remaining:hh\\:mm\\:ss}";
+            }
+        }
 
         public ProxyCheckJobViewModel(ProxyCheckJob job) : base(job)
         {
@@ -354,6 +488,7 @@ namespace OpenBullet2.Native.ViewModels
         {
            OnPropertyChanged(nameof(Progress));
             OnPropertyChanged(nameof(ProgressString));
+            OnPropertyChanged(nameof(DataHits));
         }
 
         /// <summary>
@@ -368,6 +503,14 @@ namespace OpenBullet2.Native.ViewModels
         {
             OnPropertyChanged(nameof(Status));
             OnPropertyChanged(nameof(IdAndStatus));
+        }
+
+        public override void UpdateViewModel()
+        {
+            base.UpdateViewModel();
+            OnPropertyChanged(nameof(ConfigDisplayName));
+            OnPropertyChanged(nameof(DataPoolDisplayInfo));
+            OnPropertyChanged(nameof(DataHits));
         }
     }
 }

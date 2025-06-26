@@ -10,49 +10,52 @@
       Title="Proxies">
 
     <Page.Resources>
-        <ContextMenu x:Key="ItemContextMenu">
+        <ContextMenu x:Key="ItemContextMenu" Style="{StaticResource {x:Type ContextMenu}}">
             <MenuItem x:Name="copySelectedProxies" Header="Copy Selected Proxies" Click="CopySelectedProxies"/>
             <MenuItem x:Name="copySelectedProxiesFull" Header="Copy Selected Proxies (with type and credentials)" Click="CopySelectedProxiesFull"/>
         </ContextMenu>
     </Page.Resources>
 
-    <Grid>
+    <Grid Margin="24,20,24,24" Background="Transparent">
         <Grid.RowDefinitions>
-            <RowDefinition Height="40" />
-            <RowDefinition Height="40" />
+            <RowDefinition Height="auto" />
+            <RowDefinition Height="auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <StackPanel Grid.Row="0" Orientation="Horizontal">
-            <Button x:Name="addGroupButton" Click="AddGroup" Margin="0 5 5 5" Style="{StaticResource StyledSuccessButton}" >
+        <Border Grid.Row="0" Style="{StaticResource CompactCardStyle}" Margin="0,0,0,16" Background="#C0353535">
+            <StackPanel Orientation="Horizontal">
+            <Button x:Name="addGroupButton" Click="AddGroup" Margin="0,0,8,0" Style="{StaticResource StyledSuccessButton}" >
                 <StackPanel Orientation="Horizontal">
                     <iconPacks:PackIconMaterialDesign Kind="Add" />
                     <TextBlock VerticalAlignment="Center" Margin="5 0">Add Group</TextBlock>
                 </StackPanel>
             </Button>
-            <Button x:Name="editGroupButton" Click="EditGroup" Margin="0 5 5 5" Style="{StaticResource StyledPrimaryButton}" >
+            <Button x:Name="editGroupButton" Click="EditGroup" Margin="0,0,8,0" Style="{StaticResource StyledPrimaryButton}" >
                 <StackPanel Orientation="Horizontal">
                     <iconPacks:PackIconRemixIcon Kind="Edit2Fill" />
                     <TextBlock VerticalAlignment="Center" Margin="5 0">Edit Group</TextBlock>
                 </StackPanel>
             </Button>
-            <Button x:Name="deleteGroupButton" Click="DeleteGroup" Margin="0 5 5 5" Style="{StaticResource StyledDangerButton}" >
+            <Button x:Name="deleteGroupButton" Click="DeleteGroup" Margin="0,0,16,0" Style="{StaticResource StyledDangerButton}" >
                 <StackPanel Orientation="Horizontal">
                     <iconPacks:PackIconMaterial Kind="Close" />
                     <TextBlock VerticalAlignment="Center" Margin="5 0">Delete Group</TextBlock>
                 </StackPanel>
             </Button>
-            <Label VerticalAlignment="Center">Selected group:</Label>
+            <TextBlock Text="Selected group:" Style="{StaticResource LabelTextStyle}" VerticalAlignment="Center" Margin="0,0,8,0"/>
             <ComboBox
-                  Height="30"
+                  MinHeight="32"
                   ItemsSource="{Binding Path=ProxyGroupsCollection}"
                   DisplayMemberPath="Name"
                   SelectedValuePath="Id"
                   SelectedValue="{Binding Path=SelectedGroupId, Mode=TwoWay}" />
         </StackPanel>
+        </Border>
 
-        <StackPanel Grid.Row="1" Orientation="Horizontal">
-            <Button x:Name="importButton" Click="Import" Margin="0 5 5 5" Style="{StaticResource StyledSuccessButton}" >
+        <Border Grid.Row="1" Background="#80404040" Padding="12" Margin="0,0,0,8">
+            <StackPanel Orientation="Horizontal">
+                <Button x:Name="importButton" Click="Import" Margin="0 5 5 5" Style="{StaticResource StyledSuccessButton}" >
                 <StackPanel Orientation="Horizontal">
                     <iconPacks:PackIconUnicons Kind="Import" />
                     <TextBlock VerticalAlignment="Center" Margin="5 0">Import</TextBlock>
@@ -88,9 +91,10 @@
             <TextBlock Text="{Binding Working}" Foreground="{DynamicResource ForegroundGood}" VerticalAlignment="Center" Margin="5 0 0 0" />
             <TextBlock FontWeight="Bold" Foreground="{DynamicResource ForegroundBad}" VerticalAlignment="Center" Margin="10 0 0 0">Not working:</TextBlock>
             <TextBlock Text="{Binding NotWorking}" Foreground="{DynamicResource ForegroundBad}" VerticalAlignment="Center" Margin="5 0 0 0" />
-        </StackPanel>
+            </StackPanel>
+        </Border>
 
-        <ListView x:Name="proxiesListView" Grid.Column="0" Grid.Row="2" Foreground="{DynamicResource ForegroundMain}" Background="Transparent" ItemsSource="{Binding Path=ProxiesCollection}" SelectionMode="Extended" BorderThickness="1" VirtualizingPanel.IsVirtualizing="True" AllowDrop="True" Drop="ProxyListViewDrop">
+        <ListView x:Name="proxiesListView" Grid.Column="0" Grid.Row="2" Foreground="{DynamicResource ForegroundMain}" Background="#C0353535" ItemsSource="{Binding Path=ProxiesCollection}" SelectionMode="Extended" BorderThickness="1" VirtualizingPanel.IsVirtualizing="True" AllowDrop="True" Drop="ProxyListViewDrop">
 
             <!-- Show Headers by overriding the default style -->
             <ListView.Style>
@@ -150,8 +154,8 @@
                     </Setter>
                     <Setter Property="OverridesDefaultStyle" Value="True" />
                     <Setter Property="Foreground" Value="{DynamicResource ForegroundMain}" />
-                    <Setter Property="FontFamily" Value="pack://application:,,,/Fonts/#Century Gothic" />
-                    <Setter Property="FontSize" Value="14" />
+                    <Setter Property="FontFamily" Value="Segoe UI" />
+                    <Setter Property="FontSize" Value="13" />
                 </Style>
                 <Style TargetType="{x:Type ListViewItem}">
                     <EventSetter Event="MouseRightButtonDown" Handler="ItemRightClick" />

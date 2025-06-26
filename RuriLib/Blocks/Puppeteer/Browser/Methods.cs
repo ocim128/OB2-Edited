@@ -33,6 +33,48 @@ namespace RuriLib.Blocks.Puppeteer.Browser
 
             var args = data.ConfigSettings.BrowserSettings.CommandLineArgs;
 
+            // Enhanced stealth arguments to avoid bot detection
+            var stealthArgs = new[]
+            {
+                "--no-first-run",
+                "--disable-blink-features=AutomationControlled",
+                "--disable-features=VizDisplayCompositor",
+                "--disable-ipc-flooding-protection",
+                "--disable-renderer-backgrounding",
+                "--disable-backgrounding-occluded-windows",
+                "--disable-background-timer-throttling",
+                "--disable-features=TranslateUI",
+                "--disable-domain-reliability",
+                "--disable-client-side-phishing-detection",
+                "--disable-component-update",
+                "--disable-default-apps",
+                "--disable-dev-shm-usage",
+                "--disable-hang-monitor",
+                "--disable-prompt-on-repost",
+                "--disable-sync",
+                "--disable-web-security",
+                "--hide-scrollbars",
+                "--no-sandbox",
+                "--disable-background-networking",
+                "--disable-background-media-suspend",
+                "--disable-field-trial-config",
+                "--disable-back-forward-cache",
+                "--disable-popup-blocking",
+                "--flag-switches-begin",
+                "--disable-site-isolation-trials",
+                "--flag-switches-end"
+            };
+
+            // Combine with existing args
+            if (!string.IsNullOrWhiteSpace(args))
+            {
+                args += " " + string.Join(" ", stealthArgs);
+            }
+            else
+            {
+                args = string.Join(" ", stealthArgs);
+            }
+
             // Extra command line args (to have dynamic args via variables)
             if (!string.IsNullOrWhiteSpace(extraCmdLineArgs))
             {
@@ -68,7 +110,7 @@ namespace RuriLib.Blocks.Puppeteer.Browser
             {
                 Args = new string[] { args },
                 ExecutablePath = data.Providers.PuppeteerBrowser.ChromeBinaryLocation,
-                IgnoredDefaultArgs = new string[] { "--disable-extensions", "--enable-automation" },
+                IgnoredDefaultArgs = new string[] { "--enable-automation", "--enable-blink-features=AutomationControlled" },
                 Headless = data.ConfigSettings.BrowserSettings.Headless,
                 DefaultViewport = null // This is important
             };
@@ -86,6 +128,9 @@ namespace RuriLib.Blocks.Puppeteer.Browser
             var page = (await browser.PagesAsync()).First();
             SetPageAndFrame(data, page);
             await SetPageLoadingOptions(data, page);
+            
+            // Apply additional stealth measures after page creation
+            await ApplyStealthMeasures(page);
 
             // Authenticate if the proxy requires auth
             if (data.UseProxy && data.Proxy is { NeedsAuthentication: true, Type: ProxyType.Http } proxy)
@@ -113,6 +158,9 @@ namespace RuriLib.Blocks.Puppeteer.Browser
             var browser = GetBrowser(data);
             var page = await browser.NewPageAsync();
             await SetPageLoadingOptions(data, page);
+
+            // Apply stealth measures to the new tab
+            await ApplyStealthMeasures(page);
 
             SetPageAndFrame(data, page); // Set the new page as active
             data.Logger.Log($"Opened a new page", LogColors.DarkSalmon);
@@ -247,6 +295,284 @@ namespace RuriLib.Blocks.Puppeteer.Browser
                     e.Dialog.Dismiss();
                 };
             }
+        }
+
+        private static async Task ApplyStealthMeasures(IPage page)
+        {
+            // Random realistic user agents for Windows 10/11
+            var userAgents = new[]
+            {
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36",
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0",
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/120.0"
+            };
+
+            var random = new Random();
+            var selectedUserAgent = userAgents[random.Next(userAgents.Length)];
+            
+            // Set random user agent
+            await page.SetUserAgentAsync(selectedUserAgent);
+
+            // Comprehensive stealth JavaScript to be injected before any page loads
+            var stealthScript = @"
+            // Remove webdriver property
+            Object.defineProperty(navigator, 'webdriver', {
+                get: () => undefined,
+            });
+
+            // Remove automation indicator
+            delete navigator.__proto__.webdriver;
+
+            // Mock chrome runtime
+            window.chrome = {
+                runtime: {
+                    onConnect: undefined,
+                    onMessage: undefined
+                }
+            };
+
+            // Mock languages with randomization
+            const languages = [
+                ['en-US', 'en'],
+                ['en-GB', 'en'],
+                ['en-CA', 'en']
+            ];
+            const randomLang = languages[Math.floor(Math.random() * languages.length)];
+            
+            Object.defineProperty(navigator, 'languages', {
+                get: () => randomLang,
+            });
+            
+            Object.defineProperty(navigator, 'language', {
+                get: () => randomLang[0],
+            });
+
+            // Mock plugins
+            Object.defineProperty(navigator, 'plugins', {
+                get: () => [
+                    {
+                        0: {
+                            type: 'application/x-google-chrome-pdf',
+                            suffixes: 'pdf',
+                            description: 'Portable Document Format',
+                            enabledPlugin: true
+                        },
+                        description: 'Portable Document Format',
+                        filename: 'internal-pdf-viewer',
+                        length: 1,
+                        name: 'Chrome PDF Plugin'
+                    },
+                    {
+                        0: {
+                            type: 'application/pdf',
+                            suffixes: 'pdf',
+                            description: '',
+                            enabledPlugin: true
+                        },
+                        description: '',
+                        filename: 'mhjfbmdgcfjbbpaeojofohoefgiehjai',
+                        length: 1,
+                        name: 'Chrome PDF Viewer'
+                    }
+                ],
+            });
+
+            // Mock permissions
+            const originalQuery = window.navigator.permissions.query;
+            window.navigator.permissions.query = (parameters) => (
+                parameters.name === 'notifications' ?
+                    Promise.resolve({ state: typeof Notification !== 'undefined' ? Notification.permission : 'default' }) :
+                    originalQuery(parameters)
+            );
+
+            // Mock WebGL vendor and renderer
+            const getParameter = WebGLRenderingContext.getParameter;
+            WebGLRenderingContext.prototype.getParameter = function(parameter) {
+                if (parameter === 37445) {
+                    return 'Intel Inc.'; // UNMASKED_VENDOR_WEBGL
+                }
+                if (parameter === 37446) {
+                    return 'Intel(R) HD Graphics'; // UNMASKED_RENDERER_WEBGL
+                }
+                return getParameter(parameter);
+            };
+
+            // Mock WebGL2 as well
+            if (typeof WebGL2RenderingContext !== 'undefined') {
+                const getParameter2 = WebGL2RenderingContext.getParameter;
+                WebGL2RenderingContext.prototype.getParameter = function(parameter) {
+                    if (parameter === 37445) {
+                        return 'Intel Inc.';
+                    }
+                    if (parameter === 37446) {
+                        return 'Intel(R) HD Graphics';
+                    }
+                    return getParameter2(parameter);
+                };
+            }
+
+            // Mock screen properties with realistic values
+            const screenWidth = window.screen.width || 1920;
+            const screenHeight = window.screen.height || 1080;
+            const availWidth = window.screen.availWidth || screenWidth;
+            const availHeight = window.screen.availHeight || (screenHeight - 40); // Account for taskbar
+
+            Object.defineProperty(screen, 'width', {
+                get: () => screenWidth,
+            });
+            Object.defineProperty(screen, 'height', {
+                get: () => screenHeight,
+            });
+            Object.defineProperty(screen, 'availWidth', {
+                get: () => availWidth,
+            });
+            Object.defineProperty(screen, 'availHeight', {
+                get: () => availHeight,
+            });
+            Object.defineProperty(screen, 'colorDepth', {
+                get: () => 24,
+            });
+            Object.defineProperty(screen, 'pixelDepth', {
+                get: () => 24,
+            });
+
+            // Mock navigator properties
+            Object.defineProperty(navigator, 'hardwareConcurrency', {
+                get: () => 8,
+            });
+
+            Object.defineProperty(navigator, 'deviceMemory', {
+                get: () => 8,
+            });
+
+            Object.defineProperty(navigator, 'platform', {
+                get: () => 'Win32',
+            });
+
+            Object.defineProperty(navigator, 'vendor', {
+                get: () => 'Google Inc.',
+            });
+
+            // Mock battery API
+            if ('getBattery' in navigator) {
+                navigator.getBattery = () => Promise.resolve({
+                    charging: true,
+                    chargingTime: 0,
+                    dischargingTime: Infinity,
+                    level: 1,
+                    addEventListener: () => {},
+                    removeEventListener: () => {},
+                    dispatchEvent: () => {}
+                });
+            }
+
+            // Mock connection API
+            Object.defineProperty(navigator, 'connection', {
+                get: () => ({
+                    effectiveType: '4g',
+                    rtt: 50,
+                    downlink: 10,
+                    saveData: false
+                }),
+            });
+
+            // Override Date to avoid timezone detection
+            const originalDate = Date;
+            const fakeTimezoneOffset = -300; // EST timezone
+            Date = class extends originalDate {
+                getTimezoneOffset() {
+                    return fakeTimezoneOffset;
+                }
+                static now() {
+                    return originalDate.now();
+                }
+            };
+
+            // Mock iframe contentWindow
+            const originalCreateElement = document.createElement;
+            document.createElement = function(...args) {
+                const element = originalCreateElement.apply(this, args);
+                if (args[0] === 'iframe') {
+                    try {
+                        element.contentWindow = window;
+                    } catch (e) {}
+                }
+                return element;
+            };
+
+            // Prevent function source code detection
+            const originalToString = Function.prototype.toString;
+            Function.prototype.toString = function() {
+                if (this === navigator.webdriver || 
+                    this === Object.getOwnPropertyDescriptor(navigator, 'webdriver').get) {
+                    return 'function webdriver() { [native code] }';
+                }
+                return originalToString.call(this);
+            };
+
+            // Mock Notification permission
+            if (typeof Notification !== 'undefined') {
+                Object.defineProperty(Notification, 'permission', {
+                    get: () => 'default',
+                });
+            }
+
+            // Mock media devices
+            if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
+                navigator.mediaDevices.enumerateDevices = () => Promise.resolve([
+                    {
+                        deviceId: 'default',
+                        kind: 'audioinput',
+                        label: 'Default - Microphone (Realtek High Definition Audio)',
+                        groupId: 'group1'
+                    },
+                    {
+                        deviceId: 'default',
+                        kind: 'audiooutput',
+                        label: 'Default - Speaker (Realtek High Definition Audio)',
+                        groupId: 'group1'
+                    },
+                    {
+                        deviceId: 'camera1',
+                        kind: 'videoinput',
+                        label: 'Integrated Camera (USB Camera)',
+                        groupId: 'group2'
+                    }
+                ]);
+            }
+
+            // Remove CDP runtime detection
+            if (window.cdc_adoQpoasnfa76pfcZLmcfl_Array ||
+                window.cdc_adoQpoasnfa76pfcZLmcfl_Promise ||
+                window.cdc_adoQpoasnfa76pfcZLmcfl_Symbol) {
+                delete window.cdc_adoQpoasnfa76pfcZLmcfl_Array;
+                delete window.cdc_adoQpoasnfa76pfcZLmcfl_Promise;
+                delete window.cdc_adoQpoasnfa76pfcZLmcfl_Symbol;
+            }
+
+            // Prevent automation detection through error stack traces
+            const originalStackTrace = Error.prepareStackTrace;
+            Error.prepareStackTrace = function(_, stack) {
+                const filteredStack = stack.filter(frame => {
+                    const name = frame.getFunctionName();
+                    return !name || (!name.includes('puppeteer') && !name.includes('automation'));
+                });
+                if (originalStackTrace) {
+                    return originalStackTrace(_, filteredStack);
+                }
+                return filteredStack;
+            };
+
+            console.log('🥷 Stealth mode activated successfully!');
+            ";
+
+            // Execute stealth script
+            await page.EvaluateExpressionAsync(stealthScript);
+
+            // Note: Removed fixed viewport to allow natural browser window adaptation
         }
     }
 }

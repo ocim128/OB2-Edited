@@ -3,37 +3,45 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="clr-namespace:OpenBullet2.Native"
              xmlns:mah="http://metro.mahapps.com/winfx/xaml/controls"
-             xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
-             Startup="OnStartup">
+             xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks">
     <Application.Resources>
         <ResourceDictionary>
-            <!-- Colors -->
-            <SolidColorBrush x:Key="ThemeMain" Color="#1E90FF" />
-            <SolidColorBrush x:Key="BackgroundMain" Color="#222" />
-            <SolidColorBrush x:Key="BackgroundSecondary" Color="#111" />
-            <SolidColorBrush x:Key="BackgroundInput" Color="#282828" />
-            <SolidColorBrush x:Key="ForegroundMain" Color="#DCDCDC" />
-            <SolidColorBrush x:Key="ForegroundInput" Color="#DCDCDC" />
-            <SolidColorBrush x:Key="ForegroundGood" Color="#ADFF2F"/>
-            <SolidColorBrush x:Key="ForegroundBad" Color="#FF6347"/>
-            <SolidColorBrush x:Key="ForegroundCustom" Color="#FF8C00"/>
-            <SolidColorBrush x:Key="ForegroundRetry" Color="#FFFF00"/>
-            <SolidColorBrush x:Key="ForegroundBanned" Color="#DDA0DD"/>
-            <SolidColorBrush x:Key="ForegroundToCheck" Color="#7FFFD4"/>
-            <SolidColorBrush x:Key="ForegroundMenuSelected" Color="#1E90FF"/>
-            <SolidColorBrush x:Key="Headers" />
+            <!-- Modern Color Scheme -->
+            <SolidColorBrush x:Key="ThemeMain" Color="#3B82F6" />
+            <SolidColorBrush x:Key="BackgroundMain" Color="#0F172A" />
+            <SolidColorBrush x:Key="BackgroundSecondary" Color="#1E293B" />
+            <SolidColorBrush x:Key="BackgroundInput" Color="#1E293B" />
+            <SolidColorBrush x:Key="ForegroundMain" Color="#F8FAFC" />
+            <SolidColorBrush x:Key="ForegroundInput" Color="#F8FAFC" />
+            <SolidColorBrush x:Key="ForegroundGood" Color="#10B981"/>
+            <SolidColorBrush x:Key="ForegroundBad" Color="#EF4444"/>
+            <SolidColorBrush x:Key="ForegroundCustom" Color="#F59E0B"/>
+            <SolidColorBrush x:Key="ForegroundRetry" Color="#F59E0B"/>
+            <SolidColorBrush x:Key="ForegroundBanned" Color="#8B5CF6"/>
+            <SolidColorBrush x:Key="ForegroundToCheck" Color="#06B6D4"/>
+            <SolidColorBrush x:Key="ForegroundMenuSelected" Color="#3B82F6"/>
+            <SolidColorBrush x:Key="Headers" Color="#F8FAFC" />
 
-            <SolidColorBrush x:Key="SuccessButton" Color="#2f5738"/>
-            <SolidColorBrush x:Key="PrimaryButton" Color="#3b3a63"/>
-            <SolidColorBrush x:Key="WarningButton" Color="#7a552a"/>
-            <SolidColorBrush x:Key="DangerButton" Color="#693838"/>
-            <SolidColorBrush x:Key="ForegroundButton" Color="#DCDCDC"/>
-            <SolidColorBrush x:Key="BackgroundButton" Color="#282828"/>
+            <SolidColorBrush x:Key="SuccessButton" Color="#065F46"/>
+            <SolidColorBrush x:Key="PrimaryButton" Color="#1E40AF"/>
+            <SolidColorBrush x:Key="WarningButton" Color="#92400E"/>
+            <SolidColorBrush x:Key="DangerButton" Color="#991B1B"/>
+            <SolidColorBrush x:Key="ForegroundButton" Color="#F8FAFC"/>
+            <SolidColorBrush x:Key="BackgroundButton" Color="#374151"/>
+
+            <!-- Standard Drop Shadow Effect -->
+            <DropShadowEffect x:Key="DropShadowEffect" 
+                              Color="#000000" 
+                              Direction="270" 
+                              ShadowDepth="3" 
+                              Opacity="0.3" 
+                              BlurRadius="8"/>
 
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="pack://application:,,,/MahApps.Metro;component/Styles/Controls.xaml" />
                 <ResourceDictionary Source="pack://application:,,,/MahApps.Metro;component/Styles/Fonts.xaml" />
                 <ResourceDictionary Source="pack://application:,,,/MahApps.Metro;component/Styles/Themes/Dark.Blue.xaml" />
+                <ResourceDictionary Source="/Styles/ModernTheme.xaml" />
 
                 <ResourceDictionary>
 
@@ -98,23 +106,205 @@
                             </Setter.Value>
                         </Setter>
                         <Setter Property="mah:ControlsHelper.ContentCharacterCasing" Value="{DynamicResource MahApps.CharacterCasing.Button}" />
-                        <Setter Property="mah:ControlsHelper.CornerRadius" Value="3" />
+                        <Setter Property="mah:ControlsHelper.CornerRadius" Value="6" />
                         <Setter Property="mah:ControlsHelper.FocusBorderBrush" Value="{DynamicResource MahApps.Brushes.Button.Border.Focus}" />
                         <Setter Property="mah:ControlsHelper.FocusBorderThickness" Value="2" />
                         <Setter Property="mah:ControlsHelper.MouseOverBorderBrush" Value="{DynamicResource MahApps.Brushes.Button.Border.MouseOver}" />
                     </Style>
 
-                    <!-- BUILTIN TYPES -->
+                    <!-- BUILTIN TYPES - Enhanced for Crystal Clear Text -->
                     <Style TargetType="{x:Type TextBlock}" BasedOn="{StaticResource MahApps.Styles.TextBlock}">
                         <Setter Property="Foreground" Value="{DynamicResource ForegroundMain}"/>
+                        <Setter Property="FontFamily" Value="Segoe UI"/>
+                        <Setter Property="FontSize" Value="14"/>
+                        <Setter Property="UseLayoutRounding" Value="True"/>
+                        <Setter Property="SnapsToDevicePixels" Value="True"/>
+                        <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
+                        <Setter Property="TextOptions.TextRenderingMode" Value="ClearType"/>
+                        <Setter Property="TextOptions.TextHintingMode" Value="Fixed"/>
+                        <Setter Property="RenderOptions.ClearTypeHint" Value="Enabled"/>
                     </Style>
+                    
+                    <!-- GLOBAL TYPOGRAPHY STYLES - Crystal Clear -->
+                    <Style x:Key="H1TextStyle" TargetType="TextBlock">
+                        <Setter Property="FontFamily" Value="Segoe UI"/>
+                        <Setter Property="FontSize" Value="28"/>
+                        <Setter Property="FontWeight" Value="SemiBold"/>
+                        <Setter Property="Foreground" Value="#F1F5F9"/>
+                        <Setter Property="Margin" Value="0,0,0,16"/>
+                        <Setter Property="UseLayoutRounding" Value="True"/>
+                        <Setter Property="SnapsToDevicePixels" Value="True"/>
+                        <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
+                        <Setter Property="TextOptions.TextRenderingMode" Value="ClearType"/>
+                        <Setter Property="TextOptions.TextHintingMode" Value="Fixed"/>
+                        <Setter Property="RenderOptions.ClearTypeHint" Value="Enabled"/>
+                    </Style>
+                    
+                    <Style x:Key="H2TextStyle" TargetType="TextBlock">
+                        <Setter Property="FontFamily" Value="Segoe UI"/>
+                        <Setter Property="FontSize" Value="20"/>
+                        <Setter Property="FontWeight" Value="SemiBold"/>
+                        <Setter Property="Foreground" Value="#F1F5F9"/>
+                        <Setter Property="Margin" Value="0,24,0,12"/>
+                        <Setter Property="UseLayoutRounding" Value="True"/>
+                        <Setter Property="SnapsToDevicePixels" Value="True"/>
+                        <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
+                        <Setter Property="TextOptions.TextRenderingMode" Value="ClearType"/>
+                        <Setter Property="TextOptions.TextHintingMode" Value="Fixed"/>
+                        <Setter Property="RenderOptions.ClearTypeHint" Value="Enabled"/>
+                    </Style>
+                    
+                    <Style x:Key="H3TextStyle" TargetType="TextBlock">
+                        <Setter Property="FontFamily" Value="Segoe UI"/>
+                        <Setter Property="FontSize" Value="16"/>
+                        <Setter Property="FontWeight" Value="Medium"/>
+                        <Setter Property="Foreground" Value="#F1F5F9"/>
+                        <Setter Property="Margin" Value="0,16,0,8"/>
+                        <Setter Property="UseLayoutRounding" Value="True"/>
+                        <Setter Property="SnapsToDevicePixels" Value="True"/>
+                        <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
+                        <Setter Property="TextOptions.TextRenderingMode" Value="ClearType"/>
+                        <Setter Property="TextOptions.TextHintingMode" Value="Fixed"/>
+                        <Setter Property="RenderOptions.ClearTypeHint" Value="Enabled"/>
+                    </Style>
+                    
+                    <Style x:Key="BodyTextStyle" TargetType="TextBlock">
+                        <Setter Property="FontFamily" Value="Segoe UI"/>
+                        <Setter Property="FontSize" Value="14"/>
+                        <Setter Property="FontWeight" Value="Normal"/>
+                        <Setter Property="Foreground" Value="#E2E8F0"/>
+                        <Setter Property="LineHeight" Value="20"/>
+                        <Setter Property="UseLayoutRounding" Value="True"/>
+                        <Setter Property="SnapsToDevicePixels" Value="True"/>
+                        <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
+                        <Setter Property="TextOptions.TextRenderingMode" Value="ClearType"/>
+                        <Setter Property="TextOptions.TextHintingMode" Value="Fixed"/>
+                        <Setter Property="RenderOptions.ClearTypeHint" Value="Enabled"/>
+                    </Style>
+                    
+                    <Style x:Key="CaptionTextStyle" TargetType="TextBlock">
+                        <Setter Property="FontFamily" Value="Segoe UI"/>
+                        <Setter Property="FontSize" Value="12"/>
+                        <Setter Property="FontWeight" Value="Normal"/>
+                        <Setter Property="Foreground" Value="#94A3B8"/>
+                        <Setter Property="UseLayoutRounding" Value="True"/>
+                        <Setter Property="SnapsToDevicePixels" Value="True"/>
+                        <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
+                        <Setter Property="TextOptions.TextRenderingMode" Value="ClearType"/>
+                        <Setter Property="TextOptions.TextHintingMode" Value="Fixed"/>
+                        <Setter Property="RenderOptions.ClearTypeHint" Value="Enabled"/>
+                    </Style>
+                    
+                    <Style x:Key="LabelTextStyle" TargetType="TextBlock">
+                        <Setter Property="FontFamily" Value="Segoe UI"/>
+                        <Setter Property="FontSize" Value="13"/>
+                        <Setter Property="FontWeight" Value="Medium"/>
+                        <Setter Property="Foreground" Value="#CBD5E1"/>
+                        <Setter Property="UseLayoutRounding" Value="True"/>
+                        <Setter Property="SnapsToDevicePixels" Value="True"/>
+                        <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
+                        <Setter Property="TextOptions.TextRenderingMode" Value="ClearType"/>
+                        <Setter Property="TextOptions.TextHintingMode" Value="Fixed"/>
+                        <Setter Property="RenderOptions.ClearTypeHint" Value="Enabled"/>
+                    </Style>
+                    
+                    <!-- Additional Typography Styles for Better Consistency - Crystal Clear -->
+                    <Style x:Key="MetricTextStyle" TargetType="TextBlock">
+                        <Setter Property="FontFamily" Value="Segoe UI"/>
+                        <Setter Property="FontSize" Value="11"/>
+                        <Setter Property="FontWeight" Value="SemiBold"/>
+                        <Setter Property="Foreground" Value="#A0AEC0"/>
+                        <Setter Property="TextAlignment" Value="Center"/>
+                        <Setter Property="UseLayoutRounding" Value="True"/>
+                        <Setter Property="SnapsToDevicePixels" Value="True"/>
+                        <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
+                        <Setter Property="TextOptions.TextRenderingMode" Value="ClearType"/>
+                        <Setter Property="TextOptions.TextHintingMode" Value="Fixed"/>
+                        <Setter Property="RenderOptions.ClearTypeHint" Value="Enabled"/>
+                    </Style>
+                    
+                    <Style x:Key="StatusTextStyle" TargetType="TextBlock">
+                        <Setter Property="FontFamily" Value="Segoe UI"/>
+                        <Setter Property="FontSize" Value="10"/>
+                        <Setter Property="FontWeight" Value="SemiBold"/>
+                        <Setter Property="Foreground" Value="#CBD5E1"/>
+                        <Setter Property="TextAlignment" Value="Center"/>
+                        <Setter Property="UseLayoutRounding" Value="True"/>
+                        <Setter Property="SnapsToDevicePixels" Value="True"/>
+                        <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
+                        <Setter Property="TextOptions.TextRenderingMode" Value="ClearType"/>
+                        <Setter Property="TextOptions.TextHintingMode" Value="Fixed"/>
+                        <Setter Property="RenderOptions.ClearTypeHint" Value="Enabled"/>
+                    </Style>
+                    
+                    <Style x:Key="SmallCaptionTextStyle" TargetType="TextBlock">
+                        <Setter Property="FontFamily" Value="Segoe UI"/>
+                        <Setter Property="FontSize" Value="10"/>
+                        <Setter Property="FontWeight" Value="Normal"/>
+                        <Setter Property="Foreground" Value="#9CA3AF"/>
+                        <Setter Property="UseLayoutRounding" Value="True"/>
+                        <Setter Property="SnapsToDevicePixels" Value="True"/>
+                        <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
+                        <Setter Property="TextOptions.TextRenderingMode" Value="ClearType"/>
+                        <Setter Property="TextOptions.TextHintingMode" Value="Fixed"/>
+                        <Setter Property="RenderOptions.ClearTypeHint" Value="Enabled"/>
+                    </Style>
+                    
+                    <!-- CONSISTENT CARD STYLES -->
+                    <Style x:Key="StandardCardStyle" TargetType="Border">
+                        <Setter Property="Background" Value="{DynamicResource BackgroundSecondary}"/>
+                        <Setter Property="CornerRadius" Value="12"/>
+                        <Setter Property="Padding" Value="20"/>
+                        <Setter Property="Margin" Value="8"/>
+                        <Setter Property="Effect">
+                            <Setter.Value>
+                                <DropShadowEffect BlurRadius="12" Direction="270" Opacity="0.15" ShadowDepth="3"/>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                    
+                    <Style x:Key="CompactCardStyle" TargetType="Border">
+                        <Setter Property="Background" Value="{DynamicResource BackgroundSecondary}"/>
+                        <Setter Property="CornerRadius" Value="8"/>
+                        <Setter Property="Padding" Value="16"/>
+                        <Setter Property="Margin" Value="6"/>
+                        <Setter Property="Effect">
+                            <Setter.Value>
+                                <DropShadowEffect BlurRadius="8" Direction="270" Opacity="0.12" ShadowDepth="2"/>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                    
+                    <!-- CONSISTENT SPACING -->
+                    <Style x:Key="StandardSpacing" TargetType="FrameworkElement">
+                        <Setter Property="Margin" Value="16"/>
+                    </Style>
+                    
+                    <Style x:Key="CompactSpacing" TargetType="FrameworkElement">
+                        <Setter Property="Margin" Value="12"/>
+                    </Style>
+                    
+                    <Style x:Key="TightSpacing" TargetType="FrameworkElement">
+                        <Setter Property="Margin" Value="8"/>
+                    </Style>
+
                     <Style TargetType="{x:Type TextBox}" BasedOn="{StaticResource MahApps.Styles.TextBox}">
                         <Setter Property="Background" Value="{DynamicResource BackgroundInput}"/>
                         <Setter Property="FontFamily" Value="Consolas"/>
                         <Setter Property="VerticalContentAlignment" Value="Center"/>
+                        <Setter Property="UseLayoutRounding" Value="False"/>
+                        <Setter Property="SnapsToDevicePixels" Value="False"/>
+                        <Setter Property="TextOptions.TextFormattingMode" Value="Ideal"/>
+                        <Setter Property="TextOptions.TextRenderingMode" Value="Auto"/>
+                        <Setter Property="TextOptions.TextHintingMode" Value="Auto"/>
                         <Style.Resources>
                             <Style TargetType="{x:Type TextBlock}">
                                 <Setter Property="Foreground" Value="{DynamicResource ForegroundInput}"/>
+                                <Setter Property="UseLayoutRounding" Value="False"/>
+                                <Setter Property="SnapsToDevicePixels" Value="False"/>
+                                <Setter Property="TextOptions.TextFormattingMode" Value="Ideal"/>
+                                <Setter Property="TextOptions.TextRenderingMode" Value="Auto"/>
+                                <Setter Property="TextOptions.TextHintingMode" Value="Auto"/>
                             </Style>
                         </Style.Resources>
                     </Style>
@@ -132,29 +322,17 @@
                         <Setter Property="FontFamily" Value="Consolas"/>
                     </Style>
 
-                    <!-- ICONS -->
-                    <Style TargetType="{x:Type iconPacks:PackIconBootstrapIcons}" BasedOn="{StaticResource {x:Type iconPacks:PackIconBootstrapIcons}}">
+                    <!-- ICONS - Only Essential Icon Packs -->
+                    <Style TargetType="{x:Type iconPacks:PackIconMaterial}" BasedOn="{StaticResource {x:Type iconPacks:PackIconMaterial}}">
                         <Setter Property="Foreground" Value="{DynamicResource ForegroundMain}"/>
                     </Style>
-                    <Style TargetType="{x:Type iconPacks:PackIconBoxIcons}" BasedOn="{StaticResource {x:Type iconPacks:PackIconBoxIcons}}">
+                    <Style TargetType="{x:Type iconPacks:PackIconMaterialDesign}" BasedOn="{StaticResource {x:Type iconPacks:PackIconMaterialDesign}}">
                         <Setter Property="Foreground" Value="{DynamicResource ForegroundMain}"/>
                     </Style>
-                    <Style TargetType="{x:Type iconPacks:PackIconCodicons}" BasedOn="{StaticResource {x:Type iconPacks:PackIconCodicons}}">
+                    <Style TargetType="{x:Type iconPacks:PackIconRemixIcon}" BasedOn="{StaticResource {x:Type iconPacks:PackIconRemixIcon}}">
                         <Setter Property="Foreground" Value="{DynamicResource ForegroundMain}"/>
                     </Style>
-                    <Style TargetType="{x:Type iconPacks:PackIconEntypo}" BasedOn="{StaticResource {x:Type iconPacks:PackIconEntypo}}">
-                        <Setter Property="Foreground" Value="{DynamicResource ForegroundMain}"/>
-                    </Style>
-                    <Style TargetType="{x:Type iconPacks:PackIconEvaIcons}" BasedOn="{StaticResource {x:Type iconPacks:PackIconEvaIcons}}">
-                        <Setter Property="Foreground" Value="{DynamicResource ForegroundMain}"/>
-                    </Style>
-                    <Style TargetType="{x:Type iconPacks:PackIconFeatherIcons}" BasedOn="{StaticResource {x:Type iconPacks:PackIconFeatherIcons}}">
-                        <Setter Property="Foreground" Value="{DynamicResource ForegroundMain}"/>
-                    </Style>
-                    <Style TargetType="{x:Type iconPacks:PackIconFileIcons}" BasedOn="{StaticResource {x:Type iconPacks:PackIconFileIcons}}">
-                        <Setter Property="Foreground" Value="{DynamicResource ForegroundMain}"/>
-                    </Style>
-                    <Style TargetType="{x:Type iconPacks:PackIconFontaudio}" BasedOn="{StaticResource {x:Type iconPacks:PackIconFontaudio}}">
+                    <Style TargetType="{x:Type iconPacks:PackIconUnicons}" BasedOn="{StaticResource {x:Type iconPacks:PackIconUnicons}}">
                         <Setter Property="Foreground" Value="{DynamicResource ForegroundMain}"/>
                     </Style>
                     <Style TargetType="{x:Type iconPacks:PackIconFontAwesome}" BasedOn="{StaticResource {x:Type iconPacks:PackIconFontAwesome}}">
@@ -163,61 +341,28 @@
                     <Style TargetType="{x:Type iconPacks:PackIconForkAwesome}" BasedOn="{StaticResource {x:Type iconPacks:PackIconForkAwesome}}">
                         <Setter Property="Foreground" Value="{DynamicResource ForegroundMain}"/>
                     </Style>
-                    <Style TargetType="{x:Type iconPacks:PackIconIonicons}" BasedOn="{StaticResource {x:Type iconPacks:PackIconIonicons}}">
-                        <Setter Property="Foreground" Value="{DynamicResource ForegroundMain}"/>
-                    </Style>
-                    <Style TargetType="{x:Type iconPacks:PackIconJamIcons}" BasedOn="{StaticResource {x:Type iconPacks:PackIconJamIcons}}">
-                        <Setter Property="Foreground" Value="{DynamicResource ForegroundMain}"/>
-                    </Style>
-                    <Style TargetType="{x:Type iconPacks:PackIconMaterial}" BasedOn="{StaticResource {x:Type iconPacks:PackIconMaterial}}">
-                        <Setter Property="Foreground" Value="{DynamicResource ForegroundMain}"/>
-                    </Style>
-                    <Style TargetType="{x:Type iconPacks:PackIconMaterialDesign}" BasedOn="{StaticResource {x:Type iconPacks:PackIconMaterialDesign}}">
-                        <Setter Property="Foreground" Value="{DynamicResource ForegroundMain}"/>
-                    </Style>
-                    <Style TargetType="{x:Type iconPacks:PackIconMaterialLight}" BasedOn="{StaticResource {x:Type iconPacks:PackIconMaterialLight}}">
-                        <Setter Property="Foreground" Value="{DynamicResource ForegroundMain}"/>
-                    </Style>
-                    <Style TargetType="{x:Type iconPacks:PackIconMicrons}" BasedOn="{StaticResource {x:Type iconPacks:PackIconMicrons}}">
-                        <Setter Property="Foreground" Value="{DynamicResource ForegroundMain}"/>
-                    </Style>
-                    <Style TargetType="{x:Type iconPacks:PackIconModern}" BasedOn="{StaticResource {x:Type iconPacks:PackIconModern}}">
-                        <Setter Property="Foreground" Value="{DynamicResource ForegroundMain}"/>
-                    </Style>
-                    <Style TargetType="{x:Type iconPacks:PackIconOcticons}" BasedOn="{StaticResource {x:Type iconPacks:PackIconOcticons}}">
-                        <Setter Property="Foreground" Value="{DynamicResource ForegroundMain}"/>
-                    </Style>
-                    <Style TargetType="{x:Type iconPacks:PackIconPicolIcons}" BasedOn="{StaticResource {x:Type iconPacks:PackIconPicolIcons}}">
-                        <Setter Property="Foreground" Value="{DynamicResource ForegroundMain}"/>
-                    </Style>
-                    <Style TargetType="{x:Type iconPacks:PackIconPixelartIcons}" BasedOn="{StaticResource {x:Type iconPacks:PackIconPixelartIcons}}">
+                    <Style TargetType="{x:Type iconPacks:PackIconEntypo}" BasedOn="{StaticResource {x:Type iconPacks:PackIconEntypo}}">
                         <Setter Property="Foreground" Value="{DynamicResource ForegroundMain}"/>
                     </Style>
                     <Style TargetType="{x:Type iconPacks:PackIconRadixIcons}" BasedOn="{StaticResource {x:Type iconPacks:PackIconRadixIcons}}">
                         <Setter Property="Foreground" Value="{DynamicResource ForegroundMain}"/>
                     </Style>
-                    <Style TargetType="{x:Type iconPacks:PackIconRemixIcon}" BasedOn="{StaticResource {x:Type iconPacks:PackIconRemixIcon}}">
+                    <Style TargetType="{x:Type iconPacks:PackIconModern}" BasedOn="{StaticResource {x:Type iconPacks:PackIconModern}}">
                         <Setter Property="Foreground" Value="{DynamicResource ForegroundMain}"/>
                     </Style>
-                    <Style TargetType="{x:Type iconPacks:PackIconRPGAwesome}" BasedOn="{StaticResource {x:Type iconPacks:PackIconRPGAwesome}}">
+                    <Style TargetType="{x:Type iconPacks:PackIconMicrons}" BasedOn="{StaticResource {x:Type iconPacks:PackIconMicrons}}">
+                        <Setter Property="Foreground" Value="{DynamicResource ForegroundMain}"/>
+                    </Style>
+                    <Style TargetType="{x:Type iconPacks:PackIconOcticons}" BasedOn="{StaticResource {x:Type iconPacks:PackIconOcticons}}">
+                        <Setter Property="Foreground" Value="{DynamicResource ForegroundMain}"/>
+                    </Style>
+                    <Style TargetType="{x:Type iconPacks:PackIconBootstrapIcons}" BasedOn="{StaticResource {x:Type iconPacks:PackIconBootstrapIcons}}">
+                        <Setter Property="Foreground" Value="{DynamicResource ForegroundMain}"/>
+                    </Style>
+                    <Style TargetType="{x:Type iconPacks:PackIconBoxIcons}" BasedOn="{StaticResource {x:Type iconPacks:PackIconBoxIcons}}">
                         <Setter Property="Foreground" Value="{DynamicResource ForegroundMain}"/>
                     </Style>
                     <Style TargetType="{x:Type iconPacks:PackIconSimpleIcons}" BasedOn="{StaticResource {x:Type iconPacks:PackIconSimpleIcons}}">
-                        <Setter Property="Foreground" Value="{DynamicResource ForegroundMain}"/>
-                    </Style>
-                    <Style TargetType="{x:Type iconPacks:PackIconTypicons}" BasedOn="{StaticResource {x:Type iconPacks:PackIconTypicons}}">
-                        <Setter Property="Foreground" Value="{DynamicResource ForegroundMain}"/>
-                    </Style>
-                    <Style TargetType="{x:Type iconPacks:PackIconUnicons}" BasedOn="{StaticResource {x:Type iconPacks:PackIconUnicons}}">
-                        <Setter Property="Foreground" Value="{DynamicResource ForegroundMain}"/>
-                    </Style>
-                    <Style TargetType="{x:Type iconPacks:PackIconVaadinIcons}" BasedOn="{StaticResource {x:Type iconPacks:PackIconVaadinIcons}}">
-                        <Setter Property="Foreground" Value="{DynamicResource ForegroundMain}"/>
-                    </Style>
-                    <Style TargetType="{x:Type iconPacks:PackIconWeatherIcons}" BasedOn="{StaticResource {x:Type iconPacks:PackIconWeatherIcons}}">
-                        <Setter Property="Foreground" Value="{DynamicResource ForegroundMain}"/>
-                    </Style>
-                    <Style TargetType="{x:Type iconPacks:PackIconZondicons}" BasedOn="{StaticResource {x:Type iconPacks:PackIconZondicons}}">
                         <Setter Property="Foreground" Value="{DynamicResource ForegroundMain}"/>
                     </Style>
 
@@ -234,12 +379,87 @@
                         <Setter Property="Background" Value="{DynamicResource BackgroundInput}"/>
                     </Style>
 
-                    <!-- BUTTONS -->
-                    <Style x:Key="StyledButton" TargetType="{x:Type Button}" BasedOn="{StaticResource MahApps.Styles.Button}">
+                    <!-- Modern Consistent Button Styles - Crystal Clear -->
+                    <Style x:Key="StyledButton" TargetType="{x:Type Button}">
+                        <Setter Property="FontFamily" Value="Segoe UI"/>
+                        <Setter Property="FontWeight" Value="SemiBold"/>
+                        <Setter Property="FontSize" Value="12"/>
                         <Setter Property="Foreground" Value="{DynamicResource ForegroundButton}"/>
-                        <Setter Property="Background" Value="{DynamicResource BackgroundButton}"/>
+                        <Setter Property="BorderThickness" Value="0"/>
+                        <Setter Property="Padding" Value="12,8"/>
+                        <Setter Property="Margin" Value="0,0,8,0"/>
+                        <Setter Property="UseLayoutRounding" Value="True"/>
+                        <Setter Property="SnapsToDevicePixels" Value="True"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="Button">
+                                    <Border x:Name="border" 
+                                            Background="{DynamicResource BackgroundButton}" 
+                                            CornerRadius="6"
+                                            Padding="{TemplateBinding Padding}"
+                                            UseLayoutRounding="True"
+                                            SnapsToDevicePixels="True">
+                                        <Border.Effect>
+                                            <DropShadowEffect Color="#000000" Direction="270" ShadowDepth="2" Opacity="0.3" BlurRadius="4"/>
+                                        </Border.Effect>
+                                        <ContentPresenter HorizontalAlignment="Center" 
+                                                          VerticalAlignment="Center"
+                                                          Content="{TemplateBinding Content}"
+                                                          UseLayoutRounding="True"
+                                                          SnapsToDevicePixels="True"
+                                                                                                    TextOptions.TextFormattingMode="Ideal"
+                                          TextOptions.TextRenderingMode="Auto"
+                                          TextOptions.TextHintingMode="Auto"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="border" Property="Opacity" Value="0.9"/>
+                                            <Setter TargetName="border" Property="RenderTransform">
+                                                <Setter.Value>
+                                                    <ScaleTransform ScaleX="1.02" ScaleY="1.02"/>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Trigger>
+                                        <Trigger Property="IsPressed" Value="True">
+                                            <Setter TargetName="border" Property="Opacity" Value="0.8"/>
+                                            <Setter TargetName="border" Property="RenderTransform">
+                                                <Setter.Value>
+                                                    <ScaleTransform ScaleX="0.98" ScaleY="0.98"/>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
                         <Style.Resources>
                             <Style TargetType="{x:Type TextBlock}">
+                                <Setter Property="Foreground" Value="{DynamicResource ForegroundButton}"/>
+                            </Style>
+                            <!-- Essential Icon Pack Styles for Buttons -->
+                            <Style TargetType="{x:Type iconPacks:PackIconMaterial}" BasedOn="{StaticResource {x:Type iconPacks:PackIconMaterial}}">
+                                <Setter Property="Foreground" Value="{DynamicResource ForegroundButton}"/>
+                            </Style>
+                            <Style TargetType="{x:Type iconPacks:PackIconMaterialDesign}" BasedOn="{StaticResource {x:Type iconPacks:PackIconMaterialDesign}}">
+                                <Setter Property="Foreground" Value="{DynamicResource ForegroundButton}"/>
+                            </Style>
+                            <Style TargetType="{x:Type iconPacks:PackIconRemixIcon}" BasedOn="{StaticResource {x:Type iconPacks:PackIconRemixIcon}}">
+                                <Setter Property="Foreground" Value="{DynamicResource ForegroundButton}"/>
+                            </Style>
+                            <Style TargetType="{x:Type iconPacks:PackIconUnicons}" BasedOn="{StaticResource {x:Type iconPacks:PackIconUnicons}}">
+                                <Setter Property="Foreground" Value="{DynamicResource ForegroundButton}"/>
+                            </Style>
+                            <Style TargetType="{x:Type iconPacks:PackIconFontAwesome}" BasedOn="{StaticResource {x:Type iconPacks:PackIconFontAwesome}}">
+                                <Setter Property="Foreground" Value="{DynamicResource ForegroundButton}"/>
+                            </Style>
+                            <Style TargetType="{x:Type iconPacks:PackIconMicrons}" BasedOn="{StaticResource {x:Type iconPacks:PackIconMicrons}}">
+                                <Setter Property="Foreground" Value="{DynamicResource ForegroundButton}"/>
+                            </Style>
+
+                            <Style TargetType="{x:Type iconPacks:PackIconEntypo}" BasedOn="{StaticResource {x:Type iconPacks:PackIconEntypo}}">
+                                <Setter Property="Foreground" Value="{DynamicResource ForegroundButton}"/>
+                            </Style>
+                            <Style TargetType="{x:Type iconPacks:PackIconOcticons}" BasedOn="{StaticResource {x:Type iconPacks:PackIconOcticons}}">
                                 <Setter Property="Foreground" Value="{DynamicResource ForegroundButton}"/>
                             </Style>
                             <Style TargetType="{x:Type iconPacks:PackIconBootstrapIcons}" BasedOn="{StaticResource {x:Type iconPacks:PackIconBootstrapIcons}}">
@@ -248,104 +468,694 @@
                             <Style TargetType="{x:Type iconPacks:PackIconBoxIcons}" BasedOn="{StaticResource {x:Type iconPacks:PackIconBoxIcons}}">
                                 <Setter Property="Foreground" Value="{DynamicResource ForegroundButton}"/>
                             </Style>
-                            <Style TargetType="{x:Type iconPacks:PackIconCodicons}" BasedOn="{StaticResource {x:Type iconPacks:PackIconCodicons}}">
-                                <Setter Property="Foreground" Value="{DynamicResource ForegroundButton}"/>
-                            </Style>
-                            <Style TargetType="{x:Type iconPacks:PackIconEntypo}" BasedOn="{StaticResource {x:Type iconPacks:PackIconEntypo}}">
-                                <Setter Property="Foreground" Value="{DynamicResource ForegroundButton}"/>
-                            </Style>
-                            <Style TargetType="{x:Type iconPacks:PackIconEvaIcons}" BasedOn="{StaticResource {x:Type iconPacks:PackIconEvaIcons}}">
-                                <Setter Property="Foreground" Value="{DynamicResource ForegroundButton}"/>
-                            </Style>
-                            <Style TargetType="{x:Type iconPacks:PackIconFeatherIcons}" BasedOn="{StaticResource {x:Type iconPacks:PackIconFeatherIcons}}">
-                                <Setter Property="Foreground" Value="{DynamicResource ForegroundButton}"/>
-                            </Style>
-                            <Style TargetType="{x:Type iconPacks:PackIconFileIcons}" BasedOn="{StaticResource {x:Type iconPacks:PackIconFileIcons}}">
-                                <Setter Property="Foreground" Value="{DynamicResource ForegroundButton}"/>
-                            </Style>
-                            <Style TargetType="{x:Type iconPacks:PackIconFontaudio}" BasedOn="{StaticResource {x:Type iconPacks:PackIconFontaudio}}">
-                                <Setter Property="Foreground" Value="{DynamicResource ForegroundButton}"/>
-                            </Style>
-                            <Style TargetType="{x:Type iconPacks:PackIconFontAwesome}" BasedOn="{StaticResource {x:Type iconPacks:PackIconFontAwesome}}">
-                                <Setter Property="Foreground" Value="{DynamicResource ForegroundButton}"/>
-                            </Style>
-                            <Style TargetType="{x:Type iconPacks:PackIconForkAwesome}" BasedOn="{StaticResource {x:Type iconPacks:PackIconForkAwesome}}">
-                                <Setter Property="Foreground" Value="{DynamicResource ForegroundButton}"/>
-                            </Style>
-                            <Style TargetType="{x:Type iconPacks:PackIconIonicons}" BasedOn="{StaticResource {x:Type iconPacks:PackIconIonicons}}">
-                                <Setter Property="Foreground" Value="{DynamicResource ForegroundButton}"/>
-                            </Style>
-                            <Style TargetType="{x:Type iconPacks:PackIconJamIcons}" BasedOn="{StaticResource {x:Type iconPacks:PackIconJamIcons}}">
-                                <Setter Property="Foreground" Value="{DynamicResource ForegroundButton}"/>
-                            </Style>
-                            <Style TargetType="{x:Type iconPacks:PackIconMaterial}" BasedOn="{StaticResource {x:Type iconPacks:PackIconMaterial}}">
-                                <Setter Property="Foreground" Value="{DynamicResource ForegroundButton}"/>
-                            </Style>
-                            <Style TargetType="{x:Type iconPacks:PackIconMaterialDesign}" BasedOn="{StaticResource {x:Type iconPacks:PackIconMaterialDesign}}">
-                                <Setter Property="Foreground" Value="{DynamicResource ForegroundButton}"/>
-                            </Style>
-                            <Style TargetType="{x:Type iconPacks:PackIconMaterialLight}" BasedOn="{StaticResource {x:Type iconPacks:PackIconMaterialLight}}">
-                                <Setter Property="Foreground" Value="{DynamicResource ForegroundButton}"/>
-                            </Style>
-                            <Style TargetType="{x:Type iconPacks:PackIconMicrons}" BasedOn="{StaticResource {x:Type iconPacks:PackIconMicrons}}">
-                                <Setter Property="Foreground" Value="{DynamicResource ForegroundButton}"/>
-                            </Style>
-                            <Style TargetType="{x:Type iconPacks:PackIconModern}" BasedOn="{StaticResource {x:Type iconPacks:PackIconModern}}">
-                                <Setter Property="Foreground" Value="{DynamicResource ForegroundButton}"/>
-                            </Style>
-                            <Style TargetType="{x:Type iconPacks:PackIconOcticons}" BasedOn="{StaticResource {x:Type iconPacks:PackIconOcticons}}">
-                                <Setter Property="Foreground" Value="{DynamicResource ForegroundButton}"/>
-                            </Style>
-                            <Style TargetType="{x:Type iconPacks:PackIconPicolIcons}" BasedOn="{StaticResource {x:Type iconPacks:PackIconPicolIcons}}">
-                                <Setter Property="Foreground" Value="{DynamicResource ForegroundButton}"/>
-                            </Style>
-                            <Style TargetType="{x:Type iconPacks:PackIconPixelartIcons}" BasedOn="{StaticResource {x:Type iconPacks:PackIconPixelartIcons}}">
-                                <Setter Property="Foreground" Value="{DynamicResource ForegroundButton}"/>
-                            </Style>
-                            <Style TargetType="{x:Type iconPacks:PackIconRadixIcons}" BasedOn="{StaticResource {x:Type iconPacks:PackIconRadixIcons}}">
-                                <Setter Property="Foreground" Value="{DynamicResource ForegroundButton}"/>
-                            </Style>
-                            <Style TargetType="{x:Type iconPacks:PackIconRemixIcon}" BasedOn="{StaticResource {x:Type iconPacks:PackIconRemixIcon}}">
-                                <Setter Property="Foreground" Value="{DynamicResource ForegroundButton}"/>
-                            </Style>
-                            <Style TargetType="{x:Type iconPacks:PackIconRPGAwesome}" BasedOn="{StaticResource {x:Type iconPacks:PackIconRPGAwesome}}">
-                                <Setter Property="Foreground" Value="{DynamicResource ForegroundButton}"/>
-                            </Style>
                             <Style TargetType="{x:Type iconPacks:PackIconSimpleIcons}" BasedOn="{StaticResource {x:Type iconPacks:PackIconSimpleIcons}}">
-                                <Setter Property="Foreground" Value="{DynamicResource ForegroundButton}"/>
-                            </Style>
-                            <Style TargetType="{x:Type iconPacks:PackIconTypicons}" BasedOn="{StaticResource {x:Type iconPacks:PackIconTypicons}}">
-                                <Setter Property="Foreground" Value="{DynamicResource ForegroundButton}"/>
-                            </Style>
-                            <Style TargetType="{x:Type iconPacks:PackIconUnicons}" BasedOn="{StaticResource {x:Type iconPacks:PackIconUnicons}}">
-                                <Setter Property="Foreground" Value="{DynamicResource ForegroundButton}"/>
-                            </Style>
-                            <Style TargetType="{x:Type iconPacks:PackIconVaadinIcons}" BasedOn="{StaticResource {x:Type iconPacks:PackIconVaadinIcons}}">
-                                <Setter Property="Foreground" Value="{DynamicResource ForegroundButton}"/>
-                            </Style>
-                            <Style TargetType="{x:Type iconPacks:PackIconWeatherIcons}" BasedOn="{StaticResource {x:Type iconPacks:PackIconWeatherIcons}}">
-                                <Setter Property="Foreground" Value="{DynamicResource ForegroundButton}"/>
-                            </Style>
-                            <Style TargetType="{x:Type iconPacks:PackIconZondicons}" BasedOn="{StaticResource {x:Type iconPacks:PackIconZondicons}}">
                                 <Setter Property="Foreground" Value="{DynamicResource ForegroundButton}"/>
                             </Style>
                         </Style.Resources>
                     </Style>
 
                     <Style x:Key="StyledDangerButton" TargetType="{x:Type Button}" BasedOn="{StaticResource StyledButton}">
-                        <Setter Property="Background" Value="{DynamicResource DangerButton}" />
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="Button">
+                                    <Border x:Name="border" 
+                                            Background="{DynamicResource DangerButton}" 
+                                            CornerRadius="6"
+                                            Padding="{TemplateBinding Padding}">
+                                        <Border.Effect>
+                                            <DropShadowEffect Color="#000000" Direction="270" ShadowDepth="2" Opacity="0.3" BlurRadius="4"/>
+                                        </Border.Effect>
+                                        <ContentPresenter HorizontalAlignment="Center" 
+                                                          VerticalAlignment="Center"
+                                                          Content="{TemplateBinding Content}"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="border" Property="Opacity" Value="0.9"/>
+                                            <Setter TargetName="border" Property="RenderTransform">
+                                                <Setter.Value>
+                                                    <ScaleTransform ScaleX="1.02" ScaleY="1.02"/>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Trigger>
+                                        <Trigger Property="IsPressed" Value="True">
+                                            <Setter TargetName="border" Property="Opacity" Value="0.8"/>
+                                            <Setter TargetName="border" Property="RenderTransform">
+                                                <Setter.Value>
+                                                    <ScaleTransform ScaleX="0.98" ScaleY="0.98"/>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
                     </Style>
 
                     <Style x:Key="StyledSuccessButton" TargetType="{x:Type Button}" BasedOn="{StaticResource StyledButton}">
-                        <Setter Property="Background" Value="{DynamicResource SuccessButton}" />
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="Button">
+                                    <Border x:Name="border" 
+                                            Background="{DynamicResource SuccessButton}" 
+                                            CornerRadius="6"
+                                            Padding="{TemplateBinding Padding}">
+                                        <Border.Effect>
+                                            <DropShadowEffect Color="#000000" Direction="270" ShadowDepth="2" Opacity="0.3" BlurRadius="4"/>
+                                        </Border.Effect>
+                                        <ContentPresenter HorizontalAlignment="Center" 
+                                                          VerticalAlignment="Center"
+                                                          Content="{TemplateBinding Content}"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="border" Property="Opacity" Value="0.9"/>
+                                            <Setter TargetName="border" Property="RenderTransform">
+                                                <Setter.Value>
+                                                    <ScaleTransform ScaleX="1.02" ScaleY="1.02"/>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Trigger>
+                                        <Trigger Property="IsPressed" Value="True">
+                                            <Setter TargetName="border" Property="Opacity" Value="0.8"/>
+                                            <Setter TargetName="border" Property="RenderTransform">
+                                                <Setter.Value>
+                                                    <ScaleTransform ScaleX="0.98" ScaleY="0.98"/>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
                     </Style>
 
                     <Style x:Key="StyledWarningButton" TargetType="{x:Type Button}" BasedOn="{StaticResource StyledButton}">
-                        <Setter Property="Background" Value="{DynamicResource WarningButton}" />
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="Button">
+                                    <Border x:Name="border" 
+                                            Background="{DynamicResource WarningButton}" 
+                                            CornerRadius="6"
+                                            Padding="{TemplateBinding Padding}">
+                                        <Border.Effect>
+                                            <DropShadowEffect Color="#000000" Direction="270" ShadowDepth="2" Opacity="0.3" BlurRadius="4"/>
+                                        </Border.Effect>
+                                        <ContentPresenter HorizontalAlignment="Center" 
+                                                          VerticalAlignment="Center"
+                                                          Content="{TemplateBinding Content}"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="border" Property="Opacity" Value="0.9"/>
+                                            <Setter TargetName="border" Property="RenderTransform">
+                                                <Setter.Value>
+                                                    <ScaleTransform ScaleX="1.02" ScaleY="1.02"/>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Trigger>
+                                        <Trigger Property="IsPressed" Value="True">
+                                            <Setter TargetName="border" Property="Opacity" Value="0.8"/>
+                                            <Setter TargetName="border" Property="RenderTransform">
+                                                <Setter.Value>
+                                                    <ScaleTransform ScaleX="0.98" ScaleY="0.98"/>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
                     </Style>
 
                     <Style x:Key="StyledPrimaryButton" TargetType="{x:Type Button}" BasedOn="{StaticResource StyledButton}">
-                        <Setter Property="Background" Value="{DynamicResource PrimaryButton}" />
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="Button">
+                                    <Border x:Name="border" 
+                                            Background="{DynamicResource PrimaryButton}" 
+                                            CornerRadius="6"
+                                            Padding="{TemplateBinding Padding}">
+                                        <Border.Effect>
+                                            <DropShadowEffect Color="#000000" Direction="270" ShadowDepth="2" Opacity="0.3" BlurRadius="4"/>
+                                        </Border.Effect>
+                                        <ContentPresenter HorizontalAlignment="Center" 
+                                                          VerticalAlignment="Center"
+                                                          Content="{TemplateBinding Content}"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="border" Property="Opacity" Value="0.9"/>
+                                            <Setter TargetName="border" Property="RenderTransform">
+                                                <Setter.Value>
+                                                    <ScaleTransform ScaleX="1.02" ScaleY="1.02"/>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Trigger>
+                                        <Trigger Property="IsPressed" Value="True">
+                                            <Setter TargetName="border" Property="Opacity" Value="0.8"/>
+                                            <Setter TargetName="border" Property="RenderTransform">
+                                                <Setter.Value>
+                                                    <ScaleTransform ScaleX="0.98" ScaleY="0.98"/>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+
+                    <!-- Perfect Start Button Style from Debugger -->
+                    <Style x:Key="PerfectStartButton" TargetType="Button">
+                        <Setter Property="Background">
+                            <Setter.Value>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                    <GradientStop Color="#10B981" Offset="0"/>
+                                    <GradientStop Color="#059669" Offset="1"/>
+                                </LinearGradientBrush>
+                            </Setter.Value>
+                        </Setter>
+                        <Setter Property="Foreground" Value="White"/>
+                        <Setter Property="BorderThickness" Value="0"/>
+                        <Setter Property="FontFamily" Value="Segoe UI"/>
+                        <Setter Property="FontWeight" Value="SemiBold"/>
+                        <Setter Property="FontSize" Value="12"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="Button">
+                                    <Border x:Name="border" 
+                                            Background="{TemplateBinding Background}" 
+                                            CornerRadius="6" 
+                                            Padding="{TemplateBinding Padding}">
+                                        <Border.Effect>
+                                            <DropShadowEffect BlurRadius="8" Direction="270" Opacity="0.3" ShadowDepth="2"/>
+                                        </Border.Effect>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="6"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <iconPacks:PackIconEntypo Grid.Column="0" Kind="ControllerPlay" Width="14" Height="14" 
+                                                                      VerticalAlignment="Center" HorizontalAlignment="Center"
+                                                                      Foreground="{TemplateBinding Foreground}"/>
+                                            <TextBlock Grid.Column="2" Text="Start" 
+                                                      VerticalAlignment="Center" HorizontalAlignment="Center"
+                                                      FontFamily="{TemplateBinding FontFamily}"
+                                                      FontWeight="{TemplateBinding FontWeight}"
+                                                      FontSize="{TemplateBinding FontSize}"
+                                                      Foreground="{TemplateBinding Foreground}"/>
+                                        </Grid>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="border" Property="Background">
+                                                <Setter.Value>
+                                                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                        <GradientStop Color="#34D399" Offset="0"/>
+                                                        <GradientStop Color="#10B981" Offset="1"/>
+                                                    </LinearGradientBrush>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Trigger>
+                                        <Trigger Property="IsPressed" Value="True">
+                                            <Setter TargetName="border" Property="Background">
+                                                <Setter.Value>
+                                                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                        <GradientStop Color="#059669" Offset="0"/>
+                                                        <GradientStop Color="#047857" Offset="1"/>
+                                                    </LinearGradientBrush>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+
+                    <!-- Perfect Stop Button Style from Debugger -->
+                    <Style x:Key="PerfectStopButton" TargetType="Button">
+                        <Setter Property="Background">
+                            <Setter.Value>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                    <GradientStop Color="#EF4444" Offset="0"/>
+                                    <GradientStop Color="#DC2626" Offset="1"/>
+                                </LinearGradientBrush>
+                            </Setter.Value>
+                        </Setter>
+                        <Setter Property="Foreground" Value="White"/>
+                        <Setter Property="BorderThickness" Value="0"/>
+                        <Setter Property="FontFamily" Value="Segoe UI"/>
+                        <Setter Property="FontWeight" Value="SemiBold"/>
+                        <Setter Property="FontSize" Value="12"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="Button">
+                                    <Border x:Name="border" 
+                                            Background="{TemplateBinding Background}" 
+                                            CornerRadius="6" 
+                                            Padding="{TemplateBinding Padding}">
+                                        <Border.Effect>
+                                            <DropShadowEffect BlurRadius="8" Direction="270" Opacity="0.3" ShadowDepth="2"/>
+                                        </Border.Effect>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="6"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <iconPacks:PackIconEntypo Grid.Column="0" Kind="ControllerStop" Width="14" Height="14" 
+                                                                      VerticalAlignment="Center" HorizontalAlignment="Center"
+                                                                      Foreground="{TemplateBinding Foreground}"/>
+                                            <TextBlock Grid.Column="2" Text="Stop" 
+                                                      VerticalAlignment="Center" HorizontalAlignment="Center"
+                                                      FontFamily="{TemplateBinding FontFamily}"
+                                                      FontWeight="{TemplateBinding FontWeight}"
+                                                      FontSize="{TemplateBinding FontSize}"
+                                                      Foreground="{TemplateBinding Foreground}"/>
+                                        </Grid>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="border" Property="Background">
+                                                <Setter.Value>
+                                                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                        <GradientStop Color="#F87171" Offset="0"/>
+                                                        <GradientStop Color="#EF4444" Offset="1"/>
+                                                    </LinearGradientBrush>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Trigger>
+                                        <Trigger Property="IsPressed" Value="True">
+                                            <Setter TargetName="border" Property="Background">
+                                                <Setter.Value>
+                                                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                        <GradientStop Color="#DC2626" Offset="0"/>
+                                                        <GradientStop Color="#B91C1C" Offset="1"/>
+                                                    </LinearGradientBrush>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+
+                    <!-- Consistent Button Style for Mode Switches -->
+                    <Style x:Key="ConsistentModeButton" TargetType="Button">
+                        <Setter Property="Background" Value="{DynamicResource BackgroundSecondary}"/>
+                        <Setter Property="Foreground" Value="{DynamicResource ForegroundMain}"/>
+                        <Setter Property="BorderThickness" Value="1"/>
+                        <Setter Property="BorderBrush" Value="{DynamicResource Modern.BorderMain}"/>
+                        <Setter Property="FontFamily" Value="Segoe UI"/>
+                        <Setter Property="FontWeight" Value="Medium"/>
+                        <Setter Property="FontSize" Value="12"/>
+                        <Setter Property="Padding" Value="12,6"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="Button">
+                                    <Border x:Name="border" 
+                                            Background="{TemplateBinding Background}" 
+                                            BorderBrush="{TemplateBinding BorderBrush}"
+                                            BorderThickness="{TemplateBinding BorderThickness}"
+                                            CornerRadius="6" 
+                                            Padding="{TemplateBinding Padding}">
+                                        <ContentPresenter HorizontalAlignment="Center" 
+                                                          VerticalAlignment="Center"
+                                                          Content="{TemplateBinding Content}"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="border" Property="Background" Value="{DynamicResource Modern.BackgroundTertiary}"/>
+                                            <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource Modern.BorderHover}"/>
+                                        </Trigger>
+                                        <Trigger Property="IsPressed" Value="True">
+                                            <Setter TargetName="border" Property="Background" Value="{DynamicResource PrimaryButton}"/>
+                                            <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource ThemeMain}"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+
+                    <!-- Readable Tab Button Style -->
+                    <Style x:Key="ReadableTabButton" TargetType="Button">
+                        <Setter Property="FontFamily" Value="Segoe UI"/>
+                        <Setter Property="FontSize" Value="12"/>
+                        <Setter Property="FontWeight" Value="Medium"/>
+                        <Setter Property="Margin" Value="0,0,2,0"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="Button">
+                                    <Border x:Name="border" 
+                                            Background="{TemplateBinding Background}" 
+                                            CornerRadius="6" 
+                                            Padding="{TemplateBinding Padding}">
+                                        <ContentPresenter HorizontalAlignment="Center" 
+                                                          VerticalAlignment="Center"
+                                                          TextElement.Foreground="{TemplateBinding Foreground}"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="border" Property="Opacity" Value="0.9"/>
+                                        </Trigger>
+                                        <Trigger Property="IsPressed" Value="True">
+                                            <Setter TargetName="border" Property="Opacity" Value="0.8"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+
+                    <!-- Consistent Button Style for General Use -->
+                    <Style x:Key="ConsistentButton" TargetType="Button">
+                        <Setter Property="Background" Value="{DynamicResource BackgroundSecondary}"/>
+                        <Setter Property="Foreground" Value="{DynamicResource ForegroundMain}"/>
+                        <Setter Property="BorderThickness" Value="1"/>
+                        <Setter Property="BorderBrush" Value="{DynamicResource Modern.BorderMain}"/>
+                        <Setter Property="FontFamily" Value="Segoe UI"/>
+                        <Setter Property="FontWeight" Value="SemiBold"/>
+                        <Setter Property="FontSize" Value="12"/>
+                        <Setter Property="Padding" Value="12,8"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="Button">
+                                    <Border x:Name="border" 
+                                            Background="{TemplateBinding Background}" 
+                                            BorderBrush="{TemplateBinding BorderBrush}"
+                                            BorderThickness="{TemplateBinding BorderThickness}"
+                                            CornerRadius="6" 
+                                            Padding="{TemplateBinding Padding}">
+                                        <Border.Effect>
+                                            <DropShadowEffect BlurRadius="4" Direction="270" Opacity="0.2" ShadowDepth="1"/>
+                                        </Border.Effect>
+                                        <ContentPresenter HorizontalAlignment="Center" 
+                                                          VerticalAlignment="Center"
+                                                          Content="{TemplateBinding Content}"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="border" Property="Background" Value="{DynamicResource Modern.BackgroundTertiary}"/>
+                                            <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource Modern.BorderHover}"/>
+                                        </Trigger>
+                                        <Trigger Property="IsPressed" Value="True">
+                                            <Setter TargetName="border" Property="Background" Value="{DynamicResource PrimaryButton}"/>
+                                            <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource ThemeMain}"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+
+                    <!-- Global ContextMenu Style for Consistency -->
+                    <Style TargetType="ContextMenu">
+                        <Setter Property="Background" Value="#FF1A1A1A"/>
+                        <Setter Property="Foreground" Value="White"/>
+                        <Setter Property="BorderBrush" Value="#FF1A1A1A"/>
+                        <Setter Property="BorderThickness" Value="0"/>
+                        <Setter Property="Padding" Value="0"/>
+                        <Setter Property="Margin" Value="0"/>
+                        <Setter Property="HasDropShadow" Value="True"/>
+                        <Setter Property="FontFamily" Value="Segoe UI"/>
+                        <Setter Property="FontSize" Value="11"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ContextMenu">
+                                    <Border Background="#FF1A1A1A" 
+                                            BorderBrush="#FF1A1A1A" 
+                                            BorderThickness="0"
+                                            CornerRadius="8"
+                                            Padding="4">
+                                        <ItemsPresenter/>
+                                    </Border>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                    
+                    <!-- Global MenuItem Style for Consistency -->
+                    <Style TargetType="MenuItem">
+                        <Setter Property="Background" Value="#FF1A1A1A"/>
+                        <Setter Property="Foreground" Value="#E2E8F0"/>
+                        <Setter Property="FontFamily" Value="Segoe UI"/>
+                        <Setter Property="FontSize" Value="13"/>
+                        <Setter Property="FontWeight" Value="Medium"/>
+                        <Setter Property="Padding" Value="12,8"/>
+                        <Setter Property="Margin" Value="0"/>
+                        <Setter Property="BorderThickness" Value="0"/>
+                        <Setter Property="BorderBrush" Value="#FF1A1A1A"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="MenuItem">
+                                    <Border x:Name="Border" 
+                                            Background="#FF1A1A1A"
+                                            BorderThickness="0"
+                                            BorderBrush="#FF1A1A1A"
+                                            CornerRadius="6"
+                                            Padding="{TemplateBinding Padding}"
+                                            Margin="0">
+                                        <Grid Background="#FF1A1A1A">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="24"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <ContentPresenter Grid.Column="0"
+                                                              ContentSource="Icon" 
+                                                              VerticalAlignment="Center"
+                                                              HorizontalAlignment="Center"
+                                                              Margin="0,0,8,0"/>
+                                            <ContentPresenter Grid.Column="1"
+                                                              ContentSource="Header" 
+                                                              VerticalAlignment="Center"
+                                                              HorizontalAlignment="Left"/>
+                                            <TextBlock Grid.Column="2"
+                                                       Text="{TemplateBinding InputGestureText}"
+                                                       FontSize="11"
+                                                       Foreground="#94A3B8"
+                                                       VerticalAlignment="Center"
+                                                       Margin="12,0,0,0"/>
+                                        </Grid>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsHighlighted" Value="True">
+                                            <Setter TargetName="Border" Property="Background" Value="#FF2563EB"/>
+                                            <Setter Property="Foreground" Value="#FFFFFF"/>
+                                        </Trigger>
+                                        <Trigger Property="IsEnabled" Value="False">
+                                            <Setter Property="Foreground" Value="#64748B"/>
+                                        </Trigger>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="Border" Property="Background" Value="#FF2563EB"/>
+                                            <Setter Property="Foreground" Value="#FFFFFF"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+
+                    <!-- Modern ScrollViewer Styles -->
+                    <Style x:Key="ModernScrollBar" TargetType="{x:Type ScrollBar}">
+                        <Setter Property="Background" Value="Transparent"/>
+                        <Setter Property="BorderBrush" Value="Transparent"/>
+                        <Setter Property="BorderThickness" Value="0"/>
+                        <Setter Property="Width" Value="12"/>
+                        <Setter Property="MinWidth" Value="12"/>
+                        <Setter Property="Margin" Value="0,0,2,0"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="{x:Type ScrollBar}">
+                                    <Grid x:Name="Bg" SnapsToDevicePixels="True">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition MaxHeight="18"/>
+                                            <RowDefinition Height="0.00001*"/>
+                                            <RowDefinition MaxHeight="18"/>
+                                        </Grid.RowDefinitions>
+                                        <Border Grid.Row="1" 
+                                                Background="Transparent" 
+                                                CornerRadius="6"/>
+                                        <Track x:Name="PART_Track" 
+                                               Grid.Row="1" 
+                                               IsDirectionReversed="True" 
+                                               IsEnabled="{TemplateBinding IsMouseOver}">
+                                            <Track.DecreaseRepeatButton>
+                                                <RepeatButton Command="{x:Static ScrollBar.PageUpCommand}" 
+                                                              Style="{DynamicResource ModernScrollBarPageButton}"/>
+                                            </Track.DecreaseRepeatButton>
+                                            <Track.IncreaseRepeatButton>
+                                                <RepeatButton Command="{x:Static ScrollBar.PageDownCommand}" 
+                                                              Style="{DynamicResource ModernScrollBarPageButton}"/>
+                                            </Track.IncreaseRepeatButton>
+                                            <Track.Thumb>
+                                                <Thumb Style="{DynamicResource ModernScrollBarThumb}"/>
+                                            </Track.Thumb>
+                                        </Track>
+                                    </Grid>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="Orientation" Value="Horizontal">
+                                            <Setter Property="Width" Value="Auto"/>
+                                            <Setter Property="MinWidth" Value="0"/>
+                                            <Setter Property="Height" Value="12"/>
+                                            <Setter Property="MinHeight" Value="12"/>
+                                            <Setter Property="Margin" Value="0,0,0,2"/>
+                                            <Setter TargetName="Bg" Property="LayoutTransform">
+                                                <Setter.Value>
+                                                    <RotateTransform Angle="-90"/>
+                                                </Setter.Value>
+                                            </Setter>
+                                            <Setter TargetName="PART_Track" Property="IsDirectionReversed" Value="False"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+
+                    <Style x:Key="ModernScrollBarPageButton" TargetType="{x:Type RepeatButton}">
+                        <Setter Property="OverridesDefaultStyle" Value="True"/>
+                        <Setter Property="Background" Value="Transparent"/>
+                        <Setter Property="Focusable" Value="False"/>
+                        <Setter Property="IsTabStop" Value="False"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="{x:Type RepeatButton}">
+                                    <Rectangle Fill="Transparent"/>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+
+                    <Style x:Key="ModernScrollBarThumb" TargetType="{x:Type Thumb}">
+                        <Setter Property="OverridesDefaultStyle" Value="True"/>
+                        <Setter Property="IsTabStop" Value="False"/>
+                        <Setter Property="Margin" Value="2"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="{x:Type Thumb}">
+                                    <Border x:Name="ThumbBorder" 
+                                            Background="#CCCCCC" 
+                                            CornerRadius="6" 
+                                            Opacity="0.5"/>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="ThumbBorder" Property="Background" Value="#E6E6E6"/>
+                                            <Setter TargetName="ThumbBorder" Property="Opacity" Value="0.8"/>
+                                        </Trigger>
+                                        <Trigger Property="IsDragging" Value="True">
+                                            <Setter TargetName="ThumbBorder" Property="Background" Value="#F0F0F0"/>
+                                            <Setter TargetName="ThumbBorder" Property="Opacity" Value="1"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+
+                    <!-- Enhanced ScrollViewer Style -->
+                    <Style x:Key="ModernScrollViewer" TargetType="{x:Type ScrollViewer}">
+                        <Setter Property="Background" Value="Transparent"/>
+                        <Setter Property="BorderBrush" Value="Transparent"/>
+                        <Setter Property="BorderThickness" Value="0"/>
+                        <Setter Property="HorizontalScrollBarVisibility" Value="Auto"/>
+                        <Setter Property="VerticalScrollBarVisibility" Value="Auto"/>
+                        <Setter Property="CanContentScroll" Value="True"/>
+                        <Setter Property="PanningMode" Value="VerticalFirst"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="{x:Type ScrollViewer}">
+                                    <Grid x:Name="Grid" Background="{TemplateBinding Background}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="*"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+                                        <Rectangle x:Name="Corner" 
+                                                   Grid.Column="1" 
+                                                   Fill="Transparent" 
+                                                   Grid.Row="1"/>
+                                        <ScrollContentPresenter x:Name="PART_ScrollContentPresenter" 
+                                                                CanContentScroll="{TemplateBinding CanContentScroll}" 
+                                                                CanHorizontallyScroll="False" 
+                                                                CanVerticallyScroll="False" 
+                                                                ContentTemplate="{TemplateBinding ContentTemplate}" 
+                                                                Content="{TemplateBinding Content}" 
+                                                                Grid.Column="0" 
+                                                                Margin="{TemplateBinding Padding}" 
+                                                                Grid.Row="0"/>
+                                        <ScrollBar x:Name="PART_VerticalScrollBar" 
+                                                   AutomationProperties.AutomationId="VerticalScrollBar" 
+                                                   Cursor="Arrow" 
+                                                   Grid.Column="1" 
+                                                   Maximum="{TemplateBinding ScrollableHeight}" 
+                                                   Minimum="0" 
+                                                   Grid.Row="0" 
+                                                   Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}" 
+                                                   Value="{Binding VerticalOffset, Mode=OneWay, RelativeSource={RelativeSource TemplatedParent}}" 
+                                                   ViewportSize="{TemplateBinding ViewportHeight}"
+                                                   Style="{DynamicResource ModernScrollBar}"/>
+                                        <ScrollBar x:Name="PART_HorizontalScrollBar" 
+                                                   AutomationProperties.AutomationId="HorizontalScrollBar" 
+                                                   Cursor="Arrow" 
+                                                   Grid.Column="0" 
+                                                   Maximum="{TemplateBinding ScrollableWidth}" 
+                                                   Minimum="0" 
+                                                   Orientation="Horizontal" 
+                                                   Grid.Row="1" 
+                                                   Visibility="{TemplateBinding ComputedHorizontalScrollBarVisibility}" 
+                                                   Value="{Binding HorizontalOffset, Mode=OneWay, RelativeSource={RelativeSource TemplatedParent}}" 
+                                                   ViewportSize="{TemplateBinding ViewportWidth}"
+                                                   Style="{DynamicResource ModernScrollBar}"/>
+                                    </Grid>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+
+                    <!-- Set Modern ScrollViewer as Default -->
+                    <Style TargetType="{x:Type ScrollViewer}" BasedOn="{StaticResource ModernScrollViewer}"/>
+
+                    <!-- ListView Style to use Modern ScrollViewer -->
+                    <Style TargetType="{x:Type ListView}">
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="{x:Type ListView}">
+                                    <Border x:Name="Bd" 
+                                            BorderBrush="{TemplateBinding BorderBrush}" 
+                                            BorderThickness="{TemplateBinding BorderThickness}" 
+                                            Background="{TemplateBinding Background}" 
+                                            Padding="1" 
+                                            SnapsToDevicePixels="true">
+                                        <ScrollViewer Focusable="false" 
+                                                      Padding="{TemplateBinding Padding}"
+                                                      Style="{StaticResource ModernScrollViewer}">
+                                            <ItemsPresenter SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
+                                        </ScrollViewer>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsEnabled" Value="false">
+                                            <Setter Property="Background" TargetName="Bd" Value="{DynamicResource {x:Static SystemColors.ControlBrushKey}}"/>
+                                        </Trigger>
+                                        <MultiTrigger>
+                                            <MultiTrigger.Conditions>
+                                                <Condition Property="IsGrouping" Value="true"/>
+                                                <Condition Property="VirtualizingPanel.IsVirtualizingWhenGrouping" Value="false"/>
+                                            </MultiTrigger.Conditions>
+                                            <Setter Property="ScrollViewer.CanContentScroll" Value="false"/>
+                                        </MultiTrigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
                     </Style>
 
                     

@@ -36,6 +36,9 @@ namespace RuriLib.Models.Blocks.Custom
                 { "useCustomCipherSuites", new BoolParameter("useCustomCipherSuites", false) },
                 { "alwaysSendContent", new BoolParameter("alwaysSendContent", false) },
                 { "decodeHtml", new BoolParameter("decodeHtml", false) },
+                { "disableCookieParsing", new BoolParameter("disableCookieParsing", false) },
+                { "disableHeaderParsing", new BoolParameter("disableHeaderParsing", false) },
+                { "allowHttpsToHttpRedirect", new BoolParameter("allowHttpsToHttpRedirect", false) },
                 { "codePagesEncoding", new StringParameter("codePagesEncoding", string.Empty) },
                 { "customCipherSuites", new ListOfStringsParameter("customCipherSuites",
                     new List<string>

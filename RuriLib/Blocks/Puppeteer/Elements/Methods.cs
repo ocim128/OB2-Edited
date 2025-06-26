@@ -334,7 +334,9 @@ namespace RuriLib.Blocks.Puppeteer.Elements
 
         private static async Task<IElementHandle> GetElement(IFrame frame, FindElementBy findBy, string identifier, int index)
         {
-            var elements = await frame.QuerySelectorAllAsync(BuildSelector(findBy, identifier));
+            var elements = findBy == FindElementBy.XPath
+                ? await frame.XPathAsync(identifier)
+                : await frame.QuerySelectorAllAsync(BuildSelector(findBy, identifier));
 
             if (elements.Length < index + 1)
             {

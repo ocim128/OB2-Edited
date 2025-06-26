@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Buffers;
 using System.IO;
+using System.IO.Pipelines;
 using System.Net;
 using System.Net.Http;
 using System.Net.Sockets;
@@ -15,8 +17,6 @@ using System.Collections.Generic;
 using RuriLib.Http.Models;
 using System.Linq;
 using System.Runtime.InteropServices;
-using System.Collections.Concurrent;
-using System.IO.Pipelines;
 
 namespace RuriLib.Http
 {
@@ -31,31 +31,16 @@ namespace RuriLib.Http
         private Stream connectionCommonStream;
         private NetworkStream connectionNetworkStream;
 
-        private Pipe pipe;
-        private PipeWriter writer;
-
-        private readonly ConcurrentDictionary<string, ConcurrentQueue<PooledConnection>> _connectionPool = new();
-        private readonly TimeSpan _maxIdleTime = TimeSpan.FromSeconds(60);
-        private readonly SemaphoreSlim _throttler;
-
-        // Define the struct here
-        private struct PooledConnection
-        {
-            public TcpClient Client { get; set; }
-            public Stream CommonStream { get; set; }
-            public DateTime LastUsed { get; set; }
-        }
-
         #region Properties
-        /// <summary>
-        /// The maximum number of concurrent requests that can be sent at once.
-        /// </summary>
-        public int MaxConcurrentRequests { get; set; } = 50;
-
         /// <summary>
         /// The underlying proxy client.
         /// </summary>
         public ProxyClient ProxyClient => proxyClient;
+
+        /// <summary>
+        /// Gets the raw bytes of all the requests that were sent.
+        /// </summary>
+        public List<byte[]> RawRequests { get; } = new();
 
         /// <summary>
         /// Allow automatic redirection on 3xx reply.
@@ -137,7 +122,6 @@ namespace RuriLib.Http
         public RLHttpClient(ProxyClient proxyClient = null)
         {
             this.proxyClient = proxyClient ?? new NoProxyClient();
-            _throttler = new SemaphoreSlim(MaxConcurrentRequests);
         }
 
         /// <summary>
@@ -151,166 +135,104 @@ namespace RuriLib.Http
         private async Task<HttpResponse> SendAsync(HttpRequest request, int redirects,
             CancellationToken cancellationToken = default)
         {
-            await _throttler.WaitAsync(cancellationToken).ConfigureAwait(false);
+            if (redirects > MaxNumberOfRedirects)
+            {
+                throw new Exception("Maximum number of redirects exceeded");
+            }
+
+            if (request == null)
+            {
+                throw new ArgumentNullException(nameof(request));
+            }
+
+            await CreateConnection(request, cancellationToken).ConfigureAwait(false);
+            await SendDataAsync(request, cancellationToken).ConfigureAwait(false);
+
+            var responseMessage = await ReceiveDataAsync(request, cancellationToken).ConfigureAwait(false);
+
             try
             {
-                if (redirects > MaxNumberOfRedirects)
+                // Optionally perform auto redirection on 3xx response
+                if (((int)responseMessage.StatusCode) / 100 == 3 && AllowAutoRedirect)
                 {
-                    throw new Exception("Maximum number of redirects exceeded");
-                }
+                    // Compute the redirection URI
+                    var locationHeaderName = responseMessage.Headers.Keys
+                        .FirstOrDefault(k => k.Equals("Location", StringComparison.OrdinalIgnoreCase));
 
-                if (request == null)
-                {
-                    throw new ArgumentNullException(nameof(request));
-                }
-
-                await CreateConnection(request, cancellationToken).ConfigureAwait(false);
-                await SendDataAsync(request, cancellationToken).ConfigureAwait(false);
-
-                var responseMessage = await ReceiveDataAsync(request, cancellationToken).ConfigureAwait(false);
-
-                try
-                {
-                    // Optionally perform auto redirection on 3xx response
-                    if (((int)responseMessage.StatusCode) / 100 == 3 && AllowAutoRedirect)
+                    if (locationHeaderName is null)
                     {
-                        // Compute the redirection URI
-                        var locationHeaderName = responseMessage.Headers.Keys
-                            .FirstOrDefault(k => k.Equals("Location", StringComparison.OrdinalIgnoreCase));
-
-                        if (locationHeaderName is null)
-                        {
-                            throw new Exception($"Status code was {(int)responseMessage.StatusCode} but no Location header received. " +
-                                $"Disable auto redirect and try again.");
-                        }
-
-                        Uri.TryCreate(responseMessage.Headers[locationHeaderName], UriKind.RelativeOrAbsolute, out var newLocation);
-
-                        var redirectUri = newLocation.IsAbsoluteUri
-                            ? newLocation
-                            : new Uri(request.Uri, newLocation);
-
-                        // If not 307, change the method to GET
-                        if (responseMessage.StatusCode != HttpStatusCode.RedirectKeepVerb)
-                        {
-                            request.Method = HttpMethod.Get;
-                            request.Content = null;
-                        }
-
-                        // Adjust the request if the host is different
-                        if (request.Uri.Host != redirectUri.Host)
-                        {
-                            // This is needed otherwise if the Host header was set manually
-                            // it will keep the previous one after a domain switch
-                            if (request.HeaderExists("Host", out var hostHeaderName))
-                            {
-                                request.Headers.Remove(hostHeaderName);
-                            }
-
-                            // Remove additional headers that could cause trouble
-                            request.Headers.Remove("Origin");
-                        }
-
-                        // Set the new URI
-                        request.Uri = redirectUri;
-
-                        // Dispose the previous response
-                        responseMessage.Dispose();
-
-                        // Perform a new request
-                        return await SendAsync(request, redirects + 1, cancellationToken).ConfigureAwait(false);
+                        throw new Exception($"Status code was {(int)responseMessage.StatusCode} but no Location header received. " +
+                            $"Disable auto redirect and try again.");
                     }
-                }
-                catch
-                {
+
+                    Uri.TryCreate(responseMessage.Headers[locationHeaderName], UriKind.RelativeOrAbsolute, out var newLocation);
+
+                    var redirectUri = newLocation.IsAbsoluteUri
+                        ? newLocation
+                        : new Uri(request.Uri, newLocation);
+
+                    // If not 307, change the method to GET
+                    if (responseMessage.StatusCode != HttpStatusCode.RedirectKeepVerb)
+                    {
+                        request.Method = HttpMethod.Get;
+                        request.Content = null;
+                    }
+
+                    // Adjust the request if the host is different
+                    if (request.Uri.Host != redirectUri.Host)
+                    {
+                        // This is needed otherwise if the Host header was set manually
+                        // it will keep the previous one after a domain switch
+                        if (request.HeaderExists("Host", out var hostHeaderName))
+                        {
+                            request.Headers.Remove(hostHeaderName);
+                        }
+
+                        // Remove additional headers that could cause trouble
+                        request.Headers.Remove("Origin");
+                    }
+
+                    // Set the new URI
+                    request.Uri = redirectUri;
+
+                    // Dispose the previous response
                     responseMessage.Dispose();
-                    throw;
-                }
 
-                return responseMessage;
+                    // Perform a new request
+                    return await SendAsync(request, redirects + 1, cancellationToken).ConfigureAwait(false);
+                }
             }
-            finally
+            catch
             {
-                _throttler.Release();
+                responseMessage.Dispose();
+                throw;
             }
-        }
 
-        /// <summary>
-        /// Asynchronously sends multiple <paramref name="requests"/> in batches and returns a list of <see cref="HttpResponse"/>.
-        /// </summary>
-        /// <param name="requests">The requests to send</param>
-        /// <param name="maxConcurrency">The maximum number of concurrent requests to send</param>
-        /// <param name="cancellationToken">A cancellation token to cancel the operation</param>
-        public async Task<List<HttpResponse>> SendBatchAsync(IEnumerable<HttpRequest> requests, int maxConcurrency = 50, CancellationToken cancellationToken = default)
-        {
-            using var batchThrottler = new SemaphoreSlim(maxConcurrency);
-            var tasks = requests.Select(async request =>
-            {
-                await batchThrottler.WaitAsync(cancellationToken).ConfigureAwait(false);
-                try
-                {
-                    return await SendAsync(request, cancellationToken).ConfigureAwait(false);
-                }
-                finally
-                {
-                    batchThrottler.Release();
-                }
-            });
-
-            return (await Task.WhenAll(tasks)).ToList();
+            return responseMessage;
         }
 
         private async Task SendDataAsync(HttpRequest request, CancellationToken cancellationToken = default)
         {
-            await request.WriteToAsync(writer, cancellationToken).ConfigureAwait(false);
-            await writer.FlushAsync(cancellationToken).ConfigureAwait(false);
+            // Use ArrayBufferWriter to collect the request bytes
+            var bufferWriter = new ArrayBufferWriter<byte>();
+            await request.WriteToAsync(bufferWriter, cancellationToken);
+            var buffer = bufferWriter.WrittenSpan.ToArray();
+            
+            await connectionCommonStream.WriteAsync(buffer.AsMemory(0, buffer.Length), cancellationToken).ConfigureAwait(false);
+
+            RawRequests.Add(buffer);
         }
 
         private Task<HttpResponse> ReceiveDataAsync(HttpRequest request,
-            CancellationToken cancellationToken) =>
-            new HttpResponseBuilder().GetResponseAsync(request, pipe.Reader, ReadResponseContent, cancellationToken);
+            CancellationToken cancellationToken)
+        {
+            var pipeReader = PipeReader.Create(connectionCommonStream);
+            return new HttpResponseBuilder().GetResponseAsync(request, pipeReader, ReadResponseContent, cancellationToken);
+        }
 
         private async Task CreateConnection(HttpRequest request, CancellationToken cancellationToken)
         {
-            var uri = request.Uri;
-            var key = $"{uri.Host}:{uri.Port}";
-
-            // Try to get a connection from the pool
-            if (_connectionPool.TryGetValue(key, out var connections))
-            {
-                while (connections.TryDequeue(out var entry))
-                {
-                    if (DateTime.UtcNow - entry.LastUsed < _maxIdleTime && entry.Client.Connected)
-                    {
-                        tcpClient = entry.Client;
-                        connectionCommonStream = entry.CommonStream;
-                        connectionNetworkStream = tcpClient.GetStream();
-
-                        // If https, make sure the SslStream is still valid for this host
-                        if (uri.Scheme.Equals("https", StringComparison.OrdinalIgnoreCase))
-                        {
-                            if (connectionCommonStream is SslStream sslStream && sslStream.IsAuthenticated)
-                            {
-                                // Initialize pipe and writer for the reused connection
-                                pipe = new Pipe();
-                                writer = pipe.Writer;
-                                return;
-                            }
-                        }
-                        else // For http connections, just return
-                        {
-                            pipe = new Pipe();
-                            writer = pipe.Writer;
-                            return;
-                        }
-                    }
-                    // If connection is not valid, dispose of it
-                    entry.Client.Dispose();
-                    entry.CommonStream.Dispose();
-                }
-            }
-
-            // Dispose of any previous connection (if we're coming from a redirect and the previous one was not pooled)
+            // Dispose of any previous connection (if we're coming from a redirect)
             tcpClient?.Close();
 
             if (connectionCommonStream is not null)
@@ -324,12 +246,9 @@ namespace RuriLib.Http
             }
 
             // Get the stream from the proxies TcpClient
+            var uri = request.Uri;
             tcpClient = await proxyClient.ConnectAsync(uri.Host, uri.Port, null, cancellationToken);
             connectionNetworkStream = tcpClient.GetStream();
-
-            // Initialize pipe and writer for the new connection
-            pipe = new Pipe();
-            writer = pipe.Writer;
 
             // If https, set up a TLS stream
             if (uri.Scheme.Equals("https", StringComparison.OrdinalIgnoreCase))
@@ -337,12 +256,35 @@ namespace RuriLib.Http
                 try
                 {
                     var sslStream = new SslStream(connectionNetworkStream, false, ServerCertificateCustomValidationCallback);
-                    await sslStream.AuthenticateAsClientAsync(uri.Host, null, SslProtocols, CertRevocationMode != X509RevocationMode.NoCheck);
+
+                    var sslOptions = new SslClientAuthenticationOptions
+                    {
+                        TargetHost = uri.Host,
+                        EnabledSslProtocols = SslProtocols,
+                        CertificateRevocationCheckMode = CertRevocationMode
+                    };
+
+                    if (CertRevocationMode != X509RevocationMode.Online)
+                    {
+                        sslOptions.RemoteCertificateValidationCallback =
+                            (_, _, _, _) => true;
+                    }
+
+                    if (UseCustomCipherSuites && !RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                    {
+                        sslOptions.CipherSuitesPolicy = new CipherSuitesPolicy(AllowedCipherSuites);
+                    }
+
                     connectionCommonStream = sslStream;
+                    await sslStream.AuthenticateAsClientAsync(sslOptions, cancellationToken);
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
-                    tcpClient.Close();
+                    if (ex is IOException || ex is AuthenticationException)
+                    {
+                        throw new ProxyException("Failed SSL connect");
+                    }
+
                     throw;
                 }
             }
@@ -352,69 +294,12 @@ namespace RuriLib.Http
             }
         }
 
-        private async Task ReturnConnectionToPool(HttpRequest request)
-        {
-            if (tcpClient == null) return; // No client to return
-
-            var uri = request.Uri;
-            var key = $"{uri.Host}:{uri.Port}";
-
-            if (!_connectionPool.TryGetValue(key, out var connections))
-            {
-                connections = new ConcurrentQueue<PooledConnection>();
-                _connectionPool.TryAdd(key, connections);
-            }
-
-            // Before returning, ensure the writer is completed if it exists
-            if (writer != null)
-            {
-                await writer.CompleteAsync();
-            }
-
-            // Return the connection to the pool
-            connections.Enqueue(new PooledConnection
-            {
-                Client = tcpClient,
-                CommonStream = connectionCommonStream,
-                LastUsed = DateTime.UtcNow
-            });
-
-            // Null out the current client and streams so they aren't disposed when RLHttpClient is disposed
-            tcpClient = null;
-            connectionCommonStream = null;
-            connectionNetworkStream = null;
-            pipe = null;
-            writer = null;
-        }
-
-        /// <summary>
-        /// Disposes of the underlying <see cref="TcpClient"/> and <see cref="Stream"/>.
-        /// </summary>
+        /// <inheritdoc/>
         public void Dispose()
         {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-        protected virtual void Dispose(bool disposing)
-        {
-            if (disposing)
-            {
-                // Dispose of current connection if it hasn't been returned to the pool
-                tcpClient?.Dispose();
-                connectionCommonStream?.Dispose();
-                connectionNetworkStream?.Dispose();
-
-                // Dispose of all pooled connections
-                foreach (var queue in _connectionPool.Values)
-                {
-                    while (queue.TryDequeue(out var entry))
-                    {
-                        entry.Client.Dispose();
-                        entry.CommonStream.Dispose();
-                    }
-                }
-            }
+            tcpClient?.Dispose();
+            connectionCommonStream?.Dispose();
+            connectionNetworkStream?.Dispose();
         }
     }
 }

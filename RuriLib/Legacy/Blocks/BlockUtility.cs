@@ -608,36 +608,36 @@ namespace RuriLib.Legacy.Blocks
                             break;
 
                         case FileAction.Read:
-                            lock (FileLocker.GetHandle(file))
+                            lock (FileLocker.GetHandle(file).GetSyncLock())
                                 variableToAdd = new StringVariable(File.ReadAllText(file));
                             break;
 
                         case FileAction.ReadLines:
-                            lock (FileLocker.GetHandle(file))
+                            lock (FileLocker.GetHandle(file).GetSyncLock())
                                 variableToAdd = new ListOfStringsVariable(File.ReadAllLines(file).ToList());
                             break;
 
                         case FileAction.Write:
                             FileUtils.CreatePath(file);
-                            lock (FileLocker.GetHandle(file))
+                            lock (FileLocker.GetHandle(file).GetSyncLock())
                                 File.WriteAllText(file, replacedInput.Unescape());
                             break;
 
                         case FileAction.WriteLines:
                             FileUtils.CreatePath(file);
-                            lock (FileLocker.GetHandle(file))
+                            lock (FileLocker.GetHandle(file).GetSyncLock())
                                 File.WriteAllLines(file, ReplaceValuesRecursive(InputString, ls).Select(i => i.Unescape()));
                             break;
 
                         case FileAction.Append:
                             FileUtils.CreatePath(file);
-                            lock (FileLocker.GetHandle(file))
+                            lock (FileLocker.GetHandle(file).GetSyncLock())
                                 File.AppendAllText(file, replacedInput.Unescape());
                             break;
 
                         case FileAction.AppendLines:
                             FileUtils.CreatePath(file);
-                            lock (FileLocker.GetHandle(file))
+                            lock (FileLocker.GetHandle(file).GetSyncLock())
                                 File.AppendAllLines(file, ReplaceValuesRecursive(InputString, ls).Select(i => i.Unescape()));
                             break;
 
@@ -645,8 +645,8 @@ namespace RuriLib.Legacy.Blocks
                             var fileCopyLocation = ReplaceValues(InputString, ls);
                             FileUtils.ThrowIfNotInCWD(fileCopyLocation);
                             FileUtils.CreatePath(fileCopyLocation);
-                            lock (FileLocker.GetHandle(file))
-                                lock (FileLocker.GetHandle(fileCopyLocation))
+                            lock (FileLocker.GetHandle(file).GetSyncLock())
+                                lock (FileLocker.GetHandle(fileCopyLocation).GetSyncLock())
                                     File.Copy(file, fileCopyLocation);
                             break;
 
@@ -654,15 +654,15 @@ namespace RuriLib.Legacy.Blocks
                             var fileMoveLocation = ReplaceValues(InputString, ls);
                             FileUtils.ThrowIfNotInCWD(fileMoveLocation);
                             FileUtils.CreatePath(fileMoveLocation);
-                            lock (FileLocker.GetHandle(file))
-                                lock (FileLocker.GetHandle(fileMoveLocation))
+                            lock (FileLocker.GetHandle(file).GetSyncLock())
+                                lock (FileLocker.GetHandle(fileMoveLocation).GetSyncLock())
                                     File.Move(file, fileMoveLocation);
                             break;
 
                         case FileAction.Delete:
                             // No deletion if the file is in use (DB/OpenBullet.db cannot be deleted but instead DB/OpenBullet-BackupCopy.db)
                             // If another process is just reading the file it will be deleted
-                            lock (FileLocker.GetHandle(file))
+                            lock (FileLocker.GetHandle(file).GetSyncLock())
                                 File.Delete(file);
                             break;
                     }

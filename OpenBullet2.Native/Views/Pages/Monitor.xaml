@@ -12,11 +12,116 @@
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
     </Page.Resources>
     
-    <Grid>
-        <Label
-            Content="Coming soon (TM)"
-            FontSize="20"
-            VerticalAlignment="Center"
-            HorizontalAlignment="Center"/>
+    <Grid Background="Transparent" Margin="24,20,24,24">
+        <ScrollViewer VerticalScrollBarVisibility="Auto" 
+                     CanContentScroll="False" PanningMode="VerticalOnly">
+            <StackPanel>
+                
+                <!-- Main Coming Soon Card -->
+                <Border Style="{StaticResource StandardCardStyle}" Background="#C0353535" Margin="0,0,0,16">
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Margin="40">
+                        <TextBlock Text="🚧" FontSize="48" HorizontalAlignment="Center" Margin="0,0,0,12"/>
+                        <TextBlock Text="Monitor Page Under Construction!" 
+                                  Style="{StaticResource H2TextStyle}" 
+                                  HorizontalAlignment="Center" 
+                                  Foreground="#F59E0B" Margin="0,0,0,8"/>
+                        <TextBlock Text="Our digital hamsters are still building this feature..." 
+                                  Style="{StaticResource BodyTextStyle}" 
+                                  HorizontalAlignment="Center" 
+                                  Foreground="#CBD5E1"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Fun Status Cards -->
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Development Status -->
+                    <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource CompactCardStyle}" 
+                           Background="#C0353535" Margin="0,0,8,8" Padding="16">
+                        <StackPanel>
+                            <TextBlock Text="🔧 Development Status" Style="{StaticResource H3TextStyle}" Margin="0,0,0,8"/>
+                            <TextBlock Text="Currently brewing something awesome!" 
+                                      Style="{StaticResource BodyTextStyle}" 
+                                      Foreground="#10B981"/>
+                            <TextBlock Text="Progress: 42% (Perfect!)" 
+                                      Style="{StaticResource CaptionTextStyle}"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Team Status -->
+                    <Border Grid.Row="0" Grid.Column="1" Style="{StaticResource CompactCardStyle}" 
+                           Background="#C0353535" Margin="8,0,0,8" Padding="16">
+                        <StackPanel>
+                            <TextBlock Text="👨‍💻 Team Status" Style="{StaticResource H3TextStyle}" Margin="0,0,0,8"/>
+                            <TextBlock Text="Fueled by coffee and determination!" 
+                                      Style="{StaticResource BodyTextStyle}" 
+                                      Foreground="#3B82F6"/>
+                            <TextBlock Text="Coffee level: Sufficient ☕" 
+                                      Style="{StaticResource CaptionTextStyle}"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Fun Fact -->
+                    <Border Grid.Row="1" Grid.Column="0" Style="{StaticResource CompactCardStyle}" 
+                           Background="#C0353535" Margin="0,8,8,0" Padding="16">
+                        <StackPanel>
+                            <TextBlock Text="🎯 Fun Fact" Style="{StaticResource H3TextStyle}" Margin="0,0,0,8"/>
+                            <TextBlock Text="This monitor will be so good, even your CPU will applaud!" 
+                                      Style="{StaticResource BodyTextStyle}" 
+                                      Foreground="#8B5CF6"/>
+                            <TextBlock Text="ETA: Soon™" 
+                                      Style="{StaticResource CaptionTextStyle}"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Easter Egg -->
+                    <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource CompactCardStyle}" 
+                           Background="#C0353535" Margin="8,8,0,0" Padding="16">
+                        <StackPanel>
+                            <TextBlock Text="🎮 Easter Egg" Style="{StaticResource H3TextStyle}" Margin="0,0,0,8"/>
+                            <TextBlock Text="You found the secret message!" 
+                                      Style="{StaticResource BodyTextStyle}" 
+                                      Foreground="#F59E0B"/>
+                            <TextBlock Text="+10 Curiosity Points 🌟" 
+                                      Style="{StaticResource CaptionTextStyle}"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+
+                <!-- Temporary Redirect -->
+                <Border Style="{StaticResource StandardCardStyle}" Background="#C0353535" Margin="0,16,0,0" Padding="20">
+                    <StackPanel>
+                        <TextBlock Text="💡 Pro Tip" Style="{StaticResource H3TextStyle}" Margin="0,0,0,12"/>
+                        <TextBlock Text="While we're building this awesome monitoring dashboard, you can check your current system stats on the Home page!" 
+                                  Style="{StaticResource BodyTextStyle}" 
+                                  TextWrapping="Wrap"
+                                  Foreground="#CBD5E1" Margin="0,0,0,12"/>
+                        <TextBlock Text="Navigate to: 🏠 Home → Performance section" 
+                                  Style="{StaticResource CaptionTextStyle}" 
+                                  Foreground="#60A5FA"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- What's Coming -->
+                <Border Style="{StaticResource StandardCardStyle}" Background="#C0353535" Margin="0,16,0,0" Padding="20">
+                    <StackPanel>
+                        <TextBlock Text="🚀 What's Coming" Style="{StaticResource H3TextStyle}" Margin="0,0,0,12"/>
+                        <TextBlock Text="• Real-time system monitoring 📊" Style="{StaticResource BodyTextStyle}" Margin="0,0,0,8"/>
+                        <TextBlock Text="• Network activity tracking 🌐" Style="{StaticResource BodyTextStyle}" Margin="0,0,0,8"/>
+                        <TextBlock Text="• Job performance analytics 📈" Style="{StaticResource BodyTextStyle}" Margin="0,0,0,8"/>
+                        <TextBlock Text="• Custom alerts and notifications 🔔" Style="{StaticResource BodyTextStyle}" Margin="0,0,0,8"/>
+                        <TextBlock Text="• And much more exciting stuff! ✨" Style="{StaticResource BodyTextStyle}"/>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
     </Grid>
 </Page>

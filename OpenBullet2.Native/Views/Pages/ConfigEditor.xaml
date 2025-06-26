@@ -11,6 +11,53 @@
 
     <Page.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
+        
+        <!-- Consistent Button Style -->
+        <Style x:Key="ConsistentButton" TargetType="Button">
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="Margin" Value="0,0,1,0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" 
+                                Background="{TemplateBinding Background}" 
+                                CornerRadius="6" 
+                                Padding="{TemplateBinding Padding}">
+                            <Border.Effect>
+                                <DropShadowEffect BlurRadius="8" Direction="270" Opacity="0.3" ShadowDepth="2"/>
+                            </Border.Effect>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="6"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <ContentPresenter Grid.Column="0" Content="{TemplateBinding Tag}"
+                                                  VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                <TextBlock Grid.Column="2" Text="{TemplateBinding Content}" 
+                                          VerticalAlignment="Center" HorizontalAlignment="Center"
+                                          FontFamily="{TemplateBinding FontFamily}"
+                                          FontWeight="{TemplateBinding FontWeight}"
+                                          FontSize="{TemplateBinding FontSize}"
+                                          Foreground="{TemplateBinding Foreground}"/>
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Opacity" Value="0.9"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="Opacity" Value="0.8"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Page.Resources>
     
     <Grid>
@@ -28,41 +75,45 @@
 
             <Frame x:Name="editorFrame" Grid.Row="0" NavigationUIVisibility="Hidden" />
 
-            <DockPanel Grid.Row="1" Height="30"
-                        HorizontalAlignment="Stretch">
+            <DockPanel Grid.Row="1" Height="32" HorizontalAlignment="Stretch" Margin="0,8,0,0">
                 <Button Click="OpenStacker"
                     x:Name="stackerButton"
                     HorizontalAlignment="Stretch"
-                    Style="{StaticResource StyledPrimaryButton}">
-                    <StackPanel Orientation="Horizontal">
-                        <iconPacks:PackIconFontAwesome Kind="LayerGroupSolid" />
-                        <TextBlock VerticalAlignment="Center" Margin="5 0">Stacker</TextBlock>
-                    </StackPanel>
+                    Style="{StaticResource ConsistentButton}"
+                    Background="#2563EB" Foreground="White"
+                    Content="Stacker" Padding="12,6">
+                    <Button.Tag>
+                        <iconPacks:PackIconFontAwesome Kind="LayerGroupSolid" Width="14" Height="14" Foreground="White"/>
+                    </Button.Tag>
                 </Button>
                 <Button Click="OpenLoliCode"
                     x:Name="loliCodeButton"
                     HorizontalAlignment="Stretch"
-                    Style="{StaticResource StyledSuccessButton}">
-                    <StackPanel Orientation="Horizontal">
-                        <iconPacks:PackIconEntypo Kind="Code" />
-                        <TextBlock VerticalAlignment="Center" Margin="5 0">LoliCode</TextBlock>
-                    </StackPanel>
+                    Style="{StaticResource ConsistentButton}"
+                    Background="#10B981" Foreground="White"
+                    Content="LoliCode" Padding="12,6">
+                    <Button.Tag>
+                        <iconPacks:PackIconEntypo Kind="Code" Width="14" Height="14" Foreground="White"/>
+                    </Button.Tag>
                 </Button>
                 <Button Click="OpenCSharpCode"
                     x:Name="cSharpButton"
                     HorizontalAlignment="Stretch"
-                    Style="{StaticResource StyledWarningButton}">
-                    <StackPanel Orientation="Horizontal">
-                        <iconPacks:PackIconEntypo Kind="Code" />
-                        <TextBlock VerticalAlignment="Center" Margin="5 0">C#</TextBlock>
-                    </StackPanel>
+                    Style="{StaticResource ConsistentButton}"
+                    Background="#7C3AED" Foreground="White"
+                    Content="C#" Padding="12,6">
+                    <Button.Tag>
+                        <iconPacks:PackIconEntypo Kind="Code" Width="14" Height="14" Foreground="White"/>
+                    </Button.Tag>
                 </Button>
-                <Button Click="Save" Style="{StaticResource StyledButton}"
-                    HorizontalAlignment="Stretch">
-                    <StackPanel Orientation="Horizontal">
-                        <iconPacks:PackIconRemixIcon Kind="Save3Fill" />
-                        <TextBlock VerticalAlignment="Center" Margin="5 0">Save</TextBlock>
-                    </StackPanel>
+                <Button Click="Save" 
+                    HorizontalAlignment="Stretch"
+                    Style="{StaticResource ConsistentButton}"
+                    Background="#DC2626" Foreground="White"
+                    Content="Save" Padding="12,6">
+                    <Button.Tag>
+                        <iconPacks:PackIconRemixIcon Kind="Save3Fill" Width="14" Height="14" Foreground="White"/>
+                    </Button.Tag>
                 </Button>
             </DockPanel>
         </Grid>
@@ -71,8 +122,24 @@
             ResizeDirection="Columns"
             ResizeBehavior="PreviousAndNext"
             Grid.Column="1"
-            Width="5"
-            VerticalAlignment="Stretch" />
+            Width="6"
+            VerticalAlignment="Stretch"
+            Background="#FF4A5568"
+            Margin="2,8">
+            <GridSplitter.Template>
+                <ControlTemplate TargetType="GridSplitter">
+                    <Border Background="#FF374151" 
+                            CornerRadius="3"
+                            BorderBrush="#FF6B7280" 
+                            BorderThickness="1">
+                        <Border.Effect>
+                            <DropShadowEffect Color="#000000" Direction="270" ShadowDepth="1" Opacity="0.2" BlurRadius="3"/>
+                        </Border.Effect>
+                        <Rectangle Fill="Transparent" />
+                    </Border>
+                </ControlTemplate>
+            </GridSplitter.Template>
+        </GridSplitter>
 
         <Frame x:Name="debuggerFrame" 
                NavigationUIVisibility="Hidden"

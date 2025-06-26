@@ -1,4 +1,4 @@
-﻿using RuriLib.Attributes;
+using RuriLib.Attributes;
 using RuriLib.Extensions;
 using RuriLib.Functions.Files;
 using RuriLib.Logging;
@@ -16,13 +16,13 @@ namespace RuriLib.Blocks.Utility.Files
     public static class Methods
     {
         [Block("Checks if a file exists")]
-        public static bool FileExists(BotData data, string path)
+        public static async Task<bool> FileExists(BotData data, string path)
         {
             path = SanitizePath(path);
-            var exists = ExecuteFileOperation(data, path, true, (p, c) =>
+            var exists = await ExecuteFileOperation(data, path, true, (p, c) =>
             {
                 return Task.FromResult(File.Exists(p));
-            }).Result;
+            }).ConfigureAwait(false);
 
             data.Logger.LogHeader();
             data.Logger.Log(path + (exists ? " exists" : " does not exist"), LogColors.Flavescent);
@@ -169,8 +169,8 @@ namespace RuriLib.Blocks.Utility.Files
 
             FileUtils.CreatePath(destinationPath);
 
-            lock (FileLocker.GetHandle(originPath))
-                lock (FileLocker.GetHandle(destinationPath))
+            lock (FileLocker.GetHandle(originPath).GetSyncLock())
+                lock (FileLocker.GetHandle(destinationPath).GetSyncLock())
                     File.Copy(originPath, destinationPath);
 
             data.Logger.LogHeader();
@@ -191,8 +191,8 @@ namespace RuriLib.Blocks.Utility.Files
 
             FileUtils.CreatePath(destinationPath);
 
-            lock (FileLocker.GetHandle(originPath))
-                lock (FileLocker.GetHandle(destinationPath))
+            lock (FileLocker.GetHandle(originPath).GetSyncLock())
+                lock (FileLocker.GetHandle(destinationPath).GetSyncLock())
                     File.Move(originPath, destinationPath);
 
             data.Logger.LogHeader();
@@ -207,7 +207,7 @@ namespace RuriLib.Blocks.Utility.Files
             if (data.Providers.Security.RestrictBlocksToCWD)
                 FileUtils.ThrowIfNotInCWD(path);
 
-            lock (FileLocker.GetHandle(path))
+            lock (FileLocker.GetHandle(path).GetSyncLock())
                 File.Delete(path);
 
             data.Logger.LogHeader();
@@ -287,7 +287,7 @@ namespace RuriLib.Blocks.Utility.Files
             {
                 if (isWriteOperation)
                 {
-                    await fileLock.EnterWriteLock(data.CancellationToken);
+                    await fileLock.EnterWriteLock(data.CancellationToken).ConfigureAwait(false);
                 }
                 else
                 {

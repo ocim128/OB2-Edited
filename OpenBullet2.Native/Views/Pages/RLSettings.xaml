@@ -10,134 +10,174 @@
       d:DesignHeight="1450" d:DesignWidth="800"
       Title="RLSettings">
 
-    <Grid>
+    <!-- Modern RuriLib Settings Layout -->
+    <Grid Background="Transparent" Margin="16">
         <Grid.RowDefinitions>
             <RowDefinition Height="*"/>
             <RowDefinition Height="auto"/>
         </Grid.RowDefinitions>
 
+        <ScrollViewer Grid.Row="0" 
+                      VerticalScrollBarVisibility="Auto" 
+                      HorizontalScrollBarVisibility="Disabled"
+                      CanContentScroll="False"
+                      PanningMode="VerticalOnly"
+                      ScrollViewer.IsDeferredScrollingEnabled="False">
+            <StackPanel Margin="0,0,0,20">
+                
+                <!-- General Settings Section -->
+                <Border Background="#C0353535" CornerRadius="8" Padding="16" Margin="0,0,0,12">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                            <iconPacks:PackIconMaterial Kind="Cog" Width="24" Height="24" Foreground="#FF1E90FF" Margin="0,0,12,0"/>
+                            <TextBlock Text="General Settings" FontSize="20" FontWeight="Bold" Foreground="#FF1E90FF" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <!-- Form Grid Layout -->
+                        <Grid>
         <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="300"/>
             <ColumnDefinition Width="*"/>
-            <ColumnDefinition Width="auto"/>
         </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="auto"/>
+                                <RowDefinition Height="auto"/>
+                                <RowDefinition Height="auto"/>
+                                <RowDefinition Height="auto"/>
+                                <RowDefinition Height="auto"/>
+                                <RowDefinition Height="auto"/>
+                                <RowDefinition Height="auto"/>
+                                <RowDefinition Height="auto"/>
+                            </Grid.RowDefinitions>
 
-        <ScrollViewer Grid.Row="0" Grid.ColumnSpan="2" VerticalScrollBarVisibility="Auto">
-            <StackPanel Margin="0 0 0 10">
-                <Label FontSize="24" FontWeight="Bold" Margin="0 0 0 10">General</Label>
-                <StackPanel Orientation="Horizontal" Margin="0 0 0 5">
-                    <Label>Parallelizer Type (TaskBased gives the best performance)</Label>
-                    <ComboBox ItemsSource="{Binding ParallelizerTypes}"
-                              SelectedValue="{Binding Path=ParallelizerType}"
-                              Width="150"
-                              HorizontalAlignment="Left"/>
-                </StackPanel>
-                <CheckBox Content="Log job activity to a file"
-                          IsChecked="{Binding LogJobActivityToFile}" 
-                          Name="LogJobActivityToFile"
-                          VerticalContentAlignment="Center" 
-                          Margin="5 0 0 0"/>
-                <CheckBox Content="Log all results to the job log file (WARN: Can result in high disk usage due to the amount of lines from each job!)"
-                          IsChecked="{Binding LogAllResults}"
-                          Visibility="{Binding ElementName=LogJobActivityToFile, Path=IsChecked, Converter={StaticResource BooleanToVisibilityConverter} }"
-                          VerticalContentAlignment="Center"
-                          Margin="5 10 0 0"/>
-                <CheckBox Content="Enable logging for bots in a MultiRunJob. Only enable for debugging configs as it increases the RAM usage by a lot!" 
-                          IsChecked="{Binding EnableBotLogging}" 
-                          VerticalContentAlignment="Center"
-                          Margin="5 10 0 0"/>
-                <CheckBox Content="Enable verbose mode (more output and more insight on errors, useful for debugging)" 
-                          IsChecked="{Binding VerboseMode}"
-                          VerticalContentAlignment="Center"
-                          Margin="5 10 0 0"/>
-                <CheckBox Content="Restrict blocks to use resources inside the current working directory (CARE: does not work on Script blocks or pure LoliCode directives)" 
-                          IsChecked="{Binding RestrictBlocksToCWD}" 
-                          VerticalContentAlignment="Center"
-                          Margin="5 10 0 0"/>
-                <CheckBox Content="Use the custom user agents list specified below instead of the default provider (intoli). Specify one user-agent per line" 
-                          IsChecked="{Binding UseCustomUserAgentsList}" 
-                          VerticalContentAlignment="Center"
-                          Margin="5 10 0 0"/>
+                            <!-- Parallelizer Type -->
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Parallelizer Type:" Foreground="White" FontSize="14" Margin="0,8,16,8" VerticalAlignment="Center"/>
+                            <ComboBox Grid.Row="0" Grid.Column="1" ItemsSource="{Binding ParallelizerTypes}" SelectedValue="{Binding Path=ParallelizerType}" Width="200" HorizontalAlignment="Left" Margin="0,8"/>
+
+                            <!-- Checkboxes -->
+                            <CheckBox Grid.Row="1" Grid.ColumnSpan="2" Content="Log job activity to a file" IsChecked="{Binding LogJobActivityToFile}" Name="LogJobActivityToFile" Foreground="White" Margin="0,8"/>
+                            
+                            <CheckBox Grid.Row="2" Grid.ColumnSpan="2" Content="Log all results to the job log file (WARN: High disk usage)" IsChecked="{Binding LogAllResults}" Visibility="{Binding ElementName=LogJobActivityToFile, Path=IsChecked, Converter={StaticResource BooleanToVisibilityConverter}}" Foreground="White" Margin="16,8,0,8"/>
+                            
+                            <CheckBox Grid.Row="3" Grid.ColumnSpan="2" Content="Enable logging for bots in MultiRunJob (Debugging only - High RAM usage)" IsChecked="{Binding EnableBotLogging}" Foreground="White" Margin="0,8"/>
+                            
+                            <CheckBox Grid.Row="4" Grid.ColumnSpan="2" Content="Enable verbose mode (More output and error insights)" IsChecked="{Binding VerboseMode}" Foreground="White" Margin="0,8"/>
+                            
+                            <CheckBox Grid.Row="5" Grid.ColumnSpan="2" Content="Restrict blocks to current working directory" IsChecked="{Binding RestrictBlocksToCWD}" Foreground="White" Margin="0,8"/>
+                            
+                            <CheckBox Grid.Row="6" Grid.ColumnSpan="2" Content="Use custom user agents list (instead of default provider)" IsChecked="{Binding UseCustomUserAgentsList}" Foreground="White" Margin="0,8"/>
+                            
+                            <!-- Custom User Agents TextBox -->
+                            <TextBlock Grid.Row="7" Grid.ColumnSpan="2" Text="Custom User Agents (one per line):" Foreground="#FF1E90FF" FontWeight="SemiBold" Margin="0,16,0,8"/>
+                        </Grid>
+                        
                 <TextBox x:Name="customUserAgentsListTextBox" 
-                             Background="{DynamicResource BackgroundSecondary}" 
-                             Foreground="{DynamicResource ForegroundMain}" 
+                                 Background="#FF333333" 
+                                 Foreground="White" 
                              FontFamily="Consolas" 
-                             Margin="5 10 5 0"
                              Height="100"
-                             VerticalContentAlignment="Top"
                              AcceptsReturn="True"
-                             TextChanged="CustomUserAgentsChanged">
-                </TextBox>
-                <Separator Opacity="0.5" Margin="5 20"></Separator>
-                <Label FontSize="24" FontWeight="Bold" Margin="0 0 0 10">Proxies</Label>
-                <StackPanel Orientation="Horizontal" Margin="0 10 0 0">
-                    <Label>Timeout for proxy connections</Label>
-                    <mah:NumericUpDown 
-                          Minimum="0"
-                          Maximum="100000000"
-                          Interval="1000"
-                          Value="{Binding ProxyConnectTimeoutMilliseconds}"
-                          Width="150"/>
-                    <Label>and read/write</Label>
-                    <mah:NumericUpDown 
-                          Minimum="0"
-                          Maximum="100000000"
-                          Interval="1000"
-                          Value="{Binding ProxyReadWriteTimeoutMilliseconds}"
-                          Width="150"/>
-                    <Label>(in milliseconds)</Label>
+                                 TextChanged="CustomUserAgentsChanged"
+                                 BorderBrush="#FF1E90FF"
+                                 BorderThickness="1"
+                                 Padding="8"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Proxy Settings Section -->
+                <Border Background="#C0353535" CornerRadius="8" Padding="16" Margin="0,0,0,12">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                            <iconPacks:PackIconMaterial Kind="ServerNetwork" Width="24" Height="24" Foreground="#FF1E90FF" Margin="0,0,12,0"/>
+                            <TextBlock Text="Proxy Settings" FontSize="20" FontWeight="Bold" Foreground="#FF1E90FF" VerticalAlignment="Center"/>
                 </StackPanel>
-                <Label>Global BAN keys (one per line)</Label>
+                        <!-- Proxy Timeout Settings -->
+                        <Grid Margin="0,0,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="auto"/>
+                                <ColumnDefinition Width="auto"/>
+                                <ColumnDefinition Width="auto"/>
+                                <ColumnDefinition Width="auto"/>
+                                <ColumnDefinition Width="auto"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <TextBlock Grid.Column="0" Text="Timeout for proxy connections:" Foreground="White" FontSize="14" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                            <mah:NumericUpDown Grid.Column="1" Minimum="0" Maximum="100000000" Interval="1000" Value="{Binding ProxyConnectTimeoutMilliseconds}" Width="120" Margin="0,0,8,0"/>
+                            <TextBlock Grid.Column="2" Text="and read/write:" Foreground="White" FontSize="14" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                            <mah:NumericUpDown Grid.Column="3" Minimum="0" Maximum="100000000" Interval="1000" Value="{Binding ProxyReadWriteTimeoutMilliseconds}" Width="120" Margin="0,0,8,0"/>
+                            <TextBlock Grid.Column="4" Text="(in milliseconds)" Foreground="White" FontSize="14" VerticalAlignment="Center"/>
+                        </Grid>
+
+                        <!-- Global Keys Section -->
+                        <TextBlock Text="Global BAN keys (one per line):" Foreground="#FF1E90FF" FontWeight="SemiBold" Margin="0,16,0,8"/>
                 <TextBox x:Name="globalBanKeysTextBox" 
-                             Background="{DynamicResource BackgroundSecondary}" 
-                             Foreground="{DynamicResource ForegroundMain}" 
+                                 Background="#80404040" 
+                                 Foreground="White" 
                              FontFamily="Consolas"
-                             Margin="5"
                              Height="100"
-                             VerticalContentAlignment="Top"
                              AcceptsReturn="True"
-                             TextChanged="GlobalBanKeysChanged">
-                </TextBox>
-                <Label>Global RETRY keys (one per line)</Label>
+                                 TextChanged="GlobalBanKeysChanged"
+                                 BorderBrush="#FF1E90FF"
+                                 BorderThickness="1"
+                                 Padding="8"
+                                 Margin="0,0,0,16"/>
+
+                        <TextBlock Text="Global RETRY keys (one per line):" Foreground="#FF1E90FF" FontWeight="SemiBold" Margin="0,0,0,8"/>
                 <TextBox x:Name="globalRetryKeysTextBox" 
-                             Background="{DynamicResource BackgroundSecondary}" 
-                             Foreground="{DynamicResource ForegroundMain}" 
+                                 Background="#80404040" 
+                                 Foreground="White" 
                              FontFamily="Consolas" 
-                             Margin="5"
                              Height="100"
-                             VerticalContentAlignment="Top"
                              AcceptsReturn="True"
-                             TextChanged="GlobalRetryKeysChanged">
-                </TextBox>
-                <Separator Opacity="0.5" Margin="5 20"></Separator>
-                <Label FontSize="24" FontWeight="Bold" Margin="0 0 0 10">Captchas</Label>
-                <StackPanel Orientation="Horizontal" Margin="0 10 0 0">
-                    <Label>Timeout for captcha solutions</Label>
-                    <mah:NumericUpDown 
-                          Minimum="1"
-                          Maximum="1000000"
-                          Interval="10"
-                          Value="{Binding CaptchaTimeoutSeconds}"
-                          Width="150"/>
-                    <Label>(seconds) with polling interval</Label>
-                    <mah:NumericUpDown 
-                          Minimum="20"
-                          Maximum="100000000"
-                          Interval="1000"
-                          Value="{Binding CaptchaPollingIntervalMilliseconds}"
-                          Width="150"/>
-                    <Label>(milliseconds)</Label>
-                </StackPanel>
-                <CheckBox Content="Check the captcha balance before solving" 
-                          IsChecked="{Binding UseCustomUserAgentsList}" 
-                          VerticalContentAlignment="Center"
-                          Margin="5 10 0 0"/>
-                <StackPanel Orientation="Horizontal" Margin="0 10 0 5">
-                    <Label>Captcha Service</Label>
-                    <ComboBox ItemsSource="{Binding CaptchaServiceTypes}"
-                              SelectedValue="{Binding Path=CurrentCaptchaService}"
-                              Width="250"
-                              HorizontalAlignment="Left"/>
-                </StackPanel>
+                                 TextChanged="GlobalRetryKeysChanged"
+                                 BorderBrush="#FF1E90FF"
+                                 BorderThickness="1"
+                                 Padding="8"/>
+                    </StackPanel>
+                </Border>
+                
+                <!-- Captcha Settings Section -->
+                <Border Background="#C0353535" CornerRadius="8" Padding="16" Margin="0,0,0,12">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                            <iconPacks:PackIconMaterial Kind="Robot" Width="24" Height="24" Foreground="#FF1E90FF" Margin="0,0,12,0"/>
+                            <TextBlock Text="Captcha Settings" FontSize="20" FontWeight="Bold" Foreground="#FF1E90FF" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        
+                        <!-- Timeout Settings Grid -->
+                        <Grid Margin="0,0,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="auto"/>
+                                <ColumnDefinition Width="auto"/>
+                                <ColumnDefinition Width="auto"/>
+                                <ColumnDefinition Width="auto"/>
+                                <ColumnDefinition Width="auto"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <TextBlock Grid.Column="0" Text="Timeout for captcha solutions:" Foreground="White" FontSize="14" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                            <mah:NumericUpDown Grid.Column="1" Minimum="1" Maximum="1000000" Interval="10" Value="{Binding CaptchaTimeoutSeconds}" Width="120" Margin="0,0,8,0"/>
+                            <TextBlock Grid.Column="2" Text="(seconds) with polling interval:" Foreground="White" FontSize="14" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                            <mah:NumericUpDown Grid.Column="3" Minimum="20" Maximum="100000000" Interval="1000" Value="{Binding CaptchaPollingIntervalMilliseconds}" Width="120" Margin="0,0,8,0"/>
+                            <TextBlock Grid.Column="4" Text="(milliseconds)" Foreground="White" FontSize="14" VerticalAlignment="Center"/>
+                        </Grid>
+                        
+                        <CheckBox Content="Check the captcha balance before solving" 
+                                  IsChecked="{Binding UseCustomUserAgentsList}" 
+                                  Foreground="White"
+                                  Margin="0,8"/>
+                        
+                        <!-- Service Selection Grid -->
+                        <Grid Margin="0,8,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <TextBlock Grid.Column="0" Text="Captcha Service:" Foreground="White" FontSize="14" Margin="0,0,16,0" VerticalAlignment="Center"/>
+                            <ComboBox Grid.Column="1" ItemsSource="{Binding CaptchaServiceTypes}"
+                                      SelectedValue="{Binding Path=CurrentCaptchaService}"
+                                      Width="250"
+                                      HorizontalAlignment="Left"/>
+                        </Grid>
                 <TabControl x:Name="captchaServiceTabControl" Background="Transparent" BorderThickness="0">
                     <TabControl.ItemContainerStyle>
                         <Style TargetType="{x:Type TabItem}">
@@ -147,20 +187,30 @@
 
                     <!-- TwoCaptcha -->
                     <TabItem>
-                        <StackPanel Orientation="Horizontal" Margin="0 10 0 0">
-                            <Label>Api Key</Label>
-                            <TextBox Text="{Binding TwoCaptchaApiKey}"
-                                Width="400"></TextBox>
-                        </StackPanel>
+                        <Grid Margin="0,8,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="100"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="Api Key:" Foreground="White" FontSize="14" VerticalAlignment="Center"/>
+                            <TextBox Grid.Column="1" Text="{Binding TwoCaptchaApiKey}"
+                                     Background="#FF333333" Foreground="White" BorderBrush="#FF1E90FF" BorderThickness="1" Padding="8"
+                                     Width="400" HorizontalAlignment="Left"/>
+                        </Grid>
                     </TabItem>
                     
                     <!-- AntiCaptcha -->
                     <TabItem>
-                        <StackPanel Orientation="Horizontal" Margin="0 10 0 0">
-                            <Label>Api Key</Label>
-                            <TextBox Text="{Binding AntiCaptchaApiKey}"
-                                Width="400"></TextBox>
-                        </StackPanel>
+                        <Grid Margin="0,8,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="100"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="Api Key:" Foreground="White" FontSize="14" VerticalAlignment="Center"/>
+                            <TextBox Grid.Column="1" Text="{Binding AntiCaptchaApiKey}"
+                                     Background="#FF333333" Foreground="White" BorderBrush="#FF1E90FF" BorderThickness="1" Padding="8"
+                                     Width="400" HorizontalAlignment="Left"/>
+                        </Grid>
                     </TabItem>
 
                     <!-- CustomTwoCaptcha -->
@@ -499,68 +549,128 @@
                         </StackPanel>
                     </TabItem>
                 </TabControl>
-                <Button x:Name="checkBalanceButton" 
-                        Click="CheckCaptchaBalance" 
-                        Margin="5 10 5 0"
-                        Width="150"
-                        HorizontalAlignment="Left"
-                        Style="{StaticResource StyledPrimaryButton}" >
-                    <StackPanel Orientation="Horizontal">
-                        <iconPacks:PackIconUnicons Kind="DollarSign" />
-                        <TextBlock VerticalAlignment="Center" Margin="5 0">Check Balance</TextBlock>
+                
+                        <!-- Check Balance Button -->
+                        <Button x:Name="checkBalanceButton" 
+                                Click="CheckCaptchaBalance" 
+                                Margin="0,16,0,0"
+                                Width="200"
+                                HorizontalAlignment="Left"
+                                Style="{StaticResource StyledPrimaryButton}"
+                                Background="#FF28A745"
+                                BorderBrush="#FF34CE57"
+                                Padding="12,8">
+                            <StackPanel Orientation="Horizontal">
+                                <iconPacks:PackIconMaterial Kind="CurrencyUsd" Width="16" Height="16"/>
+                                <TextBlock Text="Check Balance" VerticalAlignment="Center" Margin="8,0,0,0" FontWeight="SemiBold"/>
+                            </StackPanel>
+                        </Button>
                     </StackPanel>
-                </Button>
-                <Separator Opacity="0.5" Margin="5 20"></Separator>
-                <Label FontSize="24" FontWeight="Bold" Margin="0 0 0 10">Puppeteer</Label>
-                <StackPanel Orientation="Horizontal" Margin="0 10 0 0">
-                    <Label>Path of the chrome.exe binary on disk</Label>
-                    <TextBox Text="{Binding PuppeteerChromeBinaryLocation}"
-                             Width="500"></TextBox>
-                </StackPanel>
-                <Separator Opacity="0.5" Margin="5 20"></Separator>
-                <Label FontSize="24" FontWeight="Bold" Margin="0 0 0 10">Selenium</Label>
-                <StackPanel Orientation="Horizontal" Margin="0 0 0 5">
-                    <Label>Browser that the Selenium webdriver will control</Label>
-                    <ComboBox ItemsSource="{Binding SeleniumBrowserTypes}"
-                              SelectedValue="{Binding Path=SeleniumBrowserType}"
-                              Width="150"
-                              HorizontalAlignment="Left"/>
-                </StackPanel>
-                <StackPanel Orientation="Horizontal" Margin="0 10 0 0">
-                    <Label>Path of the chrome.exe binary on disk</Label>
-                    <TextBox Text="{Binding SeleniumChromeBinaryLocation}"
-                             Width="500"></TextBox>
-                </StackPanel>
-                <StackPanel Orientation="Horizontal" Margin="0 10 0 0">
-                    <Label>Path of the firefox.exe binary on disk</Label>
-                    <TextBox Text="{Binding SeleniumFirefoxBinaryLocation}"
-                             Width="500"></TextBox>
-                </StackPanel>
+                </Border>
+                
+                <!-- Puppeteer Settings Section -->
+                <Border Background="#C0353535" CornerRadius="8" Padding="16" Margin="0,0,0,12">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                            <iconPacks:PackIconMaterial Kind="GoogleChrome" Width="24" Height="24" Foreground="#FF1E90FF" Margin="0,0,12,0"/>
+                            <TextBlock Text="Puppeteer Settings" FontSize="20" FontWeight="Bold" Foreground="#FF1E90FF" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        
+                        <!-- Chrome Binary Path -->
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <TextBlock Grid.Column="0" Text="Chrome Binary Path:" Foreground="White" FontSize="14" Margin="0,0,16,0" VerticalAlignment="Center"/>
+                            <TextBox Grid.Column="1" Text="{Binding PuppeteerChromeBinaryLocation}"
+                                     Background="#FF333333" Foreground="White" BorderBrush="#FF1E90FF" BorderThickness="1" Padding="8"
+                                     Width="500" HorizontalAlignment="Left"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+                
+                <!-- Selenium Settings Section -->
+                <Border Background="#C0353535" CornerRadius="8" Padding="16" Margin="0,0,0,12">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                            <iconPacks:PackIconMaterial Kind="Web" Width="24" Height="24" Foreground="#FF1E90FF" Margin="0,0,12,0"/>
+                            <TextBlock Text="Selenium Settings" FontSize="20" FontWeight="Bold" Foreground="#FF1E90FF" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        
+                        <!-- Browser Type Selection -->
+                        <Grid Margin="0,0,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <TextBlock Grid.Column="0" Text="Browser Type:" Foreground="White" FontSize="14" Margin="0,0,16,0" VerticalAlignment="Center"/>
+                            <ComboBox Grid.Column="1" ItemsSource="{Binding SeleniumBrowserTypes}"
+                                      SelectedValue="{Binding Path=SeleniumBrowserType}"
+                                      Width="200"
+                                      HorizontalAlignment="Left"/>
+                        </Grid>
+                        
+                        <!-- Chrome Binary Path -->
+                        <Grid Margin="0,0,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <TextBlock Grid.Column="0" Text="Chrome Binary Path:" Foreground="White" FontSize="14" Margin="0,0,16,0" VerticalAlignment="Center"/>
+                            <TextBox Grid.Column="1" Text="{Binding SeleniumChromeBinaryLocation}"
+                                     Background="#FF333333" Foreground="White" BorderBrush="#FF1E90FF" BorderThickness="1" Padding="8"
+                                     Width="500" HorizontalAlignment="Left"/>
+                        </Grid>
+                        
+                        <!-- Firefox Binary Path -->
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <TextBlock Grid.Column="0" Text="Firefox Binary Path:" Foreground="White" FontSize="14" Margin="0,0,16,0" VerticalAlignment="Center"/>
+                            <TextBox Grid.Column="1" Text="{Binding SeleniumFirefoxBinaryLocation}"
+                                     Background="#FF333333" Foreground="White" BorderBrush="#FF1E90FF" BorderThickness="1" Padding="8"
+                                     Width="500" HorizontalAlignment="Left"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
             </StackPanel>
         </ScrollViewer>
 
+        <!-- Modern Action Buttons -->
+        <Border Grid.Row="1" Background="#C0353535" CornerRadius="8" Padding="16" Margin="0,8,0,0">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
         <Button x:Name="saveButton" 
-                Grid.Row="1"
-                Grid.Column="0"
                 Click="Save" 
-                Margin="0 5 5 5" 
-                Style="{StaticResource StyledPrimaryButton}" >
+                        Style="{StaticResource StyledPrimaryButton}"
+                        Padding="16,10"
+                        Margin="0,0,12,0"
+                        Background="#FF28A745"
+                        BorderBrush="#FF34CE57">
             <StackPanel Orientation="Horizontal">
-                <iconPacks:PackIconRemixIcon Kind="Save3Fill" />
-                <TextBlock VerticalAlignment="Center" Margin="5 0">Save</TextBlock>
+                        <iconPacks:PackIconMaterial Kind="ContentSave" Width="16" Height="16"/>
+                        <TextBlock Text="Save" VerticalAlignment="Center" Margin="8,0,0,0" FontWeight="SemiBold"/>
             </StackPanel>
         </Button>
 
         <Button x:Name="resetButton" 
-                Grid.Row="1"
-                Grid.Column="1"
                 Click="Reset" 
-                Margin="0 5 5 5" 
-                Style="{StaticResource StyledDangerButton}" >
+                        Style="{StaticResource StyledDangerButton}"
+                        Padding="16,10"
+                        Background="#FFDC3545"
+                        BorderBrush="#FFFF6B6B">
             <StackPanel Orientation="Horizontal">
-                <iconPacks:PackIconRadixIcons Kind="Reset" />
-                <TextBlock VerticalAlignment="Center" Margin="5 0">Reset</TextBlock>
+                        <iconPacks:PackIconMaterial Kind="Refresh" Width="16" Height="16"/>
+                        <TextBlock Text="Reset" VerticalAlignment="Center" Margin="8,0,0,0" FontWeight="SemiBold"/>
+                    </StackPanel>
+                </Button>
             </StackPanel>
-        </Button>
+        </Border>
     </Grid>
 </Page>

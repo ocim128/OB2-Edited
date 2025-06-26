@@ -1,0 +1,325 @@
+<Page x:Class="OpenBullet2.Native.Views.Pages.ModernHome"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+      xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
+      xmlns:converters="clr-namespace:OpenBullet2.Native.Converters"
+      xmlns:local="clr-namespace:OpenBullet2.Native.Views.Pages"
+      mc:Ignorable="d" 
+      d:DesignHeight="800" d:DesignWidth="1000"
+      Title="Home">
+
+    <Page.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Styles/ModernTheme.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <BooleanToVisibilityConverter x:Key="BoolToVis" />
+        </ResourceDictionary>
+    </Page.Resources>
+    
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Margin="0,0,0,40">
+            
+            <!-- Hero Section -->
+            <Border Style="{StaticResource ModernCard}" Margin="0,0,0,32">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="auto" />
+                    </Grid.ColumnDefinitions>
+                    
+                    <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                        <TextBlock Text="Welcome to OpenBullet 2" 
+                                  Style="{StaticResource ModernHeading1}"
+                                  Margin="0,0,0,8" />
+                        <TextBlock Text="Native Edition" 
+                                  Style="{StaticResource ModernHeading3}"
+                                  Foreground="{StaticResource Modern.ThemeMain}"
+                                  Margin="0,0,0,16" />
+                        <TextBlock Text="{Binding WelcomeMessage}"
+                                  Style="{StaticResource ModernBodyTextSecondary}"
+                                  TextWrapping="Wrap"
+                                  MaxWidth="500"
+                                  LineHeight="24" />
+                    </StackPanel>
+                    
+                    <!-- System Info Card -->
+                    <Border Grid.Column="1" 
+                           Style="{StaticResource ModernCard}"
+                           Margin="40,0,0,0"
+                           MinWidth="250">
+                        <StackPanel>
+                            <TextBlock Text="System Information" 
+                                      Style="{StaticResource ModernBodyText}"
+                                      FontWeight="Medium"
+                                      Margin="0,0,0,16" />
+                            
+                            <StackPanel Margin="0,0,0,12">
+                                <TextBlock Text="Application Uptime" 
+                                          Style="{StaticResource ModernCaptionText}" />
+                                <TextBlock Text="{Binding ApplicationUptime}" 
+                                          Style="{StaticResource ModernBodyText}"
+                                          Foreground="{StaticResource Modern.ThemeMain}" />
+                            </StackPanel>
+                            
+                            <StackPanel Margin="0,0,0,12">
+                                <TextBlock Text="Memory Usage" 
+                                          Style="{StaticResource ModernCaptionText}" />
+                                <TextBlock Text="{Binding MemoryUsage}" 
+                                          Style="{StaticResource ModernBodyText}"
+                                          Foreground="{StaticResource Modern.Success}" />
+                            </StackPanel>
+                            
+                            <StackPanel>
+                                <TextBlock Text="Version" 
+                                          Style="{StaticResource ModernCaptionText}" />
+                                <TextBlock Text="{Binding ApplicationVersion}" 
+                                          Style="{StaticResource ModernBodyText}" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <!-- Collection Statistics -->
+            <Border Style="{StaticResource ModernCard}" Margin="0,0,0,32">
+                <StackPanel>
+                    <TextBlock Text="Your Collection" 
+                              Style="{StaticResource ModernHeading3}"
+                              Margin="0,0,0,20" />
+                    
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        
+                        <!-- Jobs -->
+                        <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource ModernCard}" Margin="0,0,8,8">
+                            <StackPanel HorizontalAlignment="Center">
+                                <TextBlock Text="{Binding JobsCount}" 
+                                          Style="{StaticResource ModernHeading2}" 
+                                          Foreground="{StaticResource Modern.ThemeMain}"
+                                          HorizontalAlignment="Center" />
+                                <TextBlock Text="Jobs" 
+                                          Style="{StaticResource ModernCaptionText}"
+                                          HorizontalAlignment="Center" />
+                            </StackPanel>
+                        </Border>
+                        
+                        <!-- Configs -->
+                        <Border Grid.Row="0" Grid.Column="1" Style="{StaticResource ModernCard}" Margin="4,0,4,8">
+                            <StackPanel HorizontalAlignment="Center">
+                                <TextBlock Text="{Binding ConfigsCount}" 
+                                          Style="{StaticResource ModernHeading2}" 
+                                          Foreground="{StaticResource Modern.Success}"
+                                          HorizontalAlignment="Center" />
+                                <TextBlock Text="Configs" 
+                                          Style="{StaticResource ModernCaptionText}"
+                                          HorizontalAlignment="Center" />
+                            </StackPanel>
+                        </Border>
+                        
+                        <!-- Hits -->
+                        <Border Grid.Row="0" Grid.Column="2" Style="{StaticResource ModernCard}" Margin="4,0,4,8">
+                            <StackPanel HorizontalAlignment="Center">
+                                <TextBlock Text="{Binding HitsCount}" 
+                                          Style="{StaticResource ModernHeading2}" 
+                                          Foreground="{StaticResource Modern.Warning}"
+                                          HorizontalAlignment="Center" />
+                                <TextBlock Text="Hits" 
+                                          Style="{StaticResource ModernCaptionText}"
+                                          HorizontalAlignment="Center" />
+                            </StackPanel>
+                        </Border>
+                        
+                        <!-- Proxies -->
+                        <Border Grid.Row="0" Grid.Column="3" Style="{StaticResource ModernCard}" Margin="8,0,0,8">
+                            <StackPanel HorizontalAlignment="Center">
+                                <TextBlock Text="{Binding ProxiesCount}" 
+                                          Style="{StaticResource ModernHeading2}" 
+                                          Foreground="{StaticResource Modern.Error}"
+                                          HorizontalAlignment="Center" />
+                                <TextBlock Text="Proxies" 
+                                          Style="{StaticResource ModernCaptionText}"
+                                          HorizontalAlignment="Center" />
+                            </StackPanel>
+                        </Border>
+                        
+                        <!-- Wordlists -->
+                        <Border Grid.Row="1" Grid.Column="0" Style="{StaticResource ModernCard}" Margin="0,0,8,0">
+                            <StackPanel HorizontalAlignment="Center">
+                                <TextBlock Text="{Binding WordlistsCount}" 
+                                          Style="{StaticResource ModernHeading2}" 
+                                          Foreground="{StaticResource Modern.Info}"
+                                          HorizontalAlignment="Center" />
+                                <TextBlock Text="Wordlists" 
+                                          Style="{StaticResource ModernCaptionText}"
+                                          HorizontalAlignment="Center" />
+                            </StackPanel>
+                        </Border>
+                        
+                        <!-- Wordlist Lines -->
+                        <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource ModernCard}" Margin="4,0,4,0">
+                            <StackPanel HorizontalAlignment="Center">
+                                <TextBlock Text="{Binding WordlistLines}" 
+                                          Style="{StaticResource ModernHeading2}" 
+                                          Foreground="{StaticResource Modern.ThemeSecondary}"
+                                          HorizontalAlignment="Center" />
+                                <TextBlock Text="Total Lines" 
+                                          Style="{StaticResource ModernCaptionText}"
+                                          HorizontalAlignment="Center" />
+                            </StackPanel>
+                        </Border>
+                        
+                        <!-- Guests -->
+                        <Border Grid.Row="1" Grid.Column="2" Style="{StaticResource ModernCard}" Margin="4,0,4,0">
+                            <StackPanel HorizontalAlignment="Center">
+                                <TextBlock Text="{Binding GuestsCount}" 
+                                          Style="{StaticResource ModernHeading2}" 
+                                          Foreground="{StaticResource Modern.Warning}"
+                                          HorizontalAlignment="Center" />
+                                <TextBlock Text="Guests" 
+                                          Style="{StaticResource ModernCaptionText}"
+                                          HorizontalAlignment="Center" />
+                            </StackPanel>
+                        </Border>
+                        
+                        <!-- Plugins -->
+                        <Border Grid.Row="1" Grid.Column="3" Style="{StaticResource ModernCard}" Margin="8,0,0,0">
+                            <StackPanel HorizontalAlignment="Center">
+                                <TextBlock Text="{Binding PluginsCount}" 
+                                          Style="{StaticResource ModernHeading2}" 
+                                          Foreground="{StaticResource Modern.Success}"
+                                          HorizontalAlignment="Center" />
+                                <TextBlock Text="Plugins" 
+                                          Style="{StaticResource ModernCaptionText}"
+                                          HorizontalAlignment="Center" />
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- Quick Actions Grid -->
+            <Grid Margin="0,0,0,32">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                
+                <!-- Create New Job -->
+                <Border Grid.Column="0" Style="{StaticResource ModernCard}" 
+                       Margin="0,0,16,0" Cursor="Hand"
+                       x:Name="CreateJobCard">
+                    <StackPanel HorizontalAlignment="Center">
+                        <Border Background="{StaticResource Modern.Success}"
+                               CornerRadius="12"
+                               Width="48" Height="48"
+                               Margin="0,0,0,16">
+                            <iconPacks:PackIconMaterial Kind="Plus" 
+                                                      Width="24" Height="24"
+                                                      Foreground="White"
+                                                      HorizontalAlignment="Center"
+                                                      VerticalAlignment="Center" />
+                        </Border>
+                        <TextBlock Text="Create New Job" 
+                                  Style="{StaticResource ModernBodyText}"
+                                  FontWeight="Medium"
+                                  Margin="0,0,0,8" />
+                        <TextBlock Text="Start a new testing job" 
+                                  Style="{StaticResource ModernCaptionText}"
+                                  TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+                
+                <!-- Manage Configs -->
+                <Border Grid.Column="1" Style="{StaticResource ModernCard}" 
+                       Margin="8,0,8,0" Cursor="Hand"
+                       x:Name="ConfigsCard">
+                    <StackPanel HorizontalAlignment="Center">
+                        <Border Background="{StaticResource Modern.ThemeMain}"
+                               CornerRadius="12"
+                               Width="48" Height="48"
+                               Margin="0,0,0,16">
+                            <iconPacks:PackIconMaterial Kind="Cog" 
+                                                      Width="24" Height="24"
+                                                      Foreground="White"
+                                                      HorizontalAlignment="Center"
+                                                      VerticalAlignment="Center" />
+                        </Border>
+                        <TextBlock Text="Manage Configs" 
+                                  Style="{StaticResource ModernBodyText}"
+                                  FontWeight="Medium"
+                                  Margin="0,0,0,8" />
+                        <TextBlock Text="Import and manage configs" 
+                                  Style="{StaticResource ModernCaptionText}"
+                                  TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+                
+                <!-- View Results -->
+                <Border Grid.Column="2" Style="{StaticResource ModernCard}" 
+                       Margin="16,0,0,0" Cursor="Hand"
+                       x:Name="ResultsCard">
+                    <StackPanel HorizontalAlignment="Center">
+                        <Border Background="{StaticResource Modern.Warning}"
+                               CornerRadius="12"
+                               Width="48" Height="48"
+                               Margin="0,0,0,16">
+                            <iconPacks:PackIconMaterial Kind="Target" 
+                                                      Width="24" Height="24"
+                                                      Foreground="White"
+                                                      HorizontalAlignment="Center"
+                                                      VerticalAlignment="Center" />
+                        </Border>
+                        <TextBlock Text="View Results" 
+                                  Style="{StaticResource ModernBodyText}"
+                                  FontWeight="Medium"
+                                  Margin="0,0,0,8" />
+                        <TextBlock Text="Check your hits and results" 
+                                  Style="{StaticResource ModernCaptionText}"
+                                  TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <!-- Announcement Section -->
+            <Border Style="{StaticResource ModernCard}" 
+                   Visibility="{Binding HasAnnouncement, Converter={StaticResource BoolToVis}}">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                        <Border Background="{StaticResource Modern.Info}"
+                               CornerRadius="8"
+                               Width="32" Height="32"
+                               Margin="0,0,12,0">
+                            <iconPacks:PackIconMaterial Kind="Bullhorn" 
+                                                      Width="16" Height="16"
+                                                      Foreground="White"
+                                                      HorizontalAlignment="Center"
+                                                      VerticalAlignment="Center" />
+                        </Border>
+                        <TextBlock Text="Announcements" 
+                                  Style="{StaticResource ModernHeading3}"
+                                  VerticalAlignment="Center" />
+                    </StackPanel>
+                    
+                    <TextBlock Text="{Binding Announcement}"
+                              Style="{StaticResource ModernBodyText}"
+                              TextWrapping="Wrap"
+                              LineHeight="24" />
+                </StackPanel>
+            </Border>
+            
+        </StackPanel>
+    </ScrollViewer>
+</Page> 

@@ -71,6 +71,12 @@ namespace OpenBullet2.Native.Views.Dialogs
                 vm.Filter = filterTextBox.Text;
             }
         }
+
+        // Real-time search as user types
+        private void FilterTextChanged(object sender, TextChangedEventArgs e)
+        {
+            vm.Filter = filterTextBox.Text;
+        }
     }
 
     public class AddBlockDialogViewModel : ViewModelBase

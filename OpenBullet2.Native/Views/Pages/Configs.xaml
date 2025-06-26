@@ -15,109 +15,137 @@
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
     </Page.Resources>
 
-    <Grid>
+    <Grid Margin="8,6,8,8">
         <Grid.RowDefinitions>
-            <RowDefinition Height="30" />
-            <RowDefinition Height="40" />
+            <RowDefinition Height="auto" />
+            <RowDefinition Height="auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="auto" />
-            <RowDefinition Height="150" />
+            <RowDefinition Height="40" MinHeight="35" MaxHeight="80" />
         </Grid.RowDefinitions>
 
-        <Grid Grid.Row="0">
+        <!-- Modern Header Section -->
+        <Border Grid.Row="0" Background="#C0353535" CornerRadius="8" Padding="8,6" Margin="0,0,0,6">
+            <Grid>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
             <StackPanel Orientation="Horizontal" Grid.Column="0">
-                <Label Content="Current Config:" FontWeight="Bold" VerticalAlignment="Center"/>
-                <Label Content="{Binding SelectedConfig.Name}" FontWeight="Bold" VerticalAlignment="Center"/>
+                    <TextBlock Text="Current Config:" Style="{StaticResource LabelTextStyle}" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding SelectedConfig.Name}" Style="{StaticResource LabelTextStyle}" Foreground="#FF1E90FF" VerticalAlignment="Center" Margin="8,0,0,0"/>
             </StackPanel>
-            <StackPanel Orientation="Horizontal" Grid.Column="1">
-                <Label Content="Total Configs:" FontWeight="Bold" VerticalAlignment="Center"/>
-                <Label Content="{Binding Total}" VerticalAlignment="Center" />
+                <StackPanel Orientation="Horizontal" Grid.Column="1" HorizontalAlignment="Right">
+                    <TextBlock Text="Total Configs:" Style="{StaticResource LabelTextStyle}" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding Total}" Style="{StaticResource LabelTextStyle}" Foreground="#FF4CAF50" VerticalAlignment="Center" Margin="8,0,0,0"/>
             </StackPanel>
         </Grid>
+        </Border>
 
-        <Grid Grid.Row="1">
+        <!-- Modern Toolbar Section -->
+        <Border Grid.Row="1" Background="#80404040" CornerRadius="8" Padding="8,6" Margin="0,0,0,6">
+            <Grid>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="auto" />
-                <ColumnDefinition Width="30" />
-                <ColumnDefinition Width="auto" />
             </Grid.ColumnDefinitions>
 
-            <StackPanel Grid.Column="0" Orientation="Horizontal">
-                <Button x:Name="newButton" Click="Create" Margin="0 5 5 5" Style="{StaticResource StyledSuccessButton}" >
+                <!-- Action Buttons Group -->
+                <WrapPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button x:Name="newButton" Click="Create" Margin="0,0,6,0" Style="{StaticResource StyledSuccessButton}" Padding="8,4">
                     <StackPanel Orientation="Horizontal">
-                        <iconPacks:PackIconMaterialDesign Kind="Add" />
-                        <TextBlock VerticalAlignment="Center" Margin="5 0">New</TextBlock>
+                            <iconPacks:PackIconMaterialDesign Kind="Add" Width="16" Height="16"/>
+                            <TextBlock VerticalAlignment="Center" Margin="8,0,0,0" FontWeight="SemiBold">New</TextBlock>
                     </StackPanel>
                 </Button>
-                <Button x:Name="editButton" Click="Edit" Margin="0 5 5 5" Style="{StaticResource StyledPrimaryButton}" >
+                    <Button x:Name="editButton" Click="Edit" Margin="0,0,6,0" Style="{StaticResource StyledPrimaryButton}" Padding="8,4">
                     <StackPanel Orientation="Horizontal">
-                        <iconPacks:PackIconRemixIcon Kind="Edit2Fill" />
-                        <TextBlock VerticalAlignment="Center" Margin="5 0">Edit</TextBlock>
+                            <iconPacks:PackIconRemixIcon Kind="Edit2Fill" Width="16" Height="16"/>
+                            <TextBlock VerticalAlignment="Center" Margin="6,0,0,0" FontWeight="SemiBold">Edit</TextBlock>
                     </StackPanel>
                 </Button>
-                <Button x:Name="saveButton" Click="Save" Margin="0 5 5 5" Style="{StaticResource StyledPrimaryButton}" >
+                    <Button x:Name="saveButton" Click="Save" Margin="0,0,6,0" Style="{StaticResource StyledPrimaryButton}" Padding="8,4">
                     <StackPanel Orientation="Horizontal">
-                        <iconPacks:PackIconRemixIcon Kind="Save3Fill" />
-                        <TextBlock VerticalAlignment="Center" Margin="5 0">Save</TextBlock>
+                            <iconPacks:PackIconRemixIcon Kind="Save3Fill" Width="16" Height="16"/>
+                            <TextBlock VerticalAlignment="Center" Margin="6,0,0,0" FontWeight="SemiBold">Save</TextBlock>
                     </StackPanel>
                 </Button>
-                <Button x:Name="deleteButton" Click="Delete" Margin="0 5 5 5" Style="{StaticResource StyledDangerButton}" >
+                    <Button x:Name="deleteButton" Click="Delete" Margin="0,0,6,0" Style="{StaticResource StyledDangerButton}" Padding="8,4">
                     <StackPanel Orientation="Horizontal">
-                        <iconPacks:PackIconMaterial Kind="Close" />
-                        <TextBlock VerticalAlignment="Center" Margin="5 0">Delete</TextBlock>
+                            <iconPacks:PackIconMaterial Kind="Close" Width="16" Height="16"/>
+                            <TextBlock VerticalAlignment="Center" Margin="6,0,0,0" FontWeight="SemiBold">Delete</TextBlock>
                     </StackPanel>
                 </Button>
-                <Button x:Name="exportSelectedButton" Click="ExportSelected" Margin="0 5 5 5" Style="{StaticResource StyledPrimaryButton}">
+                    <Button x:Name="exportSelectedButton" Click="ExportSelected" Margin="0,0,8,0" Style="{StaticResource StyledPrimaryButton}" Padding="8,4">
                     <StackPanel Orientation="Horizontal">
-                        <iconPacks:PackIconMaterial Kind="Export" />
-                        <TextBlock VerticalAlignment="Center" Margin="5 0">Export Selected</TextBlock>
+                            <iconPacks:PackIconMaterial Kind="Export" Width="16" Height="16"/>
+                            <TextBlock VerticalAlignment="Center" Margin="6,0,0,0" FontWeight="SemiBold">Export Selected</TextBlock>
                     </StackPanel>
                 </Button>
-                <TextBox x:Name="filterTextbox" Text="{Binding SearchString, UpdateSourceTrigger=PropertyChanged}" Margin="0 5 5 5" Width="150" TextChanged="UpdateSearch"/>
-                <Button Style="{StaticResource StyledButton}" x:Name="searchButton" Click="Search" Margin="0 5 5 5" >
-                    <StackPanel Orientation="Horizontal">
-                        <iconPacks:PackIconMaterialDesign Kind="Search" />
-                        <TextBlock VerticalAlignment="Center" Margin="5 0">Search</TextBlock>
-                    </StackPanel>
-                </Button>
+                    
+                    <!-- Search Section -->
+                    <Border Background="#A0353535" CornerRadius="6" Padding="8,0" Margin="0,0,8,0">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBox x:Name="filterTextbox" 
+                                     Text="{Binding SearchString, UpdateSourceTrigger=PropertyChanged}" 
+                                     Width="200" 
+                                     Background="Transparent" 
+                                     BorderThickness="0" 
+                                     Foreground="White"
+                                     FontSize="13"
+                                     VerticalAlignment="Center"
+                                     TextChanged="UpdateSearch"
+                                     Padding="8,6"/>
+                            <Button x:Name="searchButton" Click="Search" 
+                                    Width="70" Height="30"
+                                    Background="#FF2563EB" 
+                                    Foreground="#FFF8FAFC"
+                                    BorderThickness="0"
+                                    Padding="8,6"
+                                    Style="{StaticResource ReadableTabButton}">
+                                <StackPanel Orientation="Horizontal">
+                                    <iconPacks:PackIconMaterialDesign Kind="Search" Width="11" Height="11" Margin="0,0,4,0"/>
+                                    <TextBlock Text="Search" VerticalAlignment="Center" FontSize="11"/>
+                                </StackPanel>
+                            </Button>
             </StackPanel>
+                    </Border>
+                </WrapPanel>
 
-            <!--
-            <StackPanel Grid.Column="1" Orientation="Horizontal">
-                <TextBox x:Name="filterTextbox" Text="{Binding SearchString}" Margin="10 5 5 5" Width="150" KeyDown="UpdateSearch"/>
-                <Button x:Name="searchButton" Click="Search" Margin="0 5 5 5" >
+                <!-- Utility Buttons Group -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Style="{StaticResource StyledButton}" x:Name="openFolderButton" Click="OpenFolder" Margin="0,0,6,0" Padding="8,4">
                     <StackPanel Orientation="Horizontal">
-                        <iconPacks:PackIconMaterialDesign Kind="Search" />
-                        <TextBlock VerticalAlignment="Center" Margin="5 0">Search</TextBlock>
+                            <iconPacks:PackIconRemixIcon Kind="Folder2Fill" Width="16" Height="16"/>
+                            <TextBlock VerticalAlignment="Center" Margin="6,0,0,0" FontWeight="SemiBold">Open Folder</TextBlock>
                     </StackPanel>
                 </Button>
-            </StackPanel>
-            -->
-
-            <StackPanel Grid.Column="3" Orientation="Horizontal">
-                <Button Style="{StaticResource StyledButton}" x:Name="openFolderButton" Click="OpenFolder" Margin="0 5 5 5">
+                    <Button Style="{StaticResource StyledButton}" x:Name="rescanButton" Click="Rescan" Padding="8,4">
                     <StackPanel Orientation="Horizontal">
-                        <iconPacks:PackIconRemixIcon Kind="Folder2Fill" />
-                        <TextBlock VerticalAlignment="Center" Margin="5 0">Open Folder</TextBlock>
-                    </StackPanel>
-                </Button>
-                <Button Style="{StaticResource StyledButton}" x:Name="rescanButton" Click="Rescan" Margin="0 5 5 5">
-                    <StackPanel Orientation="Horizontal">
-                        <iconPacks:PackIconRadixIcons Kind="Update" />
-                        <TextBlock VerticalAlignment="Center" Margin="5 0">Rescan</TextBlock>
+                            <iconPacks:PackIconRadixIcons Kind="Update" Width="16" Height="16"/>
+                            <TextBlock VerticalAlignment="Center" Margin="6,0,0,0" FontWeight="SemiBold">Rescan</TextBlock>
                     </StackPanel>
                 </Button>
             </StackPanel>
         </Grid>
+        </Border>
 
-        <!-- Configs List View -->
-        <ListView x:Name="configsListView" Grid.Row="2" Foreground="{DynamicResource ForegroundMain}" Background="Transparent" ItemsSource="{Binding Path=ConfigsCollection}" SelectionMode="Extended" BorderThickness="1" VirtualizingPanel.IsVirtualizing="True" SelectionChanged="ItemHovered"
-                  AllowDrop="True" Drop="configsListView_Drop" PreviewMouseLeftButtonDown="configsListView_PreviewMouseLeftButtonDown" MouseMove="configsListView_MouseMove">
+        <!-- Modern Configs List View -->
+        <Border Grid.Row="2" Background="#C0353535" CornerRadius="8" Padding="1" Margin="0,0,0,4">
+            <ListView x:Name="configsListView" 
+                      Foreground="White" 
+                      Background="Transparent" 
+                      ItemsSource="{Binding Path=ConfigsCollection}" 
+                      SelectionMode="Extended" 
+                      BorderThickness="0" 
+                      VirtualizingPanel.IsVirtualizing="True" 
+                      SelectionChanged="ItemHovered"
+                      AllowDrop="True" 
+                      Drop="configsListView_Drop" 
+                      PreviewMouseLeftButtonDown="configsListView_PreviewMouseLeftButtonDown" 
+                      MouseMove="configsListView_MouseMove"
+                      ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                      ScrollViewer.VerticalScrollBarVisibility="Auto">
 
             <!-- Show Headers by overriding the default style -->
             <ListView.Style>
@@ -126,6 +154,98 @@
 
             <!-- Align Headers to the Left -->
             <ListView.Resources>
+                <!-- Modern ScrollBar Page Button Style -->
+                <Style x:Key="ModernScrollBarPageButton" TargetType="{x:Type RepeatButton}">
+                    <Setter Property="OverridesDefaultStyle" Value="True"/>
+                    <Setter Property="Background" Value="Transparent"/>
+                    <Setter Property="Focusable" Value="False"/>
+                    <Setter Property="IsTabStop" Value="False"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="{x:Type RepeatButton}">
+                                <Rectangle Fill="Transparent"/>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+
+                <!-- Modern ScrollBar Thumb Style -->
+                <Style x:Key="ModernScrollBarThumb" TargetType="{x:Type Thumb}">
+                    <Setter Property="OverridesDefaultStyle" Value="True"/>
+                    <Setter Property="IsTabStop" Value="False"/>
+                    <Setter Property="Margin" Value="2"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="{x:Type Thumb}">
+                                <Border x:Name="ThumbBorder" 
+                                        Background="#CCCCCC" 
+                                        CornerRadius="6" 
+                                        Opacity="0.5"/>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="ThumbBorder" Property="Background" Value="#E6E6E6"/>
+                                        <Setter TargetName="ThumbBorder" Property="Opacity" Value="0.8"/>
+                                    </Trigger>
+                                    <Trigger Property="IsDragging" Value="True">
+                                        <Setter TargetName="ThumbBorder" Property="Background" Value="#F0F0F0"/>
+                                        <Setter TargetName="ThumbBorder" Property="Opacity" Value="1"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+                
+                <!-- Modern ScrollBar Style for ListView -->
+                <Style TargetType="{x:Type ScrollBar}">
+                    <Setter Property="Background" Value="Transparent"/>
+                    <Setter Property="BorderBrush" Value="Transparent"/>
+                    <Setter Property="BorderThickness" Value="0"/>
+                    <Setter Property="Width" Value="12"/>
+                    <Setter Property="MinWidth" Value="12"/>
+                    <Setter Property="Margin" Value="0,0,2,0"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="{x:Type ScrollBar}">
+                                <Grid x:Name="Bg" SnapsToDevicePixels="True">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition MaxHeight="18"/>
+                                        <RowDefinition Height="0.00001*"/>
+                                        <RowDefinition MaxHeight="18"/>
+                                    </Grid.RowDefinitions>
+                                    <Border Grid.Row="1" Background="Transparent" CornerRadius="6"/>
+                                    <Track x:Name="PART_Track" Grid.Row="1" IsDirectionReversed="True" IsEnabled="{TemplateBinding IsMouseOver}">
+                                        <Track.DecreaseRepeatButton>
+                                            <RepeatButton Command="{x:Static ScrollBar.PageUpCommand}" Style="{StaticResource ModernScrollBarPageButton}"/>
+                                        </Track.DecreaseRepeatButton>
+                                        <Track.IncreaseRepeatButton>
+                                            <RepeatButton Command="{x:Static ScrollBar.PageDownCommand}" Style="{StaticResource ModernScrollBarPageButton}"/>
+                                        </Track.IncreaseRepeatButton>
+                                        <Track.Thumb>
+                                            <Thumb Style="{StaticResource ModernScrollBarThumb}"/>
+                                        </Track.Thumb>
+                                    </Track>
+                                </Grid>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="Orientation" Value="Horizontal">
+                                        <Setter Property="Width" Value="Auto"/>
+                                        <Setter Property="MinWidth" Value="0"/>
+                                        <Setter Property="Height" Value="12"/>
+                                        <Setter Property="MinHeight" Value="12"/>
+                                        <Setter Property="Margin" Value="0,0,0,2"/>
+                                        <Setter TargetName="Bg" Property="LayoutTransform">
+                                            <Setter.Value>
+                                                <RotateTransform Angle="-90"/>
+                                            </Setter.Value>
+                                        </Setter>
+                                        <Setter TargetName="PART_Track" Property="IsDirectionReversed" Value="False"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+                
                 <Style x:Key="GridViewColumnHeaderGripper" TargetType="Thumb">
                     <Setter Property="Width" Value="18" />
                     <Setter Property="Background">
@@ -164,8 +284,14 @@
                         <Setter.Value>
                             <ControlTemplate TargetType="{x:Type GridViewColumnHeader}">
                                 <Grid>
-                                    <Border BorderThickness="0,0,0,1" BorderBrush="Black" Background="Transparent">
-                                        <TextBlock x:Name="ContentHeader" Text="{TemplateBinding Content}" Padding="5,5,5,0" Width="{TemplateBinding Width}" TextAlignment="Left" />
+                                    <Border BorderThickness="0,0,0,2" BorderBrush="#FF1E90FF" Background="#FF333333" Padding="2">
+                                        <TextBlock x:Name="ContentHeader" 
+                                                   Text="{TemplateBinding Content}" 
+                                                   Padding="12,8,8,8" 
+                                                   Width="{TemplateBinding Width}" 
+                                                   TextAlignment="Left" 
+                                                   FontWeight="SemiBold"
+                                                   Foreground="White"/>
                                     </Border>
                                     <Thumb x:Name="PART_HeaderGripper"
                                          HorizontalAlignment="Right"
@@ -176,9 +302,10 @@
                         </Setter.Value>
                     </Setter>
                     <Setter Property="OverridesDefaultStyle" Value="True" />
-                    <Setter Property="Foreground" Value="{DynamicResource ForegroundMain}" />
-                    <Setter Property="FontFamily" Value="pack://application:,,,/Fonts/#Century Gothic" />
-                    <Setter Property="FontSize" Value="14" />
+                    <Setter Property="Foreground" Value="White" />
+                    <Setter Property="FontFamily" Value="Segoe UI" />
+                    <Setter Property="FontSize" Value="13" />
+                    <Setter Property="FontWeight" Value="SemiBold" />
                 </Style>
                 <Style TargetType="{x:Type ListViewItem}">
                     <EventSetter Event="MouseDoubleClick" Handler="ListItemDoubleClick" />
@@ -186,27 +313,41 @@
                     <Setter Property="Template">
                         <Setter.Value>
                             <ControlTemplate TargetType="{x:Type ListViewItem}">
-                                <Border x:Name="Bd" BorderBrush="{TemplateBinding BorderBrush}" 
-                    BorderThickness="{TemplateBinding BorderThickness}" 
-                    Background="{TemplateBinding Background}" 
-                    Padding="0"
+                                <Border x:Name="Bd" 
+                                        BorderBrush="Transparent" 
+                                        BorderThickness="0,0,0,1" 
+                                        Background="Transparent" 
+                                        Padding="4,8"
                     SnapsToDevicePixels="true">
                                     <GridViewRowPresenter 
                     HorizontalAlignment="Left" 
                     SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"
                     VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
                                 </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Bd" Property="Background" Value="#FF404040" />
+                                        <Setter TargetName="Bd" Property="BorderBrush" Value="#FF555555" />
+                                    </Trigger>
+                                    <Trigger Property="IsSelected" Value="True">
+                                        <Setter TargetName="Bd" Property="Background" Value="#FF1E90FF" />
+                                        <Setter TargetName="Bd" Property="BorderBrush" Value="#FF4A9EFF" />
+                                    </Trigger>
+                                    <MultiTrigger>
+                                        <MultiTrigger.Conditions>
+                                            <Condition Property="IsSelected" Value="True"/>
+                                            <Condition Property="IsMouseOver" Value="True"/>
+                                        </MultiTrigger.Conditions>
+                                        <Setter TargetName="Bd" Property="Background" Value="#FF2A9AFF" />
+                                        <Setter TargetName="Bd" Property="BorderBrush" Value="#FF5AADFF" />
+                                    </MultiTrigger>
+                                </ControlTemplate.Triggers>
                             </ControlTemplate>
                         </Setter.Value>
                     </Setter>
-                    <Style.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter Property="Background" Value="{DynamicResource BackgroundSecondary}" />
-                        </Trigger>
-                        <Trigger Property="IsSelected" Value="True">
-                            <Setter Property="Background" Value="{DynamicResource BackgroundSecondary}" />
-                        </Trigger>
-                    </Style.Triggers>
+                    <Setter Property="Foreground" Value="White" />
+                    <Setter Property="FontFamily" Value="Segoe UI" />
+                    <Setter Property="FontSize" Value="12" />
                 </Style>
 
             </ListView.Resources>
@@ -273,27 +414,40 @@
                 </GridView>
             </ListView.View>
         </ListView>
+        </Border>
 
         <GridSplitter 
             ResizeDirection="Rows"
             ResizeBehavior="PreviousAndNext"
             Grid.Row="3" 
-            Height="5"
-            HorizontalAlignment="Stretch" />
+            Height="6"
+            HorizontalAlignment="Stretch" 
+            Background="Transparent"
+            Margin="8,2"/>
         
-        <Grid Grid.Row="4">
+        <!-- Modern Information Section -->
+        <Border Grid.Row="4" Background="#C0353535" CornerRadius="8" Padding="8">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="auto" />
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
 
-                <Label Grid.Row="0">Information provided by the author:</Label>
-                <uc:MarkdownViewer 
-                    MarkdownText="{Binding HoveredConfig.Readme}" 
-                    Grid.Row="1"
-                    FontSize="12"/>
+                <TextBlock Grid.Row="0" 
+                          Text="Configuration Information" 
+                          FontWeight="SemiBold" 
+                          Foreground="#FF1E90FF" 
+                          FontSize="9" 
+                          Margin="0,0,0,2"/>
+                <ScrollViewer Grid.Row="1" 
+                              VerticalScrollBarVisibility="Auto" 
+                              HorizontalScrollBarVisibility="Auto">
+                    <uc:MarkdownViewer 
+                        MarkdownText="{Binding HoveredConfig.Readme}" 
+                        FontSize="8"
+                        Background="Transparent"/>
+                </ScrollViewer>
             </Grid>
-        </Grid>
+        </Border>
     </Grid>
 </Page>

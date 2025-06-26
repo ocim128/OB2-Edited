@@ -8,190 +8,722 @@
       xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
       xmlns:wf="clr-namespace:System.Windows.Forms;assembly=System.Windows.Forms"  
       xmlns:uc="clr-namespace:OpenBullet2.Native.Controls"
+      xmlns:mah="http://metro.mahapps.com/winfx/xaml/controls"
       mc:Ignorable="d" 
       d:DesignHeight="450" d:DesignWidth="800"
       Title="Debugger">
 
     <Page.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
+        
+        <!-- Disabled GPU-intensive animation to reduce heat -->
+        <!-- <Storyboard x:Key="SearchPulseAnimation" RepeatBehavior="Forever">
+            <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                           From="0.6" To="1.0" Duration="0:0:2"
+                           AutoReverse="True"/>
+        </Storyboard> -->
+        
+        <!-- Enhanced TextBox Style - Fixed Text Truncation and Selection Issues -->
+        <Style x:Key="MatchingTextBox" TargetType="TextBox">
+            <Setter Property="Background" Value="#2D3748"/>
+            <Setter Property="Foreground" Value="#E2E8F0"/>
+            <Setter Property="BorderBrush" Value="#4A5568"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="12,10"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="Normal"/>
+            <Setter Property="MinHeight" Value="38"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <!-- Fix selection colors -->
+            <Setter Property="SelectionBrush" Value="#4C82FB"/>
+            <Setter Property="SelectionTextBrush" Value="White"/>
+            <Setter Property="CaretBrush" Value="#E2E8F0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border x:Name="border" 
+                                Background="{TemplateBinding Background}" 
+                                BorderBrush="{TemplateBinding BorderBrush}" 
+                                BorderThickness="{TemplateBinding BorderThickness}" 
+                                CornerRadius="6">
+                            <ScrollViewer x:Name="PART_ContentHost" 
+                                          Focusable="false" 
+                                          HorizontalScrollBarVisibility="Hidden" 
+                                          VerticalScrollBarVisibility="Hidden"
+                                          Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsEnabled" Value="false">
+                                <Setter Property="Background" TargetName="border" Value="#1E293B"/>
+                                <Setter Property="BorderBrush" TargetName="border" Value="#374151"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="true">
+                                <Setter Property="BorderBrush" TargetName="border" Value="#60A5FA"/>
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="true">
+                                <Setter Property="BorderBrush" TargetName="border" Value="#3B82F6"/>
+                                <Setter Property="Background" TargetName="border" Value="#334155"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <!-- Ensure no weird selection behaviors -->
+            <Style.Triggers>
+                <Trigger Property="IsReadOnly" Value="True">
+                    <Setter Property="Cursor" Value="Arrow"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+
+        
+        <!-- Clean ComboBox without rendering issues -->
+        <Style x:Key="CleanComboBox" TargetType="ComboBox">
+            <Setter Property="Background" Value="#0F172A"/>
+            <Setter Property="Foreground" Value="#E2E8F0"/>
+            <Setter Property="BorderBrush" Value="#4A5568"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="MinHeight" Value="34"/>
+            <Setter Property="Padding" Value="10,6"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <Border x:Name="Border" Background="{TemplateBinding Background}" 
+                                    BorderBrush="{TemplateBinding BorderBrush}" 
+                                    BorderThickness="{TemplateBinding BorderThickness}" 
+                                    CornerRadius="6"/>
+                            <ToggleButton x:Name="ToggleButton" 
+                                          Focusable="false" 
+                                          IsChecked="{Binding Path=IsDropDownOpen,Mode=TwoWay,RelativeSource={RelativeSource TemplatedParent}}" 
+                                          ClickMode="Press" 
+                                          Background="Transparent" 
+                                          BorderThickness="0"
+                                          HorizontalAlignment="Right"
+                                          Width="24">
+                                <Path x:Name="Arrow" 
+                                      Fill="#9CA3AF" 
+                                      HorizontalAlignment="Center" 
+                                      VerticalAlignment="Center" 
+                                      Data="M 0 0 L 3 3 L 6 0 Z"/>
+                            </ToggleButton>
+                            <ContentPresenter x:Name="ContentSite" 
+                                              IsHitTestVisible="False" 
+                                              Content="{TemplateBinding SelectionBoxItem}" 
+                                              ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}" 
+                                              ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}" 
+                                              Margin="{TemplateBinding Padding}" 
+                                              VerticalAlignment="Center" 
+                                              HorizontalAlignment="Left"
+                                              TextElement.Foreground="{TemplateBinding Foreground}"/>
+                            <Popup x:Name="Popup" 
+                                   Placement="Bottom" 
+                                   IsOpen="{TemplateBinding IsDropDownOpen}" 
+                                   AllowsTransparency="True" 
+                                   Focusable="False" 
+                                   PopupAnimation="Slide">
+                                <Grid x:Name="DropDown" SnapsToDevicePixels="True" MinWidth="{TemplateBinding ActualWidth}" MaxHeight="200">
+                                    <Border x:Name="DropDownBorder" Background="#0F172A" BorderThickness="1" BorderBrush="#4A5568" CornerRadius="6"/>
+                                    <ScrollViewer Margin="4" SnapsToDevicePixels="True">
+                                        <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Contained"/>
+                                    </ScrollViewer>
+                                </Grid>
+                            </Popup>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="true">
+                                <Setter TargetName="Border" Property="BorderBrush" Value="#60A5FA"/>
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="true">
+                                <Setter TargetName="Border" Property="BorderBrush" Value="#3B82F6"/>
+                                <Setter TargetName="Border" Property="Background" Value="#1E293B"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="ItemContainerStyle">
+                <Setter.Value>
+                    <Style TargetType="ComboBoxItem">
+                        <Setter Property="Background" Value="Transparent"/>
+                        <Setter Property="Foreground" Value="#E2E8F0"/>
+                        <Setter Property="Padding" Value="10,6"/>
+                        <Setter Property="FontFamily" Value="Segoe UI"/>
+                        <Setter Property="FontSize" Value="12"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ComboBoxItem">
+                                    <Border x:Name="Border" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
+                                        <ContentPresenter TextElement.Foreground="{TemplateBinding Foreground}"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsHighlighted" Value="True">
+                                            <Setter TargetName="Border" Property="Background" Value="#1E293B"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        
+        <!-- Square CheckBox with Better Design -->
+        <Style x:Key="SquareCheckBox" TargetType="CheckBox">
+            <Setter Property="Foreground" Value="#E2E8F0"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="CheckBox">
+                        <StackPanel Orientation="Horizontal">
+                            <Border x:Name="CheckBoxBorder" 
+                                    Width="16" Height="16" 
+                                    Background="#2D3748" 
+                                    BorderBrush="#4A5568" 
+                                    BorderThickness="1" 
+                                    CornerRadius="2" 
+                                    Margin="0,0,8,0">
+                                <Path x:Name="CheckMark" 
+                                      Width="10" Height="8" 
+                                      Stretch="Fill"
+                                      Fill="#10B981" 
+                                      Data="M 0,4 L 3,7 L 8,0"
+                                      Stroke="#10B981"
+                                      StrokeThickness="1.5"
+                                      StrokeLineJoin="Round"
+                                      StrokeStartLineCap="Round"
+                                      StrokeEndLineCap="Round"
+                                      Visibility="Collapsed"/>
+                            </Border>
+                            <ContentPresenter VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="CheckMark" Property="Visibility" Value="Visible"/>
+                                <Setter TargetName="CheckBoxBorder" Property="Background" Value="#064E3B"/>
+                                <Setter TargetName="CheckBoxBorder" Property="BorderBrush" Value="#10B981"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="CheckBoxBorder" Property="BorderBrush" Value="#6B7280"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        
+        <!-- Perfectly Positioned Start Button -->
+        <Style x:Key="PerfectStartButton" TargetType="Button">
+            <Setter Property="Background">
+                <Setter.Value>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                        <GradientStop Color="#10B981" Offset="0"/>
+                        <GradientStop Color="#059669" Offset="1"/>
+                    </LinearGradientBrush>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" 
+                                Background="{TemplateBinding Background}" 
+                                CornerRadius="6" 
+                                Padding="{TemplateBinding Padding}">
+                            <Border.Effect>
+                                <DropShadowEffect BlurRadius="8" Direction="270" Opacity="0.3" ShadowDepth="2"/>
+                            </Border.Effect>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="6"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <iconPacks:PackIconEntypo Grid.Column="0" Kind="ControllerPlay" Width="14" Height="14" 
+                                                          VerticalAlignment="Center" HorizontalAlignment="Center"
+                                                          Foreground="{TemplateBinding Foreground}"/>
+                                <TextBlock Grid.Column="2" Text="Start" 
+                                          VerticalAlignment="Center" HorizontalAlignment="Center"
+                                          FontFamily="{TemplateBinding FontFamily}"
+                                          FontWeight="{TemplateBinding FontWeight}"
+                                          FontSize="{TemplateBinding FontSize}"
+                                          Foreground="{TemplateBinding Foreground}"/>
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background">
+                                    <Setter.Value>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                            <GradientStop Color="#34D399" Offset="0"/>
+                                            <GradientStop Color="#10B981" Offset="1"/>
+                                        </LinearGradientBrush>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="Background">
+                                    <Setter.Value>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                            <GradientStop Color="#059669" Offset="0"/>
+                                            <GradientStop Color="#047857" Offset="1"/>
+                                        </LinearGradientBrush>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        
+        <!-- Perfectly Positioned Stop Button -->
+        <Style x:Key="PerfectStopButton" TargetType="Button">
+            <Setter Property="Background">
+                <Setter.Value>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                        <GradientStop Color="#EF4444" Offset="0"/>
+                        <GradientStop Color="#DC2626" Offset="1"/>
+                    </LinearGradientBrush>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" 
+                                Background="{TemplateBinding Background}" 
+                                CornerRadius="6" 
+                                Padding="{TemplateBinding Padding}">
+                            <Border.Effect>
+                                <DropShadowEffect BlurRadius="8" Direction="270" Opacity="0.3" ShadowDepth="2"/>
+                            </Border.Effect>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="6"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <iconPacks:PackIconEntypo Grid.Column="0" Kind="ControllerStop" Width="14" Height="14" 
+                                                          VerticalAlignment="Center" HorizontalAlignment="Center"
+                                                          Foreground="{TemplateBinding Foreground}"/>
+                                <TextBlock Grid.Column="2" Text="Stop" 
+                                          VerticalAlignment="Center" HorizontalAlignment="Center"
+                                          FontFamily="{TemplateBinding FontFamily}"
+                                          FontWeight="{TemplateBinding FontWeight}"
+                                          FontSize="{TemplateBinding FontSize}"
+                                          Foreground="{TemplateBinding Foreground}"/>
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background">
+                                    <Setter.Value>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                            <GradientStop Color="#F87171" Offset="0"/>
+                                            <GradientStop Color="#EF4444" Offset="1"/>
+                                        </LinearGradientBrush>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="Background">
+                                    <Setter.Value>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                            <GradientStop Color="#DC2626" Offset="0"/>
+                                            <GradientStop Color="#B91C1C" Offset="1"/>
+                                        </LinearGradientBrush>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        
+        <!-- Readable Tab Button Style -->
+        <Style x:Key="ReadableTabButton" TargetType="Button">
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="Margin" Value="0,0,2,0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" 
+                                Background="{TemplateBinding Background}" 
+                                CornerRadius="6" 
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                              VerticalAlignment="Center"
+                                              TextElement.Foreground="{TemplateBinding Foreground}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Opacity" Value="0.9"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="Opacity" Value="0.8"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Page.Resources>
     
-    <Grid>
+    <Grid Margin="16,12,16,16">
         <Grid.RowDefinitions>
-            <RowDefinition Height="auto" />
-            <RowDefinition Height="auto" />
-            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="12" />
+            <RowDefinition Height="*" MinHeight="300" />
         </Grid.RowDefinitions>
         
-        <Grid Grid.Row="0" Margin="5 5 0 0">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="auto" />
-                <ColumnDefinition Width="auto" />
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="auto" />
-                <ColumnDefinition Width="auto" />
-                <ColumnDefinition Width="auto" />
-            </Grid.ColumnDefinitions>
-
-            <CheckBox FlowDirection="RightToLeft" Grid.Column="0" IsChecked="{Binding StepByStep}">
-                <TextBlock FlowDirection="LeftToRight" Text="SBS" ToolTip="Step by Step mode" />
-            </CheckBox>
-            <Label Grid.Column="1" Content="Data" VerticalAlignment="Center" />
-            <TextBox Grid.Column="2" Text="{Binding TestData}" Height="30" Margin="5 0" />
-            <Label Grid.Column="3" Content="Wordlist Type" VerticalAlignment="Center" />
-            <ComboBox Grid.Column="4" 
-                ItemsSource="{Binding WordlistTypes}"
-                SelectedItem="{Binding WordlistType}" Height="30" Margin="5 0" />
-            <CheckBox Grid.Column="5" Content="Persist log" IsChecked="{Binding PersistLog}"/>
-        </Grid>
-
-        <Grid Grid.Row="1" Margin="5 5 0 0">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="auto" />
-                <ColumnDefinition Width="auto" />
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="auto" />
-                <ColumnDefinition Width="auto" />
-            </Grid.ColumnDefinitions>
-
-            <CheckBox Grid.Column="0" IsChecked="{Binding UseProxy}"/>
-            <Label Grid.Column="1" Content="Proxy" VerticalAlignment="Center" />
-            <TextBox Grid.Column="2" Text="{Binding TestProxy}" Height="30" Margin="5 0" />
-            <ComboBox Grid.Column="3" 
-                ItemsSource="{Binding ProxyTypes}"
-                SelectedItem="{Binding ProxyType}" Height="30" Margin="5 0 0 0" />
-            <StackPanel Grid.Column="4" Orientation="Horizontal">
-                <Button Click="Start"
-                    Style="{StaticResource StyledSuccessButton}"
-                    Width="60"
-                    Margin="5 0 0 0"
-                    HorizontalAlignment="Left"
-                    Visibility="{Binding CanStart, Converter={StaticResource ResourceKey=BoolToVis}}">
-                    <StackPanel Orientation="Horizontal">
-                        <iconPacks:PackIconEntypo Kind="ControllerPlay" />
-                        <TextBlock VerticalAlignment="Center" Margin="5 0">Start</TextBlock>
+        <!-- Configuration Panel -->
+        <Border Grid.Row="0" Background="#C0303030" CornerRadius="8" Padding="16,14">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="14" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                
+                <!-- Main Configuration -->
+                <Grid Grid.Row="0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="16" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    
+                    <!-- Input Data - Primary Focus - Enhanced to prevent text truncation -->
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="Input Data" Foreground="#A0AEC0" FontFamily="Segoe UI" FontSize="13" FontWeight="Medium" Margin="0,0,0,6"/>
+                        <TextBox Text="{Binding TestData}" Style="{StaticResource MatchingTextBox}" MinHeight="38" />
                     </StackPanel>
-                </Button>
-                <Button Click="TakeStep"
-                    Style="{StaticResource StyledPrimaryButton}"
-                    Width="80"
-                    Margin="5 0 0 0"
-                    HorizontalAlignment="Left"
-                    Visibility="{Binding CanTakeStep, Converter={StaticResource ResourceKey=BoolToVis}}">
-                    <StackPanel Orientation="Horizontal">
-                        <iconPacks:PackIconEntypo Kind="ControllerPlay" />
-                        <TextBlock VerticalAlignment="Center" Margin="5 0">Take Step</TextBlock>
-                    </StackPanel>
-                </Button>
-                <Button Click="Stop"
-                    Style="{StaticResource StyledDangerButton}"
-                    Width="60"
-                    Margin="5 0 0 0"
-                    HorizontalAlignment="Left"
-                    Visibility="{Binding CanStop, Converter={StaticResource ResourceKey=BoolToVis}}">
-                    <StackPanel Orientation="Horizontal">
-                        <iconPacks:PackIconEntypo Kind="ControllerStop" />
-                        <TextBlock VerticalAlignment="Center" Margin="5 0">Stop</TextBlock>
-                    </StackPanel>
-                </Button>
-            </StackPanel>
-        </Grid>
-
-        <TabControl Grid.Row="2" 
-                    Background="Transparent"
-                    Margin="5 5 0 0"
-                    x:Name="tabControl">
-            <TabItem>
-                <TabItem.Header>
-                    <Button Click="ShowLog"
-                        Margin="-5 0 0 0"
-                        Style="{StaticResource StyledSuccessButton}"
-                        Width="60" HorizontalAlignment="Left" >
-                        <StackPanel Orientation="Horizontal">
-                            <iconPacks:PackIconRadixIcons Kind="ActivityLog" />
-                            <TextBlock VerticalAlignment="Center" Margin="5 0">Log</TextBlock>
-                        </StackPanel>
-                    </Button>
-                </TabItem.Header>
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="*" />
-                        <RowDefinition Height="auto" />
-                    </Grid.RowDefinitions>
-                    <WindowsFormsHost Grid.Row="0">
-                        <wf:RichTextBox 
-                        x:Name="logRTB"
-                        Dock="Fill"
-                        ForeColor="Gainsboro"
-                        ReadOnly="True"
-                        ScrollBars="Vertical"
-                        BorderStyle="None"
-                        DetectUrls="False"/>
-                    </WindowsFormsHost>
-                    <Grid Grid.Row="1" Margin="0 2 0 0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="auto" />
-                            <ColumnDefinition Width="auto" />
-                            <ColumnDefinition Width="auto" />
-                            <ColumnDefinition Width="auto" />
-                        </Grid.ColumnDefinitions>
-                        <TextBox Grid.Column="0" Text="{Binding SearchString}"/>
-                        <Button Style="{StaticResource StyledButton}" Click="Search" Grid.Column="1" Margin="5 0 0 0" >
+                    
+                    <!-- Perfect Start Button -->
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Bottom">
+                        <Button Click="Start"
+                                Style="{StaticResource PerfectStartButton}"
+                                Visibility="{Binding CanStart, Converter={StaticResource BoolToVis}}"
+                                Width="80" Height="32" Margin="0,0,6,0" Padding="10,6"/>
+                        
+                        <Button Click="Stop"
+                                Style="{StaticResource PerfectStopButton}"
+                                Visibility="{Binding CanStop, Converter={StaticResource BoolToVis}}"
+                                Width="80" Height="32" Margin="0,0,6,0" Padding="10,6"/>
+                        
+                        <Button Click="TakeStep"
+                                Style="{StaticResource StyledPrimaryButton}"
+                                Visibility="{Binding CanTakeStep, Converter={StaticResource BoolToVis}}"
+                                Width="75" Height="32" Margin="0,0,6,0" FontSize="11">
                             <StackPanel Orientation="Horizontal">
-                                <iconPacks:PackIconMaterialDesign Kind="Search" />
-                                <TextBlock VerticalAlignment="Center" Margin="5 0">Search</TextBlock>
+                                <iconPacks:PackIconEntypo Kind="ControllerPlay" Width="12" Height="12" Margin="0,0,4,0"/>
+                                <TextBlock Text="Step" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button>
-                        <Button Style="{StaticResource StyledButton}" Click="PreviousMatch" Grid.Column="2" Margin="5 0 0 0" >
-                            <StackPanel Orientation="Horizontal">
-                                <iconPacks:PackIconUnicons Kind="AngleLeft" />
-                            </StackPanel>
-                        </Button>
-                        <Label Grid.Column="3" Content="{Binding MatchInfo}"/>
-                        <Button Style="{StaticResource StyledButton}" Click="NextMatch" Grid.Column="4" Margin="5 0 0 0" >
-                            <StackPanel Orientation="Horizontal">
-                                <iconPacks:PackIconUnicons Kind="AngleRight" />
-                            </StackPanel>
-                        </Button>
-                    </Grid>
+                    </StackPanel>
                 </Grid>
-            </TabItem>
-            <TabItem>
-                <TabItem.Header>
-                    <Button Click="ShowVariables"
-                        Style="{StaticResource StyledPrimaryButton}"
-                        Width="80" HorizontalAlignment="Left" >
-                        <StackPanel Orientation="Horizontal">
-                            <iconPacks:PackIconMaterial Kind="Variable" />
-                            <TextBlock VerticalAlignment="Center" Margin="5 0">Variables</TextBlock>
-                        </StackPanel>
-                    </Button>
-                </TabItem.Header>
-                <WindowsFormsHost Grid.Row="0">
-                    <wf:RichTextBox 
-                        x:Name="variablesRTB"
-                        Dock="Fill"
-                        ForeColor="Gainsboro"
-                        ReadOnly="True"
-                        ScrollBars="Vertical"
-                        BorderStyle="None"
-                        DetectUrls="False"/>
-                </WindowsFormsHost>
-            </TabItem>
-            <TabItem>
-                <TabItem.Header>
-                    <Button Click="ShowHTML"
-                        Style="{StaticResource StyledWarningButton}"
-                        Width="70" HorizontalAlignment="Left" >
-                        <StackPanel Orientation="Horizontal">
-                            <iconPacks:PackIconEntypo Kind="Browser" />
-                            <TextBlock VerticalAlignment="Center" Margin="5 0">HTML</TextBlock>
-                        </StackPanel>
-                    </Button>
-                </TabItem.Header>
-                <uc:HTMLViewer x:Name="htmlViewer" VerticalAlignment="Stretch" />
-            </TabItem>
-        </TabControl>
+                
+                <!-- Secondary Options - Well Positioned -->
+                <Grid Grid.Row="2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="24" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="12" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="24" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="12" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="24" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    
+                    <!-- Square Step-by-Step Checkbox -->
+                    <CheckBox Grid.Column="0" IsChecked="{Binding StepByStep}" Style="{StaticResource SquareCheckBox}" 
+                              Content="Step-by-Step"/>
+                    
+                    <!-- Wordlist Type with Clean ComboBox -->
+                    <StackPanel Grid.Column="2" Orientation="Horizontal">
+                        <TextBlock Text="Type" Foreground="#6B7280" FontFamily="Segoe UI" FontSize="11" 
+                                   VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <ComboBox ItemsSource="{Binding WordlistTypes}"
+                                  SelectedItem="{Binding WordlistType}" 
+                                  Style="{StaticResource CleanComboBox}" Width="95" MinHeight="34"/>
+                    </StackPanel>
+                    
+                    <!-- Square Proxy Checkbox -->
+                    <CheckBox Grid.Column="4" IsChecked="{Binding UseProxy}" Style="{StaticResource SquareCheckBox}" 
+                              Content="Proxy"/>
+                    
+                    <!-- Proxy Configuration with Clean ComboBox -->
+                    <StackPanel Grid.Column="6" Orientation="Horizontal" IsEnabled="{Binding UseProxy}">
+                        <TextBox Text="{Binding TestProxy}" Style="{StaticResource MatchingTextBox}" 
+                                 Width="130" MinHeight="38" Margin="0,0,6,0"/>
+                        <ComboBox ItemsSource="{Binding ProxyTypes}"
+                                  SelectedItem="{Binding ProxyType}" 
+                                  Style="{StaticResource CleanComboBox}" Width="75" MinHeight="38"/>
+                    </StackPanel>
+                    
+                    <!-- Square Persist Log Checkbox -->
+                    <CheckBox Grid.Column="8" IsChecked="{Binding PersistLog}" Style="{StaticResource SquareCheckBox}" 
+                              Content="Persist Log"/>
+                </Grid>
+            </Grid>
+        </Border>
+
+        <!-- Results Panel -->
+        <Border Grid.Row="2" Background="#C0303030" CornerRadius="8" Padding="0" MinHeight="320">
+            <TabControl x:Name="tabControl" Background="Transparent" BorderThickness="0">
+                <TabControl.Resources>
+                    <Style TargetType="TabItem">
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="TabItem">
+                                    <Border Name="Panel" Background="Transparent" Margin="0,0,2,0">
+                                        <ContentPresenter x:Name="ContentSite"
+                                                        VerticalAlignment="Center"
+                                                        HorizontalAlignment="Center"
+                                                        ContentSource="Header"
+                                                        Margin="0"/>
+                                    </Border>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </TabControl.Resources>
+                
+                <!-- Log Tab -->
+                <TabItem>
+                    <TabItem.Header>
+                        <Button Click="ShowLog" Width="95" Height="36" Padding="12,8" Margin="0,0,8,0"
+                                Background="#2563EB" Foreground="#F8FAFC" Style="{StaticResource ReadableTabButton}">
+                            <StackPanel Orientation="Horizontal">
+                                <iconPacks:PackIconRadixIcons Kind="ActivityLog" Width="14" Height="14" Margin="0,0,6,0"/>
+                                <TextBlock Text="Log" VerticalAlignment="Center" FontWeight="Medium"/>
+                            </StackPanel>
+                        </Button>
+                    </TabItem.Header>
+                    <Grid Margin="16">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="12" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        
+                        <!-- Log Content with Enhanced Visual Design -->
+                        <Border Grid.Row="0" Background="#1A1A1A" BorderBrush="#404040" BorderThickness="1" CornerRadius="8" Padding="1">
+                            <Border Background="#161616" CornerRadius="7" Padding="8">
+                                <Grid>
+                                    <!-- Log Line Count Indicator -->
+                                    <Border HorizontalAlignment="Right" VerticalAlignment="Top" 
+                                            Background="#30000000" CornerRadius="12" Padding="8,4" Margin="0,8,8,0"
+                                            Panel.ZIndex="10">
+                                        <TextBlock Text="{Binding LogLineCount, StringFormat='Lines: {0}'}" 
+                                                  Foreground="#9CA3AF" FontFamily="Segoe UI" FontSize="10" FontWeight="Medium"/>
+                                    </Border>
+                                    
+                                    <WindowsFormsHost>
+                                        <wf:RichTextBox 
+                                            x:Name="logRTB"
+                                            Dock="Fill"
+                                            ForeColor="Gainsboro"
+                                            ReadOnly="True"
+                                            ScrollBars="Vertical"
+                                            BorderStyle="None"
+                                            DetectUrls="False"/>
+                                    </WindowsFormsHost>
+                                </Grid>
+                            </Border>
+                        </Border>
+                        
+                        <!-- Search Controls - Enhanced UI with Better Styling -->
+                        <Border Grid.Row="2" Background="#70303030" CornerRadius="8" Padding="14,12" 
+                                BorderBrush="#4A5568" BorderThickness="1">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="14" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="10" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="14" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="10" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="8" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                
+                                <!-- Enhanced Search Input with Better UX -->
+                                <Border Grid.Column="0" Background="#2D3748" BorderBrush="#4A5568" BorderThickness="1" CornerRadius="6">
+                                    <Grid>
+                                        <TextBox Text="{Binding SearchString}" Height="34" 
+                                                 Background="Transparent" Foreground="#E2E8F0" Padding="10,8"
+                                                 BorderThickness="0"
+                                                 FontFamily="Segoe UI" FontSize="12"
+                                                 ToolTip="Type to search in logs... (Ctrl+F)"
+                                                 x:Name="searchTextBox"/>
+                                        <TextBlock Text="🔍 Search logs..." 
+                                                  Foreground="#6B7280" FontFamily="Segoe UI" FontSize="12" FontStyle="Italic"
+                                                  VerticalAlignment="Center" Margin="10,0,0,0"
+                                                  IsHitTestVisible="False"
+                                                  x:Name="searchPlaceholder"
+                                                  Visibility="{Binding ElementName=searchTextBox, Path=Text.IsEmpty, Converter={StaticResource BoolToVis}}">
+                                            <!-- Removed GPU-intensive pulse animation to reduce heat -->
+                                        </TextBlock>
+                                    </Grid>
+                                </Border>
+                                
+                                <!-- Search Button with Enhanced Style -->
+                                <Button Grid.Column="2" Click="Search" Style="{StaticResource ReadableTabButton}" 
+                                        Height="34" Width="75" FontFamily="Segoe UI" FontSize="11"
+                                        Background="#059669" Foreground="#F8FAFC"
+                                        ToolTip="Search in logs">
+                                    <StackPanel Orientation="Horizontal">
+                                        <iconPacks:PackIconMaterialDesign Kind="Search" Width="12" Height="12" Margin="0,0,4,0"/>
+                                        <TextBlock Text="Search" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
+                                
+                                <!-- Previous Button -->
+                                <Button Grid.Column="4" Click="PreviousMatch" Style="{StaticResource ReadableTabButton}" 
+                                        Width="34" Height="34"
+                                        Background="#6B7280" Foreground="#F8FAFC"
+                                        ToolTip="Previous Match (Shift+F3)">
+                                    <iconPacks:PackIconUnicons Kind="AngleLeft" Width="16" Height="16"/>
+                                </Button>
+                                
+                                <!-- Match Counter with Enhanced Styling -->
+                                <Border Grid.Column="6" Background="#374151" CornerRadius="6" Padding="10,8"
+                                        BorderBrush="#4B5563" BorderThickness="1">
+                                    <TextBlock Text="{Binding MatchInfo}" 
+                                              Foreground="#F3F4F6" FontFamily="Segoe UI" FontSize="11" FontWeight="Medium"
+                                              VerticalAlignment="Center"
+                                              MinWidth="50" TextAlignment="Center"/>
+                                </Border>
+                                
+                                <!-- Next Button -->
+                                <Button Grid.Column="8" Click="NextMatch" Style="{StaticResource ReadableTabButton}" 
+                                        Width="34" Height="34"
+                                        Background="#6B7280" Foreground="#F8FAFC"
+                                        ToolTip="Next Match (F3)">
+                                    <iconPacks:PackIconUnicons Kind="AngleRight" Width="16" Height="16"/>
+                                </Button>
+                                
+                                <!-- Action Buttons Group -->
+                                <StackPanel Grid.Column="10" Orientation="Horizontal">
+                                    <!-- Clear Search Button -->
+                                    <Button Click="ClearSearch" Style="{StaticResource ReadableTabButton}" 
+                                            Width="34" Height="34" Margin="0,0,8,0"
+                                            Background="#DC2626" Foreground="#F8FAFC"
+                                            ToolTip="Clear Search (Esc)">
+                                        <iconPacks:PackIconMaterialDesign Kind="Close" Width="14" Height="14"/>
+                                    </Button>
+                                    
+                                    <!-- Clear Log Button -->
+                                    <Button Click="ClearLog" Style="{StaticResource ReadableTabButton}" 
+                                            Width="34" Height="34"
+                                            Background="#6B7280" Foreground="#F8FAFC"
+                                            ToolTip="Clear All Logs (Ctrl+L)">
+                                        <iconPacks:PackIconMaterialDesign Kind="DeleteSweep" Width="14" Height="14"/>
+                                    </Button>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                    </Grid>
+                </TabItem>
+                
+                <!-- Variables Tab -->
+                <TabItem>
+                    <TabItem.Header>
+                        <Button Click="ShowVariables" Width="105" Height="36" Padding="12,8" Margin="0,0,8,0"
+                                Background="#7C3AED" Foreground="#F8FAFC" Style="{StaticResource ReadableTabButton}">
+                            <StackPanel Orientation="Horizontal">
+                                <iconPacks:PackIconMaterial Kind="Variable" Width="14" Height="14" Margin="0,0,6,0"/>
+                                <TextBlock Text="Variables" VerticalAlignment="Center" FontWeight="Medium"/>
+                            </StackPanel>
+                        </Button>
+                    </TabItem.Header>
+                    <Grid Margin="16">
+                        <!-- Variables Content with Enhanced Visual Design -->
+                        <Border Background="#1A1A1A" BorderBrush="#404040" BorderThickness="1" CornerRadius="8" Padding="1">
+                            <Border Background="#161616" CornerRadius="7" Padding="8">
+                                <Grid>
+                                    <!-- Variable Count Indicator -->
+                                    <Border HorizontalAlignment="Right" VerticalAlignment="Top" 
+                                            Background="#30000000" CornerRadius="12" Padding="8,4" Margin="0,8,8,0"
+                                            Panel.ZIndex="10">
+                                        <TextBlock Text="{Binding Variables.Count, StringFormat='Variables: {0}'}" 
+                                                  Foreground="#A78BFA" FontFamily="Segoe UI" FontSize="10" FontWeight="Medium"/>
+                                    </Border>
+                                    
+                                    <WindowsFormsHost>
+                                        <wf:RichTextBox 
+                                            x:Name="variablesRTB"
+                                            Dock="Fill"
+                                            ForeColor="Gainsboro"
+                                            ReadOnly="True"
+                                            ScrollBars="Vertical"
+                                            BorderStyle="None"
+                                            DetectUrls="False"/>
+                                    </WindowsFormsHost>
+                                </Grid>
+                            </Border>
+                        </Border>
+                    </Grid>
+                </TabItem>
+                
+                <!-- HTML Tab -->
+                <TabItem>
+                    <TabItem.Header>
+                        <Button Click="ShowHTML" Width="95" Height="36" Padding="12,8"
+                                Background="#DC2626" Foreground="#F8FAFC" Style="{StaticResource ReadableTabButton}">
+                            <StackPanel Orientation="Horizontal">
+                                <iconPacks:PackIconEntypo Kind="Browser" Width="14" Height="14" Margin="0,0,6,0"/>
+                                <TextBlock Text="HTML" VerticalAlignment="Center" FontWeight="Medium"/>
+                            </StackPanel>
+                        </Button>
+                    </TabItem.Header>
+                    <Grid Margin="16">
+                        <!-- HTML Content with Enhanced Visual Design -->
+                        <Border Background="#1A1A1A" BorderBrush="#404040" BorderThickness="1" CornerRadius="8" Padding="1">
+                            <Border Background="#161616" CornerRadius="7" Padding="2">
+                                <Grid>
+                                    <!-- HTML Status Indicator -->
+                                    <Border HorizontalAlignment="Right" VerticalAlignment="Top" 
+                                            Background="#30000000" CornerRadius="12" Padding="8,4" Margin="0,8,8,0"
+                                            Panel.ZIndex="10">
+                                        <TextBlock Text="HTML Preview" 
+                                                  Foreground="#F87171" FontFamily="Segoe UI" FontSize="10" FontWeight="Medium"/>
+                                    </Border>
+                                    
+                                    <uc:HTMLViewer x:Name="htmlViewer" VerticalAlignment="Stretch" />
+                                </Grid>
+                            </Border>
+                        </Border>
+                    </Grid>
+                </TabItem>
+            </TabControl>
+        </Border>
     </Grid>
 </Page>

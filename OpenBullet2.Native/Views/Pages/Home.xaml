@@ -7,70 +7,378 @@
       xmlns:converters="clr-namespace:OpenBullet2.Native.Converters"
       xmlns:local="clr-namespace:OpenBullet2.Native.Views.Pages"
       mc:Ignorable="d" 
-      d:DesignHeight="550" d:DesignWidth="780"
+      d:DesignHeight="800" d:DesignWidth="1200"
       Title="Home">
 
     <Page.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
+        
+        <!-- Lightweight Section Header Style -->
+        <Style x:Key="SectionHeaderStyle" TargetType="TextBlock" BasedOn="{StaticResource H2TextStyle}">
+            <Setter Property="Margin" Value="0,20,0,12" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        
+        <!-- Lightweight Performance Card Style -->
+        <Style x:Key="PerfCardStyle" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource BackgroundSecondary}" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="16,12" />
+            <Setter Property="Margin" Value="0,0,12,0" />
+            <Setter Property="MinHeight" Value="75" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderLight}" />
+            <Setter Property="BorderThickness" Value="1" />
+        </Style>
+        
+        <!-- Lightweight Chart Card Style -->
+        <Style x:Key="ChartCardStyle" TargetType="Border" BasedOn="{StaticResource PerfCardStyle}">
+            <Setter Property="MinHeight" Value="120" />
+            <Setter Property="Padding" Value="16,14" />
+        </Style>
+        
+        <!-- Lightweight Collection Card Style -->
+        <Style x:Key="CollectionCardStyle" TargetType="Border" BasedOn="{StaticResource PerfCardStyle}">
+            <Setter Property="MinHeight" Value="85" />
+            <Setter Property="Padding" Value="16,12" />
+            <Setter Property="Margin" Value="0,0,12,12" />
+        </Style>
+        
+        <!-- Performance Label Style -->
+        <Style x:Key="PerfLabelStyle" TargetType="StackPanel">
+            <Setter Property="Orientation" Value="Horizontal" />
+            <Setter Property="Margin" Value="0,0,0,6" />
+        </Style>
+        
+        <!-- Performance Title Style -->
+        <Style x:Key="PerfTitleStyle" TargetType="TextBlock" BasedOn="{StaticResource LabelTextStyle}">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontWeight" Value="Medium" />
+            <Setter Property="Margin" Value="6,0,0,0" />
+        </Style>
+        
+        <!-- Performance Subtitle Style -->
+        <Style x:Key="PerfSubtitleStyle" TargetType="TextBlock" BasedOn="{StaticResource CaptionTextStyle}">
+            <Setter Property="FontSize" Value="10" />
+            <Setter Property="Margin" Value="6,0,0,0" />
+            <Setter Property="Foreground" Value="#94A3B8" />
+        </Style>
+        
+        <!-- Performance Value Style -->
+        <Style x:Key="PerfValueStyle" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="Segoe UI" />
+            <Setter Property="FontSize" Value="22" />
+            <Setter Property="FontWeight" Value="Medium" />
+            <Setter Property="Margin" Value="0,2,0,0" />
+        </Style>
+        
+        <!-- Collection Value Style -->
+        <Style x:Key="CollectionValueStyle" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="Segoe UI" />
+            <Setter Property="FontSize" Value="28" />
+            <Setter Property="FontWeight" Value="Light" />
+            <Setter Property="Foreground" Value="#E2E8F0" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="0,6,0,2" />
+        </Style>
+        
+        <!-- Collection Label Style -->
+        <Style x:Key="CollectionLabelStyle" TargetType="TextBlock" BasedOn="{StaticResource LabelTextStyle}">
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontWeight" Value="Medium" />
+            <Setter Property="Foreground" Value="#94A3B8" />
+        </Style>
     </Page.Resources>
     
-    <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="*" />
-            <RowDefinition Height="auto" />
-            <RowDefinition Height="auto" />
-            <RowDefinition Height="*" />
-        </Grid.RowDefinitions>
-
-        <StackPanel Grid.Row="1">
-            <TextBlock
-                   Grid.Row="1"
-                   FontSize="24" 
-                   TextWrapping="Wrap"
-                   TextAlignment="Center"
-                   Margin="0 0 0 20"
-                   Foreground="{DynamicResource ForegroundMain}">
-                Welcome to the native client of <Bold>OpenBullet 2</Bold>
-            </TextBlock>
-
-            <StackPanel HorizontalAlignment="Center" 
-                        Orientation="Horizontal">
-                <Button x:Name="webUIButton" Click="ShowChangelog" 
-                    Margin="0 5 5 5" Style="{StaticResource StyledPrimaryButton}">
-                    <StackPanel Orientation="Horizontal">
-                        <iconPacks:PackIconRadixIcons Kind="ActivityLog" />
-                        <TextBlock VerticalAlignment="Center" Margin="5 0">Show changelog</TextBlock>
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <Grid Margin="24,20,24,24">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+            
+            <!-- Lightweight Header Section -->
+            <Grid Grid.Row="0" Margin="0,0,0,20">
+                <Border Background="{DynamicResource BackgroundSecondary}"
+                        CornerRadius="8"
+                        Padding="16,12"
+                        HorizontalAlignment="Right"
+                        MinWidth="240"
+                        BorderBrush="{DynamicResource BorderLight}"
+                        BorderThickness="1">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                            <iconPacks:PackIconMaterial Kind="ClockOutline" 
+                                                         Width="14" Height="14" 
+                                                         Foreground="#94A3B8"
+                                                         VerticalAlignment="Center" 
+                                                         Margin="0,0,6,0" />
+                            <TextBlock Text="Server Time" 
+                                       Style="{StaticResource CaptionTextStyle}"
+                                       FontWeight="Medium"
+                                       Foreground="#94A3B8" />
+                        </StackPanel>
+                        <TextBlock Style="{StaticResource H3TextStyle}"
+                                   Text="{Binding CurrentTime}"
+                                   HorizontalAlignment="Right" 
+                                   Margin="0,6,0,0"
+                                   FontWeight="Medium"
+                                   Foreground="#E2E8F0" />
                     </StackPanel>
-                </Button>
-                <Button x:Name="changelogButton" Click="OpenInstallationTutorial"
-                    Margin="0 5 5 5" Style="{StaticResource StyledSuccessButton}">
-                    <StackPanel Orientation="Horizontal">
-                        <iconPacks:PackIconEntypo Kind="Browser" />
-                        <TextBlock VerticalAlignment="Center" Margin="5 0">Try the cross-platform web UI</TextBlock>
-                    </StackPanel>
-                </Button>
+                </Border>
+            </Grid>
+
+            <!-- Lightweight System Performance Section -->
+            <StackPanel Grid.Row="1">
+                <TextBlock Style="{StaticResource SectionHeaderStyle}" Text="System performance" />
+                
+                <Grid Margin="0,0,0,20">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    
+                    <!-- CPU Usage Card -->
+                    <Border Grid.Column="0" Style="{StaticResource PerfCardStyle}">
+                        <StackPanel>
+                            <StackPanel Style="{StaticResource PerfLabelStyle}">
+                                <iconPacks:PackIconMaterial Kind="Cpu64Bit" 
+                                                             Width="16" Height="16" 
+                                                             Foreground="#3B82F6"
+                                                             VerticalAlignment="Center" />
+                                <TextBlock Text="CPU" Style="{StaticResource PerfTitleStyle}" />
+                                <TextBlock Text="Last minute" Style="{StaticResource PerfSubtitleStyle}" />
+                            </StackPanel>
+                            <TextBlock Text="{Binding CpuUsage}" 
+                                       Style="{StaticResource PerfValueStyle}"
+                                       Foreground="#3B82F6" />
+                        </StackPanel>
+                    </Border>
+                    
+                    <!-- Memory Usage Card -->
+                    <Border Grid.Column="1" Style="{StaticResource PerfCardStyle}">
+                        <StackPanel>
+                            <StackPanel Style="{StaticResource PerfLabelStyle}">
+                                <iconPacks:PackIconMaterial Kind="Memory" 
+                                                             Width="16" Height="16" 
+                                                             Foreground="#F59E0B"
+                                                             VerticalAlignment="Center" />
+                                <TextBlock Text="Memory" Style="{StaticResource PerfTitleStyle}" />
+                                <TextBlock Text="Last minute" Style="{StaticResource PerfSubtitleStyle}" />
+                            </StackPanel>
+                            <TextBlock Text="{Binding MemoryUsage}" 
+                                       Style="{StaticResource PerfValueStyle}"
+                                       Foreground="#F59E0B" />
+                        </StackPanel>
+                    </Border>
+                    
+                    <!-- Application Uptime Card -->
+                    <Border Grid.Column="2" Style="{StaticResource PerfCardStyle}" Margin="0">
+                        <StackPanel>
+                            <StackPanel Style="{StaticResource PerfLabelStyle}">
+                                <iconPacks:PackIconMaterial Kind="TimerOutline" 
+                                                             Width="16" Height="16" 
+                                                             Foreground="#10B981"
+                                                             VerticalAlignment="Center" />
+                                <TextBlock Text="Uptime" Style="{StaticResource PerfTitleStyle}" />
+                                <TextBlock Text="Application" Style="{StaticResource PerfSubtitleStyle}" />
+                            </StackPanel>
+                            <TextBlock Text="{Binding ApplicationUptime}" 
+                                       Style="{StaticResource PerfValueStyle}"
+                                       Foreground="#10B981" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
             </StackPanel>
 
-            <StackPanel HorizontalAlignment="Center"
-                        Orientation="Horizontal"
-                        Visibility="{Binding UpdateAvailable, Converter={StaticResource ResourceKey=BoolToVis}}">
-                <Button x:Name="updateButton" Click="ShowUpdateConfirmation"
-                    Margin="0 5 5 5" Style="{StaticResource StyledWarningButton}">
-                    <StackPanel Orientation="Horizontal">
-                        <iconPacks:PackIconRadixIcons Kind="Update" />
-                        <TextBlock VerticalAlignment="Center" Margin="5 0">Update Available! Click here to update</TextBlock>
-                    </StackPanel>
-                </Button>
+            <!-- Lightweight Performance Charts Section -->
+            <StackPanel Grid.Row="2" Margin="0,0,0,20">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    
+                    <!-- CPU Chart -->
+                    <Border Grid.Column="0" Style="{StaticResource ChartCardStyle}">
+                        <StackPanel>
+                            <StackPanel Style="{StaticResource PerfLabelStyle}">
+                                <iconPacks:PackIconMaterial Kind="ChartLine" 
+                                                             Width="14" Height="14" 
+                                                             Foreground="#3B82F6"
+                                                             VerticalAlignment="Center" />
+                                <TextBlock Text="CPU Usage" Style="{StaticResource PerfTitleStyle}" />
+                                <TextBlock Text="Real-time" Style="{StaticResource PerfSubtitleStyle}" />
+                            </StackPanel>
+
+                            <!-- Lightweight visual representation -->
+                            <Border Height="60" CornerRadius="6" Margin="0,6,0,0" Background="#1A3B82F6">
+                                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                    <TextBlock Text="{Binding CpuUsage}" 
+                                               FontSize="18" 
+                                               FontWeight="Medium"
+                                               Foreground="#3B82F6"
+                                               HorizontalAlignment="Center" />
+                                    <TextBlock Text="CPU Usage" 
+                                               FontSize="9"
+                                               Foreground="#94A3B8"
+                                               HorizontalAlignment="Center"
+                                               Margin="0,2,0,0" />
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+                    
+                    <!-- Memory Chart -->
+                    <Border Grid.Column="1" Style="{StaticResource ChartCardStyle}" Margin="0">
+                        <StackPanel>
+                            <StackPanel Style="{StaticResource PerfLabelStyle}">
+                                <iconPacks:PackIconMaterial Kind="ChartAreaspline" 
+                                                             Width="14" Height="14" 
+                                                             Foreground="#F59E0B"
+                                                             VerticalAlignment="Center" />
+                                <TextBlock Text="Memory Usage" Style="{StaticResource PerfTitleStyle}" />
+                                <TextBlock Text="Working Set" Style="{StaticResource PerfSubtitleStyle}" />
+                            </StackPanel>
+
+                            <!-- Lightweight visual representation -->
+                            <Border Height="60" CornerRadius="6" Margin="0,6,0,0" Background="#1AF59E0B">
+                                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                    <TextBlock Text="{Binding MemoryUsage}" 
+                                               FontSize="18" 
+                                               FontWeight="Medium"
+                                               Foreground="#F59E0B"
+                                               HorizontalAlignment="Center" />
+                                    <TextBlock Text="Memory Usage" 
+                                               FontSize="9" 
+                                               Foreground="#94A3B8"
+                                               HorizontalAlignment="Center"
+                                               Margin="0,2,0,0" />
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+                </Grid>
             </StackPanel>
 
-            <TextBlock
-                   FontSize="14" 
-                   TextWrapping="Wrap"
-                   TextAlignment="Center"
-                   Margin="50 20 50 0"
-                   Foreground="{DynamicResource ForegroundMain}"
-                   Text="{Binding Announcement}">
-            </TextBlock>
-        </StackPanel>
-    </Grid>
+            <!-- Lightweight Your Collection Section -->
+            <StackPanel Grid.Row="3">
+                <TextBlock Style="{StaticResource SectionHeaderStyle}" Text="Your collection" />
+                
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    
+                    <!-- Jobs -->
+                    <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource CollectionCardStyle}">
+                        <StackPanel>
+                            <iconPacks:PackIconMaterial Kind="Briefcase" 
+                                                         Width="20" Height="20" 
+                                                         Foreground="#3B82F6"
+                                                         HorizontalAlignment="Center" />
+                            <TextBlock Style="{StaticResource CollectionValueStyle}" Text="{Binding JobsCount}" />
+                            <TextBlock Style="{StaticResource CollectionLabelStyle}" Text="Jobs" />
+                        </StackPanel>
+                    </Border>
+                    
+                    <!-- Proxies -->
+                    <Border Grid.Row="0" Grid.Column="1" Style="{StaticResource CollectionCardStyle}">
+                        <StackPanel>
+                            <iconPacks:PackIconMaterial Kind="ServerNetwork" 
+                                                         Width="20" Height="20" 
+                                                         Foreground="#8B5CF6"
+                                                         HorizontalAlignment="Center" />
+                            <TextBlock Style="{StaticResource CollectionValueStyle}" Text="{Binding ProxiesCount}" />
+                            <TextBlock Style="{StaticResource CollectionLabelStyle}" Text="Proxies" />
+                        </StackPanel>
+                    </Border>
+                    
+                    <!-- Wordlists -->
+                    <Border Grid.Row="0" Grid.Column="2" Style="{StaticResource CollectionCardStyle}">
+                        <StackPanel>
+                            <iconPacks:PackIconMaterial Kind="FormatListBulleted" 
+                                                         Width="20" Height="20" 
+                                                         Foreground="#10B981"
+                                                         HorizontalAlignment="Center" />
+                            <TextBlock Style="{StaticResource CollectionValueStyle}" Text="{Binding WordlistsCount}" />
+                            <TextBlock Style="{StaticResource CollectionLabelStyle}" Text="Wordlists" />
+                        </StackPanel>
+                    </Border>
+                    
+                    <!-- Lines -->
+                    <Border Grid.Row="0" Grid.Column="3" Style="{StaticResource CollectionCardStyle}" Margin="0,0,0,12">
+                        <StackPanel>
+                            <iconPacks:PackIconMaterial Kind="FormatLineSpacing" 
+                                                         Width="20" Height="20" 
+                                                         Foreground="#F59E0B"
+                                                         HorizontalAlignment="Center" />
+                            <TextBlock Style="{StaticResource CollectionValueStyle}" Text="{Binding WordlistLines}" />
+                            <TextBlock Style="{StaticResource CollectionLabelStyle}" Text="Lines" />
+                        </StackPanel>
+                    </Border>
+                    
+                    <!-- Hits -->
+                    <Border Grid.Row="1" Grid.Column="0" Style="{StaticResource CollectionCardStyle}" Margin="0,0,12,0">
+                        <StackPanel>
+                            <iconPacks:PackIconMaterial Kind="Target" 
+                                                         Width="20" Height="20" 
+                                                         Foreground="#EF4444"
+                                                         HorizontalAlignment="Center" />
+                            <TextBlock Style="{StaticResource CollectionValueStyle}" Text="{Binding HitsCount}" />
+                            <TextBlock Style="{StaticResource CollectionLabelStyle}" Text="Hits" />
+                        </StackPanel>
+                    </Border>
+                    
+                    <!-- Configs -->
+                    <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource CollectionCardStyle}" Margin="0,0,12,0">
+                        <StackPanel>
+                            <iconPacks:PackIconMaterial Kind="Cog" 
+                                                         Width="20" Height="20" 
+                                                         Foreground="#06B6D4"
+                                                         HorizontalAlignment="Center" />
+                            <TextBlock Style="{StaticResource CollectionValueStyle}" Text="{Binding ConfigsCount}" />
+                            <TextBlock Style="{StaticResource CollectionLabelStyle}" Text="Configs" />
+                        </StackPanel>
+                    </Border>
+                    
+                    <!-- Guests -->
+                    <Border Grid.Row="1" Grid.Column="2" Style="{StaticResource CollectionCardStyle}" Margin="0,0,12,0">
+                        <StackPanel>
+                            <iconPacks:PackIconMaterial Kind="AccountGroup" 
+                                                         Width="20" Height="20" 
+                                                         Foreground="#84CC16"
+                                                         HorizontalAlignment="Center" />
+                            <TextBlock Style="{StaticResource CollectionValueStyle}" Text="{Binding GuestsCount}" />
+                            <TextBlock Style="{StaticResource CollectionLabelStyle}" Text="Guests" />
+                        </StackPanel>
+                    </Border>
+                    
+                    <!-- Plugins -->
+                    <Border Grid.Row="1" Grid.Column="3" Style="{StaticResource CollectionCardStyle}" Margin="0,0,0,0">
+                        <StackPanel>
+                            <iconPacks:PackIconMaterial Kind="Puzzle" 
+                                                         Width="20" Height="20" 
+                                                         Foreground="#F97316"
+                                                         HorizontalAlignment="Center" />
+                            <TextBlock Style="{StaticResource CollectionValueStyle}" Text="{Binding PluginsCount}" />
+                            <TextBlock Style="{StaticResource CollectionLabelStyle}" Text="Plugins" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </StackPanel>
+
+        </Grid>
+    </ScrollViewer>
 </Page>

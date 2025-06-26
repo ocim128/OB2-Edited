@@ -163,6 +163,9 @@
         <local:BoolSettingViewer x:Name="absoluteUriInFirstLineSetting" />
         <local:BoolSettingViewer x:Name="readResponseContentSetting" />
         <local:BoolSettingViewer x:Name="decodeHtmlSetting" />
+        <local:BoolSettingViewer x:Name="disableCookieParsingSettings" />
+        <local:BoolSettingViewer x:Name="disableHeaderParsingSettings" />
+        <local:BoolSettingViewer x:Name="allowHttpsToHttpRedirectSetting" />
         <local:StringSettingViewer x:Name="codePagesEncodingSetting" />
 
         <Label 

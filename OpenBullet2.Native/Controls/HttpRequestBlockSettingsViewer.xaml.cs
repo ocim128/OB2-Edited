@@ -44,6 +44,9 @@ namespace OpenBullet2.Native.Controls
             autoRedirectSetting.Setting = vm.HttpRequestBlock.Settings["autoRedirect"];
             alwaysSendContentSetting.Setting = vm.HttpRequestBlock.Settings["alwaysSendContent"];
             decodeHtmlSetting.Setting = vm.HttpRequestBlock.Settings["decodeHtml"];
+            disableCookieParsingSettings.Setting = vm.HttpRequestBlock.Settings["disableCookieParsing"];
+            disableHeaderParsingSettings.Setting = vm.HttpRequestBlock.Settings["disableHeaderParsing"];
+            allowHttpsToHttpRedirectSetting.Setting = vm.HttpRequestBlock.Settings["allowHttpsToHttpRedirect"];
 
             switch (vm.Mode)
             {

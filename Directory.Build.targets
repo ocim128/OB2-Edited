@@ -1,0 +1,40 @@
+<Project>
+  <!-- Performance-focused build optimizations -->
+  
+  <!-- Skip unnecessary targets for faster builds -->
+  <PropertyGroup>
+    <SkipInvalidConfigurations>true</SkipInvalidConfigurations>
+    <SkipUnchangedFiles>true</SkipUnchangedFiles>
+    <UseCommonOutputDirectory>true</UseCommonOutputDirectory>
+  </PropertyGroup>
+  
+  <!-- Faster file copying - ensure dependencies are copied -->
+  <PropertyGroup>
+    <CopyBuildOutputToOutputDirectory>true</CopyBuildOutputToOutputDirectory>
+    <CopyOutputSymbolsToOutputDirectory>false</CopyOutputSymbolsToOutputDirectory>
+    <CopyDocumentationFileToOutputDirectory>false</CopyDocumentationFileToOutputDirectory>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <RestoreProjectStyle>PackageReference</RestoreProjectStyle>
+  </PropertyGroup>
+  
+  <!-- Skip time-consuming tasks in development builds -->
+  <PropertyGroup Condition="'$(Configuration)' == 'testing'">
+    <RunAnalyzersDuringBuild>false</RunAnalyzersDuringBuild>
+    <RunCodeAnalysis>false</RunCodeAnalysis>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+  
+  <!-- Optimize resource processing -->
+  <PropertyGroup>
+    <GenerateResourceMSBuildArchitecture>$(PlatformTarget)</GenerateResourceMSBuildArchitecture>
+    <ResGenExecuteAsTool>false</ResGenExecuteAsTool>
+  </PropertyGroup>
+  
+  <!-- Custom target to show build performance info -->
+  <Target Name="ShowBuildInfo" BeforeTargets="Build" Condition="'$(VERBOSE_BUILD)' == 'true'">
+    <Message Text="[PERF] Building $(MSBuildProjectName) with $(MaxCpuCount) cores" Importance="high" />
+    <Message Text="[PERF] Configuration: $(Configuration)" Importance="high" />
+    <Message Text="[PERF] Parallel build: $(BuildInParallel)" Importance="high" />
+  </Target>
+</Project> 

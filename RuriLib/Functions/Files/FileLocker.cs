@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Collections;
+using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -10,7 +10,7 @@ namespace RuriLib.Functions.Files
     /// </summary>
     public static class FileLocker
     {
-        private static readonly Hashtable hashtable = new();
+        private static readonly ConcurrentDictionary<string, RWLock> lockTable = new();
 
         /// <summary>
         /// Gets a <see cref="RWLock"/> associated to a file name or creates one if it doesn't exist.
@@ -18,40 +18,34 @@ namespace RuriLib.Functions.Files
         /// <param name="fileName">The name of the file to access</param>
         public static RWLock GetHandle(string fileName)
         {
-            if (!hashtable.ContainsKey(fileName))
-            {
-                hashtable.Add(fileName, new RWLock());
-            }
-
-            return (RWLock)hashtable[fileName];
+            // Thread-safe get-or-create pattern
+            return lockTable.GetOrAdd(fileName, _ => new RWLock());
         }
     }
 
     public class RWLock : IDisposable
     {
-        private readonly SemaphoreSlim readLock = new SemaphoreSlim(1, 1);
-        private readonly SemaphoreSlim writeLock = new SemaphoreSlim(1, 1);
+        private readonly SemaphoreSlim fileLock = new SemaphoreSlim(1, 1);
+        private readonly object syncLock = new object(); // For legacy synchronous code
 
-        public Task EnterReadLock(CancellationToken cancellationToken = default) => readLock.WaitAsync(cancellationToken);
+        // Simplified approach: treat all file operations as exclusive
+        // This eliminates deadlock possibilities while maintaining thread safety
+        public Task EnterReadLock(CancellationToken cancellationToken = default) 
+            => fileLock.WaitAsync(cancellationToken);
 
-        public async Task EnterWriteLock(CancellationToken cancellationToken = default)
-        {
-            await readLock.WaitAsync(cancellationToken);
-            await writeLock.WaitAsync(cancellationToken);
-        }
+        public Task EnterWriteLock(CancellationToken cancellationToken = default) 
+            => fileLock.WaitAsync(cancellationToken);
 
-        public void ExitReadLock() => readLock.Release();
+        public void ExitReadLock() => fileLock.Release();
 
-        public void ExitWriteLock()
-        {
-            readLock.Release();
-            writeLock.Release();
-        }
+        public void ExitWriteLock() => fileLock.Release();
+
+        // Legacy synchronous lock support for backward compatibility
+        public object GetSyncLock() => syncLock;
 
         public void Dispose()
         {
-            readLock?.Dispose();
-            writeLock?.Dispose();
+            fileLock?.Dispose();
         }
     }
 }

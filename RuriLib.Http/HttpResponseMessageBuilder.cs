@@ -243,91 +243,66 @@ namespace RuriLib.Http
         }
 
         /// <summary>
-        /// Sets a list of comma-separated cookies.
+        /// Sets a single Set-Cookie header value.
         /// </summary>
         internal static void SetCookies(string value, CookieContainer cookies, Uri uri)
         {
-            // Cookie values, as per the RFC, cannot contain commas. A comma is used
-            // to separate multiple cookies in the same Set-Cookie header. So, we split
-            // the header by commas and set each cookie individually.
-            foreach (var cookie in value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-            {
-                SetCookie(cookie, cookies, uri);
-            }
+            // Each Set-Cookie header should contain only one cookie.
+            // Don't split by comma as cookies can contain commas in expires dates.
+            SetCookie(value, cookies, uri);
         }
         
         /// <summary>
-        /// Sets a single cookie.
+        /// Sets a single cookie, extracting only the name and value.
         /// </summary>
         internal static void SetCookie(string value, CookieContainer cookies, Uri uri)
         {
-            if (value.Length == 0)
+            if (string.IsNullOrWhiteSpace(value))
             {
                 return;
             }
 
-            var endCookiePos = value.IndexOf(';');
+            value = value.Trim();
             var separatorPos = value.IndexOf('=');
 
-            if (separatorPos == -1)
+            if (separatorPos <= 0)
             {
                 // Invalid cookie, simply don't add it
                 return;
             }
 
+            var cookieName = value[..separatorPos].Trim();
+            
+            // Find the end of the cookie value (before any attributes)
+            var endCookiePos = value.IndexOf(';', separatorPos);
             string cookieValue;
-            var cookieName = value[..separatorPos];
-
+            
             if (endCookiePos == -1)
             {
-                cookieValue = value[(separatorPos + 1)..];
+                // No attributes, take everything after the '='
+                cookieValue = value[(separatorPos + 1)..].Trim();
             }
             else
             {
-                cookieValue = value.Substring(separatorPos + 1, (endCookiePos - separatorPos) - 1);
-
-                #region Get Expiration Time
-
-                var expiresPos = value.IndexOf("expires=", StringComparison.OrdinalIgnoreCase);
-
-                if (expiresPos != -1)
-                {
-                    string expiresStr;
-                    var endExpiresPos = value.IndexOf(';', expiresPos);
-
-                    expiresPos += 8;
-
-                    if (endExpiresPos == -1)
-                    {
-                        expiresStr = value[expiresPos..];
-                    }
-                    else
-                    {
-                        expiresStr = value[expiresPos..endExpiresPos];
-                    }
-
-                    if (DateTime.TryParse(expiresStr, out var expires) &&
-                        expires < DateTime.Now)
-                    {
-                        var collection = cookies.GetCookies(uri);
-                        if (collection[cookieName] != null)
-                            collection[cookieName].Expired = true;
-                    }
-                }
-
-                #endregion
+                // Extract only the value part before the first semicolon
+                cookieValue = value.Substring(separatorPos + 1, endCookiePos - separatorPos - 1).Trim();
             }
 
-            if (cookieValue.Length == 0 ||
+            // Skip empty or deleted cookies
+            if (string.IsNullOrEmpty(cookieValue) ||
                 cookieValue.Equals("deleted", StringComparison.OrdinalIgnoreCase))
             {
-                var collection = cookies.GetCookies(uri);
-                if (collection[cookieName] != null)
-                    collection[cookieName].Expired = true;
+                return;
             }
-            else
+
+            // Add the cookie with only name and value
+            try
             {
                 cookies.Add(new Cookie(cookieName, cookieValue, "/", uri.Host));
+            }
+            catch
+            {
+                // Ignore invalid cookies
             }
         }
 

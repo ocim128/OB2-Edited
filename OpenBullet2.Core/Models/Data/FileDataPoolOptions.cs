@@ -18,6 +18,13 @@ public class FileDataPoolOptions : DataPoolOptions
         get => fileName;
         set
         {
+            // Handle null values
+            if (value == null)
+            {
+                fileName = null;
+                return;
+            }
+            
             // Double quotes in file names are not allowed in Windows, but they are included
             // at the start and end of the file path if you copy/paste it from some programs,
             // so we need to remove them, otherwise it will not find the file.

@@ -1,0 +1,432 @@
+<Page x:Class="OpenBullet2.Native.Views.Pages.ModernUIDemo"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+      xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
+      xmlns:mah="http://metro.mahapps.com/winfx/xaml/controls"
+      xmlns:local="clr-namespace:OpenBullet2.Native.Views.Pages"
+      mc:Ignorable="d" 
+      d:DesignHeight="800" d:DesignWidth="1000"
+      Title="Modern UI Demo">
+
+    <Page.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Styles/ModernTheme.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Page.Resources>
+    
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Margin="0,0,0,40">
+            
+            <!-- Typography Demo -->
+            <Border Style="{StaticResource ModernCard}" Margin="0,0,0,24">
+                <StackPanel>
+                    <TextBlock Text="Typography System" 
+                              Style="{StaticResource ModernHeading2}"
+                              Margin="0,0,0,20" />
+                    
+                    <TextBlock Text="Heading 1 - Main Page Titles" 
+                              Style="{StaticResource ModernHeading1}"
+                              Margin="0,0,0,8" />
+                    <TextBlock Text="Heading 2 - Section Titles" 
+                              Style="{StaticResource ModernHeading2}"
+                              Margin="0,0,0,8" />
+                    <TextBlock Text="Heading 3 - Subsection Titles" 
+                              Style="{StaticResource ModernHeading3}"
+                              Margin="0,0,0,8" />
+                    <TextBlock Text="Body Text - Main content text with proper line height and spacing for optimal readability." 
+                              Style="{StaticResource ModernBodyText}"
+                              Margin="0,0,0,8"
+                              TextWrapping="Wrap" />
+                    <TextBlock Text="Secondary Body Text - Muted content for less important information." 
+                              Style="{StaticResource ModernBodyTextSecondary}"
+                              Margin="0,0,0,8"
+                              TextWrapping="Wrap" />
+                    <TextBlock Text="Caption Text - Small text for labels and captions" 
+                              Style="{StaticResource ModernCaptionText}" />
+                </StackPanel>
+            </Border>
+
+            <!-- Button Variants Demo -->
+            <Border Style="{StaticResource ModernCard}" Margin="0,0,0,24">
+                <StackPanel>
+                    <TextBlock Text="Button Variants" 
+                              Style="{StaticResource ModernHeading2}"
+                              Margin="0,0,0,20" />
+                    
+                    <WrapPanel Orientation="Horizontal">
+                        <Button Content="Default Button" 
+                               Style="{StaticResource ModernButton}"
+                               Margin="0,0,8,8" />
+                        <Button Content="Primary Button" 
+                               Style="{StaticResource ModernPrimaryButton}"
+                               Margin="0,0,8,8" />
+                        <Button Content="Success Button" 
+                               Style="{StaticResource ModernSuccessButton}"
+                               Margin="0,0,8,8" />
+                        <Button Content="Warning Button" 
+                               Style="{StaticResource ModernWarningButton}"
+                               Margin="0,0,8,8" />
+                        <Button Content="Danger Button" 
+                               Style="{StaticResource ModernDangerButton}"
+                               Margin="0,0,8,8" />
+                    </WrapPanel>
+                    
+                    <TextBlock Text="Buttons with Icons" 
+                              Style="{StaticResource ModernHeading3}"
+                              Margin="0,16,0,12" />
+                    
+                    <WrapPanel Orientation="Horizontal">
+                        <Button Style="{StaticResource ModernPrimaryButton}" Margin="0,0,8,8">
+                            <StackPanel Orientation="Horizontal">
+                                <iconPacks:PackIconMaterial Kind="Plus" Width="16" Height="16" />
+                                <TextBlock Text="Create New" Margin="8,0,0,0" />
+                            </StackPanel>
+                        </Button>
+                        <Button Style="{StaticResource ModernButton}" Margin="0,0,8,8">
+                            <StackPanel Orientation="Horizontal">
+                                <iconPacks:PackIconMaterial Kind="ContentSave" Width="16" Height="16" />
+                                <TextBlock Text="Save" Margin="8,0,0,0" />
+                            </StackPanel>
+                        </Button>
+                        <Button Style="{StaticResource ModernDangerButton}" Margin="0,0,8,8">
+                            <StackPanel Orientation="Horizontal">
+                                <iconPacks:PackIconMaterial Kind="Delete" Width="16" Height="16" />
+                                <TextBlock Text="Delete" Margin="8,0,0,0" />
+                            </StackPanel>
+                        </Button>
+                    </WrapPanel>
+                    
+                    <TextBlock Text="Navigation Buttons" 
+                              Style="{StaticResource ModernHeading3}"
+                              Margin="0,16,0,12" />
+                    
+                    <StackPanel Width="200" HorizontalAlignment="Left">
+                        <Button Style="{StaticResource ModernNavButton}" Margin="0,0,0,4">
+                            <StackPanel Orientation="Horizontal">
+                                <iconPacks:PackIconMaterial Kind="Home" Width="16" Height="16" />
+                                <TextBlock Text="Home" Margin="12,0,0,0" />
+                            </StackPanel>
+                        </Button>
+                        <Button Style="{StaticResource ModernNavButton}" Margin="0,0,0,4">
+                            <StackPanel Orientation="Horizontal">
+                                <iconPacks:PackIconMaterial Kind="Settings" Width="16" Height="16" />
+                                <TextBlock Text="Settings" Margin="12,0,0,0" />
+                            </StackPanel>
+                        </Button>
+                        <Button Style="{StaticResource ModernNavButton}">
+                            <StackPanel Orientation="Horizontal">
+                                <iconPacks:PackIconMaterial Kind="Information" Width="16" Height="16" />
+                                <TextBlock Text="About" Margin="12,0,0,0" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Input Controls Demo -->
+            <Border Style="{StaticResource ModernCard}" Margin="0,0,0,24">
+                <StackPanel>
+                    <TextBlock Text="Input Controls" 
+                              Style="{StaticResource ModernHeading2}"
+                              Margin="0,0,0,20" />
+                    
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="20" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="Text Input" 
+                                      Style="{StaticResource ModernBodyText}"
+                                      Margin="0,0,0,8" />
+                            <TextBox Text="Sample text input" 
+                                    Style="{StaticResource ModernTextBox}"
+                                    Margin="0,0,0,16" />
+                            
+                            <TextBlock Text="Multiline Text Input" 
+                                      Style="{StaticResource ModernBodyText}"
+                                      Margin="0,0,0,8" />
+                            <TextBox Text="This is a multiline text input example with word wrapping enabled." 
+                                    Style="{StaticResource ModernTextBox}"
+                                    Height="80"
+                                    AcceptsReturn="True"
+                                    TextWrapping="Wrap"
+                                    VerticalContentAlignment="Top"
+                                    Margin="0,0,0,16" />
+                            
+                            <TextBlock Text="Checkbox" 
+                                      Style="{StaticResource ModernBodyText}"
+                                      Margin="0,0,0,8" />
+                            <CheckBox Content="Enable feature" 
+                                     Style="{StaticResource ModernCheckBox}"
+                                     IsChecked="True"
+                                     Margin="0,0,0,16" />
+                        </StackPanel>
+                        
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="Dropdown" 
+                                      Style="{StaticResource ModernBodyText}"
+                                      Margin="0,0,0,8" />
+                            <ComboBox Style="{StaticResource ModernComboBox}"
+                                     SelectedIndex="0"
+                                     Margin="0,0,0,16">
+                                <ComboBoxItem Content="Option 1" />
+                                <ComboBoxItem Content="Option 2" />
+                                <ComboBoxItem Content="Option 3" />
+                            </ComboBox>
+                            
+                            <TextBlock Text="Numeric Input" 
+                                      Style="{StaticResource ModernBodyText}"
+                                      Margin="0,0,0,8" />
+                            <mah:NumericUpDown Value="100"
+                                             Minimum="0"
+                                             Maximum="1000"
+                                             Interval="10"
+                                             Margin="0,0,0,16" />
+                            
+                            <TextBlock Text="Progress Ring" 
+                                      Style="{StaticResource ModernBodyText}"
+                                      Margin="0,0,0,8" />
+                            <mah:ProgressRing IsActive="True"
+                                            Style="{StaticResource ModernProgressRing}"
+                                            Width="32" Height="32"
+                                            HorizontalAlignment="Left" />
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- Color Palette Demo -->
+            <Border Style="{StaticResource ModernCard}" Margin="0,0,0,24">
+                <StackPanel>
+                    <TextBlock Text="Color Palette" 
+                              Style="{StaticResource ModernHeading2}"
+                              Margin="0,0,0,20" />
+                    
+                    <TextBlock Text="Primary Colors" 
+                              Style="{StaticResource ModernHeading3}"
+                              Margin="0,0,0,12" />
+                    <UniformGrid Columns="6" Rows="2">
+                        <Border Background="{StaticResource Modern.ThemeMain}" 
+                               Height="60" Margin="0,0,4,4">
+                            <TextBlock Text="Primary" 
+                                      Foreground="White" 
+                                      HorizontalAlignment="Center" 
+                                      VerticalAlignment="Center"
+                                      FontSize="11" />
+                        </Border>
+                        <Border Background="{StaticResource Modern.ThemeAccent}" 
+                               Height="60" Margin="0,0,4,4">
+                            <TextBlock Text="Accent" 
+                                      Foreground="White" 
+                                      HorizontalAlignment="Center" 
+                                      VerticalAlignment="Center"
+                                      FontSize="11" />
+                        </Border>
+                        <Border Background="{StaticResource Modern.Success}" 
+                               Height="60" Margin="0,0,4,4">
+                            <TextBlock Text="Success" 
+                                      Foreground="White" 
+                                      HorizontalAlignment="Center" 
+                                      VerticalAlignment="Center"
+                                      FontSize="11" />
+                        </Border>
+                        <Border Background="{StaticResource Modern.Warning}" 
+                               Height="60" Margin="0,0,4,4">
+                            <TextBlock Text="Warning" 
+                                      Foreground="White" 
+                                      HorizontalAlignment="Center" 
+                                      VerticalAlignment="Center"
+                                      FontSize="11" />
+                        </Border>
+                        <Border Background="{StaticResource Modern.Error}" 
+                               Height="60" Margin="0,0,4,4">
+                            <TextBlock Text="Error" 
+                                      Foreground="White" 
+                                      HorizontalAlignment="Center" 
+                                      VerticalAlignment="Center"
+                                      FontSize="11" />
+                        </Border>
+                        <Border Background="{StaticResource Modern.Info}" 
+                               Height="60" Margin="0,0,0,4">
+                            <TextBlock Text="Info" 
+                                      Foreground="White" 
+                                      HorizontalAlignment="Center" 
+                                      VerticalAlignment="Center"
+                                      FontSize="11" />
+                        </Border>
+                        
+                        <!-- Background Colors -->
+                        <Border Background="{StaticResource Modern.BackgroundMain}" 
+                               BorderBrush="{StaticResource Modern.BorderMain}"
+                               BorderThickness="1"
+                               Height="60" Margin="0,0,4,0">
+                            <TextBlock Text="BG Main" 
+                                      Foreground="{StaticResource Modern.ForegroundMain}" 
+                                      HorizontalAlignment="Center" 
+                                      VerticalAlignment="Center"
+                                      FontSize="11" />
+                        </Border>
+                        <Border Background="{StaticResource Modern.BackgroundSecondary}" 
+                               BorderBrush="{StaticResource Modern.BorderMain}"
+                               BorderThickness="1"
+                               Height="60" Margin="0,0,4,0">
+                            <TextBlock Text="BG Secondary" 
+                                      Foreground="{StaticResource Modern.ForegroundMain}" 
+                                      HorizontalAlignment="Center" 
+                                      VerticalAlignment="Center"
+                                      FontSize="11" />
+                        </Border>
+                        <Border Background="{StaticResource Modern.BackgroundTertiary}" 
+                               BorderBrush="{StaticResource Modern.BorderMain}"
+                               BorderThickness="1"
+                               Height="60" Margin="0,0,4,0">
+                            <TextBlock Text="BG Tertiary" 
+                                      Foreground="{StaticResource Modern.ForegroundMain}" 
+                                      HorizontalAlignment="Center" 
+                                      VerticalAlignment="Center"
+                                      FontSize="11" />
+                        </Border>
+                        <Border Background="{StaticResource Modern.BackgroundCard}" 
+                               BorderBrush="{StaticResource Modern.BorderMain}"
+                               BorderThickness="1"
+                               Height="60" Margin="0,0,4,0">
+                            <TextBlock Text="BG Card" 
+                                      Foreground="{StaticResource Modern.ForegroundMain}" 
+                                      HorizontalAlignment="Center" 
+                                      VerticalAlignment="Center"
+                                      FontSize="11" />
+                        </Border>
+                        <Border Background="{StaticResource Modern.BackgroundInput}" 
+                               BorderBrush="{StaticResource Modern.BorderMain}"
+                               BorderThickness="1"
+                               Height="60" Margin="0,0,4,0">
+                            <TextBlock Text="BG Input" 
+                                      Foreground="{StaticResource Modern.ForegroundMain}" 
+                                      HorizontalAlignment="Center" 
+                                      VerticalAlignment="Center"
+                                      FontSize="11" />
+                        </Border>
+                        <Border Background="{StaticResource Modern.BackgroundElevated}" 
+                               BorderBrush="{StaticResource Modern.BorderMain}"
+                               BorderThickness="1"
+                               Height="60">
+                            <TextBlock Text="BG Elevated" 
+                                      Foreground="{StaticResource Modern.ForegroundMain}" 
+                                      HorizontalAlignment="Center" 
+                                      VerticalAlignment="Center"
+                                      FontSize="11" />
+                        </Border>
+                    </UniformGrid>
+                </StackPanel>
+            </Border>
+
+            <!-- Cards and Layout Demo -->
+            <Grid Margin="0,0,0,24">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="20" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="20" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                
+                <Border Grid.Column="0" Style="{StaticResource ModernCard}">
+                    <StackPanel HorizontalAlignment="Center">
+                        <Border Background="{StaticResource Modern.Success}"
+                               CornerRadius="12"
+                               Width="48" Height="48"
+                               Margin="0,0,0,16">
+                            <iconPacks:PackIconMaterial Kind="CheckCircle" 
+                                                      Width="24" Height="24"
+                                                      Foreground="White"
+                                                      HorizontalAlignment="Center"
+                                                      VerticalAlignment="Center" />
+                        </Border>
+                        <TextBlock Text="Status: Active" 
+                                  Style="{StaticResource ModernBodyText}"
+                                  FontWeight="Medium"
+                                  Margin="0,0,0,8" />
+                        <TextBlock Text="All systems operational" 
+                                  Style="{StaticResource ModernCaptionText}"
+                                  TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+                
+                <Border Grid.Column="2" Style="{StaticResource ModernCard}">
+                    <StackPanel HorizontalAlignment="Center">
+                        <Border Background="{StaticResource Modern.Warning}"
+                               CornerRadius="12"
+                               Width="48" Height="48"
+                               Margin="0,0,0,16">
+                            <iconPacks:PackIconMaterial Kind="AlertCircle" 
+                                                      Width="24" Height="24"
+                                                      Foreground="White"
+                                                      HorizontalAlignment="Center"
+                                                      VerticalAlignment="Center" />
+                        </Border>
+                        <TextBlock Text="Status: Warning" 
+                                  Style="{StaticResource ModernBodyText}"
+                                  FontWeight="Medium"
+                                  Margin="0,0,0,8" />
+                        <TextBlock Text="Minor issues detected" 
+                                  Style="{StaticResource ModernCaptionText}"
+                                  TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+                
+                <Border Grid.Column="4" Style="{StaticResource ModernCard}">
+                    <StackPanel HorizontalAlignment="Center">
+                        <Border Background="{StaticResource Modern.ThemeMain}"
+                               CornerRadius="12"
+                               Width="48" Height="48"
+                               Margin="0,0,0,16">
+                            <iconPacks:PackIconMaterial Kind="Information" 
+                                                      Width="24" Height="24"
+                                                      Foreground="White"
+                                                      HorizontalAlignment="Center"
+                                                      VerticalAlignment="Center" />
+                        </Border>
+                        <TextBlock Text="Status: Info" 
+                                  Style="{StaticResource ModernBodyText}"
+                                  FontWeight="Medium"
+                                  Margin="0,0,0,8" />
+                        <TextBlock Text="Information available" 
+                                  Style="{StaticResource ModernCaptionText}"
+                                  TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <!-- Usage Notes -->
+            <Border Style="{StaticResource ModernCard}">
+                <StackPanel>
+                    <TextBlock Text="Usage Notes" 
+                              Style="{StaticResource ModernHeading2}"
+                              Margin="0,0,0,16" />
+                    
+                    <TextBlock Style="{StaticResource ModernBodyText}" TextWrapping="Wrap" Margin="0,0,0,8">
+                        <Run Text="This demo page showcases all available modern UI components and styles. " />
+                        <Run Text="You can use this as a reference when implementing the modern design system in your application." />
+                    </TextBlock>
+                    
+                    <TextBlock Style="{StaticResource ModernBodyText}" TextWrapping="Wrap" Margin="0,0,0,8">
+                        <Run Text="To use these styles in your pages, include the ModernTheme.xaml resource dictionary " />
+                        <Run Text="and apply the appropriate style keys to your controls." />
+                    </TextBlock>
+                    
+                    <TextBlock Style="{StaticResource ModernCaptionText}" TextWrapping="Wrap">
+                        <Run Text="For detailed implementation instructions, refer to the MODERNIZATION_GUIDE.md file." />
+                    </TextBlock>
+                </StackPanel>
+            </Border>
+            
+        </StackPanel>
+    </ScrollViewer>
+</Page> 

@@ -66,6 +66,8 @@ namespace OpenBullet2.Native.Views.Dialogs
 
         private void Accept(object sender, RoutedEventArgs e) => CreateAndClose();
 
+        private void Cancel(object sender, RoutedEventArgs e) => ((MainDialog)Parent).Close();
+
         private void TextboxKeyDown(object sender, KeyEventArgs e)
         {
             if (e.Key == Key.Enter)

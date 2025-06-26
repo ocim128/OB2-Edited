@@ -52,19 +52,13 @@ namespace OpenBullet2.Native.Helpers
             }
 
             var result = false;
-            var dontAskAgain = false;
 
             Application.Current.Dispatcher.Invoke(() =>
             {
-                new MainDialog(new ConfirmationDialog(title, message, (r, d) => { result = r; dontAskAgain = d; }), title).ShowDialog();
+                var dialog = new ConfirmationDialog(title, message);
+                dialog.ShowDialog(Application.Current.MainWindow);
+                result = dialog.Result;
             });
-
-            if (dontAskAgain)
-            {
-                // If the user checked 'don't ask again', save the preference
-                obSettingsService.Settings.GeneralSettings.SetProperty(settingName, false);
-                obSettingsService.SaveAsync();
-            }
 
             return result;
         }

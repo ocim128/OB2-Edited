@@ -4,26 +4,188 @@
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
       xmlns:local="clr-namespace:OpenBullet2.Native.Views.Dialogs"
+      xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
       mc:Ignorable="d" 
       d:DesignHeight="450" d:DesignWidth="800"
       Title="CreateJobDialog">
 
-    <Border Padding="20">
-        <StackPanel Orientation="Vertical" 
-                    HorizontalAlignment="Center">
-            <Button Click="CreateMultiRunJob" Margin="0 0 0 5" 
-                        Style="{StaticResource StyledPrimaryButton}" >
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock VerticalAlignment="Center" Margin="5 0">Multi Run</TextBlock>
-                </StackPanel>
-            </Button>
+    <Border Background="{DynamicResource BackgroundSecondary}" 
+            CornerRadius="12" 
+            BorderBrush="{DynamicResource BorderLight}" 
+            BorderThickness="1"
+            MinWidth="460"
+            MaxWidth="520">
+        <Border.Effect>
+            <DropShadowEffect Color="#000000" Direction="270" ShadowDepth="8" BlurRadius="16" Opacity="0.15"/>
+        </Border.Effect>
+        
+        <Grid Margin="32,28,32,32">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
 
-            <Button Click="CreateProxyCheckJob"
-                        Style="{StaticResource StyledPrimaryButton}" >
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock VerticalAlignment="Center" Margin="5 0">Proxy Check</TextBlock>
+            <!-- Header Section -->
+            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,28">
+                <iconPacks:PackIconMaterial Kind="RocketLaunchOutline"
+                                            Width="28"
+                                            Height="28"
+                                            Foreground="#3B82F6"
+                                            VerticalAlignment="Center"
+                                            Margin="0,0,12,0"/>
+                <StackPanel>
+                    <TextBlock Text="Create New Job"
+                               FontFamily="Segoe UI"
+                               FontSize="18"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource ForegroundMain}"
+                               Margin="0,0,0,2"/>
+                    <TextBlock Text="Choose the type of job you want to create"
+                               FontFamily="Segoe UI"
+                               FontSize="12"
+                               Foreground="#94A3B8"
+                               FontWeight="Medium"/>
                 </StackPanel>
-            </Button>
-        </StackPanel>
+            </StackPanel>
+
+            <!-- Job Type Options -->
+            <StackPanel Grid.Row="1" Margin="0,0,0,24">
+                
+                <!-- Multi Run Job Option -->
+                <Border Background="{DynamicResource BackgroundMain}"
+                        CornerRadius="8"
+                        BorderBrush="{DynamicResource BorderMain}"
+                        BorderThickness="1"
+                        Margin="0,0,0,12"
+                        Cursor="Hand"
+                        MouseLeftButtonUp="CreateMultiRunJob">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Style.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="BorderBrush" Value="#3B82F6"/>
+                                    <Setter Property="Background" Value="#1E293B"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    
+                    <Grid Margin="20,16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        
+                        <!-- Icon Section -->
+                        <Border Grid.Column="0" 
+                                Background="#10B981" 
+                                CornerRadius="8" 
+                                Padding="10" 
+                                Margin="0,0,16,0">
+                            <iconPacks:PackIconMaterial Kind="Play" 
+                                                        Width="20" Height="20" 
+                                                        Foreground="White"/>
+                        </Border>
+                        
+                        <!-- Content Section -->
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                            <TextBlock Text="Multi Run Job" 
+                                       FontFamily="Segoe UI"
+                                       FontSize="15" 
+                                       FontWeight="SemiBold" 
+                                       Foreground="{DynamicResource ForegroundMain}"
+                                       Margin="0,0,0,4"/>
+                            <TextBlock Text="Run configs against wordlists to find valid credentials" 
+                                       FontFamily="Segoe UI"
+                                       FontSize="12" 
+                                       Foreground="#94A3B8"
+                                       TextWrapping="Wrap"/>
+                        </StackPanel>
+                        
+                        <!-- Arrow Icon -->
+                        <iconPacks:PackIconMaterial Grid.Column="2" 
+                                                    Kind="ChevronRight" 
+                                                    Width="20" Height="20" 
+                                                    Foreground="#64748B"
+                                                    VerticalAlignment="Center"/>
+                    </Grid>
+                </Border>
+
+                <!-- Proxy Check Job Option -->
+                <Border Background="{DynamicResource BackgroundMain}"
+                        CornerRadius="8"
+                        BorderBrush="{DynamicResource BorderMain}"
+                        BorderThickness="1"
+                        Cursor="Hand"
+                        MouseLeftButtonUp="CreateProxyCheckJob">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Style.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="BorderBrush" Value="#3B82F6"/>
+                                    <Setter Property="Background" Value="#1E293B"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    
+                    <Grid Margin="20,16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        
+                        <!-- Icon Section -->
+                        <Border Grid.Column="0" 
+                                Background="#3B82F6" 
+                                CornerRadius="8" 
+                                Padding="10" 
+                                Margin="0,0,16,0">
+                            <iconPacks:PackIconMaterial Kind="ServerNetwork" 
+                                                        Width="20" Height="20" 
+                                                        Foreground="White"/>
+                        </Border>
+                        
+                        <!-- Content Section -->
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                            <TextBlock Text="Proxy Check Job" 
+                                       FontFamily="Segoe UI"
+                                       FontSize="15" 
+                                       FontWeight="SemiBold" 
+                                       Foreground="{DynamicResource ForegroundMain}"
+                                       Margin="0,0,0,4"/>
+                            <TextBlock Text="Test proxy lists to verify they are working and alive" 
+                                       FontFamily="Segoe UI"
+                                       FontSize="12" 
+                                       Foreground="#94A3B8"
+                                       TextWrapping="Wrap"/>
+                        </StackPanel>
+                        
+                        <!-- Arrow Icon -->
+                        <iconPacks:PackIconMaterial Grid.Column="2" 
+                                                    Kind="ChevronRight" 
+                                                    Width="20" Height="20" 
+                                                    Foreground="#64748B"
+                                                    VerticalAlignment="Center"/>
+                    </Grid>
+                </Border>
+            </StackPanel>
+
+            <!-- Action Buttons -->
+            <StackPanel Grid.Row="2" 
+                        Orientation="Horizontal" 
+                        HorizontalAlignment="Right">
+                
+                <Button Content="Cancel"
+                        Width="100"
+                        Height="38"
+                        Style="{StaticResource StyledButton}"
+                        FontWeight="Medium"
+                        Click="Cancel"/>
+            </StackPanel>
+        </Grid>
     </Border>
 </Page>

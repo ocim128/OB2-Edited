@@ -12,6 +12,50 @@
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
         <converters:BoolToTextWrappingConverter x:Key="BoolToWrap" />
+        
+        <!-- Consistent Mode Switch Button Style -->
+        <Style x:Key="ConsistentModeButton" TargetType="Button">
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="9"/>
+            <Setter Property="Width" Value="32"/>
+            <Setter Property="Height" Value="28"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" 
+                                Background="{TemplateBinding Background}" 
+                                CornerRadius="6"
+                                Padding="4">
+                            <Border.Effect>
+                                <DropShadowEffect Color="#000000" Direction="270" ShadowDepth="2" Opacity="0.3" BlurRadius="4"/>
+                            </Border.Effect>
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Opacity" Value="0.9"/>
+                                <Setter TargetName="border" Property="Effect">
+                                    <Setter.Value>
+                                        <DropShadowEffect Color="#000000" Direction="270" ShadowDepth="3" Opacity="0.4" BlurRadius="6"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="Opacity" Value="0.8"/>
+                                <Setter TargetName="border" Property="Effect">
+                                    <Setter.Value>
+                                        <DropShadowEffect Color="#000000" Direction="270" ShadowDepth="1" Opacity="0.5" BlurRadius="2"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </UserControl.Resources>
 
     <Grid>
@@ -75,37 +119,31 @@
             <TabItem>
                 <!-- Variable -> Constant -->
                 <Button Click="ConstantMode"
-                     Width="30"
-                     Height="30"
-                     ToolTip="Switch to constant mode"
-                     Style="{StaticResource StyledPrimaryButton}">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock FontSize="9">VAR</TextBlock>
-                    </StackPanel>
+                        ToolTip="Switch to constant mode"
+                        Style="{StaticResource ConsistentModeButton}"
+                        Background="#6366F1" 
+                        Foreground="White">
+                    <TextBlock FontSize="9" FontWeight="SemiBold">VAR</TextBlock>
                 </Button>
             </TabItem>
             <TabItem>
                 <!-- Constant -> Interpolated -->
                 <Button Click="InterpMode"
-                     Width="30"
-                     Height="30"
-                     ToolTip="Switch to interpolated mode"
-                     Style="{StaticResource StyledPrimaryButton}">
-                    <StackPanel Orientation="Horizontal">
-                        <iconPacks:PackIconModern Kind="TextSerif" Width="15" Height="15" />
-                    </StackPanel>
+                        ToolTip="Switch to interpolated mode"
+                        Style="{StaticResource ConsistentModeButton}"
+                        Background="#8B5CF6" 
+                        Foreground="White">
+                    <iconPacks:PackIconModern Kind="TextSerif" Width="16" Height="16" />
                 </Button>
             </TabItem>
             <TabItem>
                 <!-- Interpolated -> Variable -->
                 <Button Click="VariableMode"
-                     Width="30"
-                     Height="30"
-                     ToolTip="Switch to variable mode"
-                     Style="{StaticResource StyledPrimaryButton}">
-                    <StackPanel Orientation="Horizontal">
-                        <iconPacks:PackIconEntypo Kind="Code" Width="15" Height="15"/>
-                    </StackPanel>
+                        ToolTip="Switch to variable mode"
+                        Style="{StaticResource ConsistentModeButton}"
+                        Background="#059669" 
+                        Foreground="White">
+                    <iconPacks:PackIconEntypo Kind="Code" Width="16" Height="16"/>
                 </Button>
             </TabItem>
         </TabControl>

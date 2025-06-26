@@ -1,5 +1,3 @@
-using OpenBullet2.Native.ViewModels;
-using System;
 using System.Windows;
 using System.Windows.Controls;
 
@@ -8,47 +6,52 @@ namespace OpenBullet2.Native.Views.Dialogs
     /// <summary>
     /// Interaction logic for ConfirmationDialog.xaml
     /// </summary>
-    public partial class ConfirmationDialog : Page
+    public partial class ConfirmationDialog : UserControl
     {
-        private readonly ConfirmationDialogViewModel vm;
-        private readonly Action<bool, bool> onResult;
+        public string Title { get; set; } = "Confirmation";
+        public string Message { get; set; } = "Are you sure?";
+        public bool Result { get; private set; } = false;
 
-        public ConfirmationDialog(string title, string message, Action<bool, bool> onResult,
-            string yesText = "Yes", string noText = "No")
+        private Window parentWindow;
+
+        public ConfirmationDialog(string title = "Confirmation", string message = "Are you sure?")
         {
-            vm = new ConfirmationDialogViewModel(title, message, yesText, noText);
-            DataContext = vm;
-            this.onResult = onResult;
-
             InitializeComponent();
+            Title = title;
+            Message = message;
+            DataContext = this;
+        }
+
+        public bool? ShowDialog(Window owner = null)
+        {
+            parentWindow = new Window
+            {
+                Title = Title,
+                Content = this,
+                Width = 450,
+                Height = 280,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                Owner = owner ?? Application.Current.MainWindow,
+                ResizeMode = ResizeMode.NoResize,
+                WindowStyle = WindowStyle.None,
+                AllowsTransparency = true,
+                Background = System.Windows.Media.Brushes.Transparent,
+                ShowInTaskbar = false
+            };
+
+            return parentWindow.ShowDialog();
         }
 
         private void YesButton_Click(object sender, RoutedEventArgs e)
         {
-            onResult.Invoke(true, doNotAskAgainCheckbox.IsChecked.GetValueOrDefault());
-            ((MainDialog)Parent).Close();
+            Result = true;
+            parentWindow?.Close();
         }
 
         private void NoButton_Click(object sender, RoutedEventArgs e)
         {
-            onResult.Invoke(false, doNotAskAgainCheckbox.IsChecked.GetValueOrDefault());
-            ((MainDialog)Parent).Close();
-        }
-    }
-
-    public class ConfirmationDialogViewModel : ViewModelBase
-    {
-        public string Title { get; set; }
-        public string Message { get; set; }
-        public string YesText { get; set; }
-        public string NoText { get; set; }
-
-        public ConfirmationDialogViewModel(string title, string message, string yesText, string noText)
-        {
-            Title = title;
-            Message = message;
-            YesText = yesText;
-            NoText = noText;
+            Result = false;
+            parentWindow?.Close();
         }
     }
 } 

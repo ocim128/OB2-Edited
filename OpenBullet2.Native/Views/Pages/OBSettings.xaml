@@ -14,79 +14,96 @@
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
     </Page.Resources>
     
-    <Grid>
+    <!-- Modern OpenBullet Settings Layout -->
+    <Grid Background="Transparent" Margin="16">
         <Grid.RowDefinitions>
             <RowDefinition Height="*"/>
             <RowDefinition Height="auto"/>
         </Grid.RowDefinitions>
         
+        <ScrollViewer Grid.Row="0" 
+                      VerticalScrollBarVisibility="Auto" 
+                      HorizontalScrollBarVisibility="Disabled"
+                      CanContentScroll="False"
+                      PanningMode="VerticalOnly"
+                      ScrollViewer.IsDeferredScrollingEnabled="False">
+            <StackPanel Margin="0,0,0,20">
+                
+                <!-- General Settings Section -->
+                <Border Background="#C0353535" CornerRadius="8" Padding="16" Margin="0,0,0,12">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                            <iconPacks:PackIconMaterial Kind="Cog" Width="24" Height="24" Foreground="#FF1E90FF" Margin="0,0,12,0"/>
+                            <TextBlock Text="General Settings" Style="{StaticResource H2TextStyle}" Foreground="#FF1E90FF" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <!-- Form Grid Layout -->
+                        <Grid>
         <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="280"/>
             <ColumnDefinition Width="*"/>
-            <ColumnDefinition Width="auto"/>
         </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="auto"/>
+                                <RowDefinition Height="auto"/>
+                                <RowDefinition Height="auto"/>
+                                <RowDefinition Height="auto"/>
+                                <RowDefinition Height="auto"/>
+                                <RowDefinition Height="auto"/>
+                                <RowDefinition Height="auto"/>
+                                <RowDefinition Height="auto"/>
+                                <RowDefinition Height="auto"/>
+                                <RowDefinition Height="auto"/>
+                            </Grid.RowDefinitions>
 
-        <ScrollViewer Grid.Row="0" Grid.ColumnSpan="2" VerticalScrollBarVisibility="Auto">
-            <StackPanel Margin="0 0 0 10">
-                <Label FontSize="24" FontWeight="Bold" Margin="0 0 0 10">General</Label>
-                <StackPanel Orientation="Horizontal" Margin="0 0 0 5">
-                    <Label>On config edit, navigate to</Label>
-                    <ComboBox x:Name="configSectionOnLoadCombobox"
-                              SelectedValue="{Binding Path=ConfigSectionOnLoad}"
-                              Width="150"
-                              HorizontalAlignment="Left"/>
+                            <!-- Config Edit Navigation -->
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="On config edit, navigate to:" Style="{StaticResource BodyTextStyle}" Margin="0,8,16,8" VerticalAlignment="Center"/>
+                            <ComboBox Grid.Row="0" Grid.Column="1" x:Name="configSectionOnLoadCombobox" SelectedValue="{Binding Path=ConfigSectionOnLoad}" Width="200" HorizontalAlignment="Left" Margin="0,8"/>
+
+                            <!-- Default Author -->
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Default author for new configs:" Style="{StaticResource BodyTextStyle}" Margin="0,8,16,8" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding DefaultAuthor}" Width="300" HorizontalAlignment="Left" Margin="0,8" Background="#80404040" Foreground="White" BorderBrush="#FF1E90FF" BorderThickness="1" Padding="8"/>
+
+                            <!-- Log Buffer Size -->
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Job log buffer size:" Style="{StaticResource BodyTextStyle}" Margin="0,8,16,8" VerticalAlignment="Center"/>
+                            <mah:NumericUpDown Grid.Row="2" Grid.Column="1" Minimum="20" Maximum="10000" Interval="1" Value="{Binding LogBufferSize}" Width="150" HorizontalAlignment="Left" Margin="0,8"/>
+
+                            <!-- Auto-save Interval -->
+                            <TextBlock Grid.Row="3" Grid.Column="0" Text="Auto-save interval (seconds):" Style="{StaticResource BodyTextStyle}" Margin="0,8,16,8" VerticalAlignment="Center"/>
+                            <mah:NumericUpDown Grid.Row="3" Grid.Column="1" Minimum="5" Maximum="3600" Interval="1" Value="{Binding AutoSaveInterval}" Width="150" HorizontalAlignment="Left" Margin="0,8"/>
+
+                            <!-- Checkboxes -->
+                            <CheckBox Grid.Row="4" Grid.ColumnSpan="2" Content="Automatically set Recommended Bots" IsChecked="{Binding AutoSetRecommendedBots}" Foreground="White" Margin="0,8"/>
+                            
+                            <CheckBox Grid.Row="5" Grid.ColumnSpan="2" Content="View warning when config is not saved" IsChecked="{Binding WarnConfigNotSaved}" Foreground="White" Margin="0,8"/>
+                            
+                            <CheckBox Grid.Row="6" Grid.ColumnSpan="2" Content="Enable logging in the job viewer page" IsChecked="{Binding EnableJobLogging}" Foreground="White" Margin="0,8"/>
+                            
+                            <CheckBox Grid.Row="7" Grid.ColumnSpan="2" Content="Group captures in debugger" IsChecked="{Binding GroupCapturesInDebugger}" Foreground="White" Margin="0,8"/>
+                            
+                            <CheckBox Grid.Row="8" Grid.ColumnSpan="2" Content="Ignore wordlist name when removing duplicates from hits" IsChecked="{Binding IgnoreWordlistNameOnHitsDedupe}" Foreground="White" Margin="0,8"/>
+                            
+                            <CheckBox Grid.Row="9" Grid.ColumnSpan="2" Content="Ask for confirmation before destructive actions" IsChecked="{Binding PerformConfirmationOnDestructiveActions}" Foreground="White" Margin="0,8"/>
+                        </Grid>
                 </StackPanel>
-                <CheckBox Content="Automatically set Recommended Bots" 
-                          IsChecked="{Binding AutoSetRecommendedBots}" 
-                          VerticalContentAlignment="Center" 
-                          Margin="5 0 0 0"/>
-                <CheckBox Content="View warning when config is not saved and you try to close the program or edit another config" 
-                          IsChecked="{Binding WarnConfigNotSaved}" 
-                          VerticalContentAlignment="Center"
-                          Margin="5 10 0 0"/>
-                <StackPanel Orientation="Horizontal" Margin="0 10 0 0">
-                    <Label>Default author for new configs</Label>
-                    <TextBox Text="{Binding DefaultAuthor}" 
-                             Width="250"></TextBox>
+                </Border>
+
+                <!-- Proxy Check Targets Section -->
+                <Border Background="#C0353535" CornerRadius="8" Padding="16" Margin="0,0,0,12">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                            <iconPacks:PackIconMaterial Kind="Target" Width="24" Height="24" Foreground="#FF1E90FF" Margin="0,0,12,0"/>
+                            <TextBlock Text="Proxy Check Targets" Style="{StaticResource H2TextStyle}" Foreground="#FF1E90FF" VerticalAlignment="Center"/>
                 </StackPanel>
-                <CheckBox Content="Enable logging in the job viewer page" 
-                          IsChecked="{Binding EnableJobLogging}" 
-                          VerticalContentAlignment="Center"
-                          Margin="5 10 0 0"/>
-                <StackPanel Orientation="Horizontal" Margin="0 10 0 0">
-                    <Label>Number of messages to keep in the job log (when enabled)</Label>
-                    <mah:NumericUpDown Minimum="20"
-                          Maximum="10000"
-                          Interval="1"
-                          Value="{Binding LogBufferSize}"
-                          Width="150"/>
-                </StackPanel>
-                <StackPanel Orientation="Horizontal" Margin="0 10 0 0">
-                    <Label>Auto-save interval for configs (in seconds)</Label>
-                    <mah:NumericUpDown Minimum="5"
-                          Maximum="3600"
-                          Interval="1"
-                          Value="{Binding AutoSaveInterval}"
-                          Width="150"/>
-                </StackPanel>
-                <CheckBox Content="Group captures in debugger" 
-                          IsChecked="{Binding GroupCapturesInDebugger}" 
-                          VerticalContentAlignment="Center"
-                          Margin="5 10 0 0"/>
-                <CheckBox Content="Ignore the wordlist name when removing duplicates from hits" 
-                          IsChecked="{Binding IgnoreWordlistNameOnHitsDedupe}" 
-                          VerticalContentAlignment="Center"
-                          Margin="5 10 0 0"/>
-                <CheckBox Content="Ask for confirmation before performing destructive actions" 
-                          IsChecked="{Binding PerformConfirmationOnDestructiveActions}" 
-                          VerticalContentAlignment="Center"
-                          Margin="5 10 0 0"/>
                 <Label Foreground="{DynamicResource ForegroundCustom}" Margin="0 10 0 0">Proxy check targets</Label>
-                <Button x:Name="addProxyCheckTargetButton" Click="AddProxyCheckTarget" Margin="5 5 5 5" 
+                        <Button Click="AddProxyCheckTarget" 
                         Style="{StaticResource StyledSuccessButton}"
-                        Width="70" HorizontalAlignment="Left" >
+                                Padding="8,6"
+                                Margin="0,0,0,12"
+                                Background="#FF28A745"
+                                BorderBrush="#FF34CE57">
                     <StackPanel Orientation="Horizontal">
-                        <iconPacks:PackIconMaterialDesign Kind="Add" />
-                        <TextBlock VerticalAlignment="Center" Margin="5 0">Add</TextBlock>
+                                <iconPacks:PackIconMaterial Kind="Plus" Width="14" Height="14"/>
+                                <TextBlock Text="Add Target" VerticalAlignment="Center" Margin="8,0,0,0" FontWeight="SemiBold"/>
                     </StackPanel>
                 </Button>
                 <ItemsControl x:Name="proxyCheckTargetsControl" ItemsSource="{Binding ProxyCheckTargetsCollection}">
@@ -121,13 +138,18 @@
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
-                <Label Foreground="{DynamicResource ForegroundCustom}">Custom editor snippets (requires restart)</Label>
-                <Button Click="AddCustomSnippet" Margin="5 5 5 5" 
+                        <TextBlock Text="Custom Editor Snippets" FontSize="14" Foreground="#FFB0B0B0" FontWeight="SemiBold" Margin="0,16,0,8"/>
+                        <TextBlock Text="(requires restart)" FontSize="12" Foreground="#FFB0B0B0" Margin="0,0,0,12"/>
+                        
+                        <Button Click="AddCustomSnippet" 
                         Style="{StaticResource StyledSuccessButton}"
-                        Width="70" HorizontalAlignment="Left" >
+                                Padding="8,6"
+                                Margin="0,0,0,12"
+                                Background="#FF28A745"
+                                BorderBrush="#FF34CE57">
                     <StackPanel Orientation="Horizontal">
-                        <iconPacks:PackIconMaterialDesign Kind="Add" />
-                        <TextBlock VerticalAlignment="Center" Margin="5 0">Add</TextBlock>
+                                <iconPacks:PackIconMaterial Kind="Plus" Width="14" Height="14"/>
+                                <TextBlock Text="Add Snippet" VerticalAlignment="Center" Margin="8,0,0,0" FontWeight="SemiBold"/>
                     </StackPanel>
                 </Button>
                 <ItemsControl ItemsSource="{Binding CustomSnippetsCollection}">
@@ -166,15 +188,28 @@
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
-                <Separator Opacity="0.5" Margin="5 20"></Separator>
-                <Label FontSize="24" FontWeight="Bold" Margin="0 0 0 10">Remote</Label>
-                <Label Foreground="{DynamicResource ForegroundCustom}">Remote configs endpoints</Label>
-                <Button x:Name="addRemoteConfigsEndpointButton" Click="AddRemoteConfigsEndpoint" Margin="5 5 5 5" 
+                    </StackPanel>
+                </Border>
+
+                <!-- Remote Configuration Section -->
+                <Border Background="#C0353535" CornerRadius="8" Padding="16" Margin="0,0,0,12">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                            <iconPacks:PackIconMaterial Kind="CloudDownload" Width="24" Height="24" Foreground="#FF1E90FF" Margin="0,0,12,0"/>
+                            <TextBlock Text="Remote Configuration" Style="{StaticResource H2TextStyle}" Foreground="#FF1E90FF" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        
+                        <TextBlock Text="Remote Config Endpoints" FontSize="14" Foreground="#FFB0B0B0" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                        
+                        <Button Click="AddRemoteConfigsEndpoint" 
                         Style="{StaticResource StyledSuccessButton}"
-                        Width="70" HorizontalAlignment="Left" >
+                                Padding="8,6"
+                                Margin="0,0,0,12"
+                                Background="#FF28A745"
+                                BorderBrush="#FF34CE57">
                     <StackPanel Orientation="Horizontal">
-                        <iconPacks:PackIconMaterialDesign Kind="Add" />
-                        <TextBlock VerticalAlignment="Center" Margin="5 0">Add</TextBlock>
+                                <iconPacks:PackIconMaterial Kind="Plus" Width="14" Height="14"/>
+                                <TextBlock Text="Add Endpoint" VerticalAlignment="Center" Margin="8,0,0,0" FontWeight="SemiBold"/>
                     </StackPanel>
                 </Button>
                 <ItemsControl x:Name="remoteConfigsEndpointsControl" 
@@ -210,17 +245,27 @@
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
-                <Separator Opacity="0.5" Margin="5 20"></Separator>
-                <Label FontSize="24" FontWeight="Bold" Margin="0 0 0 10">Customization</Label>
+                    </StackPanel>
+                </Border>
+
+                <!-- Customization Section -->
+                <Border Background="#C0353535" CornerRadius="8" Padding="16" Margin="0,0,0,12">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                            <iconPacks:PackIconMaterial Kind="Palette" Width="24" Height="24" Foreground="#FF1E90FF" Margin="0,0,12,0"/>
+                            <TextBlock Text="UI Customization" FontSize="20" FontWeight="Bold" Foreground="#FF1E90FF" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        
+                        <!-- Customization Options -->
                 <CheckBox Content="Play a sound when a hit is found" 
                           IsChecked="{Binding PlaySoundOnHit}" 
-                          VerticalContentAlignment="Center"
-                          Margin="5 0 0 0"/>
+                                  Foreground="White" 
+                                  Margin="0,0,0,8"/>
 
                 <CheckBox Content="Enable Word Wrap in text editor" 
                           IsChecked="{Binding WordWrap}" 
-                          VerticalContentAlignment="Center"
-                          Margin="5 10 0 0"/>
+                                  Foreground="White" 
+                                  Margin="0,8,0,16"/>
 
                 <Label Foreground="{DynamicResource ForegroundCustom}" Margin="0 10 0 0">Background colors</Label>
                 <Grid>
@@ -349,7 +394,7 @@
                         Value="{Binding BackgroundOpacity}"
                         Width="150"/>
                     <Button
-                        Grid.Column="5"
+                        Grid.Column="4"
                         Margin="5 0"
                         Click="ChooseBackgroundImage"
                         Style="{StaticResource StyledPrimaryButton}" >
@@ -368,40 +413,49 @@
                     Margin="5 5 0 0"/>
                 <Button
                     Click="ResetCustomization" 
-                    Width="130"
-                    Margin="5" 
-                    HorizontalAlignment="Left"
-                    Style="{StaticResource StyledWarningButton}" >
+                            Style="{StaticResource StyledWarningButton}"
+                            Padding="12,8"
+                            Margin="0,16,0,0"
+                            Background="#FFFFC107"
+                            BorderBrush="#FFFFDC69">
                     <StackPanel Orientation="Horizontal">
-                        <iconPacks:PackIconRadixIcons Kind="Reset" />
-                        <TextBlock VerticalAlignment="Center" Margin="5 0">Reset customization</TextBlock>
+                                <iconPacks:PackIconMaterial Kind="Refresh" Width="14" Height="14"/>
+                                <TextBlock Text="Reset Customization" VerticalAlignment="Center" Margin="8,0,0,0" FontWeight="SemiBold" Foreground="Black"/>
+                            </StackPanel>
+                        </Button>
                     </StackPanel>
-                </Button>
+                </Border>
             </StackPanel>
         </ScrollViewer>
 
+        <!-- Modern Action Buttons -->
+        <Border Grid.Row="1" Background="#C0353535" CornerRadius="8" Padding="16" Margin="0,8,0,0">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
         <Button x:Name="saveButton" 
-                Grid.Row="1"
-                Grid.Column="0"
                 Click="Save" 
-                Margin="0 5 5 5" 
-                Style="{StaticResource StyledPrimaryButton}" >
+                        Style="{StaticResource StyledPrimaryButton}"
+                        Padding="16,10"
+                        Margin="0,0,12,0"
+                        Background="#FF28A745"
+                        BorderBrush="#FF34CE57">
             <StackPanel Orientation="Horizontal">
-                <iconPacks:PackIconRemixIcon Kind="Save3Fill" />
-                <TextBlock VerticalAlignment="Center" Margin="5 0">Save</TextBlock>
+                        <iconPacks:PackIconMaterial Kind="ContentSave" Width="16" Height="16"/>
+                        <TextBlock Text="Save" VerticalAlignment="Center" Margin="8,0,0,0" FontWeight="SemiBold"/>
             </StackPanel>
         </Button>
 
-        <Button Style="{StaticResource StyledDangerButton}"
-                x:Name="resetButton" 
-                Grid.Row="1"
-                Grid.Column="1"
+                <Button x:Name="resetButton" 
                 Click="Reset" 
-                Margin="0 5 5 5" >
+                        Style="{StaticResource StyledDangerButton}"
+                        Padding="16,10"
+                        Background="#FFDC3545"
+                        BorderBrush="#FFFF6B6B">
             <StackPanel Orientation="Horizontal">
-                <iconPacks:PackIconRadixIcons Kind="Reset" />
-                <TextBlock VerticalAlignment="Center" Margin="5 0">Reset</TextBlock>
+                        <iconPacks:PackIconMaterial Kind="Refresh" Width="16" Height="16"/>
+                        <TextBlock Text="Reset" VerticalAlignment="Center" Margin="8,0,0,0" FontWeight="SemiBold"/>
+                    </StackPanel>
+                </Button>
             </StackPanel>
-        </Button>
+        </Border>
     </Grid>
 </Page>

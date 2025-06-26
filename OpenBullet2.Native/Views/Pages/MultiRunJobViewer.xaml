@@ -8,22 +8,211 @@
       xmlns:controls="clr-namespace:OpenBullet2.Native.Controls"
       mc:Ignorable="d" 
       d:DesignHeight="650" d:DesignWidth="800"
-      Title="MultiRunJobViewer">
+      Title="MultiRunJobViewer"
+      TextOptions.TextFormattingMode="Ideal"
+      TextOptions.TextRenderingMode="Auto"
+      RenderOptions.BitmapScalingMode="LowQuality"
+      SnapsToDevicePixels="False">
 
     <Page.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
 
-        <ContextMenu x:Key="hitsContextMenu">
-            <MenuItem Header="Copy Selected Data" Click="CopySelectedHits"/>
-            <MenuItem Header="Copy Selected Proxy" Click="CopySelectedProxies"/>
-            <MenuItem Header="Copy Selected Data with Capture" Click="CopySelectedHitsCapture"/>
-            <MenuItem Header="Send To Debugger" Click="SendToDebugger"/>
-            <MenuItem Header="Select All" Click="SelectAll"/>
-            <MenuItem Header="Show Bot Log" Click="ShowBotLog"/>
+        <!-- Modern ScrollBar Styles -->
+        <Style x:Key="ModernScrollBarPageButton" TargetType="{x:Type RepeatButton}">
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Setter Property="OverridesDefaultStyle" Value="true"/>
+            <Setter Property="IsTabStop" Value="false"/>
+            <Setter Property="Focusable" Value="false"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type RepeatButton}">
+                        <Border Background="Transparent" />
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="ModernScrollBarThumb" TargetType="{x:Type Thumb}">
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Setter Property="OverridesDefaultStyle" Value="true"/>
+            <Setter Property="IsTabStop" Value="false"/>
+            <Setter Property="Focusable" Value="false"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Thumb}">
+                        <Border CornerRadius="6" Background="#80CCCCCC" BorderBrush="Transparent" BorderThickness="0" />
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="true">
+                                <Setter TargetName="{x:Null}" Property="Background" Value="#CCE6E6E6"/>
+                            </Trigger>
+                            <Trigger Property="IsDragging" Value="true">
+                                <Setter TargetName="{x:Null}" Property="Background" Value="#FFF0F0F0"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="ModernScrollBar" TargetType="{x:Type ScrollBar}">
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Setter Property="OverridesDefaultStyle" Value="true"/>
+            <Style.Triggers>
+                <Trigger Property="Orientation" Value="Horizontal">
+                    <Setter Property="Width" Value="Auto"/>
+                    <Setter Property="Height" Value="12" />
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="{x:Type ScrollBar}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="12"/>
+                                        <ColumnDefinition Width="0.00001*"/>
+                                        <ColumnDefinition Width="12"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Border Grid.ColumnSpan="3" CornerRadius="6" Background="Transparent"/>
+                                    <RepeatButton Grid.Column="0" Style="{StaticResource ModernScrollBarPageButton}" Command="ScrollBar.LineLeftCommand" />
+                                    <Track Name="PART_Track" Grid.Column="1" IsDirectionReversed="False">
+                                        <Track.DecreaseRepeatButton>
+                                            <RepeatButton Style="{StaticResource ModernScrollBarPageButton}" Command="ScrollBar.PageLeftCommand" />
+                                        </Track.DecreaseRepeatButton>
+                                        <Track.Thumb>
+                                            <Thumb Style="{StaticResource ModernScrollBarThumb}" Margin="0,1,0,1" />
+                                        </Track.Thumb>
+                                        <Track.IncreaseRepeatButton>
+                                            <RepeatButton Style="{StaticResource ModernScrollBarPageButton}" Command="ScrollBar.PageRightCommand" />
+                                        </Track.IncreaseRepeatButton>
+                                    </Track>
+                                    <RepeatButton Grid.Column="2" Style="{StaticResource ModernScrollBarPageButton}" Command="ScrollBar.LineRightCommand"/>
+                                </Grid>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Trigger>
+                <Trigger Property="Orientation" Value="Vertical">
+                    <Setter Property="Width" Value="12"/>
+                    <Setter Property="Height" Value="Auto" />
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="{x:Type ScrollBar}">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="12"/>
+                                        <RowDefinition Height="0.00001*"/>
+                                        <RowDefinition Height="12"/>
+                                    </Grid.RowDefinitions>
+                                    <Border Grid.RowSpan="3" CornerRadius="6" Background="Transparent"/>
+                                    <RepeatButton Grid.Row="0" Style="{StaticResource ModernScrollBarPageButton}" Command="ScrollBar.LineUpCommand" />
+                                    <Track Name="PART_Track" Grid.Row="1" IsDirectionReversed="true">
+                                        <Track.DecreaseRepeatButton>
+                                            <RepeatButton Style="{StaticResource ModernScrollBarPageButton}" Command="ScrollBar.PageUpCommand" />
+                                        </Track.DecreaseRepeatButton>
+                                        <Track.Thumb>
+                                            <Thumb Style="{StaticResource ModernScrollBarThumb}" Margin="1,0,1,0" />
+                                        </Track.Thumb>
+                                        <Track.IncreaseRepeatButton>
+                                            <RepeatButton Style="{StaticResource ModernScrollBarPageButton}" Command="ScrollBar.PageDownCommand" />
+                                        </Track.IncreaseRepeatButton>
+                                    </Track>
+                                    <RepeatButton Grid.Row="2" Style="{StaticResource ModernScrollBarPageButton}" Command="ScrollBar.LineDownCommand"/>
+                                </Grid>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Premium Dark Context Menu -->
+        <ContextMenu x:Key="hitsContextMenu" 
+                     Background="#FF1A1A1A" 
+                     Foreground="#E2E8F0" 
+                     BorderBrush="Transparent"
+                     BorderThickness="0"
+                     Padding="4,2"
+                     HasDropShadow="True"
+                     Effect="{StaticResource DropShadowEffect}">
+            
+            <!-- Copy Actions Group -->
+            <MenuItem Header="Copy Selected Data" Click="CopySelectedHits" InputGestureText="Ctrl+C">
+                <MenuItem.Icon>
+                    <iconPacks:PackIconMaterial Kind="ContentCopy" Width="16" Height="16" Foreground="#3B82F6"/>
+                </MenuItem.Icon>
+            </MenuItem>
+            <MenuItem Header="Copy Selected Proxy" Click="CopySelectedProxies" InputGestureText="Ctrl+Shift+C">
+                <MenuItem.Icon>
+                    <iconPacks:PackIconMaterial Kind="Server" Width="16" Height="16" Foreground="#3B82F6"/>
+                </MenuItem.Icon>
+            </MenuItem>
+            <MenuItem Header="Copy Selected Data with Capture" Click="CopySelectedHitsCapture" InputGestureText="Ctrl+Alt+C">
+                <MenuItem.Icon>
+                    <iconPacks:PackIconMaterial Kind="DatabaseExport" Width="16" Height="16" Foreground="#3B82F6"/>
+                </MenuItem.Icon>
+            </MenuItem>
+            
+            <Separator/>
+            
+            <!-- Analysis Actions -->
+            <MenuItem Header="Send To Debugger" Click="SendToDebugger" InputGestureText="F12">
+                <MenuItem.Icon>
+                    <iconPacks:PackIconMaterial Kind="Bug" Width="16" Height="16" Foreground="#10B981"/>
+                </MenuItem.Icon>
+            </MenuItem>
+            <MenuItem Header="Show Bot Log" Click="ShowBotLog" InputGestureText="Ctrl+L">
+                <MenuItem.Icon>
+                    <iconPacks:PackIconMaterial Kind="FileDocument" Width="16" Height="16" Foreground="#F59E0B"/>
+                </MenuItem.Icon>
+            </MenuItem>
+            
+            <Separator/>
+            
+            <!-- Selection Actions -->
+            <MenuItem Header="Select All" Click="SelectAll" InputGestureText="Ctrl+A">
+                <MenuItem.Icon>
+                    <iconPacks:PackIconMaterial Kind="SelectAll" Width="16" Height="16" Foreground="#94A3B8"/>
+                </MenuItem.Icon>
+            </MenuItem>
+        </ContextMenu>
+
+        <!-- Premium Dark Bot Context Menu -->
+        <ContextMenu x:Key="botsContextMenu" 
+                     Background="#FF1A1A1A" 
+                     Foreground="#E2E8F0" 
+                     BorderBrush="Transparent"
+                     BorderThickness="0"
+                     Padding="4,2"
+                     HasDropShadow="True"
+                     Effect="{StaticResource DropShadowEffect}">
+            
+            <!-- Bot Actions -->
+            <MenuItem Header="Copy Bot Data" Click="CopySelectedBotData">
+                <MenuItem.Icon>
+                    <iconPacks:PackIconMaterial Kind="Robot" Width="16" Height="16" Foreground="#3B82F6"/>
+                </MenuItem.Icon>
+            </MenuItem>
+            <MenuItem Header="Copy Bot Proxy" Click="CopySelectedBotProxy">
+                <MenuItem.Icon>
+                    <iconPacks:PackIconMaterial Kind="Server" Width="16" Height="16" Foreground="#3B82F6"/>
+                </MenuItem.Icon>
+            </MenuItem>
+            <MenuItem Header="Copy Bot Info" Click="CopySelectedBotInfo">
+                <MenuItem.Icon>
+                    <iconPacks:PackIconMaterial Kind="Information" Width="16" Height="16" Foreground="#3B82F6"/>
+                </MenuItem.Icon>
+            </MenuItem>
+            
+            <Separator/>
+            
+            <!-- Selection Actions -->
+            <MenuItem Header="Select All Bots" Click="SelectAllBots">
+                <MenuItem.Icon>
+                    <iconPacks:PackIconMaterial Kind="SelectAll" Width="16" Height="16" Foreground="#94A3B8"/>
+                </MenuItem.Icon>
+            </MenuItem>
         </ContextMenu>
     </Page.Resources>
 
-    <Grid>
+    <Grid Margin="6">
         <Grid.RowDefinitions>
             <RowDefinition Height="auto" />
             <RowDefinition Height="auto" />
@@ -31,171 +220,306 @@
             <RowDefinition Height="auto" />
         </Grid.RowDefinitions>
 
-        <Grid Grid.Row="0">
+        <!-- Compact Header Section -->
+        <Border Grid.Row="0" Background="#FF2A2A2A" CornerRadius="8" Padding="8,6" Margin="0,0,0,6">
+            <Grid>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="auto" />
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="auto" />
             </Grid.ColumnDefinitions>
             
-            <!-- Job options -->
-            <StackPanel Grid.Column="0" Margin="5 0 0 0">
+                <!-- Left: Config Icon & Basic Info -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal">
                 <Image 
                     Source="{Binding ConfigIcon}"
-                    Width="48"
-                    Height="48"
-                    HorizontalAlignment="Left"
-                    Margin="5 0 0 0"/>
-                <StackPanel Orientation="Horizontal" Margin="0 -5">
-                    <Label FontWeight="Bold">Skip:</Label>
-                    <Label Content="{Binding Job.Skip}" />
+                        Width="40"
+                        Height="40"
+                        VerticalAlignment="Center"
+                        Margin="0,0,15,0"/>
+                    <StackPanel VerticalAlignment="Center">
+                        <StackPanel>
+                            <TextBlock Text="{Binding ConfigName}" 
+                                       FontSize="14" 
+                                       FontWeight="SemiBold" 
+                                       Foreground="White" 
+                                       Margin="0,0,0,2"/>
+                            <TextBlock Text="{Binding ConfigAuthor}" 
+                                       FontSize="9" 
+                                       FontWeight="Normal" 
+                                       Foreground="#FFB0B0B0" 
+                                       Margin="0,0,0,2"/>
                 </StackPanel>
-                <StackPanel Orientation="Horizontal" Margin="0 -5">
-                    <Label FontWeight="Bold">Bots:</Label>
-                    <Label Content="{Binding Job.Bots}" />
-                    <iconPacks:PackIconRemixIcon
-                        Foreground="{DynamicResource ForegroundMain}"
-                        Margin="0 10 0 0"
-                        Height="10"
-                        Width="10"
-                        MouseDown="ChangeBots"
-                        Kind="Edit2Fill" />
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Bots: " FontSize="11" Foreground="#FFB0B0B0"/>
+                            <TextBlock Text="{Binding Job.Bots}" FontSize="11" FontWeight="SemiBold" Foreground="White"/>
+                            <Border Background="Transparent" 
+                                    Padding="4" 
+                                    Cursor="Hand" 
+                                    MouseDown="ChangeBots"
+                                    ToolTip="Edit number of bots">
+                            <iconPacks:PackIconMaterial
+                                Kind="Pencil"
+                                Foreground="#FF1E90FF"
+                                    Height="12"
+                                    Width="12" />
+                            </Border>
+                            <TextBlock Text="Skip: " FontSize="11" Foreground="#FFB0B0B0" Margin="15,0,0,0"/>
+                            <TextBlock Text="{Binding Job.Skip}" FontSize="11" FontWeight="SemiBold" Foreground="White"/>
+                            <Border Background="Transparent" 
+                                    Padding="4" 
+                                    Cursor="Hand" 
+                                    MouseDown="ResetSkip"
+                                    ToolTip="Reset Skip to 0"
+                                    Visibility="{Binding CanChangeOptions, Converter={StaticResource ResourceKey=BoolToVis}}">
+                                <iconPacks:PackIconMaterial
+                                    Kind="Refresh"
+                                    Foreground="#FFFF6B35"
+                                    Height="12"
+                                    Width="12" />
+                            </Border>
                 </StackPanel>
             </StackPanel>
-            <StackPanel Grid.Column="1" Grid.ColumnSpan="2">
-                <StackPanel Orientation="Horizontal" Margin="0 -5">
-                    <Label FontWeight="Bold">Config:</Label>
-                    <Label Content="{Binding ConfigNameAndAuthor}" Margin="5 0 0 0" />
                 </StackPanel>
-                <StackPanel Orientation="Horizontal" Margin="0 -5">
-                    <Label FontWeight="Bold">Data pool:</Label>
-                    <Label Content="{Binding DataPoolInfo}" Margin="5 0 0 0" />
+
+                <!-- Center: Compact Info Grid -->
+                <Grid Grid.Column="1" Margin="20,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="auto"/>
+                        <RowDefinition Height="auto"/>
+                        <RowDefinition Height="auto"/>
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,10,3">
+                        <TextBlock Text="Data Pool" FontSize="10" Foreground="#FFB0B0B0"/>
+                        <TextBlock Text="{Binding DataPoolInfo}" FontSize="11" Foreground="White" TextTrimming="CharacterEllipsis"/>
                 </StackPanel>
-                <StackPanel Orientation="Horizontal" Margin="0 -5">
-                    <Label FontWeight="Bold">Proxy mode:</Label>
-                    <Label Content="{Binding Job.ProxyMode}" Margin="5 0 0 0" />
+                    <StackPanel Grid.Row="0" Grid.Column="1" Margin="0,0,0,3">
+                        <TextBlock Text="Proxy Mode" FontSize="10" Foreground="#FFB0B0B0"/>
+                        <TextBlock Text="{Binding Job.ProxyMode}" FontSize="11" Foreground="White"/>
                 </StackPanel>
-                <StackPanel Orientation="Horizontal" Margin="0 -5">
-                    <Label FontWeight="Bold">Proxy sources:</Label>
-                    <Label Content="{Binding ProxySourcesInfo}" Margin="5 0 0 0" />
+
+                    <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,10,3">
+                        <TextBlock Text="Proxy Sources" FontSize="10" Foreground="#FFB0B0B0"/>
+                        <TextBlock Text="{Binding ProxySourcesInfo}" FontSize="11" Foreground="White" TextTrimming="CharacterEllipsis"/>
                 </StackPanel>
-                <StackPanel Orientation="Horizontal" Margin="0 -5">
-                    <Label FontWeight="Bold">Hit outputs:</Label>
-                    <Label Content="{Binding HitOutputsInfo}" Margin="5 0 0 0" />
+                    <StackPanel Grid.Row="1" Grid.Column="1" Margin="0,0,0,3">
+                        <TextBlock Text="Hit Outputs" FontSize="10" Foreground="#FFB0B0B0"/>
+                        <TextBlock Text="{Binding HitOutputsInfo}" FontSize="11" Foreground="White" TextTrimming="CharacterEllipsis"/>
                 </StackPanel>
-                <StackPanel Orientation="Horizontal" Margin="0 -5"
+
+                    <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,0"
                     Visibility="{Binding HasCustomInputs, Converter={StaticResource ResourceKey=BoolToVis}}">
-                    <Label FontWeight="Bold">Custom Inputs:</Label>
-                    <Label Content="{Binding CustomInputsInfo}" Margin="5 0 0 0" />
+                        <TextBlock Text="Custom Inputs" FontSize="10" Foreground="#FFB0B0B0"/>
+                        <TextBlock Text="{Binding CustomInputsInfo}" FontSize="11" Foreground="White" TextTrimming="CharacterEllipsis"/>
                 </StackPanel>
-            </StackPanel>
-            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Bottom">
-                <Label Content="{Binding RemainingWaitString}"
-                       Visibility="{Binding IsWaiting, Converter={StaticResource ResourceKey=BoolToVis}}" />
-                <Label Content="Starting..."
-                       Visibility="{Binding IsStarting, Converter={StaticResource ResourceKey=BoolToVis}}" />
-                <Label Content="Stopping..."
-                       Visibility="{Binding IsStopping, Converter={StaticResource ResourceKey=BoolToVis}}" />
-                <Label Content="Pausing..."
-                       Visibility="{Binding IsPausing, Converter={StaticResource ResourceKey=BoolToVis}}" />
+                </Grid>
+
+                <!-- Right: Control Buttons -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <!-- Status Labels -->
+                    <TextBlock Text="{Binding RemainingWaitString}"
+                              Visibility="{Binding IsWaiting, Converter={StaticResource ResourceKey=BoolToVis}}" 
+                              FontSize="11" Foreground="#FFCCCCCC" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                    <TextBlock Text="Starting..."
+                              Visibility="{Binding IsStarting, Converter={StaticResource ResourceKey=BoolToVis}}" 
+                              FontSize="11" Foreground="#FF1E90FF" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                    <TextBlock Text="Stopping..."
+                              Visibility="{Binding IsStopping, Converter={StaticResource ResourceKey=BoolToVis}}" 
+                              FontSize="11" Foreground="#FFFF6B35" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                    <TextBlock Text="Pausing..."
+                              Visibility="{Binding IsPausing, Converter={StaticResource ResourceKey=BoolToVis}}" 
+                              FontSize="11" Foreground="#FFFF6B35" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                    
+                    <!-- Compact Control Buttons with Tab-like Styling -->
                 <Button Click="Start"
                     Visibility="{Binding CanStart, Converter={StaticResource ResourceKey=BoolToVis}}"
-                    Style="{StaticResource StyledSuccessButton}">
+                        Background="#FF28A745" 
+                        Foreground="White"
+                        BorderThickness="0"
+                        Padding="10,4"
+                        Margin="1,0"
+                        FontSize="9"
+                        FontWeight="SemiBold"
+                        TextOptions.TextFormattingMode="Display" TextOptions.TextRenderingMode="ClearType" 
+                        TextOptions.TextHintingMode="Fixed" UseLayoutRounding="True" SnapsToDevicePixels="True">
                     <StackPanel Orientation="Horizontal">
-                        <iconPacks:PackIconEntypo Kind="ControllerPlay" />
-                        <TextBlock VerticalAlignment="Center" Margin="5 0">Start</TextBlock>
+                            <iconPacks:PackIconMaterial Kind="Play" Width="12" Height="12"/>
+                            <TextBlock VerticalAlignment="Center" Margin="4,0,0,0" FontSize="9" FontWeight="SemiBold">Start</TextBlock>
                     </StackPanel>
                 </Button>
                 <Button Click="Resume"
                     Visibility="{Binding CanResume, Converter={StaticResource ResourceKey=BoolToVis}}"
-                    Margin="2 0 0 0" Style="{StaticResource StyledSuccessButton}">
+                        Background="#FF28A745" 
+                        Foreground="White"
+                        BorderThickness="0"
+                        Padding="10,4"
+                        Margin="1,0"
+                        FontSize="9"
+                        FontWeight="SemiBold"
+                        TextOptions.TextFormattingMode="Display" TextOptions.TextRenderingMode="ClearType" 
+                        TextOptions.TextHintingMode="Fixed" UseLayoutRounding="True" SnapsToDevicePixels="True">
                     <StackPanel Orientation="Horizontal">
-                        <iconPacks:PackIconEntypo Kind="ControllerPlay" />
-                        <TextBlock VerticalAlignment="Center" Margin="5 0">Resume</TextBlock>
+                            <iconPacks:PackIconMaterial Kind="Play" Width="12" Height="12"/>
+                            <TextBlock VerticalAlignment="Center" Margin="4,0,0,0" FontSize="9" FontWeight="SemiBold">Resume</TextBlock>
                     </StackPanel>
                 </Button>
                 <Button Click="Pause"
                     Visibility="{Binding CanPause, Converter={StaticResource ResourceKey=BoolToVis}}"
-                    Margin="2 0 0 0" Style="{StaticResource StyledWarningButton}">
+                        Background="#FFFF9800" 
+                        Foreground="White"
+                        BorderThickness="0"
+                        Padding="10,4"
+                        Margin="1,0"
+                        FontSize="9"
+                        FontWeight="SemiBold"
+                        TextOptions.TextFormattingMode="Display" TextOptions.TextRenderingMode="ClearType" 
+                        TextOptions.TextHintingMode="Fixed" UseLayoutRounding="True" SnapsToDevicePixels="True">
                     <StackPanel Orientation="Horizontal">
-                        <iconPacks:PackIconModern Kind="ControlPause" />
-                        <TextBlock VerticalAlignment="Center" Margin="5 0">Pause</TextBlock>
+                            <iconPacks:PackIconMaterial Kind="Pause" Width="12" Height="12"/>
+                            <TextBlock VerticalAlignment="Center" Margin="4,0,0,0" FontSize="9" FontWeight="SemiBold">Pause</TextBlock>
                     </StackPanel>
                 </Button>
                 <Button Click="SkipWait"
                     Visibility="{Binding CanSkipWait, Converter={StaticResource ResourceKey=BoolToVis}}"
-                    Margin="2 0 0 0" Style="{StaticResource StyledPrimaryButton}">
+                        Background="#FF1E90FF" 
+                        Foreground="White"
+                        BorderThickness="0"
+                        Padding="10,4"
+                        Margin="1,0"
+                        FontSize="9"
+                        FontWeight="SemiBold"
+                        TextOptions.TextFormattingMode="Display" TextOptions.TextRenderingMode="ClearType" 
+                        TextOptions.TextHintingMode="Fixed" UseLayoutRounding="True" SnapsToDevicePixels="True">
                     <StackPanel Orientation="Horizontal">
-                        <iconPacks:PackIconFontAwesome Kind="ForwardSolid" />
-                        <TextBlock VerticalAlignment="Center" Margin="5 0">Skip wait</TextBlock>
+                            <iconPacks:PackIconMaterial Kind="FastForward" Width="12" Height="12"/>
+                            <TextBlock VerticalAlignment="Center" Margin="4,0,0,0" FontSize="9" FontWeight="SemiBold">Skip</TextBlock>
                     </StackPanel>
                 </Button>
                 <Button Click="Stop"
                     Visibility="{Binding CanStop, Converter={StaticResource ResourceKey=BoolToVis}}"
-                    Margin="2 0 0 0" Style="{StaticResource StyledDangerButton}">
+                        Background="#FFDC2626" 
+                        Foreground="White"
+                        BorderThickness="0"
+                        Padding="10,4"
+                        Margin="1,0"
+                        FontSize="9"
+                        FontWeight="SemiBold"
+                        TextOptions.TextFormattingMode="Display" TextOptions.TextRenderingMode="ClearType" 
+                        TextOptions.TextHintingMode="Fixed" UseLayoutRounding="True" SnapsToDevicePixels="True">
                     <StackPanel Orientation="Horizontal">
-                        <iconPacks:PackIconEntypo Kind="ControllerStop" />
-                        <TextBlock VerticalAlignment="Center" Margin="5 0">Stop</TextBlock>
+                            <iconPacks:PackIconMaterial Kind="Stop" Width="12" Height="12"/>
+                            <TextBlock VerticalAlignment="Center" Margin="4,0,0,0" FontSize="9" FontWeight="SemiBold">Stop</TextBlock>
                     </StackPanel>
                 </Button>
                 <Button Click="Abort"
                     Visibility="{Binding CanAbort, Converter={StaticResource ResourceKey=BoolToVis}}"
-                    Margin="2 0 0 0" Style="{StaticResource StyledDangerButton}">
+                        Background="#FFDC2626" 
+                        Foreground="White"
+                        BorderThickness="0"
+                        Padding="10,4"
+                        Margin="1,0"
+                        FontSize="9"
+                        FontWeight="SemiBold"
+                        TextOptions.TextFormattingMode="Display" TextOptions.TextRenderingMode="ClearType" 
+                        TextOptions.TextHintingMode="Fixed" UseLayoutRounding="True" SnapsToDevicePixels="True">
                     <StackPanel Orientation="Horizontal">
-                        <iconPacks:PackIconMaterial Kind="CloseOutline" />
-                        <TextBlock VerticalAlignment="Center" Margin="5 0">Abort</TextBlock>
+                            <iconPacks:PackIconMaterial Kind="CloseThick" Width="12" Height="12"/>
+                            <TextBlock VerticalAlignment="Center" Margin="4,0,0,0" FontSize="9" FontWeight="SemiBold">Abort</TextBlock>
                     </StackPanel>
                 </Button>
                 <Button Click="ChangeOptions"
                     Visibility="{Binding CanChangeOptions, Converter={StaticResource ResourceKey=BoolToVis}}"
-                    Margin="2 0 0 0" Style="{StaticResource StyledPrimaryButton}">
+                        Background="#FF1E90FF" 
+                        Foreground="White"
+                        BorderThickness="0"
+                        Padding="10,4"
+                        Margin="1,0"
+                        FontSize="9"
+                        FontWeight="SemiBold"
+                        TextOptions.TextFormattingMode="Display" TextOptions.TextRenderingMode="ClearType" 
+                        TextOptions.TextHintingMode="Fixed" UseLayoutRounding="True" SnapsToDevicePixels="True">
                     <StackPanel Orientation="Horizontal">
-                        <iconPacks:PackIconRemixIcon Kind="Edit2Fill" />
-                        <TextBlock VerticalAlignment="Center" Margin="5 0">Options</TextBlock>
+                            <iconPacks:PackIconMaterial Kind="Cog" Width="12" Height="12"/>
+                            <TextBlock VerticalAlignment="Center" Margin="4,0,0,0" FontSize="9" FontWeight="SemiBold">Options</TextBlock>
                     </StackPanel>
                 </Button>
             </StackPanel>
-
         </Grid>
-
-        <Border Grid.Row="1" Padding="0 5">
-            <ProgressBar
-                Minimum="0"
-                Maximum="100"
-                Height="20"
-                Value="{Binding Progress, Mode=OneWay}" />
         </Border>
 
-        <Border Grid.Row="1" Padding="0 5">
-            <StackPanel
+        <!-- Modern Progress Section -->
+        <Border Grid.Row="1" Background="#FF2A2A2A" CornerRadius="6" Padding="8,4" Margin="0,0,0,6">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="auto"/>
+                    <RowDefinition Height="auto"/>
+                </Grid.RowDefinitions>
+                
+                <!-- Progress Info -->
+                <TextBlock Grid.Row="0" 
+                          Text="{Binding Job.ProgressString}"
+                          FontWeight="SemiBold" 
+                          FontSize="12"
+                          Foreground="White"
                 HorizontalAlignment="Center"
-                Orientation="Horizontal">
-                <TextBlock
-                    Foreground="{DynamicResource BackgroundSecondary}"
-                    Text="{Binding Job.ProgressString}"
-                    FontWeight="Bold"
-                    Margin="0 2 0 0" />
-            </StackPanel>
+                          Margin="0,0,0,4" />
+                
+                <!-- Progress Bar -->
+                <ProgressBar Grid.Row="1" 
+                            Minimum="0"
+                            Maximum="100"
+                            Height="8"
+                            Background="#FF404040"
+                            Foreground="#FF1E90FF"
+                            BorderThickness="0"
+                            Value="{Binding Progress, Mode=OneWay}" />
+            </Grid>
         </Border>
 
         <Grid Grid.Row="2">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="2*" />
-                <ColumnDefinition Width="auto" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="auto"/>
+                <RowDefinition Height="2*" MinHeight="80"/>
+                <RowDefinition Height="auto"/>
+                <RowDefinition Height="auto"/>
+                <RowDefinition Height="3*" MinHeight="100"/>
+            </Grid.RowDefinitions>
+
+            <!-- Bots Section Header -->
+            <Border Grid.Row="0" Background="#FF2A2A2A" CornerRadius="6" Padding="6,4" Margin="0,0,0,0">
+                <StackPanel Orientation="Horizontal">
+                    <iconPacks:PackIconMaterial Kind="Robot" Width="16" Height="16" Foreground="#FF1E90FF" VerticalAlignment="Center"/>
+                    <TextBlock Text="Bots Activity" FontSize="13" FontWeight="SemiBold" 
+                               Foreground="#FF1E90FF" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                    <TextBlock Text="{Binding BotsCollection.Count}" FontSize="11" 
+                               Foreground="#FFCCCCCC" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                    <TextBlock Text="active bots" FontSize="11" 
+                               Foreground="#FFCCCCCC" VerticalAlignment="Center" Margin="4,0,0,0"/>
+                </StackPanel>
+            </Border>
 
             <!-- Bots List View -->
             <ListView
                 x:Name="botsListView"
-                Grid.Column="0"
+                Grid.Row="1"
                 Foreground="{DynamicResource ForegroundMain}"
-                Background="Transparent"
+                Background="#FF1A1A1A"
                 ItemsSource="{Binding BotsCollection}"
                 SelectionMode="Extended"
-                BorderThickness="1">
+                BorderThickness="1"
+                BorderBrush="#FF404040"
+                Margin="0,0,0,4"
+                ContextMenu="{StaticResource botsContextMenu}">
                 <!-- Align Headers to the Left -->
                 <ListView.Resources>
+                    <!-- Modern ScrollBar Styles for ListView -->
+                    <Style TargetType="{x:Type ScrollBar}" BasedOn="{StaticResource ModernScrollBar}"/>
+                    
                     <Style x:Key="GridViewColumnHeaderGripper" TargetType="Thumb">
                         <Setter Property="Width" Value="18" />
                         <Setter Property="Background">
@@ -230,12 +554,18 @@
                     </Style>
                     <Style TargetType="{x:Type GridViewColumnHeader}">
                         <Setter Property="HorizontalContentAlignment" Value="Left" />
+                        <Setter Property="Background" Value="#FF333333"/>
+                        <Setter Property="Foreground" Value="#FFB0B0B0"/>
+                        <Setter Property="FontSize" Value="11"/>
+                        <Setter Property="FontWeight" Value="SemiBold"/>
+                        <Setter Property="Padding" Value="8,4"/>
                         <Setter Property="Template">
                             <Setter.Value>
                                 <ControlTemplate TargetType="{x:Type GridViewColumnHeader}">
                                     <Grid>
-                                        <Border BorderThickness="0,0,0,1" BorderBrush="Black" Background="Transparent">
-                                            <TextBlock x:Name="ContentHeader" Text="{TemplateBinding Content}" Padding="5,5,5,0" Width="{TemplateBinding Width}" TextAlignment="Left" />
+                                        <Border BorderThickness="0,0,0,1" BorderBrush="#FF404040" Background="#FF333333">
+                                            <TextBlock x:Name="ContentHeader" Text="{TemplateBinding Content}" 
+                                                       Padding="8,4" Width="{TemplateBinding Width}" TextAlignment="Left" />
                                         </Border>
                                         <Thumb x:Name="PART_HeaderGripper"
                                          HorizontalAlignment="Right"
@@ -246,9 +576,6 @@
                             </Setter.Value>
                         </Setter>
                         <Setter Property="OverridesDefaultStyle" Value="True" />
-                        <Setter Property="Foreground" Value="{DynamicResource ForegroundMain}" />
-                        <Setter Property="FontFamily" Value="pack://application:,,,/Fonts/#Century Gothic" />
-                        <Setter Property="FontSize" Value="14" />
                     </Style>
 
                     <Style TargetType="{x:Type ListViewItem}">
@@ -266,10 +593,10 @@
                         </Setter>
                         <Style.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="{DynamicResource BackgroundSecondary}" />
+                                <Setter Property="Background" Value="#FF2A2A2A" />
                             </Trigger>
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter Property="Background" Value="{DynamicResource BackgroundSecondary}" />
+                                <Setter Property="Background" Value="#FF2A2A2A" />
                             </Trigger>
                         </Style.Triggers>
                     </Style>
@@ -282,36 +609,86 @@
 
                 <ListView.View>
                     <GridView>
-                        <GridViewColumn Width="40" Header="Id" DisplayMemberBinding="{Binding Id}" />
+                        <GridViewColumn Width="60" Header="ID" DisplayMemberBinding="{Binding Id}" />
                         <GridViewColumn Width="200" Header="Data" DisplayMemberBinding="{Binding Data}" />
                         <GridViewColumn Width="150" Header="Proxy" DisplayMemberBinding="{Binding Proxy}" />
-                        <GridViewColumn Width="1000" Header="Info" DisplayMemberBinding="{Binding Info}" />
+                        <GridViewColumn Width="400" Header="Info" DisplayMemberBinding="{Binding Info}" />
                     </GridView>
                 </ListView.View>
             </ListView>
 
-            <GridSplitter 
-                ResizeDirection="Columns"
-                ResizeBehavior="PreviousAndNext"
-                Grid.Column="1"
-                Width="1"
-                VerticalAlignment="Stretch" />
+            <!-- Resizer Splitter -->
+            <GridSplitter Grid.Row="2" 
+                         Height="6" 
+                         HorizontalAlignment="Stretch" 
+                         VerticalAlignment="Center"
+                         Background="Transparent"
+                         ResizeBehavior="PreviousAndNext"
+                         Margin="0,4"/>
 
-            <Grid Grid.Column="2">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="*" />
-                    <RowDefinition Height="auto" />
-                </Grid.RowDefinitions>
+            <!-- Hits Section with Tabs -->
+            <Border Grid.Row="3" Background="#FF2A2A2A" CornerRadius="6" Padding="12,8" Margin="0,0,0,0">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="auto"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <StackPanel Grid.Column="0" Orientation="Horizontal">
+                        <iconPacks:PackIconMaterial Kind="Target" Width="16" Height="16" Foreground="#FF28A745" VerticalAlignment="Center"/>
+                        <TextBlock Text="Results &amp; Hits" FontSize="13" FontWeight="SemiBold" 
+                                   Foreground="#FF28A745" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                    </StackPanel>
+                    
+                    <!-- Result Type Tabs -->
+                    <StackPanel Grid.Column="1" Orientation="Horizontal">
+                        <Button x:Name="HitsTabButton" Content="Hits" 
+                                Click="ShowHitsTab" 
+                                Background="#FF28A745" 
+                                Foreground="White"
+                                BorderThickness="0"
+                                Padding="10,4"
+                                Margin="1,0"
+                                FontSize="9"
+                                FontWeight="SemiBold"/>
+                        <Button x:Name="CustomTabButton" Content="Custom" 
+                                Click="ShowCustomTab" 
+                                Background="#FF404040" 
+                                Foreground="#FFCCCCCC"
+                                BorderThickness="0"
+                                Padding="10,4"
+                                Margin="1,0"
+                                FontSize="9"
+                                FontWeight="SemiBold"/>
+                        <Button x:Name="ToCheckTabButton" Content="ToCheck" 
+                                Click="ShowToCheckTab" 
+                                Background="#FF404040" 
+                                Foreground="#FFCCCCCC"
+                                BorderThickness="0"
+                                Padding="10,4"
+                                Margin="1,0"
+                                FontSize="9"
+                                FontWeight="SemiBold"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
 
+            <!-- Results List View with Filtered Content -->
                 <ListView
-                x:Name="hitsListView"
+                x:Name="resultsListView"
+                Grid.Row="4"
                 Foreground="{DynamicResource ForegroundMain}"
-                Background="Transparent"
+                Background="#FF1A1A1A"
                 ItemsSource="{Binding HitsCollection}"
                 SelectionMode="Extended"
-                BorderThickness="1">
+                BorderThickness="1"
+                BorderBrush="#FF404040"
+                ContextMenu="{StaticResource hitsContextMenu}">
                     <!-- Align Headers to the Left -->
                     <ListView.Resources>
+                        <!-- Modern ScrollBar Styles for ListView -->
+                        <Style TargetType="{x:Type ScrollBar}" BasedOn="{StaticResource ModernScrollBar}"/>
+                        
                         <Style x:Key="GridViewColumnHeaderGripper" TargetType="Thumb">
                             <Setter Property="Width" Value="18" />
                             <Setter Property="Background">
@@ -330,28 +707,27 @@
                                 <Setter.Value>
                                     <ControlTemplate TargetType="{x:Type Thumb}">
                                         <Border Padding="{TemplateBinding Padding}" Background="Transparent">
-                                            <Rectangle HorizontalAlignment="Center" Width="1" Fill="{TemplateBinding Background}" />
+                                            <Rectangle HorizontalAlignment="Center" Width="0" Fill="Transparent" />
                                         </Border>
                                     </ControlTemplate>
                                 </Setter.Value>
                             </Setter>
-                            <Setter Property="BorderBrush">
-                                <Setter.Value>
-                                    <LinearGradientBrush EndPoint="0.5,1" StartPoint="0.5,0">
-                                        <GradientStop Color="Black" Offset="0" />
-                                        <GradientStop Color="White" Offset="1" />
-                                    </LinearGradientBrush>
-                                </Setter.Value>
-                            </Setter>
+                            <Setter Property="BorderBrush" Value="Transparent"/>
                         </Style>
                         <Style TargetType="{x:Type GridViewColumnHeader}">
                             <Setter Property="HorizontalContentAlignment" Value="Left" />
+                        <Setter Property="Background" Value="#FF333333"/>
+                        <Setter Property="Foreground" Value="#FFB0B0B0"/>
+                        <Setter Property="FontSize" Value="11"/>
+                        <Setter Property="FontWeight" Value="SemiBold"/>
+                        <Setter Property="Padding" Value="8,4"/>
                             <Setter Property="Template">
                                 <Setter.Value>
                                     <ControlTemplate TargetType="{x:Type GridViewColumnHeader}">
                                         <Grid>
-                                            <Border BorderThickness="0,0,0,1" BorderBrush="Black" Background="Transparent">
-                                                <TextBlock x:Name="ContentHeader" Text="{TemplateBinding Content}" Padding="5,5,5,0" Width="{TemplateBinding Width}" TextAlignment="Left" />
+                                        <Border BorderThickness="0,0,0,1" BorderBrush="#FF404040" Background="#FF333333">
+                                            <TextBlock x:Name="ContentHeader" Text="{TemplateBinding Content}" 
+                                                       Padding="8,4" Width="{TemplateBinding Width}" TextAlignment="Left" />
                                             </Border>
                                             <Thumb x:Name="PART_HeaderGripper"
                                          HorizontalAlignment="Right"
@@ -362,23 +738,18 @@
                                 </Setter.Value>
                             </Setter>
                             <Setter Property="OverridesDefaultStyle" Value="True" />
-                            <Setter Property="Foreground" Value="{DynamicResource ForegroundMain}" />
-                            <Setter Property="FontFamily" Value="pack://application:,,,/Fonts/#Century Gothic" />
-                            <Setter Property="FontSize" Value="14" />
                         </Style>
+
                         <Style TargetType="{x:Type ListViewItem}">
-                            <EventSetter Event="MouseRightButtonDown" Handler="LVIRightClick" />
-                            <Setter Property="ContextMenu" Value="{StaticResource hitsContextMenu}"/>
+                            <Setter Property="Background" Value="Transparent"/>
+                            <Setter Property="BorderBrush" Value="Transparent"/>
+                            <Setter Property="BorderThickness" Value="0"/>
                             <Setter Property="Template">
                                 <Setter.Value>
                                     <ControlTemplate TargetType="{x:Type ListViewItem}">
-                                        <Border x:Name="Bd" BorderBrush="{TemplateBinding BorderBrush}" 
-                                        BorderThickness="{TemplateBinding BorderThickness}" 
-                                        Background="{TemplateBinding Background}" 
-                                        Padding="0"
-                                        SnapsToDevicePixels="true">
+                                    <Border x:Name="Bd" BorderBrush="Transparent" BorderThickness="0" Background="{TemplateBinding Background}" Padding="0" SnapsToDevicePixels="true">
                                             <GridViewRowPresenter 
-                                            HorizontalAlignment="Left" 
+                                            HorizontalAlignment="Stretch" 
                                             SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"
                                             VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
                                         </Border>
@@ -387,10 +758,10 @@
                             </Setter>
                             <Style.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter Property="Background" Value="{DynamicResource BackgroundSecondary}" />
+                                <Setter Property="Background" Value="#FF2A2A2A" />
                                 </Trigger>
                                 <Trigger Property="IsSelected" Value="True">
-                                    <Setter Property="Background" Value="{DynamicResource BackgroundSecondary}" />
+                                <Setter Property="Background" Value="#FF2A2A2A" />
                                 </Trigger>
                             </Style.Triggers>
                         </Style>
@@ -403,121 +774,71 @@
 
                     <ListView.View>
                         <GridView>
-                            <GridViewColumn Header="Time" DisplayMemberBinding="{Binding Time}" />
-                            <GridViewColumn Header="Data" DisplayMemberBinding="{Binding Data}" />
-                            <GridViewColumn Header="Proxy" DisplayMemberBinding="{Binding Proxy}" />
-                            <GridViewColumn Header="Type" DisplayMemberBinding="{Binding Type}"/>
-                            <GridViewColumn Width="2000" Header="Capture" DisplayMemberBinding="{Binding Capture}" />
+                        <GridViewColumn Width="60" Header="Type" DisplayMemberBinding="{Binding Type}" />
+                        <GridViewColumn Width="200" Header="Data" DisplayMemberBinding="{Binding Data}" />
+                        <GridViewColumn Width="150" Header="Proxy" DisplayMemberBinding="{Binding Proxy}" />
+                        <GridViewColumn Width="400" Header="Captured Data" DisplayMemberBinding="{Binding CapturedDataString}" />
                         </GridView>
                     </ListView.View>
                 </ListView>
-
-                <ComboBox
-                    Grid.Row="1"
-                    ItemsSource="{Binding HitsFilters}"
-                    SelectedValue="{Binding HitsFilter}"/>
-
-            </Grid>
-            
         </Grid>
 
-        <Grid Grid.Row="3">
+        <!-- Compact Statistics Footer -->
+        <Border Grid.Row="3" Background="#FF2A2A2A" CornerRadius="6" Padding="12,8" Margin="0,5,0,0">
+            <Grid>
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="auto" />
-                <ColumnDefinition Width="auto" />
-                <ColumnDefinition Width="auto" />
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
-            <controls:ColoredLog
-                Grid.Column="0"
-                MaxHeight="165"
-                x:Name="jobLog" />
+                <!-- Performance & Testing Stats with Time (Reorganized) -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                    <TextBlock Text="CPM: " FontWeight="Bold" FontSize="11" Foreground="#FFB0B0B0" VerticalAlignment="Center"
+                               TextOptions.TextFormattingMode="Display" TextOptions.TextRenderingMode="ClearType" 
+                               TextOptions.TextHintingMode="Fixed" UseLayoutRounding="True" SnapsToDevicePixels="True"/>
+                    <TextBlock Text="{Binding Job.CPM}" FontWeight="Bold" FontSize="12" Foreground="#FF1E90FF" VerticalAlignment="Center" Margin="0,0,20,0"
+                               TextOptions.TextFormattingMode="Display" TextOptions.TextRenderingMode="ClearType" 
+                               TextOptions.TextHintingMode="Fixed" UseLayoutRounding="True" SnapsToDevicePixels="True"/>
+                    <TextBlock Text="Elapsed: " FontWeight="Bold" FontSize="11" Foreground="#FFB0B0B0" VerticalAlignment="Center"
+                               TextOptions.TextFormattingMode="Display" TextOptions.TextRenderingMode="ClearType" 
+                               TextOptions.TextHintingMode="Fixed" UseLayoutRounding="True" SnapsToDevicePixels="True"/>
+                    <TextBlock Text="{Binding Job.ElapsedString}" FontWeight="Bold" FontSize="11" Foreground="#FFFF9800" VerticalAlignment="Center" Margin="0,0,20,0"
+                               TextOptions.TextFormattingMode="Display" TextOptions.TextRenderingMode="ClearType" 
+                               TextOptions.TextHintingMode="Fixed" UseLayoutRounding="True" SnapsToDevicePixels="True"/>
+                    <TextBlock Text="Remaining: " FontWeight="Bold" FontSize="11" Foreground="#FFB0B0B0" VerticalAlignment="Center"
+                               TextOptions.TextFormattingMode="Display" TextOptions.TextRenderingMode="ClearType" 
+                               TextOptions.TextHintingMode="Fixed" UseLayoutRounding="True" SnapsToDevicePixels="True"/>
+                    <TextBlock Text="{Binding Job.RemainingString}" FontWeight="Bold" FontSize="11" Foreground="#FF4CAF50" VerticalAlignment="Center" Margin="0,0,20,0"
+                               TextOptions.TextFormattingMode="Display" TextOptions.TextRenderingMode="ClearType" 
+                               TextOptions.TextHintingMode="Fixed" UseLayoutRounding="True" SnapsToDevicePixels="True"/>
 
-            <StackPanel Grid.Column="1">
-                <Label FontWeight="Bold">DATA</Label>
-                <StackPanel Orientation="Horizontal" Margin="0 -5">
-                    <Label FontWeight="Bold">Tested:</Label>
-                    <Label Content="{Binding Job.DataTested}" Margin="5 0 0 0" />
                 </StackPanel>
-                <StackPanel Orientation="Horizontal" Margin="5 0">
-                    <TextBlock FontWeight="Bold" Foreground="{DynamicResource ForegroundGood}">Hits:</TextBlock>
-                    <TextBlock Text="{Binding Job.DataHits}" Foreground="{DynamicResource ForegroundGood}" Margin="5 0 0 0" />
-                </StackPanel>
-                <StackPanel Orientation="Horizontal" Margin="5 0">
-                    <TextBlock FontWeight="Bold" Foreground="{DynamicResource ForegroundCustom}">Custom:</TextBlock>
-                    <TextBlock Text="{Binding Job.DataCustom}" Foreground="{DynamicResource ForegroundCustom}" Margin="5 0 0 0" />
-                </StackPanel>
-                <StackPanel Orientation="Horizontal" Margin="5 0">
-                    <TextBlock FontWeight="Bold" Foreground="{DynamicResource ForegroundBad}">Fails:</TextBlock>
-                    <TextBlock Text="{Binding Job.DataFails}" Foreground="{DynamicResource ForegroundBad}" Margin="5 0 0 0" />
-                </StackPanel>
-                <StackPanel Orientation="Horizontal" Margin="5 0">
-                    <TextBlock FontWeight="Bold" Foreground="{DynamicResource ForegroundBad}">Invalid:</TextBlock>
-                    <TextBlock Text="{Binding Job.DataInvalid}" Foreground="{DynamicResource ForegroundBad}" Margin="5 0 0 0" />
-                </StackPanel>
-                <StackPanel Orientation="Horizontal" Margin="5 0">
-                    <TextBlock FontWeight="Bold" Foreground="{DynamicResource ForegroundRetry}">Retried:</TextBlock>
-                    <TextBlock Text="{Binding Job.DataRetried}" Foreground="{DynamicResource ForegroundRetry}" Margin="5 0 0 0" />
-                </StackPanel>
-                <StackPanel Orientation="Horizontal" Margin="5 0">
-                    <TextBlock FontWeight="Bold" Foreground="{DynamicResource ForegroundBanned}">Banned:</TextBlock>
-                    <TextBlock Text="{Binding Job.DataBanned}" Foreground="{DynamicResource ForegroundBanned}" Margin="5 0 0 0" />
-                </StackPanel>
-                <StackPanel Orientation="Horizontal" Margin="5 0">
-                    <TextBlock FontWeight="Bold" Foreground="{DynamicResource ForegroundToCheck}">To check:</TextBlock>
-                    <TextBlock Text="{Binding Job.DataToCheck}" Foreground="{DynamicResource ForegroundToCheck}" Margin="5 0 0 0" />
-                </StackPanel>
-                <StackPanel Orientation="Horizontal" Margin="5 0">
-                    <TextBlock FontWeight="Bold" Foreground="{DynamicResource ForegroundBad}">Errors:</TextBlock>
-                    <TextBlock Text="{Binding Job.DataErrors}" Foreground="{DynamicResource ForegroundBad}" Margin="5 0 0 0" />
-                </StackPanel>
+
+                <!-- Results Stats -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center">
+                    <TextBlock Text="Hits: " FontWeight="Bold" FontSize="10" Foreground="#FFB0B0B0" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding Job.DataHits}" FontWeight="Bold" FontSize="11" Foreground="{DynamicResource ForegroundGood}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <TextBlock Text="Custom: " FontWeight="Bold" FontSize="10" Foreground="#FFB0B0B0" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding Job.DataCustom}" FontWeight="Bold" FontSize="11" Foreground="{DynamicResource ForegroundCustom}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <TextBlock Text="ToCheck: " FontWeight="Bold" FontSize="10" Foreground="#FFB0B0B0" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding Job.DataToCheck}" FontWeight="Bold" FontSize="11" Foreground="{DynamicResource ForegroundToCheck}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <TextBlock Text="Retried: " FontWeight="Bold" FontSize="10" Foreground="#FFB0B0B0" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding Job.DataRetried}" FontWeight="Bold" FontSize="11" Foreground="{DynamicResource ForegroundRetry}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <TextBlock Text="Banned: " FontWeight="Bold" FontSize="10" Foreground="#FFB0B0B0" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding Job.DataBanned}" FontWeight="Bold" FontSize="11" Foreground="{DynamicResource ForegroundBanned}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <TextBlock Text="Fail: " FontWeight="Bold" FontSize="10" Foreground="#FFB0B0B0" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding Job.DataFails}" FontWeight="Bold" FontSize="11" Foreground="#FFFF6347" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <TextBlock Text="Error: " FontWeight="Bold" FontSize="10" Foreground="#FFB0B0B0" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding Job.DataErrors}" FontWeight="Bold" FontSize="11" Foreground="{DynamicResource ForegroundBad}" VerticalAlignment="Center"/>
             </StackPanel>
 
-            <StackPanel Grid.Column="2">
-                <Label FontWeight="Bold">PROXIES</Label>
-                <StackPanel Orientation="Horizontal" Margin="0 -5">
-                    <Label FontWeight="Bold">Total:</Label>
-                    <Label Content="{Binding Job.ProxiesTotal}" Margin="-5 0 0 0" />
+                <!-- Progress Stats -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right">
+                    <TextBlock Text="Progress: " FontWeight="Bold" FontSize="11" Foreground="#FFB0B0B0" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding Job.ProgressString}" FontWeight="Bold" FontSize="12" Foreground="#FF1E90FF" VerticalAlignment="Center"/>
                 </StackPanel>
-                <StackPanel Orientation="Horizontal" Margin="5 0">
-                    <TextBlock FontWeight="Bold" Foreground="{DynamicResource ForegroundGood}">Alive:</TextBlock>
-                    <TextBlock Text="{Binding Job.ProxiesAlive}" Foreground="{DynamicResource ForegroundGood}" Margin="5 0 0 0" />
-                </StackPanel>
-                <StackPanel Orientation="Horizontal" Margin="5 0">
-                    <TextBlock FontWeight="Bold" Foreground="{DynamicResource ForegroundBad}">Bad:</TextBlock>
-                    <TextBlock Text="{Binding Job.ProxiesBad}" Foreground="{DynamicResource ForegroundBad}" Margin="5 0 0 0" />
-                </StackPanel>
-                <StackPanel Orientation="Horizontal" Margin="5 0">
-                    <TextBlock FontWeight="Bold" Foreground="{DynamicResource ForegroundBanned}">Banned:</TextBlock>
-                    <TextBlock Text="{Binding Job.ProxiesBanned}" Foreground="{DynamicResource ForegroundBanned}" Margin="5 0 0 0" />
-                </StackPanel>
-            </StackPanel>
-
-            <StackPanel Grid.Column="3">
-                <Label FontWeight="Bold">OTHERS</Label>
-                <StackPanel Orientation="Horizontal" Margin="0 -5">
-                    <Label FontWeight="Bold">CPM:</Label>
-                    <Label Content="{Binding Job.CPM}" Margin="5 0 0 0" />
-                </StackPanel>
-                <StackPanel Orientation="Horizontal" Margin="0 -5">
-                    <Label FontWeight="Bold">Captcha credit:</Label>
-                    <Label Content="{Binding Job.CaptchaCredit}" Margin="5 0 0 0" />
-                </StackPanel>
-                <StackPanel Orientation="Horizontal" Margin="0 -5">
-                    <Label FontWeight="Bold">Elapsed:</Label>
-                    <Label Content="{Binding Job.ElapsedString}" Margin="5 0 0 0" />
-                </StackPanel>
-                <StackPanel Orientation="Horizontal" Margin="0 -5">
-                    <Label FontWeight="Bold">Remaining:</Label>
-                    <Label Content="{Binding Job.RemainingString}" Margin="5 0 0 0" />
-                </StackPanel>
-                <StackPanel Orientation="Horizontal" Margin="0 -5">
-                    <Label FontWeight="Bold">Progress:</Label>
-                    <Label Content="{Binding Job.ProgressString}" Margin="5 0 0 0" />
-                </StackPanel>
-            </StackPanel>
-
         </Grid>
+        </Border>
     </Grid>
 </Page>

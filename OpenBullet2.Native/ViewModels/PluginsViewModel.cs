@@ -1,4 +1,5 @@
 ﻿using RuriLib.Services;
+using OpenBullet2.Native.Services;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
@@ -9,6 +10,7 @@ namespace OpenBullet2.Native.ViewModels
     {
         private ObservableCollection<PluginInfo> pluginsCollection;
         private PluginRepository pluginRepo;
+        private HotkeyService hotkeyService;
 
         public ObservableCollection<PluginInfo> PluginsCollection
         {
@@ -23,7 +25,22 @@ namespace OpenBullet2.Native.ViewModels
         public PluginsViewModel()
         {
             pluginRepo = SP.GetService<PluginRepository>();
+            hotkeyService = SP.GetService<HotkeyService>();
+            
             RefreshList();
+        }
+        
+        public bool HotkeysEnabled
+        {
+            get => hotkeyService?.IsEnabled ?? false;
+            set
+            {
+                if (hotkeyService != null && hotkeyService.IsEnabled != value)
+                {
+                    hotkeyService.IsEnabled = value;
+                    OnPropertyChanged();
+                }
+            }
         }
 
         public void Add(string filePath)

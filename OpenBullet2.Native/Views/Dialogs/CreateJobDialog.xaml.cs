@@ -3,6 +3,7 @@ using OpenBullet2.Native.Views.Pages;
 using System;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 
 namespace OpenBullet2.Native.Views.Dialogs
 {
@@ -20,8 +21,10 @@ namespace OpenBullet2.Native.Views.Dialogs
             InitializeComponent();
         }
 
-        private void CreateMultiRunJob(object sender, RoutedEventArgs e) => CreateJob(JobType.MultiRun);
-        private void CreateProxyCheckJob(object sender, RoutedEventArgs e) => CreateJob(JobType.ProxyCheck);
+        private void CreateMultiRunJob(object sender, MouseButtonEventArgs e) => CreateJob(JobType.MultiRun);
+        private void CreateProxyCheckJob(object sender, MouseButtonEventArgs e) => CreateJob(JobType.ProxyCheck);
+
+        private void Cancel(object sender, RoutedEventArgs e) => ((MainDialog)Parent).Close();
 
         private void CreateJob(JobType type)
         {
@@ -36,7 +39,8 @@ namespace OpenBullet2.Native.Views.Dialogs
             switch (type)
             {
                 case JobType.MultiRun:
-                    new MainDialog(new MultiRunJobOptionsDialog(null, onAccept), "Create Multi Run Job", 800, 600).ShowDialog();
+                    var multiRunDialog = new MultiRunJobOptionsDialog(null, onAccept);
+                    multiRunDialog.ShowDialog();
                     break;
 
                 case JobType.ProxyCheck:

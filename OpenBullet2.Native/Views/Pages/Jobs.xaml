@@ -6,42 +6,136 @@
       xmlns:local="clr-namespace:OpenBullet2.Native.Views.Pages"
       xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
       xmlns:vms="clr-namespace:OpenBullet2.Native.ViewModels"
+
       mc:Ignorable="d" 
       d:DesignHeight="450" d:DesignWidth="800"
-      Title="Jobs">
+      Title="Jobs"
+      TextOptions.TextFormattingMode="Ideal"
+      TextOptions.TextRenderingMode="Auto"
+      RenderOptions.BitmapScalingMode="LowQuality"
+      SnapsToDevicePixels="False">
 
-    <Grid>
+
+
+    <!-- Enhanced Jobs Management Layout -->
+    <Grid Background="Transparent" Margin="24,20,24,24">
         <Grid.RowDefinitions>
+            <RowDefinition Height="auto" />
+            <RowDefinition Height="auto" />
             <RowDefinition Height="auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <StackPanel 
-            Orientation="Horizontal" 
-            Margin="0 5"
-            Grid.Row="0">
-            <Button Click="NewJob" Margin="0 0 5 0" 
-                        Style="{StaticResource StyledSuccessButton}"
-                        Width="70" HorizontalAlignment="Left" >
-                <StackPanel Orientation="Horizontal">
-                    <iconPacks:PackIconMaterialDesign Kind="Add" />
-                    <TextBlock VerticalAlignment="Center" Margin="5 0">New</TextBlock>
+        <!-- Enhanced Header with Actions and Stats -->
+        <Border Grid.Row="0" Background="#C0353535" CornerRadius="8" Padding="16,12" Margin="0,0,0,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="auto"/>
+                </Grid.ColumnDefinitions>
+                
+                <!-- Enhanced Title with Count -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Border Background="#FF1E90FF" CornerRadius="8" Padding="8" Margin="0,0,12,0">
+                        <iconPacks:PackIconMaterial Kind="Briefcase" Width="18" Height="18" Foreground="White"/>
+                    </Border>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="Job Manager" Style="{StaticResource H3TextStyle}" Foreground="#FF1E90FF" FontWeight="SemiBold"/>
+                        <TextBlock Text="{Binding JobsCollection.Count, StringFormat='\{0\} jobs active'}" 
+                                   Style="{StaticResource CaptionTextStyle}" 
+                                   Foreground="#FFAAAAAA" 
+                                   FontSize="11"/>
+                    </StackPanel>
                 </StackPanel>
-            </Button>
-            <Button Click="RemoveAll" 
-                        Style="{StaticResource StyledDangerButton}"
-                        Width="100" HorizontalAlignment="Left" >
-                <StackPanel Orientation="Horizontal">
-                    <iconPacks:PackIconMaterial Kind="Close" />
-                    <TextBlock VerticalAlignment="Center" Margin="5 0">Remove All</TextBlock>
-                </StackPanel>
-            </Button>
-        </StackPanel>
 
+                <!-- Search Box -->
+                <Border Grid.Column="1" Background="#FF404040" CornerRadius="6" Padding="10,8" Margin="20,0" VerticalAlignment="Center">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <iconPacks:PackIconMaterial Grid.Column="0" Kind="Magnify" Width="14" Height="14" 
+                                                   Foreground="#FFAAAAAA" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <TextBox Grid.Column="1" 
+                                x:Name="SearchTextBox"
+                                Background="Transparent" 
+                                BorderThickness="0" 
+                                Foreground="White" 
+                                FontSize="12"
+                                VerticalAlignment="Center"
+                                Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                                Tag="Search jobs..."/>
+                    </Grid>
+                </Border>
+
+
+
+                <!-- Enhanced Action Buttons -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal">
+                    <Button Click="NewJob" 
+                            Style="{StaticResource StyledSuccessButton}"
+                            Padding="14,8"
+                            Margin="0,0,8,0"
+                            FontSize="12"
+                            FontWeight="SemiBold"
+                            ToolTip="Create a new job">
+                        <StackPanel Orientation="Horizontal">
+                            <iconPacks:PackIconMaterial Kind="Plus" Width="16" Height="16"/>
+                            <TextBlock Text="New Job" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Click="RemoveAll" 
+                            Style="{StaticResource StyledDangerButton}"
+                            Padding="14,8"
+                            FontSize="12"
+                            FontWeight="SemiBold"
+                            ToolTip="Clear all idle jobs">
+                        <StackPanel Orientation="Horizontal">
+                            <iconPacks:PackIconMaterial Kind="DeleteSweep" Width="16" Height="16"/>
+                            <TextBlock Text="Clear All" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Enhanced Table Header with Sorting Indicators -->
+        <Border Grid.Row="1" Background="#80404040" CornerRadius="8" Padding="12,8" Margin="0,0,0,2">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="80"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="150"/>
+                    <ColumnDefinition Width="70"/>
+                    <ColumnDefinition Width="160"/>
+                    <ColumnDefinition Width="90"/>
+                    <ColumnDefinition Width="80"/>
+                    <ColumnDefinition Width="80"/>
+                    <ColumnDefinition Width="90"/>
+                    <ColumnDefinition Width="110"/>
+                </Grid.ColumnDefinitions>
+                
+                <TextBlock Grid.Column="0" Text="ID" Style="{StaticResource CaptionTextStyle}" FontWeight="Bold" Foreground="#FF1E90FF"/>
+                <TextBlock Grid.Column="1" Text="Config Name" Style="{StaticResource CaptionTextStyle}" FontWeight="Bold" Foreground="#FF1E90FF"/>
+                <TextBlock Grid.Column="2" Text="Data Pool" Style="{StaticResource CaptionTextStyle}" FontWeight="Bold" Foreground="#FF1E90FF"/>
+                <TextBlock Grid.Column="3" Text="Bots" Style="{StaticResource CaptionTextStyle}" FontWeight="Bold" Foreground="#FF1E90FF"/>
+                <TextBlock Grid.Column="4" Text="Progress" Style="{StaticResource CaptionTextStyle}" FontWeight="Bold" Foreground="#FF1E90FF"/>
+                <TextBlock Grid.Column="5" Text="Speed (CPM)" Style="{StaticResource CaptionTextStyle}" FontWeight="Bold" Foreground="#FF1E90FF"/>
+                <TextBlock Grid.Column="6" Text="Hits" Style="{StaticResource CaptionTextStyle}" FontWeight="Bold" Foreground="#FF1E90FF"/>
+                <TextBlock Grid.Column="7" Text="Custom" Style="{StaticResource CaptionTextStyle}" FontWeight="Bold" Foreground="#FF1E90FF"/>
+                <TextBlock Grid.Column="8" Text="Status" Style="{StaticResource CaptionTextStyle}" FontWeight="Bold" Foreground="#FF1E90FF"/>
+                <TextBlock Grid.Column="9" Text="Actions" Style="{StaticResource CaptionTextStyle}" FontWeight="Bold" Foreground="#FF1E90FF"/>
+            </Grid>
+        </Border>
+
+        <!-- Job List Container -->
         <ScrollViewer 
-            Grid.Row="1"
+            Grid.Row="2"
             HorizontalScrollBarVisibility="Disabled"
-            VerticalScrollBarVisibility="Auto">
+            VerticalScrollBarVisibility="Auto"
+            Padding="0,0,4,0">
             <ItemsControl 
             ItemsSource="{Binding JobsCollection}">
                 <ItemsControl.ItemsPanel>
@@ -51,170 +145,361 @@
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.Resources>
                     <DataTemplate DataType="{x:Type vms:MultiRunJobViewModel}">
-                        <Border 
-                            Margin="0 0 0 3"
-                            BorderThickness="1"
-                            BorderBrush="Gray">
-                            <Grid>
+                        <!-- Enhanced MultiRun Job Row -->
+                        <Border Background="#A0353535" 
+                                BorderBrush="#FF505050"
+                                BorderThickness="0,0,0,1" 
+                                Padding="12,10" 
+                                Margin="0,1"
+                                CornerRadius="4"
+                                x:Name="JobRowBorder">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Style.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Background" Value="#B0404040"/>
+                                            <Setter Property="BorderBrush" Value="#FF1E90FF"/>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <Grid Cursor="Hand" Tag="{Binding}" MouseDown="ViewJob">
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="auto" />
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="auto" />
-                                    <ColumnDefinition Width="auto" />
-                                    <ColumnDefinition Width="auto" />
+                                    <ColumnDefinition Width="80"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="150"/>
+                                    <ColumnDefinition Width="70"/>
+                                    <ColumnDefinition Width="160"/>
+                                    <ColumnDefinition Width="90"/>
+                                    <ColumnDefinition Width="80"/>
+                                    <ColumnDefinition Width="80"/>
+                                    <ColumnDefinition Width="90"/>
+                                    <ColumnDefinition Width="110"/>
                                 </Grid.ColumnDefinitions>
 
-                                <Grid
-                                    Grid.Column="0"
-                                    Background="{DynamicResource BackgroundSecondary}"
-                                    VerticalAlignment="Stretch"
-                                    HorizontalAlignment="Left">
-                                    <Label 
+                                <!-- Enhanced Job ID with Better Design -->
+                                <StackPanel Grid.Column="0" Orientation="Horizontal" HorizontalAlignment="Left">
+                                    <Border Background="#FF1E90FF" CornerRadius="8" Padding="8,4" Margin="0,0,6,0">
+                                        <TextBlock Text="{Binding Id}" 
                                         FontWeight="Bold"
-                                        FontSize="16"
-                                        VerticalAlignment="Center"
-                                        Content="{Binding IdAndStatus}" />
-                                </Grid>
+                                                   FontSize="12" 
+                                                   Foreground="White"
+                                                   TextAlignment="Center"/>
+                                    </Border>
+                                    <!-- Enhanced Status Indicator -->
+                                    <Border Background="{Binding StatusColor}" 
+                                            Width="8" Height="8"
+                                            CornerRadius="4"
+                                            VerticalAlignment="Center"
+                                            ToolTip="{Binding StatusDisplayText}"/>
+                                </StackPanel>
 
-                                <WrapPanel 
-                                    Cursor="Hand"
-                                    Tag="{Binding}"
-                                    MouseDown="ViewJob"
-                                    Margin="5 0 0 0"
+                                <!-- Enhanced Config Name -->
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding ConfigDisplayName}" 
+                                               FontSize="13" 
+                                               FontWeight="SemiBold" 
+                                               Foreground="White" 
+                                               TextTrimming="CharacterEllipsis"
+                                               ToolTip="{Binding ConfigName}"/>
+                                    <TextBlock Text="{Binding JobTypeDisplay}" 
+                                               FontSize="10" 
+                                               Foreground="#FF1E90FF" 
+                                               FontWeight="Medium"/>
+                                </StackPanel>
+
+                                <!-- Enhanced Data Pool with Better Width -->
+                                <TextBlock Grid.Column="2" 
+                                           Text="{Binding DataPoolDisplayInfo}" 
+                                           FontSize="11" 
+                                           Foreground="#FFCCCCCC" 
                                     VerticalAlignment="Center"
-                                    Grid.Column="1">
-                                    <Label FontWeight="Bold" Content="Config:" Margin="-5 0 0 0" />
-                                    <Label Content="{Binding ConfigName}" Margin="-5 0 0 0" />
-                                    <Label FontWeight="Bold" Content="Data pool:" Margin="-5 0 0 0" />
-                                    <Label Content="{Binding DataPoolInfo}" Margin="-5 0 0 0" />
-                                    <Label FontWeight="Bold" Content="Bots:" Margin="-5 0 0 0" />
-                                    <Label Content="{Binding Bots}" Margin="-5 0 0 0" />
-                                    <Label FontWeight="Bold" Content="Proxies:" Margin="-5 0 0 0" />
-                                    <Label Content="{Binding ProxyMode}" Margin="-5 0 0 0" />
-                                    <TextBlock FontWeight="Bold" Text="Hits:" Foreground="{DynamicResource ForegroundGood}" VerticalAlignment="Center" />
-                                    <TextBlock Text="{Binding DataHits}" Foreground="{DynamicResource ForegroundGood}" VerticalAlignment="Center" Margin="5 0" />
-                                    <TextBlock FontWeight="Bold" Text="Custom:" Foreground="{DynamicResource ForegroundCustom}" VerticalAlignment="Center" />
-                                    <TextBlock Text="{Binding DataCustom}" Foreground="{DynamicResource ForegroundCustom}" VerticalAlignment="Center" Margin="5 0" />
-                                    <TextBlock FontWeight="Bold" Text="ToCheck:" Foreground="{DynamicResource ForegroundToCheck}" VerticalAlignment="Center" />
-                                    <TextBlock Text="{Binding DataToCheck}" Foreground="{DynamicResource ForegroundToCheck}" VerticalAlignment="Center" Margin="5 0" />
-                                    <Label FontWeight="Bold" Content="Progress:" Margin="-5 0 0 0" />
-                                    <Label Content="{Binding ProgressString}" Margin="-5 0 0 0" />
-                                    <Label FontWeight="Bold" Content="CPM:" Margin="-5 0 0 0" />
-                                    <Label Content="{Binding CPM}" Margin="-5 0 0 0" />
-                                </WrapPanel>
-                                
-                                <Button Tag="{Binding}" Grid.Column="2" 
-                                        Click="EditJob" Margin="0 0 5 0"
-                                        ToolTip="Edit this job"
-                                        VerticalAlignment="Center"
-                                        Height="30"
-                                        Style="{StaticResource StyledPrimaryButton}" >
-                                    <StackPanel Orientation="Horizontal">
-                                        <iconPacks:PackIconRemixIcon Kind="Edit2Fill" />
-                                    </StackPanel>
+                                           TextTrimming="CharacterEllipsis"
+                                           TextWrapping="NoWrap"
+                                           ToolTip="{Binding DataPoolInfo}"/>
+
+                                <!-- Bots -->
+                                <Border Grid.Column="3" Background="#FF404040" CornerRadius="4" Padding="6,3" HorizontalAlignment="Center">
+                                    <TextBlock Text="{Binding Bots}" 
+                                               FontSize="11" 
+                                               Foreground="White" 
+                                               FontWeight="SemiBold"
+                                               TextAlignment="Center"/>
+                                </Border>
+
+                                <!-- Enhanced Progress with Better Display -->
+                                <StackPanel Grid.Column="4" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding ProgressString}" 
+                                               FontSize="11" 
+                                               Foreground="#FFCCCCCC" 
+                                               TextAlignment="Center"
+                                               FontWeight="Medium"
+                                               ToolTip="{Binding ProgressString}"/>
+                                    <!-- Enhanced Progress Bar -->
+                                    <ProgressBar Height="6" 
+                                                 Margin="0,4,0,0"
+                                                 Background="#FF303030"
+                                                 Foreground="#FF1E90FF"
+                                                 BorderThickness="0"
+                                                 Value="{Binding Progress, Mode=OneWay}" 
+                                                 Maximum="1"/>
+                                </StackPanel>
+
+                                <!-- Enhanced CPM -->
+                                <Border Grid.Column="5" Background="#FF28A745" CornerRadius="4" Padding="6,3" HorizontalAlignment="Center">
+                                    <TextBlock Text="{Binding CPM}" 
+                                               FontSize="11" 
+                                               Foreground="White" 
+                                               FontWeight="SemiBold"
+                                               TextAlignment="Center"/>
+                                </Border>
+
+                                <!-- Enhanced Hits -->
+                                <Border Grid.Column="6" Background="#FF28A745" CornerRadius="4" Padding="6,3" HorizontalAlignment="Center">
+                                    <TextBlock Text="{Binding DataHits}" 
+                                               FontSize="11" 
+                                               Foreground="White" 
+                                               FontWeight="Bold"
+                                               TextAlignment="Center"/>
+                                </Border>
+
+                                <!-- Enhanced Custom -->
+                                <Border Grid.Column="7" Background="#FF6F42C1" CornerRadius="4" Padding="6,3" HorizontalAlignment="Center">
+                                    <TextBlock Text="{Binding DataCustom}" 
+                                               FontSize="11" 
+                                               Foreground="White" 
+                                               FontWeight="Bold"
+                                               TextAlignment="Center"/>
+                                </Border>
+
+                                <!-- Enhanced Status -->
+                                <Border Grid.Column="8" 
+                                        Background="{Binding StatusColor}" 
+                                        CornerRadius="6" 
+                                        Padding="8,4" 
+                                        HorizontalAlignment="Center">
+                                    <TextBlock Text="{Binding StatusDisplayText}" 
+                                               FontSize="10" 
+                                               FontWeight="Bold"
+                                               Foreground="White"
+                                               TextAlignment="Center"/>
+                                </Border>
+
+                                <!-- Enhanced Action Buttons -->
+                                <StackPanel Grid.Column="9" Orientation="Horizontal" HorizontalAlignment="Center">
+                                    <Button Tag="{Binding}" 
+                                            Click="EditJob" 
+                                            ToolTip="Edit Job Configuration"
+                                            Width="30" Height="30"
+                                            Margin="2,0"
+                                            Background="#FF2563EB" 
+                                            Foreground="White"
+                                            Style="{StaticResource ReadableTabButton}" 
+                                            Padding="6">
+                                        <iconPacks:PackIconMaterial Kind="Pencil" Width="14" Height="14"/>
                                 </Button>
 
-                                <Button Tag="{Binding}" Grid.Column="3" 
-                                        Click="CloneJob" Margin="0 0 5 0"
-                                        ToolTip="Clone this job"
-                                        VerticalAlignment="Center"
-                                        Height="30"
-                                        Style="{StaticResource StyledPrimaryButton}" >
-                                    <StackPanel Orientation="Horizontal">
-                                        <iconPacks:PackIconFontAwesome Kind="CloneSolid" />
-                                    </StackPanel>
+                                    <Button Tag="{Binding}" 
+                                            Click="CloneJob" 
+                                            ToolTip="Clone Job"
+                                            Width="30" Height="30"
+                                            Margin="2,0"
+                                            Background="#FF7C3AED" 
+                                            Foreground="White"
+                                            Style="{StaticResource ReadableTabButton}" 
+                                            Padding="6">
+                                        <iconPacks:PackIconMaterial Kind="ContentCopy" Width="14" Height="14"/>
                                 </Button>
 
-                                <Button Tag="{Binding}" Grid.Column="4" 
+                                    <Button Tag="{Binding}" 
                                         Click="RemoveJob"
-                                        ToolTip="Remove this job"
-                                        VerticalAlignment="Center"
-                                        Height="30"
-                                        Style="{StaticResource StyledDangerButton}" >
-                                    <StackPanel Orientation="Horizontal">
-                                        <iconPacks:PackIconMaterial Kind="Close" />
+                                            ToolTip="Delete Job"
+                                            Width="30" Height="30"
+                                            Margin="2,0"
+                                            Background="#FFDC2626" 
+                                            Foreground="White"
+                                            Style="{StaticResource ReadableTabButton}" 
+                                            Padding="6">
+                                        <iconPacks:PackIconMaterial Kind="TrashCan" Width="14" Height="14"/>
+                                    </Button>
                                     </StackPanel>
-                                </Button>
                             </Grid>
                         </Border>
                     </DataTemplate>
                     <DataTemplate DataType="{x:Type vms:ProxyCheckJobViewModel}">
-                        <Border 
-                            Margin="0 0 0 3"
-                            BorderThickness="1"
-                            BorderBrush="Gray">
-                            <Grid>
+                        <!-- Enhanced Proxy Check Job Row -->
+                        <Border Background="#A0353535" 
+                                BorderBrush="#FF505050"
+                                BorderThickness="0,0,0,1" 
+                                Padding="12,10" 
+                                Margin="0,1"
+                                CornerRadius="4">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Style.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Background" Value="#B0404040"/>
+                                            <Setter Property="BorderBrush" Value="#FFFF6B35"/>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <Grid Cursor="Hand" Tag="{Binding}" MouseDown="ViewJob">
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="auto" />
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="auto" />
-                                    <ColumnDefinition Width="auto" />
-                                    <ColumnDefinition Width="auto" />
+                                    <ColumnDefinition Width="80"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="150"/>
+                                    <ColumnDefinition Width="70"/>
+                                    <ColumnDefinition Width="160"/>
+                                    <ColumnDefinition Width="90"/>
+                                    <ColumnDefinition Width="80"/>
+                                    <ColumnDefinition Width="80"/>
+                                    <ColumnDefinition Width="90"/>
+                                    <ColumnDefinition Width="110"/>
                                 </Grid.ColumnDefinitions>
 
-                                <Grid
-                                    Grid.Column="0"
-                                    Background="{DynamicResource BackgroundSecondary}"
-                                    VerticalAlignment="Stretch"
-                                    HorizontalAlignment="Left">
-                                    <Label 
+                                <!-- Enhanced Proxy Check Job ID -->
+                                <StackPanel Grid.Column="0" Orientation="Horizontal" HorizontalAlignment="Left">
+                                    <Border Background="#FFFF6B35" CornerRadius="8" Padding="8,4" Margin="0,0,6,0">
+                                        <TextBlock Text="{Binding Id}" 
                                         FontWeight="Bold"
-                                        FontSize="16"
-                                        VerticalAlignment="Center"
-                                        Content="{Binding IdAndStatus}" />
-                                </Grid>
+                                                   FontSize="12" 
+                                                   Foreground="White"
+                                                   TextAlignment="Center"/>
+                                    </Border>
+                                    <!-- Status Indicator -->
+                                    <Border Background="{Binding StatusColor}" 
+                                            Width="8" Height="8"
+                                            CornerRadius="4"
+                                            VerticalAlignment="Center"
+                                            ToolTip="{Binding StatusDisplayText}"/>
+                                </StackPanel>
 
-                                <WrapPanel 
-                                    Cursor="Hand"
-                                    Tag="{Binding}"
-                                    MouseDown="ViewJob"
-                                    Margin="5 0 0 0"
-                                    VerticalAlignment="Center"
-                                    Grid.Column="1">
-                                    <Label FontWeight="Bold" Content="Bots:" Margin="-5 0 0 0" />
-                                    <Label Content="{Binding Bots}" Margin="-5 0 0 0" />
-                                    <TextBlock FontWeight="Bold" Text="Working:" Foreground="{DynamicResource ForegroundGood}" VerticalAlignment="Center" />
-                                    <TextBlock Text="{Binding Working}" Foreground="{DynamicResource ForegroundGood}" VerticalAlignment="Center" Margin="5 0" />
-                                    <TextBlock FontWeight="Bold" Text="Not working:" Foreground="{DynamicResource ForegroundBad}" VerticalAlignment="Center" />
-                                    <TextBlock Text="{Binding NotWorking}" Foreground="{DynamicResource ForegroundBad}" VerticalAlignment="Center" Margin="5 0" />
-                                    <Label FontWeight="Bold" Content="Progress:" Margin="-5 0 0 0" />
-                                    <Label Content="{Binding ProgressString}" Margin="-5 0 0 0" />
-                                    <Label FontWeight="Bold" Content="CPM:" Margin="-5 0 0 0" />
-                                    <Label Content="{Binding CPM}" Margin="-5 0 0 0" />
-                                </WrapPanel>
+                                <!-- Enhanced Type with URL Info -->
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock Text="Proxy Check" 
+                                               FontSize="13" 
+                                               FontWeight="SemiBold" 
+                                               Foreground="White"/>
+                                    <TextBlock Text="{Binding UrlDisplayText}" 
+                                               FontSize="10" 
+                                               Foreground="#FFFF6B35" 
+                                               FontWeight="Medium"
+                                               ToolTip="{Binding Url}"/>
+                                </StackPanel>
 
-                                <Button Tag="{Binding}" Grid.Column="2" 
-                                        Click="EditJob" Margin="0 0 5 0"
-                                        ToolTip="Edit this job"
-                                        VerticalAlignment="Center"
-                                        Height="30"
-                                        Style="{StaticResource StyledPrimaryButton}" >
-                                    <StackPanel Orientation="Horizontal">
-                                        <iconPacks:PackIconRemixIcon Kind="Edit2Fill" />
-                                    </StackPanel>
-                                </Button>
+                                <!-- Status Info -->
+                                <TextBlock Grid.Column="2" 
+                                           Text="{Binding StatusDisplayText}" 
+                                           FontSize="11" 
+                                           Foreground="#FFCCCCCC" 
+                                           VerticalAlignment="Center"/>
 
-                                <Button Tag="{Binding}" Grid.Column="3" 
-                                        Click="CloneJob" Margin="0 0 5 0"
-                                        ToolTip="Clone this job"
-                                        VerticalAlignment="Center"
-                                        Height="30"
-                                        Style="{StaticResource StyledPrimaryButton}" >
-                                    <StackPanel Orientation="Horizontal">
-                                        <iconPacks:PackIconFontAwesome Kind="CloneSolid" />
-                                    </StackPanel>
-                                </Button>
+                                <!-- Bots -->
+                                <Border Grid.Column="3" Background="#FF404040" CornerRadius="4" Padding="6,3" HorizontalAlignment="Center">
+                                    <TextBlock Text="{Binding Bots}" 
+                                               FontSize="11" 
+                                               Foreground="White" 
+                                               FontWeight="SemiBold"
+                                               TextAlignment="Center"/>
+                                </Border>
 
-                                <Button Tag="{Binding}" Grid.Column="4" 
-                                        Click="RemoveJob"
-                                        ToolTip="Remove this job"
-                                        VerticalAlignment="Center"
-                                        Height="30"
-                                        Style="{StaticResource StyledDangerButton}" >
-                                    <StackPanel Orientation="Horizontal">
-                                        <iconPacks:PackIconMaterial Kind="Close" />
-                                    </StackPanel>
-                                </Button>
+                                <!-- Enhanced Progress -->
+                                <StackPanel Grid.Column="4" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding ProgressString}" 
+                                               FontSize="11" 
+                                               Foreground="#FFCCCCCC" 
+                                               TextAlignment="Center"
+                                               ToolTip="{Binding ProgressString}"/>
+                                    <!-- Progress Bar -->
+                                    <ProgressBar Height="4" 
+                                                 Margin="0,3,0,0"
+                                                 Background="#FF404040"
+                                                 Foreground="#FFFF6B35"
+                                                 BorderThickness="0"
+                                                 Value="{Binding Progress, Mode=OneWay}" 
+                                                 Maximum="1"
+                                                 Style="{StaticResource {x:Type ProgressBar}}"/>
+                                </StackPanel>
+
+                                <!-- Enhanced CPM -->
+                                <Border Grid.Column="5" Background="#FF28A745" CornerRadius="4" Padding="6,3" HorizontalAlignment="Center">
+                                    <TextBlock Text="{Binding CPM}" 
+                                               FontSize="11" 
+                                               Foreground="White" 
+                                               FontWeight="SemiBold"
+                                               TextAlignment="Center"/>
+                                </Border>
+
+                                <!-- Working -->
+                                <Border Grid.Column="6" Background="#FF28A745" CornerRadius="4" Padding="6,3" HorizontalAlignment="Center">
+                                    <TextBlock Text="{Binding Working}" 
+                                               FontSize="11" 
+                                               Foreground="White" 
+                                               FontWeight="Bold"
+                                               TextAlignment="Center"/>
+                                </Border>
+
+                                <!-- Not Working -->
+                                <Border Grid.Column="7" Background="#FFDC3545" CornerRadius="4" Padding="6,3" HorizontalAlignment="Center">
+                                    <TextBlock Text="{Binding NotWorking}" 
+                                               FontSize="11" 
+                                               Foreground="White" 
+                                               FontWeight="Bold"
+                                               TextAlignment="Center"/>
+                                </Border>
+
+                                <!-- Enhanced Status -->
+                                <Border Grid.Column="8" 
+                                        Background="{Binding StatusColor}" 
+                                        CornerRadius="6" 
+                                        Padding="8,4" 
+                                        HorizontalAlignment="Center">
+                                    <TextBlock Text="{Binding StatusDisplayText}" 
+                                               FontSize="10" 
+                                               FontWeight="Bold"
+                                               Foreground="White"
+                                               TextAlignment="Center"/>
+                                </Border>
+
+                                <!-- Enhanced Action Buttons -->
+                                <StackPanel Grid.Column="9" Orientation="Horizontal" HorizontalAlignment="Center">
+                                    <Button Tag="{Binding}" 
+                                            Click="EditJob" 
+                                            ToolTip="Edit Proxy Check Job"
+                                            Width="30" Height="30"
+                                            Margin="2,0"
+                                            Background="#FF2563EB" 
+                                            Foreground="White"
+                                            Style="{StaticResource ReadableTabButton}" 
+                                            Padding="6">
+                                        <iconPacks:PackIconMaterial Kind="Pencil" Width="14" Height="14"/>
+                                    </Button>
+
+                                    <Button Tag="{Binding}" 
+                                            Click="CloneJob" 
+                                            ToolTip="Clone Proxy Check Job"
+                                            Width="30" Height="30"
+                                            Margin="2,0"
+                                            Background="#FF7C3AED" 
+                                            Foreground="White"
+                                            Style="{StaticResource ReadableTabButton}" 
+                                            Padding="6">
+                                        <iconPacks:PackIconMaterial Kind="ContentCopy" Width="14" Height="14"/>
+                                    </Button>
+
+                                    <Button Tag="{Binding}" 
+                                            Click="RemoveJob"
+                                            ToolTip="Delete Proxy Check Job"
+                                            Width="30" Height="30"
+                                            Margin="2,0"
+                                            Background="#FFDC2626" 
+                                            Foreground="White"
+                                            Style="{StaticResource ReadableTabButton}" 
+                                            Padding="6">
+                                        <iconPacks:PackIconMaterial Kind="TrashCan" Width="14" Height="14"/>
+                                    </Button>
+                                </StackPanel>
                             </Grid>
                         </Border>
                     </DataTemplate>

@@ -56,6 +56,13 @@ namespace RuriLib.Functions.Http
                 request.Headers.TryAddWithoutValidation(header.Key, header.Value);
             }
 
+            // Manually add cookies as Cookie header since UseCookies = false
+            if (data.COOKIES.Count > 0)
+            {
+                var cookieHeader = string.Join("; ", data.COOKIES.Select(c => $"{c.Key}={c.Value}"));
+                request.Headers.TryAddWithoutValidation("Cookie", cookieHeader);
+            }
+
             string content = null;
 
             if (!string.IsNullOrEmpty(options.Content) || options.AlwaysSendContent)
@@ -79,11 +86,44 @@ namespace RuriLib.Functions.Http
             Activity.Current = null;
             using var timeoutCts = new CancellationTokenSource(options.TimeoutMilliseconds);
             using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(data.CancellationToken, timeoutCts.Token);
-            using var response = await client.SendAsync(request, options.ReadResponseContent ?
+            
+            var response = await client.SendAsync(request, options.ReadResponseContent ?
                 HttpCompletionOption.ResponseContentRead : HttpCompletionOption.ResponseHeadersRead,
                 linkedCts.Token).ConfigureAwait(false);
 
-            await LogHttpResponseData(data, response, cookieContainer, options).ConfigureAwait(false);
+            // Fast redirect handling if auto redirect is enabled
+            int redirectCount = 0;
+            while (options.AutoRedirect && redirectCount < options.MaxNumberOfRedirects && 
+                   ((int)response.StatusCode >= 300 && (int)response.StatusCode < 400) && 
+                   response.Headers.Location != null)
+            {
+                var location = response.Headers.Location.IsAbsoluteUri 
+                    ? response.Headers.Location 
+                    : new Uri(new Uri(options.Url), response.Headers.Location);
+                
+                response.Dispose();
+                
+                // Create redirect request with minimal headers
+                using var redirectRequest = new HttpRequestMessage(System.Net.Http.HttpMethod.Get, location)
+                {
+                    Version = request.Version
+                };
+                
+                // Copy essential headers only
+                if (request.Headers.UserAgent.Count > 0)
+                    redirectRequest.Headers.UserAgent.ParseAdd(request.Headers.UserAgent.ToString());
+                
+                response = await client.SendAsync(redirectRequest, options.ReadResponseContent ?
+                    HttpCompletionOption.ResponseContentRead : HttpCompletionOption.ResponseHeadersRead,
+                    linkedCts.Token).ConfigureAwait(false);
+                
+                redirectCount++;
+            }
+
+            using (response)
+            {
+                await LogHttpResponseData(data, response, cookieContainer, options).ConfigureAwait(false);
+            }
         }
 
         public async override Task HttpRequestRaw(BotData data, RawHttpRequestOptions options)
@@ -113,6 +153,13 @@ namespace RuriLib.Functions.Http
                 request.Headers.TryAddWithoutValidation(header.Key, header.Value);
             }
 
+            // Manually add cookies as Cookie header since UseCookies = false
+            if (data.COOKIES.Count > 0)
+            {
+                var cookieHeader = string.Join("; ", data.COOKIES.Select(c => $"{c.Key}={c.Value}"));
+                request.Headers.TryAddWithoutValidation("Cookie", cookieHeader);
+            }
+
             request.Content.Headers.ContentType = MediaTypeHeaderValue.Parse(options.ContentType);
 
             data.Logger.LogHeader();
@@ -121,11 +168,42 @@ namespace RuriLib.Functions.Http
             Activity.Current = null;
             using var timeoutCts = new CancellationTokenSource(options.TimeoutMilliseconds);
             using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(data.CancellationToken, timeoutCts.Token);
-            using var response = await client.SendAsync(request, options.ReadResponseContent ?
+            
+            var response = await client.SendAsync(request, options.ReadResponseContent ?
                 HttpCompletionOption.ResponseContentRead : HttpCompletionOption.ResponseHeadersRead,
                 linkedCts.Token).ConfigureAwait(false);
 
-            await LogHttpResponseData(data, response, cookieContainer, options).ConfigureAwait(false);
+            // Fast redirect handling (but usually not used for raw requests)
+            int redirectCount = 0;
+            while (options.AutoRedirect && redirectCount < options.MaxNumberOfRedirects && 
+                   ((int)response.StatusCode >= 300 && (int)response.StatusCode < 400) && 
+                   response.Headers.Location != null)
+            {
+                var location = response.Headers.Location.IsAbsoluteUri 
+                    ? response.Headers.Location 
+                    : new Uri(new Uri(options.Url), response.Headers.Location);
+                
+                response.Dispose();
+                
+                using var redirectRequest = new HttpRequestMessage(System.Net.Http.HttpMethod.Get, location)
+                {
+                    Version = request.Version
+                };
+                
+                if (request.Headers.UserAgent.Count > 0)
+                    redirectRequest.Headers.UserAgent.ParseAdd(request.Headers.UserAgent.ToString());
+                
+                response = await client.SendAsync(redirectRequest, options.ReadResponseContent ?
+                    HttpCompletionOption.ResponseContentRead : HttpCompletionOption.ResponseHeadersRead,
+                    linkedCts.Token).ConfigureAwait(false);
+                
+                redirectCount++;
+            }
+
+            using (response)
+            {
+                await LogHttpResponseData(data, response, cookieContainer, options).ConfigureAwait(false);
+            }
         }
 
         public async override Task HttpRequestBasicAuth(BotData data, BasicAuthHttpRequestOptions options)
@@ -154,6 +232,13 @@ namespace RuriLib.Functions.Http
                 request.Headers.TryAddWithoutValidation(header.Key, header.Value);
             }
 
+            // Manually add cookies as Cookie header since UseCookies = false
+            if (data.COOKIES.Count > 0)
+            {
+                var cookieHeader = string.Join("; ", data.COOKIES.Select(c => $"{c.Key}={c.Value}"));
+                request.Headers.TryAddWithoutValidation("Cookie", cookieHeader);
+            }
+
             // Add the basic auth header
             request.Headers.TryAddWithoutValidation("Authorization", "Basic " + Convert.ToBase64String(
                 Encoding.UTF8.GetBytes($"{options.Username}:{options.Password}")));
@@ -164,11 +249,49 @@ namespace RuriLib.Functions.Http
             Activity.Current = null;
             using var timeoutCts = new CancellationTokenSource(options.TimeoutMilliseconds);
             using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(data.CancellationToken, timeoutCts.Token);
-            using var response = await client.SendAsync(request, options.ReadResponseContent ?
+            
+            var response = await client.SendAsync(request, options.ReadResponseContent ?
                 HttpCompletionOption.ResponseContentRead : HttpCompletionOption.ResponseHeadersRead,
                 linkedCts.Token).ConfigureAwait(false);
 
-            await LogHttpResponseData(data, response, cookieContainer, options).ConfigureAwait(false);
+            // Fast redirect handling for basic auth
+            int redirectCount = 0;
+            while (options.AutoRedirect && redirectCount < options.MaxNumberOfRedirects && 
+                   ((int)response.StatusCode >= 300 && (int)response.StatusCode < 400) && 
+                   response.Headers.Location != null)
+            {
+                var location = response.Headers.Location.IsAbsoluteUri 
+                    ? response.Headers.Location 
+                    : new Uri(new Uri(options.Url), response.Headers.Location);
+                
+                response.Dispose();
+                
+                using var redirectRequest = new HttpRequestMessage(System.Net.Http.HttpMethod.Get, location)
+                {
+                    Version = request.Version
+                };
+                
+                if (request.Headers.UserAgent.Count > 0)
+                    redirectRequest.Headers.UserAgent.ParseAdd(request.Headers.UserAgent.ToString());
+                
+                // Keep basic auth for redirects to same domain
+                if (location.Host.Equals(new Uri(options.Url).Host, StringComparison.OrdinalIgnoreCase))
+                {
+                    redirectRequest.Headers.TryAddWithoutValidation("Authorization", "Basic " + Convert.ToBase64String(
+                        Encoding.UTF8.GetBytes($"{options.Username}:{options.Password}")));
+                }
+                
+                response = await client.SendAsync(redirectRequest, options.ReadResponseContent ?
+                    HttpCompletionOption.ResponseContentRead : HttpCompletionOption.ResponseHeadersRead,
+                    linkedCts.Token).ConfigureAwait(false);
+                
+                redirectCount++;
+            }
+
+            using (response)
+            {
+                await LogHttpResponseData(data, response, cookieContainer, options).ConfigureAwait(false);
+            }
         }
         public async override Task HttpRequestMultipart(BotData data, MultipartHttpRequestOptions options)
         {
@@ -235,6 +358,13 @@ namespace RuriLib.Functions.Http
                 request.Headers.TryAddWithoutValidation(header.Key, header.Value);
             }
 
+            // Manually add cookies as Cookie header since UseCookies = false
+            if (data.COOKIES.Count > 0)
+            {
+                var cookieHeader = string.Join("; ", data.COOKIES.Select(c => $"{c.Key}={c.Value}"));
+                request.Headers.TryAddWithoutValidation("Cookie", cookieHeader);
+            }
+
             data.Logger.LogHeader();
             LogHttpRequestData(data, request, SerializeMultipart(options.Boundary, options.Contents), options.Boundary);
 
@@ -243,11 +373,42 @@ namespace RuriLib.Functions.Http
                 Activity.Current = null;
                 using var timeoutCts = new CancellationTokenSource(options.TimeoutMilliseconds);
                 using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(data.CancellationToken, timeoutCts.Token);
-                using var response = await client.SendAsync(request, options.ReadResponseContent ?
+                
+                var response = await client.SendAsync(request, options.ReadResponseContent ?
                     HttpCompletionOption.ResponseContentRead : HttpCompletionOption.ResponseHeadersRead,
                     linkedCts.Token).ConfigureAwait(false);
 
-                await LogHttpResponseData(data, response, cookieContainer, options).ConfigureAwait(false);
+                // Fast redirect handling for multipart (usually not needed but supported)
+                int redirectCount = 0;
+                while (options.AutoRedirect && redirectCount < options.MaxNumberOfRedirects && 
+                       ((int)response.StatusCode >= 300 && (int)response.StatusCode < 400) && 
+                       response.Headers.Location != null)
+                {
+                    var location = response.Headers.Location.IsAbsoluteUri 
+                        ? response.Headers.Location 
+                        : new Uri(new Uri(options.Url), response.Headers.Location);
+                    
+                    response.Dispose();
+                    
+                    using var redirectRequest = new HttpRequestMessage(System.Net.Http.HttpMethod.Get, location)
+                    {
+                        Version = request.Version
+                    };
+                    
+                    if (request.Headers.UserAgent.Count > 0)
+                        redirectRequest.Headers.UserAgent.ParseAdd(request.Headers.UserAgent.ToString());
+                    
+                    response = await client.SendAsync(redirectRequest, options.ReadResponseContent ?
+                        HttpCompletionOption.ResponseContentRead : HttpCompletionOption.ResponseHeadersRead,
+                        linkedCts.Token).ConfigureAwait(false);
+                    
+                    redirectCount++;
+                }
+
+                using (response)
+                {
+                    await LogHttpResponseData(data, response, cookieContainer, options).ConfigureAwait(false);
+                }
             }
             finally
             {
@@ -258,29 +419,54 @@ namespace RuriLib.Functions.Http
 
         private static void LogHttpRequestData(BotData data, HttpRequestMessage request, string content = null, string boundary = null)
         {
-            var sb = new StringBuilder();
-            sb.AppendLine($"{request.Method} {request.RequestUri} HTTP/{request.Version}");
+            using var writer = new StringWriter();
+
+            // Log the method, uri and http version
+            writer.WriteLine($"{request.Method.Method} {request.RequestUri.PathAndQuery} HTTP/{request.Version.Major}.{request.Version.Minor}");
+
+            // Log the headers
+            writer.WriteLine($"Host: {request.RequestUri.Host}");
 
             foreach (var header in request.Headers)
             {
-                sb.AppendLine($"{header.Key}: {string.Join(", ", header.Value)}");
+                var separator = commaHeaders.Contains(header.Key) ? ", " : " ";
+                writer.WriteLine($"{header.Key}: {string.Join(separator, header.Value)}");
             }
 
-            if (request.Content != null)
+            // Log the cookie header
+            var cookies = data.COOKIES.Select(c => $"{c.Key}={c.Value}");
+
+            if (cookies.Any())
+                writer.WriteLine($"Cookie: {string.Join("; ", cookies)}");
+
+            if (request.Content != null && content != null)
             {
-                foreach (var header in request.Content.Headers)
+                switch (request.Content)
                 {
-                    sb.AppendLine($"{header.Key}: {string.Join(", ", header.Value)}");
-                }
+                    case StringContent x:
+                        writer.WriteLine($"Content-Type: {x.Headers.ContentType}");
+                        writer.WriteLine($"Content-Length: {x.Headers.ContentLength}");
+                        writer.WriteLine();
+                        writer.WriteLine(content);
+                        break;
 
-                if (content != null)
-                {
-                    sb.AppendLine();
-                    sb.AppendLine(content);
+                    case ByteArrayContent x:
+                        writer.WriteLine($"Content-Type: {x.Headers.ContentType}");
+                        writer.WriteLine($"Content-Length: {x.Headers.ContentLength}");
+                        writer.WriteLine();
+                        writer.WriteLine(content);
+                        break;
+
+                    case MultipartFormDataContent x:
+                        writer.WriteLine($"Content-Type: multipart/form-data; boundary=\"{boundary}\"");
+                        writer.WriteLine($"Content-Length: (not calculated)");
+                        writer.WriteLine();
+                        writer.WriteLine(content);
+                        break;
                 }
             }
 
-            data.Logger.Log(sb.ToString(), LogColors.Azure);
+            data.Logger.Log(writer.ToString(), LogColors.NonPhotoBlue);
         }
 
         private static async Task LogHttpResponseData(BotData data, HttpResponseMessage response,
@@ -312,86 +498,138 @@ namespace RuriLib.Functions.Http
             data.RESPONSECODE = (int)response.StatusCode;
             data.Logger.Log($"Response code: {data.RESPONSECODE}", LogColors.Citrine);
 
-            // Headers
-            var sbHeaders = new StringBuilder();
-            sbHeaders.AppendLine("Received Headers:");
-            foreach (var header in response.Headers.Concat(response.Content.Headers))
+            // Headers (conditional parsing for speed)
+            if (!requestOptions.DisableHeaderParsing)
             {
-                sbHeaders.AppendLine($"{header.Key}: {string.Join(", ", header.Value)}");
-            }
-
-            data.HEADERS = response.Headers.Concat(response.Content.Headers)
-                                .ToDictionary(h => h.Key, h => string.Join(", ", h.Value));
-
-            if (!data.HEADERS.ContainsKey("Content-Length"))
-                data.HEADERS["Content-Length"] = data.RAWSOURCE.Length.ToString();
-
-            data.Logger.Log(sbHeaders.ToString(), LogColors.Violet);
-
-            // Cookies
-            var cookies = Http.GetAllCookies(cookieContainer);
-            data.COOKIES.Clear();
-            foreach (Cookie cookie in cookies)
-            {
-                data.COOKIES[cookie.Name] = cookie.Value;
-            }
-
-            static bool TryParseCookie(string cookieHeader, out string cookieName, out string cookieValue)
-            {
-                cookieName = null;
-                cookieValue = null;
-
-                if (string.IsNullOrEmpty(cookieHeader))
+                static string GetHeaderValue(KeyValuePair<string, IEnumerable<string>> header)
                 {
-                    return false;
-                }
-
-                var separatorPos = cookieHeader.IndexOf('=');
-                if (separatorPos <= 0)
-                {
-                    // Invalid cookie, don't add it
-                    return false;
-                }
-
-                cookieName = cookieHeader.AsSpan(0, separatorPos).ToString();
-
-                var endCookiePos = cookieHeader.IndexOf(';', separatorPos);
-                if (endCookiePos == -1)
-                {
-                    cookieValue = cookieHeader.AsSpan(separatorPos + 1).ToString();
-                }
-                else
-                {
-                    cookieValue = cookieHeader.AsSpan(separatorPos + 1, endCookiePos - separatorPos - 1).ToString();
-                }
-
-                return true;
-            }
-
-            // HttpClient has trouble with the Set-Cookie header https://github.com/dotnet/runtime/issues/20942
-            // so we will help it out...
-            foreach (var header in response.Headers)
-            {
-                if (header.Key.Equals("Set-Cookie", StringComparison.OrdinalIgnoreCase) ||
-                    header.Key.Equals("Set-Cookie2", StringComparison.OrdinalIgnoreCase))
-                {
-                    foreach (var cookieHeader in header.Value)
+                    // For Set-Cookie headers, show only the name=value part
+                    if (header.Key.Equals("Set-Cookie", StringComparison.OrdinalIgnoreCase) ||
+                        header.Key.Equals("Set-Cookie2", StringComparison.OrdinalIgnoreCase))
                     {
-                        if (TryParseCookie(cookieHeader, out var cookieName, out var cookieValue))
+                        var cleanedCookies = new List<string>();
+                        foreach (var cookieHeader in header.Value)
                         {
-                            data.COOKIES[cookieName] = cookieValue;
+                            if (!string.IsNullOrEmpty(cookieHeader))
+                            {
+                                var separatorPos = cookieHeader.IndexOf('=');
+                                if (separatorPos > 0)
+                                {
+                                    var cookieName = cookieHeader.AsSpan(0, separatorPos).ToString();
+                                    var endCookiePos = cookieHeader.IndexOf(';', separatorPos);
+                                    var cookieValue = endCookiePos == -1 
+                                        ? cookieHeader.AsSpan(separatorPos + 1).ToString()
+                                        : cookieHeader.AsSpan(separatorPos + 1, endCookiePos - separatorPos - 1).ToString();
+                                    cleanedCookies.Add($"{cookieName}={cookieValue}");
+                                }
+                            }
+                        }
+                        return string.Join(", ", cleanedCookies);
+                    }
+                    else
+                    {
+                        var separator = commaHeaders.Contains(header.Key) ? ", " : " ";
+                        return string.Join(separator, header.Value);
+                    }
+                }
+
+                data.HEADERS = response.Headers.Concat(response.Content.Headers)
+                                    .ToDictionary(h => h.Key, h => GetHeaderValue(h));
+
+                if (!data.HEADERS.ContainsKey("Content-Length"))
+                    data.HEADERS["Content-Length"] = data.RAWSOURCE.Length.ToString();
+
+                data.Logger.Log("Received Headers:", LogColors.MediumPurple);
+                data.Logger.Log(data.HEADERS.Select(h => $"{h.Key}: {h.Value}"), LogColors.Violet);
+            }
+            else
+            {
+                data.HEADERS.Clear();
+                data.HEADERS["Content-Length"] = data.RAWSOURCE.Length.ToString();
+                data.Logger.Log("Header Parsing Skipped", LogColors.Orange);
+            }
+
+            // Cookies (conditional parsing for speed)
+            if (!requestOptions.DisableCookieParsing)
+            {
+                // Since UseCookies = false, we need to manually parse Set-Cookie headers
+                // The cookieContainer approach won't work with UseCookies = false
+
+                static bool TryParseCookie(string cookieHeader, out string cookieName, out string cookieValue)
+                {
+                    cookieName = null;
+                    cookieValue = null;
+
+                    if (string.IsNullOrEmpty(cookieHeader))
+                    {
+                        return false;
+                    }
+
+                    var separatorPos = cookieHeader.IndexOf('=');
+                    if (separatorPos <= 0)
+                    {
+                        // Invalid cookie, don't add it
+                        return false;
+                    }
+
+                    cookieName = cookieHeader.AsSpan(0, separatorPos).ToString();
+
+                    var endCookiePos = cookieHeader.IndexOf(';', separatorPos);
+                    if (endCookiePos == -1)
+                    {
+                        cookieValue = cookieHeader.AsSpan(separatorPos + 1).ToString();
+                    }
+                    else
+                    {
+                        cookieValue = cookieHeader.AsSpan(separatorPos + 1, endCookiePos - separatorPos - 1).ToString();
+                    }
+
+                    return true;
+                }
+
+                // Parse Set-Cookie headers manually since UseCookies = false
+                foreach (var header in response.Headers)
+                {
+                    if (header.Key.Equals("Set-Cookie", StringComparison.OrdinalIgnoreCase) ||
+                        header.Key.Equals("Set-Cookie2", StringComparison.OrdinalIgnoreCase))
+                    {
+                        foreach (var cookieHeader in header.Value)
+                        {
+                            if (TryParseCookie(cookieHeader, out var cookieName, out var cookieValue))
+                            {
+                                data.COOKIES[cookieName] = cookieValue;
+                            }
                         }
                     }
                 }
-            }
 
-            var sbCookies = new StringBuilder();
-            sbCookies.AppendLine("Received Cookies:");
-            foreach (var cookie in data.COOKIES)
-            {
-                sbCookies.AppendLine($"{cookie.Key}: {cookie.Value}");
+                // Also check content headers for Set-Cookie (sometimes they're there)
+                if (response.Content?.Headers != null)
+                {
+                    foreach (var header in response.Content.Headers)
+                    {
+                        if (header.Key.Equals("Set-Cookie", StringComparison.OrdinalIgnoreCase) ||
+                            header.Key.Equals("Set-Cookie2", StringComparison.OrdinalIgnoreCase))
+                        {
+                            foreach (var cookieHeader in header.Value)
+                            {
+                                if (TryParseCookie(cookieHeader, out var cookieName, out var cookieValue))
+                                {
+                                    data.COOKIES[cookieName] = cookieValue;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                data.Logger.Log("Received Cookies:", LogColors.MikadoYellow);
+                data.Logger.Log(data.COOKIES.Select(h => $"{h.Key}: {h.Value}"), LogColors.Khaki);
             }
-            data.Logger.Log(sbCookies.ToString(), LogColors.Khaki);
+            else
+            {
+                // Don't clear existing cookies, just skip parsing new ones
+                data.Logger.Log("Cookie Parsing Skipped", LogColors.Orange);
+            }
 
             // Decode brotli if still compressed
             if (data.HEADERS.ContainsKey("Content-Encoding") && data.HEADERS["Content-Encoding"].Contains("br"))

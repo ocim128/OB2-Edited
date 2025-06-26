@@ -65,6 +65,9 @@ namespace OpenBullet2.Native.ViewModels
             }
         }
 
+        public string ConfigName => MultiRunJob.Config?.Metadata.Name ?? "No config";
+        public string ConfigAuthor => MultiRunJob.Config != null ? $"by {MultiRunJob.Config.Metadata.Author}" : "";
+
         public string DataPoolInfo => MultiRunJob.DataPool switch
         {
             WordlistDataPool w => $"Wordlist ({w.Wordlist.Name})",
@@ -104,12 +107,20 @@ namespace OpenBullet2.Native.ViewModels
         #endregion
 
         #region Properties that need to be updated every second
-        public string RemainingWaitString => MultiRunJob.StartCondition switch
+        public string RemainingWaitString 
+        {
+            get
+            {
+                if (!IsWaiting) return "";
+                
+                return MultiRunJob.StartCondition switch
         {
             RelativeTimeStartCondition r => (MultiRunJob.StartTime + r.StartAfter - DateTime.Now).ToString(@"hh\:mm\:ss"),
             AbsoluteTimeStartCondition a => (a.StartAt - DateTime.Now).ToString(@"hh\:mm\:ss"),
-            _ => throw new NotImplementedException()
+                    _ => ""
         };
+            }
+        }
 
         public bool IsWaiting => MultiRunJob.Status is JobStatus.Waiting;
         #endregion
@@ -155,6 +166,8 @@ namespace OpenBullet2.Native.ViewModels
             }
         }
 
+
+
         public IEnumerable<HitsFilter> HitsFilters => Enum.GetValues(typeof(HitsFilter)).Cast<HitsFilter>();
 
         private HitsFilter hitsFilter = HitsFilter.Hits;
@@ -168,6 +181,8 @@ namespace OpenBullet2.Native.ViewModels
                 UpdateHitsCollection();
             }
         }
+
+
         #endregion
 
         public MultiRunJobViewerViewModel(MultiRunJobViewModel jobVM)
@@ -316,8 +331,16 @@ namespace OpenBullet2.Native.ViewModels
 
         private void OnHit(object sender, Hit hit)
         {
-            if ((HitsFilter == HitsFilter.Hits && hit.Type == "SUCCESS") || (HitsFilter == HitsFilter.ToCheck && hit.Type == "NONE")
-                || (HitsFilter == HitsFilter.Custom && hit.Type != "SUCCESS" && hit.Type != "NONE"))
+            // Only add hits that match the current filter to avoid performance issues
+            bool shouldAdd = HitsFilter switch
+            {
+                HitsFilter.Hits => hit.Type == "SUCCESS",
+                HitsFilter.ToCheck => hit.Type == "NONE",
+                HitsFilter.Custom => hit.Type != "SUCCESS" && hit.Type != "NONE" && hit.Type != "FAIL",
+                _ => false
+            };
+
+            if (shouldAdd)
             {
                 Application.Current.Dispatcher.Invoke(() => HitsCollection?.Add(new HitViewModel(hit)));
             }
@@ -334,15 +357,44 @@ namespace OpenBullet2.Native.ViewModels
 
         private void UpdateHitsCollection()
         {
-            var hits = HitsFilter switch
+            try
             {
-                HitsFilter.Hits => MultiRunJob.Hits.Where(h => h.Type == "SUCCESS"),
-                HitsFilter.ToCheck => MultiRunJob.Hits.Where(h => h.Type == "NONE"),
-                HitsFilter.Custom => MultiRunJob.Hits.Where(h => h.Type != "SUCCESS" && h.Type != "NONE"),
-                _ => throw new NotImplementedException()
-            };
+                // Take a snapshot of the hits collection to avoid threading issues
+                var hitsSnapshot = MultiRunJob.Hits.ToList();
+                
+                var hits = HitsFilter switch
+                {
+                    HitsFilter.Hits => hitsSnapshot.Where(h => h != null && h.Type == "SUCCESS"),
+                    HitsFilter.ToCheck => hitsSnapshot.Where(h => h != null && h.Type == "NONE"),
+                    HitsFilter.Custom => hitsSnapshot.Where(h => h != null && h.Type != "SUCCESS" && h.Type != "NONE" && h.Type != "FAIL"),
+                    _ => throw new NotImplementedException()
+                };
 
-            HitsCollection = new ObservableCollection<HitViewModel>(hits.Select(h => new HitViewModel(h)));
+                HitsCollection = new ObservableCollection<HitViewModel>(hits.Where(h => h != null).Select(h => new HitViewModel(h)));
+            }
+            catch (InvalidOperationException)
+            {
+                // Collection was modified during enumeration, retry once
+                try
+                {
+                    var hitsSnapshot = MultiRunJob.Hits.ToList();
+                    
+                    var hits = HitsFilter switch
+                    {
+                        HitsFilter.Hits => hitsSnapshot.Where(h => h != null && h.Type == "SUCCESS"),
+                        HitsFilter.ToCheck => hitsSnapshot.Where(h => h != null && h.Type == "NONE"),
+                        HitsFilter.Custom => hitsSnapshot.Where(h => h != null && h.Type != "SUCCESS" && h.Type != "NONE" && h.Type != "FAIL"),
+                        _ => throw new NotImplementedException()
+                    };
+
+                    HitsCollection = new ObservableCollection<HitViewModel>(hits.Where(h => h != null).Select(h => new HitViewModel(h)));
+                }
+                catch
+                {
+                    // If it still fails, just set an empty collection
+                    HitsCollection = new ObservableCollection<HitViewModel>();
+                }
+            }
         }
         #endregion
 
@@ -443,6 +495,18 @@ namespace OpenBullet2.Native.ViewModels
             await MultiRunJob.ChangeBots(newValue);
             MultiRunJob.Bots = newValue;
             Job.UpdateBots();
+        }
+
+        public void ResetSkip()
+        {
+            if (MultiRunJob.Status is JobStatus.Idle)
+            {
+                MultiRunJob.Skip = 0;
+                Job.UpdateSkip();
+                OnPropertyChanged(nameof(Job.Skip));
+                // Update progress string since it depends on skip value
+                OnPropertyChanged(nameof(Job.ProgressString));
+            }
         }
         #endregion
 

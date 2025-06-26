@@ -1,0 +1,323 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:mah="http://metro.mahapps.com/winfx/xaml/controls"
+                    xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks">
+
+    <!-- Modern Color Palette -->
+    <SolidColorBrush x:Key="Modern.ThemeMain" Color="#3B82F6" />
+    <SolidColorBrush x:Key="Modern.ThemeAccent" Color="#8B5CF6" />
+    
+    <!-- Background Colors -->
+    <SolidColorBrush x:Key="Modern.BackgroundMain" Color="#0F172A" />
+    <SolidColorBrush x:Key="Modern.BackgroundSecondary" Color="#1E293B" />
+    <SolidColorBrush x:Key="Modern.BackgroundTertiary" Color="#334155" />
+    <SolidColorBrush x:Key="Modern.BackgroundInput" Color="#1E293B" />
+    <SolidColorBrush x:Key="Modern.BackgroundCard" Color="#1E293B" />
+    <SolidColorBrush x:Key="Modern.BackgroundElevated" Color="#374151" />
+    
+    <!-- Foreground Colors -->
+    <SolidColorBrush x:Key="Modern.ForegroundMain" Color="#F8FAFC" />
+    <SolidColorBrush x:Key="Modern.ForegroundSecondary" Color="#CBD5E1" />
+    <SolidColorBrush x:Key="Modern.ForegroundMuted" Color="#94A3B8" />
+    <SolidColorBrush x:Key="Modern.ForegroundInput" Color="#F8FAFC" />
+    
+    <!-- Semantic Colors -->
+    <SolidColorBrush x:Key="Modern.Success" Color="#10B981" />
+    <SolidColorBrush x:Key="Modern.Warning" Color="#F59E0B" />
+    <SolidColorBrush x:Key="Modern.Error" Color="#EF4444" />
+    <SolidColorBrush x:Key="Modern.Info" Color="#3B82F6" />
+    
+    <!-- Border Colors -->
+    <SolidColorBrush x:Key="Modern.BorderMain" Color="#475569" />
+    <SolidColorBrush x:Key="Modern.BorderInput" Color="#475569" />
+    <SolidColorBrush x:Key="Modern.BorderFocus" Color="#3B82F6" />
+    <SolidColorBrush x:Key="Modern.BorderHover" Color="#64748B" />
+
+    <!-- Modern Button Styles -->
+    <Style x:Key="ModernButton" TargetType="{x:Type Button}" BasedOn="{StaticResource MahApps.Styles.Button}">
+        <Setter Property="Background" Value="{StaticResource Modern.BackgroundInput}" />
+        <Setter Property="BorderBrush" Value="{StaticResource Modern.BorderMain}" />
+        <Setter Property="Foreground" Value="{StaticResource Modern.ForegroundMain}" />
+        <Setter Property="FontWeight" Value="Medium" />
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="Padding" Value="16,8" />
+        <Setter Property="MinHeight" Value="36" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="mah:ControlsHelper.CornerRadius" Value="8" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type Button}">
+                    <Grid>
+                        <mah:ClipBorder x:Name="Border"
+                                      Background="{TemplateBinding Background}"
+                                      BorderBrush="{TemplateBinding BorderBrush}"
+                                      BorderThickness="{TemplateBinding BorderThickness}"
+                                      CornerRadius="{TemplateBinding mah:ControlsHelper.CornerRadius}"
+                                      SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}">
+                            <mah:ClipBorder.Effect>
+                                <DropShadowEffect x:Name="DropShadow"
+                                                BlurRadius="4"
+                                                Opacity="0.1"
+                                                ShadowDepth="2"
+                                                Direction="270"
+                                                Color="Black" />
+                            </mah:ClipBorder.Effect>
+                        </mah:ClipBorder>
+                        
+                        <mah:ContentControlEx x:Name="PART_ContentPresenter"
+                                            Margin="{TemplateBinding BorderThickness}"
+                                            Padding="{TemplateBinding Padding}"
+                                            HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                            VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+                                            Content="{TemplateBinding Content}"
+                                            ContentStringFormat="{TemplateBinding ContentStringFormat}"
+                                            ContentTemplate="{TemplateBinding ContentTemplate}"
+                                            ContentTemplateSelector="{TemplateBinding ContentTemplateSelector}"
+                                            SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
+                    </Grid>
+                    
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Border" Property="BorderBrush" Value="{StaticResource Modern.BorderHover}" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Border" Property="Background" Value="{StaticResource Modern.BackgroundTertiary}" />
+                        </Trigger>
+                        <Trigger Property="IsFocused" Value="True">
+                            <Setter TargetName="Border" Property="BorderBrush" Value="{StaticResource Modern.BorderFocus}" />
+                            <Setter TargetName="Border" Property="BorderThickness" Value="2" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="Border" Property="Opacity" Value="0.6" />
+                            <Setter TargetName="PART_ContentPresenter" Property="Opacity" Value="0.6" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Modern Primary Button -->
+    <Style x:Key="ModernPrimaryButton" TargetType="{x:Type Button}" BasedOn="{StaticResource ModernButton}">
+        <Setter Property="Background" Value="{StaticResource Modern.ThemeMain}" />
+        <Setter Property="BorderBrush" Value="{StaticResource Modern.ThemeMain}" />
+        <Setter Property="Foreground" Value="White" />
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="#2563EB" />
+                <Setter Property="BorderBrush" Value="#2563EB" />
+            </Trigger>
+            <Trigger Property="IsPressed" Value="True">
+                <Setter Property="Background" Value="#1D4ED8" />
+                <Setter Property="BorderBrush" Value="#1D4ED8" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- Modern Success Button -->
+    <Style x:Key="ModernSuccessButton" TargetType="{x:Type Button}" BasedOn="{StaticResource ModernButton}">
+        <Setter Property="Background" Value="{StaticResource Modern.Success}" />
+        <Setter Property="BorderBrush" Value="{StaticResource Modern.Success}" />
+        <Setter Property="Foreground" Value="White" />
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="#059669" />
+                <Setter Property="BorderBrush" Value="#059669" />
+            </Trigger>
+            <Trigger Property="IsPressed" Value="True">
+                <Setter Property="Background" Value="#047857" />
+                <Setter Property="BorderBrush" Value="#047857" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- Modern Warning Button -->
+    <Style x:Key="ModernWarningButton" TargetType="{x:Type Button}" BasedOn="{StaticResource ModernButton}">
+        <Setter Property="Background" Value="{StaticResource Modern.Warning}" />
+        <Setter Property="BorderBrush" Value="{StaticResource Modern.Warning}" />
+        <Setter Property="Foreground" Value="White" />
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="#D97706" />
+                <Setter Property="BorderBrush" Value="#D97706" />
+            </Trigger>
+            <Trigger Property="IsPressed" Value="True">
+                <Setter Property="Background" Value="#B45309" />
+                <Setter Property="BorderBrush" Value="#B45309" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- Modern Danger Button -->
+    <Style x:Key="ModernDangerButton" TargetType="{x:Type Button}" BasedOn="{StaticResource ModernButton}">
+        <Setter Property="Background" Value="{StaticResource Modern.Error}" />
+        <Setter Property="BorderBrush" Value="{StaticResource Modern.Error}" />
+        <Setter Property="Foreground" Value="White" />
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="#DC2626" />
+                <Setter Property="BorderBrush" Value="#DC2626" />
+            </Trigger>
+            <Trigger Property="IsPressed" Value="True">
+                <Setter Property="Background" Value="#B91C1C" />
+                <Setter Property="BorderBrush" Value="#B91C1C" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- Modern TextBox Style -->
+    <Style x:Key="ModernTextBox" TargetType="{x:Type TextBox}" BasedOn="{StaticResource MahApps.Styles.TextBox}">
+        <Setter Property="Background" Value="{StaticResource Modern.BackgroundInput}" />
+        <Setter Property="BorderBrush" Value="{StaticResource Modern.BorderInput}" />
+        <Setter Property="Foreground" Value="{StaticResource Modern.ForegroundInput}" />
+        <Setter Property="FontFamily" Value="Segoe UI" />
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="Padding" Value="12,8" />
+        <Setter Property="MinHeight" Value="36" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="mah:ControlsHelper.CornerRadius" Value="6" />
+        <Style.Triggers>
+            <Trigger Property="IsFocused" Value="True">
+                <Setter Property="BorderBrush" Value="{StaticResource Modern.BorderFocus}" />
+                <Setter Property="BorderThickness" Value="2" />
+            </Trigger>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="BorderBrush" Value="{StaticResource Modern.BorderHover}" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- Modern ComboBox Style -->
+    <Style x:Key="ModernComboBox" TargetType="{x:Type ComboBox}" BasedOn="{StaticResource MahApps.Styles.ComboBox}">
+        <Setter Property="Background" Value="{StaticResource Modern.BackgroundInput}" />
+        <Setter Property="BorderBrush" Value="{StaticResource Modern.BorderInput}" />
+        <Setter Property="Foreground" Value="{StaticResource Modern.ForegroundInput}" />
+        <Setter Property="FontFamily" Value="Segoe UI" />
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="Padding" Value="12,8" />
+        <Setter Property="MinHeight" Value="36" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="mah:ControlsHelper.CornerRadius" Value="6" />
+    </Style>
+
+    <!-- Modern Card Style -->
+    <Style x:Key="ModernCard" TargetType="{x:Type Border}">
+        <Setter Property="Background" Value="{StaticResource Modern.BackgroundCard}" />
+        <Setter Property="BorderBrush" Value="{StaticResource Modern.BorderMain}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="12" />
+        <Setter Property="Padding" Value="20" />
+        <Setter Property="Effect">
+            <Setter.Value>
+                <DropShadowEffect BlurRadius="8"
+                                Opacity="0.1"
+                                ShadowDepth="4"
+                                Direction="270"
+                                Color="Black" />
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Modern Typography -->
+    <Style x:Key="ModernHeading1" TargetType="{x:Type TextBlock}">
+        <Setter Property="FontFamily" Value="Segoe UI" />
+        <Setter Property="FontSize" Value="32" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{StaticResource Modern.ForegroundMain}" />
+        <Setter Property="LineHeight" Value="40" />
+    </Style>
+
+    <Style x:Key="ModernHeading2" TargetType="{x:Type TextBlock}">
+        <Setter Property="FontFamily" Value="Segoe UI" />
+        <Setter Property="FontSize" Value="24" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{StaticResource Modern.ForegroundMain}" />
+        <Setter Property="LineHeight" Value="32" />
+    </Style>
+
+    <Style x:Key="ModernHeading3" TargetType="{x:Type TextBlock}">
+        <Setter Property="FontFamily" Value="Segoe UI" />
+        <Setter Property="FontSize" Value="20" />
+        <Setter Property="FontWeight" Value="Medium" />
+        <Setter Property="Foreground" Value="{StaticResource Modern.ForegroundMain}" />
+        <Setter Property="LineHeight" Value="28" />
+    </Style>
+
+    <Style x:Key="ModernBodyText" TargetType="{x:Type TextBlock}">
+        <Setter Property="FontFamily" Value="Segoe UI" />
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="FontWeight" Value="Normal" />
+        <Setter Property="Foreground" Value="{StaticResource Modern.ForegroundMain}" />
+        <Setter Property="LineHeight" Value="20" />
+    </Style>
+
+    <Style x:Key="ModernBodyTextSecondary" TargetType="{x:Type TextBlock}">
+        <Setter Property="FontFamily" Value="Segoe UI" />
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="FontWeight" Value="Normal" />
+        <Setter Property="Foreground" Value="{StaticResource Modern.ForegroundSecondary}" />
+        <Setter Property="LineHeight" Value="20" />
+    </Style>
+
+    <Style x:Key="ModernCaptionText" TargetType="{x:Type TextBlock}">
+        <Setter Property="FontFamily" Value="Segoe UI" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="FontWeight" Value="Normal" />
+        <Setter Property="Foreground" Value="{StaticResource Modern.ForegroundMuted}" />
+        <Setter Property="LineHeight" Value="16" />
+    </Style>
+
+    <!-- Modern CheckBox Style -->
+    <Style x:Key="ModernCheckBox" TargetType="{x:Type CheckBox}" BasedOn="{StaticResource MahApps.Styles.CheckBox}">
+        <Setter Property="Foreground" Value="{StaticResource Modern.ForegroundMain}" />
+        <Setter Property="FontFamily" Value="Segoe UI" />
+        <Setter Property="FontSize" Value="14" />
+    </Style>
+
+    <!-- Modern Menu Item Style -->
+    <Style x:Key="ModernMenuItem" TargetType="{x:Type TextBlock}">
+        <Setter Property="FontFamily" Value="Segoe UI" />
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="FontWeight" Value="Medium" />
+        <Setter Property="Foreground" Value="{StaticResource Modern.ForegroundSecondary}" />
+        <Setter Property="Padding" Value="12,8" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Foreground" Value="{StaticResource Modern.ForegroundMain}" />
+                <Setter Property="Background" Value="{StaticResource Modern.BackgroundSecondary}" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- Modern Progress Ring -->
+    <Style x:Key="ModernProgressRing" TargetType="{x:Type mah:ProgressRing}" BasedOn="{StaticResource MahApps.Styles.ProgressRing}">
+        <Setter Property="Foreground" Value="{StaticResource Modern.ThemeMain}" />
+    </Style>
+
+    <!-- Modern Navigation Button -->
+    <Style x:Key="ModernNavButton" TargetType="{x:Type Button}" BasedOn="{StaticResource ModernButton}">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="HorizontalContentAlignment" Value="Left" />
+        <Setter Property="Padding" Value="12,8" />
+        <Setter Property="MinHeight" Value="32" />
+        <Setter Property="mah:ControlsHelper.CornerRadius" Value="6" />
+        <Setter Property="FontWeight" Value="Medium" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Foreground" Value="{StaticResource Modern.ForegroundSecondary}" />
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="{StaticResource Modern.BackgroundTertiary}" />
+                <Setter Property="Foreground" Value="{StaticResource Modern.ForegroundMain}" />
+            </Trigger>
+            <Trigger Property="IsPressed" Value="True">
+                <Setter Property="Background" Value="{StaticResource Modern.ThemeMain}" />
+                <Setter Property="Foreground" Value="White" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+</ResourceDictionary> 

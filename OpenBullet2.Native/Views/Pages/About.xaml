@@ -4,73 +4,135 @@
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
       xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
-      xmlns:gif="http://wpfanimatedgif.codeplex.com"
       xmlns:local="clr-namespace:OpenBullet2.Native.Views.Pages"
       mc:Ignorable="d" 
       d:DesignHeight="550" d:DesignWidth="780"
       Title="About">
 
-    <Grid>
+    <Grid Background="Transparent" Margin="24,20,24,24">
         <Grid.RowDefinitions>
-            <RowDefinition Height="auto" />
             <RowDefinition Height="*" />
-            <RowDefinition Height="40" />
+            <RowDefinition Height="auto" />
         </Grid.RowDefinitions>
 
-        <StackPanel Grid.Row="0">
-            <TextBlock
-                   FontSize="14" 
-                   TextWrapping="Wrap" 
-                   Foreground="{DynamicResource ForegroundMain}">
-                <Italic>OpenBullet 2</Italic> is an automation suite powered by .NET core. It allows to perform requests towards a target webapp and offers a lot of tools to work with the results. This software can be used for <Bold>scraping</Bold> and <Bold>parsing</Bold> data, automated <Bold>pentesting</Bold> and much more.
-                <LineBreak/><LineBreak/>
-                <Span Foreground="{DynamicResource ForegroundBad}"><Bold>IMPORTANT!</Bold> Performing (D)DoS attacks or credential stuffing on sites you do not own (or you do not have permission to test) is <Bold>illegal</Bold>! The developer will not be held responsible for improper use of this software.</Span>
-                <LineBreak/><LineBreak/>
-                <Bold>Developer</Bold>: <Span Foreground="LightPink">Ruri</Span>
-                <LineBreak/>
-                <Bold>Collaborators</Bold>: demiurgo, <Image gif:ImageBehavior.AnimationSpeedRatio="0.2" gif:ImageBehavior.AnimatedSource="/Images/meinname.gif" Width="80" Height="18" Margin="0 0 0 -5" />
-                <LineBreak/>
-                <Bold>Alpha testers</Bold>: <Image gif:ImageBehavior.AnimatedSource="/Images/cider.gif" Width="50" Height="18" Margin="0 0 0 -4" />, Flix88, <Span Foreground="#f00">kurosaki ichigo</Span>
-                <LineBreak/>
-                <Bold>Beta testers</Bold>: <Span Foreground="#fb7efd">B</Span><Span Foreground="#3783ff">1</Span><Span Foreground="#0f0">r</Span><Span Foreground="#ff0">d</Span><Span Foreground="#fc2847">Y</Span>, Br4uN, <Image gif:ImageBehavior.AnimatedSource="/Images/fairy.gif" Width="33" Height="16" Margin="2 0 0 -5" />, <Image gif:ImageBehavior.AnimatedSource="/Images/ffaez.gif" Width="63" Height="12" Margin="0 0 0 -1" />, Itamai, <Image gif:ImageBehavior.AnimatedSource="/Images/laiteux.gif" Width="53" Height="12" Margin="0 0 0 -2" />, Pure
-                <LineBreak/>
-                <Bold>Supporters</Bold>: <Image gif:ImageBehavior.AnimatedSource="/Images/james.gif" Width="90" Height="15" Margin="0 0 0 -4" />, <Image gif:ImageBehavior.AnimatedSource="/Images/ffaez.gif" Width="63" Height="12" Margin="0 0 0 -1" />, <Image gif:ImageBehavior.AnimatedSource="/Images/sjw.gif" Width="80" Margin="0 0 0 -1" />, <Span Foreground="Orange">Ikamai, <Image gif:ImageBehavior.AnimatedSource="/Images/thefiendqq.gif" Width="73" Height="16" Margin="0 0 0 -5" />, Patch2201, Spic,</Span> <Span Foreground="#fb7efd">B</Span><Span Foreground="#3783ff">1</Span><Span Foreground="#0f0">r</Span><Span Foreground="#ff0">d</Span><Span Foreground="#fc2847">Y,</Span> <Span Foreground="Orange"> <Image gif:ImageBehavior.AnimatedSource="/Images/mastercho.gif" Width="58" Height="16" Margin="0 0 0 -5" />, alexparkin,</Span> <Span Foreground="Gold">k4k4r0to, donx, Crackdealer, moon.Man, <Image gif:ImageBehavior.AnimatedSource="/Images/laiteux.gif" Width="53" Height="12" Margin="0 0 0 -2" />, HarveyS, ＥｄｗａｒｄＮ, mimic, Matthew, MadmanDev, Rael, boggy94, Pegasus, Phantøm, Joey, dew88, ManoPlayBRL, Plog, Barmoley, Itamai, Kurosaki Ichigo, Pool, Finlay1010, n00biE, kaatil, Speeedyyyy, AccountMast3r, Ruzzlzz, Cal, Sparky (Rare), Fr00tl00ps | Lisse, dankmemes43, PortgasDAce, Lucif3rHun1</Span>
-                <LineBreak/><LineBreak/>The
-                <Span Foreground="{DynamicResource ForegroundGood}">This software is <Italic>Open Source</Italic> and licensed under the MIT license. Please visit the <Bold>repository</Bold> using the button below.</Span>
-            </TextBlock>
-        </StackPanel>
+        <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" 
+                     CanContentScroll="False" PanningMode="VerticalOnly">
+            <Border Style="{StaticResource StandardCardStyle}" Background="#C0353535">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource BodyTextStyle}" TextWrapping="Wrap">
+                        
+                        <!-- Main Introduction -->
+                        <Run FontSize="24" FontWeight="Bold" Foreground="#4FC3F7">🤖 Welcome to OpenBullet 2!</Run>
+                        <LineBreak/><LineBreak/>
+                        
+                        <Italic>Your friendly neighborhood automation companion!</Italic> 🏠
+                        <LineBreak/><LineBreak/>
+                        
+                        <!-- Humorous Description -->
+                        <Bold>What does this magical software do?</Bold> 🎩✨
+                        <LineBreak/>
+                        Think of OpenBullet 2 as your personal digital assistant that never sleeps, never complains, and definitely doesn't ask for coffee breaks! ☕
+                        <LineBreak/><LineBreak/>
+                        
+                        This automation suite is like having a super-powered robot that can:
+                        <LineBreak/>
+                        • 🕸️ <Bold>Web Scraping</Bold> - Turn websites into your personal data goldmine
+                        <LineBreak/>
+                        • 🔍 <Bold>Data Parsing</Bold> - Make sense of messy data like a digital detective
+                        <LineBreak/>
+                        • 🛡️ <Bold>Security Testing</Bold> - Find vulnerabilities before the bad guys do
+                        <LineBreak/>
+                        • 🔧 <Bold>API Testing</Bold> - Poke and prod APIs until they confess their secrets
+                        <LineBreak/>
+                        • 📊 <Bold>Data Analysis</Bold> - Turn numbers into insights (and insights into profits!)
+                        <LineBreak/><LineBreak/>
+                        
+                        <!-- Fun Features -->
+                        <Run FontWeight="Bold" Foreground="#81C784">Why You'll Love It:</Run> 💚
+                        <LineBreak/>
+                        ✅ <Bold>Blazing Fast</Bold> - Powered by .NET 8 (faster than your morning espresso!)
+                        <LineBreak/>
+                        ✅ <Bold>User Friendly</Bold> - So intuitive, even your pet could use it (results may vary)
+                        <LineBreak/>
+                        ✅ <Bold>Highly Configurable</Bold> - More options than a fancy coffee shop
+                        <LineBreak/>
+                        ✅ <Bold>Open Source</Bold> - Free as in freedom (and free as in beer!)
+                        <LineBreak/><LineBreak/>
+                        
+                        <!-- Important Notice -->
+                        <Run FontWeight="Bold" Foreground="#F44336" FontSize="16">⚠️ SUPER IMPORTANT LEGAL STUFF! ⚠️</Run>
+                        <LineBreak/>
+                        <Span Foreground="{DynamicResource ForegroundBad}">
+                            Use your powers wisely, young padawan! 🧙‍♂️ Only test on websites you own or have explicit permission to test. 
+                            Breaking into someone else's digital castle without permission is not just rude - it's <Bold>illegal</Bold>! 
+                            We're here to build, not break! 🏗️💪
+                        </Span>
+                        <LineBreak/><LineBreak/>
+                        
+                        <!-- Credits -->
+                        <Run FontWeight="Bold" Foreground="#FFC107">🎉 The Awesome Humans Behind This Magic:</Run>
+                        <LineBreak/>
+                        🎨 <Bold>Created by</Bold>: <Span Foreground="LightPink">Ruri</Span> (The mastermind!)
+                        <LineBreak/>
+                        🤝 <Bold>Amazing Contributors</Bold>: A fantastic community of developers who make this software better every day!
+                        <LineBreak/>
+                        🧪 <Bold>Beta Testers</Bold>: The brave souls who clicked buttons before anyone else knew what they did
+                        <LineBreak/>
+                        💝 <Bold>Supporters</Bold>: The generous people who keep the coffee flowing and servers running
+                        <LineBreak/><LineBreak/>
+                        
+                        <!-- Final Message -->
+                        <Run FontWeight="Bold" Foreground="#9C27B0">🚀 Ready to Automate Your World?</Run>
+                        <LineBreak/>
+                        Whether you're a seasoned pro or just starting your automation journey, OpenBullet 2 is here to make your digital life easier, 
+                        faster, and a whole lot more fun! Remember: with great power comes great responsibility (and hopefully great results)! 
+                        <LineBreak/><LineBreak/>
+                        
+                        <Span Foreground="{DynamicResource ForegroundGood}">
+                            <Bold>💡 Pro Tip:</Bold> This software is <Italic>Open Source</Italic> and licensed under the MIT license. 
+                            Feel free to peek under the hood, contribute improvements, or just star us on GitHub! ⭐
+                        </Span>
+                        <LineBreak/><LineBreak/>
+                        
+                        <Run FontStyle="Italic" Foreground="#607D8B">Happy Automating! 🎊</Run>
+                    </TextBlock>
+                </StackPanel>
+            </Border>
+        </ScrollViewer>
 
-        <StackPanel Orientation="Horizontal" Grid.Row="2">
-            <Button x:Name="licenseButton" Style="{StaticResource StyledButton}" Click="OpenLicense" Margin="0 5 5 5">
-                <StackPanel Orientation="Horizontal">
-                    <iconPacks:PackIconBootstrapIcons Kind="TextParagraph" />
-                    <TextBlock VerticalAlignment="Center" Margin="5 0">License</TextBlock>
-                </StackPanel>
-            </Button>
-            <Button x:Name="donateButton" Style="{StaticResource StyledButton}" Click="OpenDonation" Margin="0 5 5 5">
-                <StackPanel Orientation="Horizontal">
-                    <iconPacks:PackIconMaterial Kind="Bitcoin" />
-                    <TextBlock VerticalAlignment="Center" Margin="5 0">Donate</TextBlock>
-                </StackPanel>
-            </Button>
-            <Button x:Name="repoButton" Style="{StaticResource StyledButton}" Click="OpenRepository" Margin="0 5 5 5">
-                <StackPanel Orientation="Horizontal">
-                    <iconPacks:PackIconSimpleIcons Kind="Git" />
-                    <TextBlock VerticalAlignment="Center" Margin="5 0">Repository</TextBlock>
-                </StackPanel>
-            </Button>
-            <Button x:Name="forumButton" Style="{StaticResource StyledButton}" Click="OpenForum" Margin="0 5 5 5">
-                <StackPanel Orientation="Horizontal">
-                    <iconPacks:PackIconForkAwesome Kind="Users" />
-                    <TextBlock VerticalAlignment="Center" Margin="5 0">Official Forum</TextBlock>
-                </StackPanel>
-            </Button>
-            <Button x:Name="issuesButton" Style="{StaticResource StyledButton}" Click="OpenIssues" Margin="0 5 5 5">
-                <StackPanel Orientation="Horizontal">
-                    <iconPacks:PackIconForkAwesome Kind="Bug" />
-                    <TextBlock VerticalAlignment="Center" Margin="5 0">Report an issue</TextBlock>
-                </StackPanel>
-            </Button>
-        </StackPanel>
+        <Border Grid.Row="1" Style="{StaticResource CompactCardStyle}" Background="#80404040" Margin="0,16,0,0">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                <Button x:Name="licenseButton" Style="{StaticResource StyledButton}" Click="OpenLicense" Margin="0,0,8,0">
+                    <StackPanel Orientation="Horizontal">
+                        <iconPacks:PackIconBootstrapIcons Kind="TextParagraph" Margin="0,0,4,0"/>
+                        <TextBlock VerticalAlignment="Center">License</TextBlock>
+                    </StackPanel>
+                </Button>
+                <Button x:Name="donateButton" Style="{StaticResource StyledButton}" Click="OpenDonation" Margin="0,0,8,0">
+                    <StackPanel Orientation="Horizontal">
+                        <iconPacks:PackIconMaterial Kind="Bitcoin" Margin="0,0,4,0"/>
+                        <TextBlock VerticalAlignment="Center">Donate</TextBlock>
+                    </StackPanel>
+                </Button>
+                <Button x:Name="repoButton" Style="{StaticResource StyledButton}" Click="OpenRepository" Margin="0,0,8,0">
+                    <StackPanel Orientation="Horizontal">
+                        <iconPacks:PackIconSimpleIcons Kind="Git" Margin="0,0,4,0"/>
+                        <TextBlock VerticalAlignment="Center">Repository</TextBlock>
+                    </StackPanel>
+                </Button>
+                <Button x:Name="forumButton" Style="{StaticResource StyledButton}" Click="OpenForum" Margin="0,0,8,0">
+                    <StackPanel Orientation="Horizontal">
+                        <iconPacks:PackIconForkAwesome Kind="Users" Margin="0,0,4,0"/>
+                        <TextBlock VerticalAlignment="Center">Official Forum</TextBlock>
+                    </StackPanel>
+                </Button>
+                <Button x:Name="issuesButton" Style="{StaticResource StyledButton}" Click="OpenIssues">
+                    <StackPanel Orientation="Horizontal">
+                        <iconPacks:PackIconForkAwesome Kind="Bug" Margin="0,0,4,0"/>
+                        <TextBlock VerticalAlignment="Center">Report an issue</TextBlock>
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+        </Border>
     </Grid>
 </Page>

@@ -121,11 +121,14 @@ namespace OpenBullet2.Native.Views.Pages
         {
             if (e.Key == System.Windows.Input.Key.Enter)
             {
-                vm.SearchString = filterTextbox.Text;
+                // Filter functionality removed - method kept for compatibility
             }
         }
 
-        private void Search(object sender, RoutedEventArgs e) => vm.SearchString = filterTextbox.Text;
+        private void Search(object sender, RoutedEventArgs e)
+        {
+            // Filter functionality removed - method kept for compatibility
+        }
 
         private async void DeleteDuplicates(object sender, RoutedEventArgs e)
         {

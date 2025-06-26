@@ -23,13 +23,14 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media.Imaging;
+using MahApps.Metro.Controls;
 
 namespace OpenBullet2.Native.Views.Dialogs
 {
     /// <summary>
     /// Interaction logic for MultiRunJobOptionsDialog.xaml
     /// </summary>
-    public partial class MultiRunJobOptionsDialog : Page
+    public partial class MultiRunJobOptionsDialog : MetroWindow
     {
         private readonly Action<JobOptions> onAccept;
         private readonly MultiRunJobOptionsViewModel vm;
@@ -94,17 +95,9 @@ namespace OpenBullet2.Native.Views.Dialogs
                 return;
             }
 
-            if (vm.SelectedConfig.HasCSharpCode())
-            {
-                Alert.Warning("Potentially dangerous config", "The Config you selected might have some C# code in it" +
-                    " (or blocks that call external programs). Although C# can be helpful for config makers who want to" +
-                    " use functionalities that are not implemented through blocks, it can also be used to harm your computer" +
-                    " or steal information. It's STRONGLY advised that you review the code of the config and make sure nothing" +
-                    " fishy is going on. Please review the config and make sure it is completely safe to run!");
-            }
-
+            // Removed the dangerous config warning as requested
             onAccept?.Invoke(vm.Options);
-            ((MainDialog)Parent).Close();
+            this.Close();
         }
 
         private void SelectFileForProxySource(object sender, RoutedEventArgs e)

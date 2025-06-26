@@ -1,5 +1,6 @@
 using MahApps.Metro.Controls;
 using OpenBullet2.Core.Models.Settings;
+using OpenBullet2.Core.Repositories;
 using OpenBullet2.Core.Services;
 using OpenBullet2.Native.Helpers;
 using OpenBullet2.Native.Services;
@@ -52,6 +53,11 @@ namespace OpenBullet2.Native
         
         public Page CurrentPage { get; private set; }
 
+        // Responsive design properties
+        private bool isInitialLoad = true;
+        private WindowState previousWindowState;
+        private bool firstRestoreFromMaximized = true;
+
         public MainWindow()
         {
             vm = new MainWindowViewModel();
@@ -90,7 +96,7 @@ namespace OpenBullet2.Native
                 menuOptionLoliScript,
                 menuOptionMetadata,
                 menuOptionMonitor,
-                menuOptionOBSettings,
+                menuOptionSettings,
                 menuOptionPlugins,
                 menuOptionProxies,
                 menuOptionReadme,
@@ -104,13 +110,241 @@ namespace OpenBullet2.Native
             configsPage = new();
 
             updateService = SP.GetService<UpdateService>();
-            Title = $"OpenBullet 2 - {updateService.CurrentVersion} [{updateService.CurrentVersionType}]";
+            Title = "OpenBullet 2 - 0.3.3 [akunlama MOD]";
+
+            // Initialize HotkeyService
+            var hotkeyService = SP.GetService<HotkeyService>();
+            hotkeyService.Initialize(this);
 
             // Set the theme
             var obSettingsService = SP.GetService<OpenBulletSettingsService>();
             var customization = obSettingsService.Settings.CustomizationSettings;
             SetTheme(customization);
+
+            // Store initial window state
+            previousWindowState = WindowState;
         }
+
+        #region Responsive Design Methods
+
+        private void OnWindowLoaded(object sender, RoutedEventArgs e)
+        {
+            if (isInitialLoad)
+            {
+                SetOptimalWindowSize();
+                AdjustLayoutForResolution();
+                isInitialLoad = false;
+            }
+        }
+
+        private void OnWindowSizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            AdjustLayoutForResolution();
+            UpdateConfigSubmenuPosition();
+        }
+
+        private void OnWindowStateChanged(object sender, EventArgs e)
+        {
+            HandleWindowStateChange();
+            previousWindowState = WindowState;
+        }
+
+        private void SetOptimalWindowSize()
+        {
+            try
+            {
+                // Skip setting size if window is maximized - let our restore logic handle minimal sizing
+                if (WindowState == WindowState.Maximized)
+                {
+                    System.Diagnostics.Debug.WriteLine("Window is maximized - skipping optimal size setting to allow restore logic");
+                    return;
+                }
+
+                // Get screen dimensions
+                var screenWidth = SystemParameters.PrimaryScreenWidth;
+                var screenHeight = SystemParameters.PrimaryScreenHeight;
+                var workAreaWidth = SystemParameters.WorkArea.Width;
+                var workAreaHeight = SystemParameters.WorkArea.Height;
+
+                // Calculate optimal size based on screen resolution
+                double optimalWidth, optimalHeight;
+
+                if (screenWidth >= 2560) // 4K and above
+                {
+                    optimalWidth = Math.Min(1800, workAreaWidth * 0.75);
+                    optimalHeight = Math.Min(1200, workAreaHeight * 0.8);
+                }
+                else if (screenWidth >= 1920) // Full HD
+                {
+                    optimalWidth = Math.Min(1600, workAreaWidth * 0.8);
+                    optimalHeight = Math.Min(1000, workAreaHeight * 0.85);
+                }
+                else if (screenWidth >= 1600) // HD+
+                {
+                    optimalWidth = Math.Min(1400, workAreaWidth * 0.85);
+                    optimalHeight = Math.Min(900, workAreaHeight * 0.9);
+                }
+                else if (screenWidth >= 1366) // HD
+                {
+                    optimalWidth = Math.Min(1200, workAreaWidth * 0.9);
+                    optimalHeight = Math.Min(800, workAreaHeight * 0.9);
+                }
+                else // Smaller resolutions
+                {
+                    optimalWidth = Math.Min(1024, workAreaWidth * 0.95);
+                    optimalHeight = Math.Min(600, workAreaHeight * 0.95);
+                }
+
+                // Ensure minimum size requirements
+                optimalWidth = Math.Max(optimalWidth, MinWidth);
+                optimalHeight = Math.Max(optimalHeight, MinHeight);
+
+                // Set the calculated size
+                Width = optimalWidth;
+                Height = optimalHeight;
+
+                // Center the window
+                Left = (screenWidth - Width) / 2;
+                Top = (screenHeight - Height) / 2;
+
+                System.Diagnostics.Debug.WriteLine($"Optimal size set: {Width}x{Height} on {screenWidth}x{screenHeight} screen");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error setting optimal size: {ex.Message}");
+                // Fallback to default size only if not maximized
+                if (WindowState != WindowState.Maximized)
+                {
+                    Width = 1400;
+                    Height = 900;
+                }
+            }
+        }
+
+        private void AdjustLayoutForResolution()
+        {
+            try
+            {
+                var currentWidth = ActualWidth;
+                var currentHeight = ActualHeight;
+
+                // Adjust margins and padding based on window size
+                if (WindowState == WindowState.Maximized)
+                {
+                    // Fullscreen - no margins
+                    LeftMarginColumn.Width = new GridLength(0);
+                    RightMarginColumn.Width = new GridLength(0);
+                    BottomMarginRow.Height = new GridLength(0);
+                    TopNavRow.Height = new GridLength(60);
+                    
+                    NavigationHeader.Margin = new Thickness(0);
+                    MainContentBorder.Margin = new Thickness(0);
+                    NavigationGrid.Margin = new Thickness(16, 8, 16, 8);
+                    mainFrame.Margin = new Thickness(16);
+                }
+                else
+                {
+                    // Windowed mode - adaptive margins
+                    double marginSize = Math.Max(8, Math.Min(24, currentWidth * 0.015));
+                    
+                    LeftMarginColumn.Width = new GridLength(marginSize);
+                    RightMarginColumn.Width = new GridLength(marginSize);
+                    BottomMarginRow.Height = new GridLength(marginSize);
+                    TopNavRow.Height = new GridLength(60);
+                    
+                    NavigationHeader.Margin = new Thickness(0, marginSize * 0.5, 0, marginSize * 0.5);
+                    MainContentBorder.Margin = new Thickness(0, marginSize * 0.5, 0, 0);
+                    NavigationGrid.Margin = new Thickness(16, 8, 16, 8);
+                    mainFrame.Margin = new Thickness(16);
+                }
+
+                // Adjust navigation menu for smaller screens
+                AdjustNavigationForSize(currentWidth);
+
+                System.Diagnostics.Debug.WriteLine($"Layout adjusted for {currentWidth}x{currentHeight}, State: {WindowState}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error adjusting layout: {ex.Message}");
+            }
+        }
+
+        private void AdjustNavigationForSize(double width)
+        {
+            // Navigation is now simple and responsive via CSS-like styling in XAML
+            // No complex responsive logic needed - the working version handles this automatically
+        }
+
+        private void HandleWindowStateChange()
+        {
+            try
+            {
+                if (WindowState == WindowState.Maximized)
+                {
+                    // Handle maximize
+                    System.Diagnostics.Debug.WriteLine("Window maximized - adjusting for fullscreen");
+                    AdjustLayoutForResolution();
+                }
+                else if (previousWindowState == WindowState.Maximized && WindowState == WindowState.Normal)
+                {
+                    // Handle restore from maximize
+                    System.Diagnostics.Debug.WriteLine("Window restored from maximize");
+                    AdjustLayoutForResolution();
+                }
+                else if (WindowState == WindowState.Minimized)
+                {
+                    // Handle minimize
+                    System.Diagnostics.Debug.WriteLine("Window minimized");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error handling window state change: {ex.Message}");
+            }
+        }
+
+        private void UpdateConfigSubmenuPosition()
+        {
+            try
+            {
+                if (configSubmenu.Visibility == Visibility.Visible)
+                {
+                    // Calculate position relative to configs menu option
+                    var configsPosition = menuOptionConfigs.TransformToAncestor(Root).Transform(new Point(0, 0));
+                    var margin = WindowState == WindowState.Maximized ? 0 : LeftMarginColumn.Width.Value;
+                    
+                    configSubmenu.Margin = new Thickness(
+                        configsPosition.X + margin,
+                        configsPosition.Y + menuOptionConfigs.ActualHeight + 8,
+                        0, 0);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error updating submenu position: {ex.Message}");
+            }
+        }
+
+        private Thickness CreateThickness(string value)
+        {
+            try
+            {
+                var parts = value.Split(',');
+                if (parts.Length == 2)
+                {
+                    var horizontal = double.Parse(parts[0]);
+                    var vertical = double.Parse(parts[1]);
+                    return new Thickness(horizontal, vertical, horizontal, vertical);
+                }
+                return new Thickness(0);
+            }
+            catch
+            {
+                return new Thickness(0);
+            }
+        }
+
+        #endregion
 
         public async void NavigateTo(MainWindowPage page)
         {
@@ -122,7 +356,32 @@ namespace OpenBullet2.Native
                 configEditorPage?.OnPageChanged();
             }
 
-            // Simulate async loading to show the indicator
+            try
+            {
+                // For Jobs page, navigate directly without Task.Run to avoid threading issues
+                if (page == MainWindowPage.Jobs)
+                {
+                    System.Diagnostics.Debug.WriteLine("Direct Jobs navigation");
+                    if (jobsPage is null) 
+                    {
+                        System.Diagnostics.Debug.WriteLine("Creating new Jobs page directly");
+                        jobsPage = new();
+                        System.Diagnostics.Debug.WriteLine("Jobs page created successfully");
+                    }
+                    ChangePage(jobsPage, menuOptionJobs);
+                    vm.IsLoading = false;
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Direct Jobs navigation error: {ex.Message}");
+                Alert.Exception(ex);
+                vm.IsLoading = false;
+                return;
+            }
+
+            // Simulate async loading to show the indicator for other pages
             await Task.Run(() =>
             {
                 Application.Current.Dispatcher.Invoke(() =>
@@ -134,10 +393,7 @@ namespace OpenBullet2.Native
                             ChangePage(homePage, menuOptionHome);
                             break;
 
-                        case MainWindowPage.Jobs:
-                            if (jobsPage is null) jobsPage = new();
-                            ChangePage(jobsPage, menuOptionJobs);
-                            break;
+
 
                         case MainWindowPage.Monitor:
                             if (monitorPage is null) monitorPage = new();
@@ -174,7 +430,7 @@ namespace OpenBullet2.Native
 
                         case MainWindowPage.OBSettings:
                             if (obSettingsPage is null) obSettingsPage = new();
-                            ChangePage(obSettingsPage, menuOptionOBSettings);
+                            ChangePage(obSettingsPage, menuOptionSettings);
                             break;
 
                         case MainWindowPage.RLSettings:
@@ -336,7 +592,11 @@ namespace OpenBullet2.Native
 
         private void OnCanExecuteConfigCommand(object sender, CanExecuteRoutedEventArgs e)
         {
-            e.CanExecute = CurrentPage == configsPage;
+            e.CanExecute = CurrentPage == configsPage || 
+                          CurrentPage == configEditorPage ||
+                          CurrentPage == configMetadataPage ||
+                          CurrentPage == configReadmePage ||
+                          CurrentPage == configSettingsPage;
         }
 
         private void OnNewConfigExecuted(object sender, ExecutedRoutedEventArgs e)
@@ -351,7 +611,53 @@ namespace OpenBullet2.Native
 
         private void OnSaveConfigExecuted(object sender, ExecutedRoutedEventArgs e)
         {
-            configsPage.Save(null, null);
+            if (CurrentPage == configsPage)
+            {
+                configsPage.Save(null, null);
+            }
+            else if (CurrentPage == configEditorPage)
+            {
+                configEditorPage.Save(null, null);
+            }
+            // For other config pages like metadata, readme, settings, we can also trigger save via the configEditorPage
+            else if (CurrentPage == configMetadataPage || 
+                     CurrentPage == configReadmePage || 
+                     CurrentPage == configSettingsPage)
+            {
+                // Create a temporary configEditor if needed and save
+                if (configEditorPage != null)
+                {
+                    configEditorPage.Save(null, null);
+                }
+                else
+                {
+                    // Fallback to using ConfigService directly
+                    var configService = SP.GetService<ConfigService>();
+                    var configRepo = SP.GetService<IConfigRepository>();
+                    if (configService.SelectedConfig != null)
+                    {
+                        Task.Run(async () =>
+                        {
+                            try
+                            {
+                                await configRepo.SaveAsync(configService.SelectedConfig);
+                                configService.SelectedConfig.UpdateHashes();
+                                Application.Current.Dispatcher.Invoke(() =>
+                                {
+                                    Alert.Success("Saved", $"{configService.SelectedConfig.Metadata.Name} was saved successfully!");
+                                });
+                            }
+                            catch (Exception ex)
+                            {
+                                Application.Current.Dispatcher.Invoke(() =>
+                                {
+                                    Alert.Exception(ex);
+                                });
+                            }
+                        });
+                    }
+                }
+            }
         }
 
         private async void OnRefreshExecuted(object sender, ExecutedRoutedEventArgs e)
@@ -443,7 +749,83 @@ namespace OpenBullet2.Native
         }
 
         private void TakeScreenshot(object sender, RoutedEventArgs e)
-            => Screenshot.Take((int)Width, (int)Height, (int)Top, (int)Left);
+        {
+            try
+            {
+                // Add visual feedback with smaller, more subtle indication
+                var originalContent = screenshotButton.Content;
+                screenshotButton.Content = new TextBlock 
+                { 
+                    Text = "📸 Saved", 
+                    FontSize = 8, 
+                    FontWeight = FontWeights.Medium,
+                    HorizontalAlignment = HorizontalAlignment.Center, 
+                    VerticalAlignment = VerticalAlignment.Center 
+                };
+                screenshotButton.IsEnabled = false;
+                
+                // Take window-only screenshot (captures only OpenBullet2 window content)
+                Screenshot.Take(this);
+                
+                // Reset button after a short delay
+                Task.Run(async () =>
+                {
+                    await Task.Delay(1500);
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        screenshotButton.Content = originalContent;
+                        screenshotButton.IsEnabled = true;
+                    });
+                });
+            }
+            catch (Exception ex)
+            {
+                Alert.Exception(ex);
+                // Reset button immediately on error
+                screenshotButton.Content = "Screenshot";
+                screenshotButton.IsEnabled = true;
+            }
+        }
+
+        private void MinimizeWindow(object sender, RoutedEventArgs e)
+        {
+            WindowState = WindowState.Minimized;
+        }
+
+        private void MaximizeRestoreWindow(object sender, RoutedEventArgs e)
+        {
+            if (WindowState == WindowState.Maximized)
+            {
+                WindowState = WindowState.Normal;
+                
+                // Set minimal size on first restore from maximized
+                if (firstRestoreFromMaximized)
+                {
+                    // Set to absolute minimum size for maximum compactness
+                    Width = MinWidth;  // 1024 from XAML
+                    Height = MinHeight; // 600 from XAML
+                    
+                    // Center the window
+                    var screenWidth = SystemParameters.PrimaryScreenWidth;
+                    var screenHeight = SystemParameters.PrimaryScreenHeight;
+                    Left = (screenWidth - Width) / 2;
+                    Top = (screenHeight - Height) / 2;
+                    
+                    firstRestoreFromMaximized = false;
+                }
+            }
+            else
+            {
+                WindowState = WindowState.Maximized;
+                // Reset the flag when returning to maximized state
+                firstRestoreFromMaximized = true;
+            }
+        }
+
+        private void CloseWindow(object sender, RoutedEventArgs e)
+        {
+            Close();
+        }
 
         #region Dropdown submenu logic
         private void ConfigSubmenuMouseEnter(object sender, MouseEventArgs e)
@@ -452,6 +834,7 @@ namespace OpenBullet2.Native
             {
                 hoveringConfigSubmenu = true;
                 configSubmenu.Visibility = Visibility.Visible;
+                UpdateConfigSubmenuPosition();
             }
         }
 
@@ -467,6 +850,7 @@ namespace OpenBullet2.Native
             {
                 hoveringConfigsMenuOption = true;
                 configSubmenu.Visibility = Visibility.Visible;
+                UpdateConfigSubmenuPosition();
             }
         }
 
@@ -478,7 +862,7 @@ namespace OpenBullet2.Native
 
         private async Task CheckCloseSubmenuAsync()
         {
-            await Task.Delay(50);
+            await Task.Delay(200); // Increased delay for better user experience
 
             if (!hoveringConfigSubmenu && !hoveringConfigsMenuOption)
             {

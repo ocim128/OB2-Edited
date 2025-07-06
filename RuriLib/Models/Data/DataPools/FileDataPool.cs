@@ -24,6 +24,7 @@ namespace RuriLib.Models.Data.DataPools
         public override void Reload()
         {
             DataList = File.ReadLines(FileName);
+            Size = DataList.Count();
         }
     }
 }

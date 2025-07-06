@@ -53,7 +53,8 @@ namespace RuriLib.Functions.Http
                     }),
                     Credentials = proxyClient.Settings.Credentials
                 } : null,
-                UseCookies = false // Cookies handled manually in SendAsync
+                UseCookies = false, // Cookies handled manually in SendAsync
+                AllowAutoRedirect = false // Disable auto-redirect to handle manually
             };
 
             httpClient = new HttpClient(handler);
@@ -75,11 +76,15 @@ namespace RuriLib.Functions.Http
                 httpRequestMessage.Headers.TryAddWithoutValidation(header.Key, header.Value);
             }
 
-            // Add cookies
+            // Add cookies (avoid duplicates if a Cookie header was already supplied manually)
             if (request.Cookies != null && request.Cookies.Any())
             {
-                var cookieHeader = string.Join("; ", request.Cookies.Select(c => $"{c.Key}={c.Value}"));
-                httpRequestMessage.Headers.Add("Cookie", cookieHeader);
+                // Check if a Cookie header already exists (case-insensitive)
+                if (!httpRequestMessage.Headers.Any(h => h.Key.Equals("Cookie", StringComparison.OrdinalIgnoreCase)))
+                {
+                    var cookieHeader = string.Join("; ", request.Cookies.Select(c => $"{c.Key}={c.Value}"));
+                    httpRequestMessage.Headers.Add("Cookie", cookieHeader);
+                }
             }
 
             // Add content if present

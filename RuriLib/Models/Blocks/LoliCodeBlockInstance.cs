@@ -16,6 +16,7 @@ namespace RuriLib.Models.Blocks
     {
         private readonly string validTokenRegex = "[A-Za-z][A-Za-z0-9_]*";
         public string Script { get; set; }
+        public int StartingLineNumber { get; set; }
         
         public LoliCodeBlockInstance(LoliCodeBlockDescriptor descriptor)
             : base(descriptor)
@@ -28,6 +29,7 @@ namespace RuriLib.Models.Blocks
         public override void FromLC(ref string script, ref int lineNumber) 
         {
             Script = script;
+            StartingLineNumber = lineNumber;
             lineNumber += script.CountLines();
         }
 
@@ -36,10 +38,23 @@ namespace RuriLib.Models.Blocks
             using var reader = new StringReader(Script);
             using var writer = new StringWriter();
             string line, trimmedLine;
+            int relativeLineNumber = 0;
 
             while ((line = reader.ReadLine()) != null)
             {
+                relativeLineNumber++;
+                int absoluteLineNumber = StartingLineNumber + relativeLineNumber - 1;
                 trimmedLine = line.Trim();
+
+                // Skip empty lines or comments
+                if (string.IsNullOrWhiteSpace(trimmedLine) || trimmedLine.StartsWith("//"))
+                {
+                    writer.WriteLine(line);
+                    continue;
+                }
+
+                // Add line number comment for debugging
+                writer.WriteLine($"// LoliCode line {absoluteLineNumber}: {trimmedLine.Replace("*/", "*//")}");
 
                 // Try to read it as a LoliCode-exclusive statement
                 try
@@ -88,17 +103,17 @@ namespace RuriLib.Models.Blocks
             }
 
             // CODE LABEL
-            // #MYLABEL => MYLABEL:
+            // #MYLABEL => MYLABEL: ;
             if ((match = Regex.Match(input, $"^#({validTokenRegex})$")).Success)
             {
-                return $"{match.Groups[1].Value}:";
+                return $"{match.Groups[1].Value}: ;";
             }
 
             // JUMP
-            // JUMP #MYLABEL => goto MYLABEL;
+            // JUMP #MYLABEL => data.Logger.Log("Jumping to label MYLABEL", LogColors.White); goto MYLABEL;
             if ((match = Regex.Match(input, $"^JUMP #({validTokenRegex})$")).Success)
             {
-                return $"goto {match.Groups[1].Value};";
+                return $"data.Logger.Log(\"Jumping to label {match.Groups[1].Value}\", LogColors.White);{System.Environment.NewLine}goto {match.Groups[1].Value};";
             }
 
             // END

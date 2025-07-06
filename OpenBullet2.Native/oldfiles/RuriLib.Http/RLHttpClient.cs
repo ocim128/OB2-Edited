@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Buffers;
 using System.IO;
-using System.IO.Pipelines;
 using System.Net;
 using System.Net.Http;
 using System.Net.Sockets;
@@ -195,12 +193,6 @@ namespace RuriLib.Http
                     // Set the new URI
                     request.Uri = redirectUri;
 
-                    // Prevent duplicate Cookie headers: if a Cookie header is present, clear the Cookies dictionary
-                    if (request.Headers.Keys.Any(k => k.Equals("Cookie", StringComparison.OrdinalIgnoreCase)))
-                    {
-                        request.Cookies.Clear();
-                    }
-
                     // Dispose the previous response
                     responseMessage.Dispose();
 
@@ -219,22 +211,15 @@ namespace RuriLib.Http
 
         private async Task SendDataAsync(HttpRequest request, CancellationToken cancellationToken = default)
         {
-            // Use ArrayBufferWriter to collect the request bytes
-            var bufferWriter = new ArrayBufferWriter<byte>();
-            await request.WriteToAsync(bufferWriter, cancellationToken);
-            var buffer = bufferWriter.WrittenSpan.ToArray();
-            
+            var buffer = await request.GetBytesAsync(cancellationToken);
             await connectionCommonStream.WriteAsync(buffer.AsMemory(0, buffer.Length), cancellationToken).ConfigureAwait(false);
 
             RawRequests.Add(buffer);
         }
 
         private Task<HttpResponse> ReceiveDataAsync(HttpRequest request,
-            CancellationToken cancellationToken)
-        {
-            var pipeReader = PipeReader.Create(connectionCommonStream);
-            return new HttpResponseBuilder().GetResponseAsync(request, pipeReader, ReadResponseContent, cancellationToken);
-        }
+            CancellationToken cancellationToken) =>
+            new HttpResponseBuilder().GetResponseAsync(request, connectionCommonStream, ReadResponseContent, cancellationToken);
 
         private async Task CreateConnection(HttpRequest request, CancellationToken cancellationToken)
         {

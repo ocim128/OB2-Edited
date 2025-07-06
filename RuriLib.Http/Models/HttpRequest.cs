@@ -130,20 +130,23 @@ namespace RuriLib.Http.Models
                 finalHeaders.Add(header);
             }
 
-            // Add the Cookie header if not set manually and container not null
+            // Add the Cookie header if not set manually and cookies exist
             if (!HeaderExists("Cookie", out _) && Cookies.Any())
             {
+                var cookieBuilder = new StringBuilder();
                 var firstCookie = true;
+                
                 foreach (var cookie in Cookies)
                 {
                     if (!firstCookie)
                     {
-                        writer.Write(SemicolonSpace);
+                        cookieBuilder.Append("; ");
                     }
-                    writer.Write(Encoding.ASCII.GetBytes($"{cookie.Key}={cookie.Value}"));
+                    cookieBuilder.Append($"{cookie.Key}={cookie.Value}");
                     firstCookie = false;
                 }
-                writer.Write(CRLF);
+                
+                finalHeaders.Add("Cookie", cookieBuilder.ToString());
             }
 
             // Add the content headers

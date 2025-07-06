@@ -69,34 +69,36 @@ namespace RuriLib.Functions.Http
 
                 LogHttpRequestData(data, request);
                 
-                // Ultra-simple: just switch to SystemNet for any HTTPS→HTTP redirect
-                if (response.StatusCode == HttpStatusCode.MovedPermanently &&
-                    response.Headers.ContainsKey("Location") &&
-                    options.AutoRedirect &&
-                    options.Url.StartsWith("https://") && 
-                    response.Headers["Location"].StartsWith("http://"))
+                // Add generic redirect handling for all 3xx codes
+                if (options.AutoRedirect && options.MaxNumberOfRedirects > 0 &&
+                    (int)response.StatusCode >= 300 && (int)response.StatusCode < 400 &&
+                    response.Headers.ContainsKey("Location"))
                 {
-                    // Delegate to ultra-fast SystemNet handler for HTTPS→HTTP
+                    // Log initial response to capture headers and cookies
+                    await LogHttpResponseData(data, response, request, options).ConfigureAwait(false);
+                    var locationValue = response.Headers["Location"];
+                    var newUri = Uri.TryCreate(locationValue, UriKind.Absolute, out var absUri)
+                        ? absUri
+                        : new Uri(request.Uri, locationValue);
+                    // Forward all cookies for the next request
                     var redirectOptions = new StandardHttpRequestOptions
                     {
-                        Url = response.Headers["Location"],
+                        Url = newUri.ToString(),
                         Method = HttpMethod.GET,
                         AutoRedirect = true,
                         MaxNumberOfRedirects = options.MaxNumberOfRedirects - 1,
-                        HttpLibrary = HttpLibrary.SystemNet, // Switch to optimized SystemNet
-                        CustomCookies = options.CustomCookies,
+                        HttpLibrary = HttpLibrary.SystemNet,
+                        CustomCookies = new Dictionary<string, string>(data.COOKIES),
                         CustomHeaders = new Dictionary<string, string>(),
                         TimeoutMilliseconds = options.TimeoutMilliseconds,
                         ReadResponseContent = options.ReadResponseContent,
                         DecodeHtml = options.DecodeHtml,
                         DisableCookieParsing = options.DisableCookieParsing,
-                        DisableHeaderParsing = options.DisableHeaderParsing
+                        DisableHeaderParsing = options.DisableHeaderParsing,
+                        AbsoluteUriInFirstLine = options.AbsoluteUriInFirstLine
                     };
-                    
-                    // Copy only essential headers
-                    if (options.CustomHeaders.ContainsKey("User-Agent"))
-                        redirectOptions.CustomHeaders["User-Agent"] = options.CustomHeaders["User-Agent"];
-                    
+                    if (options.CustomHeaders.TryGetValue("User-Agent", out var ua))
+                        redirectOptions.CustomHeaders["User-Agent"] = ua;
                     response.Dispose();
                     await HttpRequestStandard(data, redirectOptions).ConfigureAwait(false);
                     return;
@@ -288,11 +290,14 @@ namespace RuriLib.Functions.Http
                 sb.AppendLine($"{header.Key}: {string.Join(", ", header.Value)}");
             }
 
-            // Log the cookie header
-            var cookies = request.Cookies.Select(c => $"{c.Key}={c.Value}");
+            // Log the cookie header (only if not already in headers to avoid duplication)
+            if (!request.HeaderExists("Cookie", out _))
+            {
+                var cookies = request.Cookies.Select(c => $"{c.Key}={c.Value}");
 
-            if (cookies.Any())
-                sb.AppendLine($"Cookie: {string.Join("; ", cookies)}");
+                if (cookies.Any())
+                    sb.AppendLine($"Cookie: {string.Join("; ", cookies)}");
+            }
 
             if (request.Content != null)
             {
@@ -321,19 +326,28 @@ namespace RuriLib.Functions.Http
             data.Logger.Log(sb.ToString(), LogColors.Azure);
         }
 
-
-
         private static async Task LogHttpResponseData(BotData data, HttpResponse response, HttpRequest request,
             RuriLib.Functions.Http.Options.HttpRequestOptions requestOptions)
         {
-            // Try to read the raw source for Content-Length calculation
-            try
+            // Skip reading payload on redirects and read content only if requested
+            int status = (int)response.StatusCode;
+            if (status >= 300 && status < 400)
             {
-                data.RAWSOURCE = await response.Content.ReadAsByteArrayAsync(data.CancellationToken).ConfigureAwait(false);
+                data.RAWSOURCE = Array.Empty<byte>();
             }
-            catch (NullReferenceException)
+            else if (requestOptions.ReadResponseContent)
             {
-                // Thrown when there is no content (204) or we decided to not read it
+                try
+                {
+                    data.RAWSOURCE = await response.Content.ReadAsByteArrayAsync(data.CancellationToken).ConfigureAwait(false);
+                }
+                catch (NullReferenceException)
+                {
+                    data.RAWSOURCE = Array.Empty<byte>();
+                }
+            }
+            else
+            {
                 data.RAWSOURCE = Array.Empty<byte>();
             }
 
@@ -416,6 +430,12 @@ namespace RuriLib.Functions.Http
             }
 
             // Cookies (conditional parsing for speed)
+            // Always merge cookies already stored by HttpResponseBuilder (these come from Set-Cookie headers)
+            foreach (var kv in response.Request.Cookies)
+            {
+                data.COOKIES[kv.Key] = kv.Value;
+            }
+
             if (!requestOptions.DisableCookieParsing)
             {
                 // Parse Set-Cookie headers from response
@@ -643,8 +663,49 @@ namespace RuriLib.Functions.Http
                 data.SOURCE = WebUtility.HtmlDecode(data.SOURCE);
             }
 
-            data.Logger.Log("Received Payload:", LogColors.ForestGreen);
-            data.Logger.Log(data.SOURCE, LogColors.GreenYellow, true);
+            if (!(status >= 300 && status < 400))
+            {
+                data.Logger.Log("Received Payload:", LogColors.ForestGreen);
+                data.Logger.Log(data.SOURCE, LogColors.GreenYellow, true);
+            }
+        }
+
+        // Helper method to merge a raw Cookie header into the shared cookie jar and then remove the header
+        private static void MergeCookieHeader(IDictionary<string, string> headers, IDictionary<string, string> cookieJar)
+        {
+            // Find the Cookie header using case-insensitive lookup
+            var cookieHeaderKey = headers.Keys.FirstOrDefault(k => k.Equals("Cookie", StringComparison.OrdinalIgnoreCase));
+
+            if (cookieHeaderKey is null)
+                return;
+
+            var cookieHeaderValue = headers[cookieHeaderKey];
+
+            // Split on semicolons; Instagram cookies don't contain semicolons inside values
+            var cookiePairs = cookieHeaderValue.Split(';');
+
+            foreach (var pair in cookiePairs)
+            {
+                var trimmed = pair.Trim();
+                if (trimmed.Length == 0)
+                    continue;
+
+                var eqPos = trimmed.IndexOf('=');
+                if (eqPos <= 0)
+                    continue; // invalid cookie fragment
+
+                var name = trimmed[..eqPos].Trim();
+                var value = trimmed[(eqPos + 1)..].Trim();
+
+                // If the value is wrapped in quotes, unquote it
+                if (value.Length >= 2 && value[0] == '"' && value[^1] == '"')
+                    value = value[1..^1];
+
+                cookieJar[name] = value;
+            }
+
+            // Remove the Cookie header so that only the consolidated jar is sent
+            headers.Remove(cookieHeaderKey);
         }
     }
 }

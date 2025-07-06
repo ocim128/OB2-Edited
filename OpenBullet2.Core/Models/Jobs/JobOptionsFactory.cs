@@ -30,8 +30,8 @@ public class JobOptionsFactory
 
     private static MultiRunJobOptions MakeMultiRun() => new()
     {
-        HitOutputs = new List<HitOutputOptions> { new DatabaseHitOutputOptions() },
-        ProxySources = new List<ProxySourceOptions> { new GroupProxySourceOptions() { GroupId = -1 } }
+        HitOutputs = new List<HitOutputOptions>(),
+        ProxySources = new List<ProxySourceOptions>()
     };
 
     private static ProxyCheckJobOptions MakeProxyCheck() => new ProxyCheckJobOptions

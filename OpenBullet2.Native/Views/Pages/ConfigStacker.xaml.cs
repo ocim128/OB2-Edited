@@ -160,6 +160,16 @@ namespace OpenBullet2.Native.Views.Pages
             var shift = Keyboard.IsKeyDown(Key.LeftShift) || Keyboard.IsKeyDown(Key.RightShift);
             var block = (BlockViewModel)(sender as FrameworkElement).Tag;
             vm.SelectBlock(block, ctrl, shift);
+            // Clear search filter to show all blocks
+            SearchTextBox.Text = string.Empty;
+            // Force layout update and scroll immediately
+            BlocksItemsControl.UpdateLayout();
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                BlocksItemsControl.UpdateLayout();
+                var container = BlocksItemsControl.ItemContainerGenerator.ContainerFromItem(block) as FrameworkElement;
+                container?.BringIntoView();
+            }), System.Windows.Threading.DispatcherPriority.Render);
         }
 
         private void SelectionChanged(IEnumerable<BlockViewModel> selected)

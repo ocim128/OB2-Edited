@@ -23,24 +23,24 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <Border Grid.Row="0" Style="{StaticResource CompactCardStyle}" Margin="0,0,0,16" Background="#C0353535">
+        <Border Grid.Row="0" Style="{StaticResource CompactCardStyle}" Margin="0,0,0,16">
             <StackPanel Orientation="Horizontal">
-            <Button x:Name="addGroupButton" Click="AddGroup" Margin="0,0,8,0" Style="{StaticResource StyledSuccessButton}" >
+            <Button x:Name="addGroupButton" Click="AddGroup" Margin="0,0,8,0" Style="{StaticResource StyledSuccessButton}" Padding="12,8">
                 <StackPanel Orientation="Horizontal">
-                    <iconPacks:PackIconMaterialDesign Kind="Add" />
-                    <TextBlock VerticalAlignment="Center" Margin="5 0">Add Group</TextBlock>
+                    <iconPacks:PackIconMaterialDesign Kind="Add" Width="16" Height="16"/>
+                    <TextBlock VerticalAlignment="Center" Margin="8,0,0,0" FontWeight="SemiBold">Add Group</TextBlock>
                 </StackPanel>
             </Button>
-            <Button x:Name="editGroupButton" Click="EditGroup" Margin="0,0,8,0" Style="{StaticResource StyledPrimaryButton}" >
+            <Button x:Name="editGroupButton" Click="EditGroup" Margin="0,0,8,0" Style="{StaticResource StyledPrimaryButton}" Padding="12,8">
                 <StackPanel Orientation="Horizontal">
-                    <iconPacks:PackIconRemixIcon Kind="Edit2Fill" />
-                    <TextBlock VerticalAlignment="Center" Margin="5 0">Edit Group</TextBlock>
+                    <iconPacks:PackIconRemixIcon Kind="Edit2Fill" Width="16" Height="16"/>
+                    <TextBlock VerticalAlignment="Center" Margin="8,0,0,0" FontWeight="SemiBold">Edit Group</TextBlock>
                 </StackPanel>
             </Button>
-            <Button x:Name="deleteGroupButton" Click="DeleteGroup" Margin="0,0,16,0" Style="{StaticResource StyledDangerButton}" >
+            <Button x:Name="deleteGroupButton" Click="DeleteGroup" Margin="0,0,16,0" Style="{StaticResource StyledDangerButton}" Padding="12,8">
                 <StackPanel Orientation="Horizontal">
-                    <iconPacks:PackIconMaterial Kind="Close" />
-                    <TextBlock VerticalAlignment="Center" Margin="5 0">Delete Group</TextBlock>
+                    <iconPacks:PackIconMaterial Kind="Close" Width="16" Height="16"/>
+                    <TextBlock VerticalAlignment="Center" Margin="8,0,0,0" FontWeight="SemiBold">Delete Group</TextBlock>
                 </StackPanel>
             </Button>
             <TextBlock Text="Selected group:" Style="{StaticResource LabelTextStyle}" VerticalAlignment="Center" Margin="0,0,8,0"/>
@@ -53,38 +53,38 @@
         </StackPanel>
         </Border>
 
-        <Border Grid.Row="1" Background="#80404040" Padding="12" Margin="0,0,0,8">
+        <Border Grid.Row="1" Style="{StaticResource CompactCardStyle}" Margin="0,0,0,16">
             <StackPanel Orientation="Horizontal">
-                <Button x:Name="importButton" Click="Import" Margin="0 5 5 5" Style="{StaticResource StyledSuccessButton}" >
-                <StackPanel Orientation="Horizontal">
-                    <iconPacks:PackIconUnicons Kind="Import" />
-                    <TextBlock VerticalAlignment="Center" Margin="5 0">Import</TextBlock>
-                </StackPanel>
-            </Button>
-            <Button x:Name="exportButton" Click="ExportSelected" Margin="0 5 5 5" Style="{StaticResource StyledPrimaryButton}" >
-                <StackPanel Orientation="Horizontal">
-                    <iconPacks:PackIconUnicons Kind="Export" />
-                    <TextBlock VerticalAlignment="Center" Margin="5 0">Export</TextBlock>
-                </StackPanel>
-            </Button>
-            <Button x:Name="deleteButton" Click="DeleteSelected" Margin="0 5 5 5" Style="{StaticResource StyledDangerButton}" >
-                <StackPanel Orientation="Horizontal">
-                    <iconPacks:PackIconMaterial Kind="Close" />
-                    <TextBlock VerticalAlignment="Center" Margin="5 0">Delete</TextBlock>
-                </StackPanel>
-            </Button>
-            <Button x:Name="deleteNotWorkingButton" Click="DeleteNotWorking" Margin="0 5 5 5" Style="{StaticResource StyledDangerButton}" ToolTip="Deletes not working proxies.">
-                <StackPanel Orientation="Horizontal">
-                    <iconPacks:PackIconMaterial Kind="Close" />
-                    <TextBlock VerticalAlignment="Center" Margin="5 0">Delete Not Working</TextBlock>
-                </StackPanel>
-            </Button>
-            <Button x:Name="deleteUntestedButton" Click="DeleteUntested" Margin="0 5 5 5" Style="{StaticResource StyledDangerButton}" ToolTip="Deletes proxies that haven't been tested.">
-                <StackPanel Orientation="Horizontal">
-                    <iconPacks:PackIconMaterial Kind="Close" />
-                    <TextBlock VerticalAlignment="Center" Margin="5 0">Delete Untested</TextBlock>
-                </StackPanel>
-            </Button>
+                            <Button x:Name="importButton" Click="Import" Margin="0,0,8,0" Style="{StaticResource StyledSuccessButton}" Padding="12,8">
+            <StackPanel Orientation="Horizontal">
+                <iconPacks:PackIconUnicons Kind="Import" Width="16" Height="16"/>
+                <TextBlock VerticalAlignment="Center" Margin="8,0,0,0" FontWeight="SemiBold">Import</TextBlock>
+            </StackPanel>
+        </Button>
+        <Button x:Name="exportButton" Click="ExportSelected" Margin="0,0,8,0" Style="{StaticResource StyledPrimaryButton}" Padding="12,8">
+            <StackPanel Orientation="Horizontal">
+                <iconPacks:PackIconUnicons Kind="Export" Width="16" Height="16"/>
+                <TextBlock VerticalAlignment="Center" Margin="8,0,0,0" FontWeight="SemiBold">Export</TextBlock>
+            </StackPanel>
+        </Button>
+        <Button x:Name="deleteButton" Click="DeleteSelected" Margin="0,0,8,0" Style="{StaticResource StyledDangerButton}" Padding="12,8">
+            <StackPanel Orientation="Horizontal">
+                <iconPacks:PackIconMaterial Kind="Close" Width="16" Height="16"/>
+                <TextBlock VerticalAlignment="Center" Margin="8,0,0,0" FontWeight="SemiBold">Delete</TextBlock>
+            </StackPanel>
+        </Button>
+        <Button x:Name="deleteNotWorkingButton" Click="DeleteNotWorking" Margin="0,0,8,0" Style="{StaticResource StyledDangerButton}" Padding="12,8" ToolTip="Deletes not working proxies.">
+            <StackPanel Orientation="Horizontal">
+                <iconPacks:PackIconMaterial Kind="Close" Width="16" Height="16"/>
+                <TextBlock VerticalAlignment="Center" Margin="8,0,0,0" FontWeight="SemiBold">Delete Not Working</TextBlock>
+            </StackPanel>
+        </Button>
+        <Button x:Name="deleteUntestedButton" Click="DeleteUntested" Margin="0,0,8,0" Style="{StaticResource StyledDangerButton}" Padding="12,8" ToolTip="Deletes proxies that haven't been tested.">
+            <StackPanel Orientation="Horizontal">
+                <iconPacks:PackIconMaterial Kind="Close" Width="16" Height="16"/>
+                <TextBlock VerticalAlignment="Center" Margin="8,0,0,0" FontWeight="SemiBold">Delete Untested</TextBlock>
+            </StackPanel>
+        </Button>
             <TextBlock FontWeight="Bold" VerticalAlignment="Center" Margin="10 0 0 0">Total:</TextBlock>
             <TextBlock Text="{Binding Total}" VerticalAlignment="Center" Margin="5 0 0 0" />
             <TextBlock FontWeight="Bold" Foreground="{DynamicResource ForegroundGood}" VerticalAlignment="Center" Margin="10 0 0 0">Working:</TextBlock>
@@ -94,7 +94,7 @@
             </StackPanel>
         </Border>
 
-        <ListView x:Name="proxiesListView" Grid.Column="0" Grid.Row="2" Foreground="{DynamicResource ForegroundMain}" Background="#C0353535" ItemsSource="{Binding Path=ProxiesCollection}" SelectionMode="Extended" BorderThickness="1" VirtualizingPanel.IsVirtualizing="True" AllowDrop="True" Drop="ProxyListViewDrop">
+        <ListView x:Name="proxiesListView" Grid.Column="0" Grid.Row="2" Foreground="{DynamicResource ForegroundMain}" Background="{DynamicResource BackgroundSecondary}" ItemsSource="{Binding Path=ProxiesCollection}" SelectionMode="Extended" BorderThickness="0" VirtualizingPanel.IsVirtualizing="True" AllowDrop="True" Drop="ProxyListViewDrop">
 
             <!-- Show Headers by overriding the default style -->
             <ListView.Style>

@@ -15,7 +15,7 @@
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
     </Page.Resources>
 
-    <Grid Margin="8,6,8,8">
+    <Grid Margin="24,20,24,24">
         <Grid.RowDefinitions>
             <RowDefinition Height="auto" />
             <RowDefinition Height="auto" />
@@ -25,7 +25,7 @@
         </Grid.RowDefinitions>
 
         <!-- Modern Header Section -->
-        <Border Grid.Row="0" Background="#C0353535" CornerRadius="8" Padding="8,6" Margin="0,0,0,6">
+        <Border Grid.Row="0" Style="{StaticResource CompactCardStyle}" Margin="0,0,0,16">
             <Grid>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
@@ -43,7 +43,7 @@
         </Border>
 
         <!-- Modern Toolbar Section -->
-        <Border Grid.Row="1" Background="#80404040" CornerRadius="8" Padding="8,6" Margin="0,0,0,6">
+        <Border Grid.Row="1" Style="{StaticResource CompactCardStyle}" Margin="0,0,0,16">
             <Grid>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
@@ -52,60 +52,56 @@
 
                 <!-- Action Buttons Group -->
                 <WrapPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button x:Name="newButton" Click="Create" Margin="0,0,6,0" Style="{StaticResource StyledSuccessButton}" Padding="8,4">
+                    <Button x:Name="newButton" Click="Create" Margin="0,0,8,0" Style="{StaticResource StyledSuccessButton}" Padding="12,8">
                     <StackPanel Orientation="Horizontal">
                             <iconPacks:PackIconMaterialDesign Kind="Add" Width="16" Height="16"/>
                             <TextBlock VerticalAlignment="Center" Margin="8,0,0,0" FontWeight="SemiBold">New</TextBlock>
                     </StackPanel>
                 </Button>
-                    <Button x:Name="editButton" Click="Edit" Margin="0,0,6,0" Style="{StaticResource StyledPrimaryButton}" Padding="8,4">
+                    <Button x:Name="editButton" Click="Edit" Margin="0,0,8,0" Style="{StaticResource StyledPrimaryButton}" Padding="12,8">
                     <StackPanel Orientation="Horizontal">
                             <iconPacks:PackIconRemixIcon Kind="Edit2Fill" Width="16" Height="16"/>
-                            <TextBlock VerticalAlignment="Center" Margin="6,0,0,0" FontWeight="SemiBold">Edit</TextBlock>
+                            <TextBlock VerticalAlignment="Center" Margin="8,0,0,0" FontWeight="SemiBold">Edit</TextBlock>
                     </StackPanel>
                 </Button>
-                    <Button x:Name="saveButton" Click="Save" Margin="0,0,6,0" Style="{StaticResource StyledPrimaryButton}" Padding="8,4">
+                    <Button x:Name="saveButton" Click="Save" Margin="0,0,8,0" Style="{StaticResource StyledPrimaryButton}" Padding="12,8">
                     <StackPanel Orientation="Horizontal">
                             <iconPacks:PackIconRemixIcon Kind="Save3Fill" Width="16" Height="16"/>
-                            <TextBlock VerticalAlignment="Center" Margin="6,0,0,0" FontWeight="SemiBold">Save</TextBlock>
+                            <TextBlock VerticalAlignment="Center" Margin="8,0,0,0" FontWeight="SemiBold">Save</TextBlock>
                     </StackPanel>
                 </Button>
-                    <Button x:Name="deleteButton" Click="Delete" Margin="0,0,6,0" Style="{StaticResource StyledDangerButton}" Padding="8,4">
+                    <Button x:Name="deleteButton" Click="Delete" Margin="0,0,8,0" Style="{StaticResource StyledDangerButton}" Padding="12,8">
                     <StackPanel Orientation="Horizontal">
                             <iconPacks:PackIconMaterial Kind="Close" Width="16" Height="16"/>
-                            <TextBlock VerticalAlignment="Center" Margin="6,0,0,0" FontWeight="SemiBold">Delete</TextBlock>
+                            <TextBlock VerticalAlignment="Center" Margin="8,0,0,0" FontWeight="SemiBold">Delete</TextBlock>
                     </StackPanel>
                 </Button>
-                    <Button x:Name="exportSelectedButton" Click="ExportSelected" Margin="0,0,8,0" Style="{StaticResource StyledPrimaryButton}" Padding="8,4">
+                    <Button x:Name="exportSelectedButton" Click="ExportSelected" Margin="0,0,16,0" Style="{StaticResource StyledPrimaryButton}" Padding="12,8">
                     <StackPanel Orientation="Horizontal">
                             <iconPacks:PackIconMaterial Kind="Export" Width="16" Height="16"/>
-                            <TextBlock VerticalAlignment="Center" Margin="6,0,0,0" FontWeight="SemiBold">Export Selected</TextBlock>
+                            <TextBlock VerticalAlignment="Center" Margin="8,0,0,0" FontWeight="SemiBold">Export Selected</TextBlock>
                     </StackPanel>
                 </Button>
                     
                     <!-- Search Section -->
-                    <Border Background="#A0353535" CornerRadius="6" Padding="8,0" Margin="0,0,8,0">
+                    <Border Background="{DynamicResource BackgroundInput}" CornerRadius="8" Padding="12,8" Margin="0,0,8,0">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                             <TextBox x:Name="filterTextbox" 
                                      Text="{Binding SearchString, UpdateSourceTrigger=PropertyChanged}" 
                                      Width="200" 
                                      Background="Transparent" 
                                      BorderThickness="0" 
-                                     Foreground="White"
+                                     Foreground="{DynamicResource ForegroundInput}"
                                      FontSize="13"
                                      VerticalAlignment="Center"
                                      TextChanged="UpdateSearch"
                                      Padding="8,6"/>
                             <Button x:Name="searchButton" Click="Search" 
-                                    Width="70" Height="30"
-                                    Background="#FF2563EB" 
-                                    Foreground="#FFF8FAFC"
-                                    BorderThickness="0"
-                                    Padding="8,6"
-                                    Style="{StaticResource ReadableTabButton}">
+                                    Style="{StaticResource StyledPrimaryButton}"
+                                    Padding="12,8">
                                 <StackPanel Orientation="Horizontal">
-                                    <iconPacks:PackIconMaterialDesign Kind="Search" Width="11" Height="11" Margin="0,0,4,0"/>
-                                    <TextBlock Text="Search" VerticalAlignment="Center" FontSize="11"/>
+                                    <iconPacks:PackIconMaterialDesign Kind="Search" Width="16" Height="16" Margin="0,0,4,0"/>
+                                    <TextBlock Text="Search" VerticalAlignment="Center" FontWeight="SemiBold"/>
                                 </StackPanel>
                             </Button>
             </StackPanel>
@@ -114,16 +110,16 @@
 
                 <!-- Utility Buttons Group -->
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button Style="{StaticResource StyledButton}" x:Name="openFolderButton" Click="OpenFolder" Margin="0,0,6,0" Padding="8,4">
+                    <Button Style="{StaticResource StyledButton}" x:Name="openFolderButton" Click="OpenFolder" Margin="0,0,8,0" Padding="12,8">
                     <StackPanel Orientation="Horizontal">
                             <iconPacks:PackIconRemixIcon Kind="Folder2Fill" Width="16" Height="16"/>
-                            <TextBlock VerticalAlignment="Center" Margin="6,0,0,0" FontWeight="SemiBold">Open Folder</TextBlock>
+                            <TextBlock VerticalAlignment="Center" Margin="8,0,0,0" FontWeight="SemiBold">Open Folder</TextBlock>
                     </StackPanel>
                 </Button>
-                    <Button Style="{StaticResource StyledButton}" x:Name="rescanButton" Click="Rescan" Padding="8,4">
+                    <Button Style="{StaticResource StyledButton}" x:Name="rescanButton" Click="Rescan" Padding="12,8">
                     <StackPanel Orientation="Horizontal">
                             <iconPacks:PackIconRadixIcons Kind="Update" Width="16" Height="16"/>
-                            <TextBlock VerticalAlignment="Center" Margin="6,0,0,0" FontWeight="SemiBold">Rescan</TextBlock>
+                            <TextBlock VerticalAlignment="Center" Margin="8,0,0,0" FontWeight="SemiBold">Rescan</TextBlock>
                     </StackPanel>
                 </Button>
             </StackPanel>
@@ -131,9 +127,9 @@
         </Border>
 
         <!-- Modern Configs List View -->
-        <Border Grid.Row="2" Background="#C0353535" CornerRadius="8" Padding="1" Margin="0,0,0,4">
+        <Border Grid.Row="2" Style="{StaticResource StandardCardStyle}" Margin="0,0,0,16">
             <ListView x:Name="configsListView" 
-                      Foreground="White" 
+                      Foreground="{DynamicResource ForegroundMain}" 
                       Background="Transparent" 
                       ItemsSource="{Binding Path=ConfigsCollection}" 
                       SelectionMode="Extended" 
@@ -145,7 +141,8 @@
                       PreviewMouseLeftButtonDown="configsListView_PreviewMouseLeftButtonDown" 
                       MouseMove="configsListView_MouseMove"
                       ScrollViewer.HorizontalScrollBarVisibility="Auto"
-                      ScrollViewer.VerticalScrollBarVisibility="Auto">
+                      ScrollViewer.VerticalScrollBarVisibility="Auto"
+                      Padding="0">
 
             <!-- Show Headers by overriding the default style -->
             <ListView.Style>

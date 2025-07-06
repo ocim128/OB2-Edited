@@ -34,7 +34,14 @@ namespace RuriLib.Models.Blocks.Settings
         public string Value { get; set; }
 
         public IEnumerable<string> PrettyNames => enumValues.Keys;
-        public string PrettyName => enumValues.First(kvp => kvp.Value == Value).Key;
+        public string PrettyName
+        {
+            get
+            {
+                var match = enumValues.FirstOrDefault(kvp => kvp.Value == Value);
+                return match.Key ?? Value;
+            }
+        }
         
         private readonly Dictionary<string, string> enumValues = new();
 

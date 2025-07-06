@@ -56,6 +56,9 @@ namespace OpenBullet2.Native.Views.Pages
             vm = new MultiRunJobViewerViewModel(jobVM);
             vm.NewMessage += OnResultMessage;
             DataContext = vm;
+            
+            // Set the initial active tab to Hits
+            SetActiveTab("Hits");
         }
 
         private async void Start(object sender, RoutedEventArgs e)
@@ -263,8 +266,6 @@ namespace OpenBullet2.Native.Views.Pages
             SetActiveTab("ToCheck");
             vm.HitsFilter = ViewModels.HitsFilter.ToCheck;
         }
-
-
 
         private void SetActiveTab(string activeTab)
         {

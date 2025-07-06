@@ -76,13 +76,18 @@ namespace RuriLib.Http.Helpers
                     // Copy to the user's buffer
                     foreach (var segment in readableBuffer)
                     {
-                        var spanToCopy = segment.Span;
-                        if (copiedBytes + spanToCopy.Length > bytesToCopy)
+                        // Convert span to array immediately to avoid async span usage
+                        var segmentArray = segment.Span.ToArray();
+                        var arrayToCopy = segmentArray;
+                        
+                        if (copiedBytes + arrayToCopy.Length > bytesToCopy)
                         {
-                            spanToCopy = spanToCopy.Slice(0, (int)(bytesToCopy - copiedBytes));
+                            arrayToCopy = new byte[(int)(bytesToCopy - copiedBytes)];
+                            Array.Copy(segmentArray, 0, arrayToCopy, 0, arrayToCopy.Length);
                         }
-                        spanToCopy.CopyTo(buffer.AsSpan(offset + copiedBytes));
-                        copiedBytes += spanToCopy.Length;
+                        
+                        arrayToCopy.CopyTo(buffer, offset + copiedBytes);
+                        copiedBytes += arrayToCopy.Length;
 
                         if (copiedBytes == bytesToCopy) break; // Finished copying the requested amount
                     }

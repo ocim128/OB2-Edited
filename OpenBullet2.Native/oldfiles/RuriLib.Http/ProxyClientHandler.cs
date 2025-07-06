@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Buffers;
 using System.IO;
-using System.IO.Pipelines;
 using System.Net;
 using System.Net.Http;
 using System.Net.Sockets;
@@ -11,19 +9,17 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Security.Cryptography.X509Certificates;
 using RuriLib.Proxies;
-using RuriLib.Proxies.Clients;
+using System.Text;
 using RuriLib.Proxies.Exceptions;
 using System.Collections.Generic;
-using RuriLib.Http.Models;
-using System.Linq;
-using System.Runtime.InteropServices;
 
 namespace RuriLib.Http
 {
     /// <summary>
-    /// Custom implementation of an HttpClient.
+    /// Represents <see cref="HttpMessageHandler"/> with a <see cref="ProxyClient"/>
+    /// to provide proxy support to the <see cref="HttpClient"/>.
     /// </summary>
-    public class RLHttpClient : IDisposable
+    public class ProxyClientHandler : HttpMessageHandler, IDisposable
     {
         private readonly ProxyClient proxyClient;
 
@@ -38,7 +34,7 @@ namespace RuriLib.Http
         public ProxyClient ProxyClient => proxyClient;
 
         /// <summary>
-        /// Gets the raw bytes of all the requests that were sent.
+        /// Gets the raw bytes of the last request that was sent.
         /// </summary>
         public List<byte[]> RawRequests { get; } = new();
 
@@ -104,6 +100,17 @@ namespace RuriLib.Http
         public DecompressionMethods AutomaticDecompression => DecompressionMethods.GZip | DecompressionMethods.Deflate;
 
         /// <summary>
+        /// Gets or sets a value that indicates whether the handler uses the CookieContainer
+        /// property to store server cookies and uses these cookies when sending requests.
+        /// </summary>
+        public bool UseCookies { get; set; } = true;
+
+        /// <summary>
+        /// Gets or sets the cookie container used to store server cookies by the handler.
+        /// </summary>
+        public CookieContainer CookieContainer { get; set; }
+
+        /// <summary>
         /// Gets or sets delegate to verifies the remote Secure Sockets Layer (SSL) 
         /// certificate used for authentication.
         /// </summary>
@@ -116,24 +123,24 @@ namespace RuriLib.Http
         #endregion
 
         /// <summary>
-        /// Creates a new instance of <see cref="RLHttpClient"/> given a <paramref name="proxyClient"/>.
-        /// If <paramref name="proxyClient"/> is null, <see cref="NoProxyClient"/> will be used.
+        /// Creates a new instance of <see cref="ProxyClientHandler"/> given a <paramref name="proxyClient"/>.
         /// </summary>
-        public RLHttpClient(ProxyClient proxyClient = null)
+        public ProxyClientHandler(ProxyClient proxyClient)
         {
-            this.proxyClient = proxyClient ?? new NoProxyClient();
+            this.proxyClient = proxyClient ?? throw new ArgumentNullException(nameof(proxyClient));
         }
 
         /// <summary>
-        /// Asynchronously sends a <paramref name="request"/> and returns an <see cref="HttpResponse"/>.
+        /// Asynchronously sends a <paramref name="request"/> and returns an <see cref="HttpResponseMessage"/>.
         /// </summary>
         /// <param name="request">The request to send</param>
         /// <param name="cancellationToken">A cancellation token to cancel the operation</param>
-        public Task<HttpResponse> SendAsync(HttpRequest request, CancellationToken cancellationToken = default)
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request,
+            CancellationToken cancellationToken = default)
             => SendAsync(request, 0, cancellationToken);
 
-        private async Task<HttpResponse> SendAsync(HttpRequest request, int redirects,
-            CancellationToken cancellationToken = default)
+        private async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request,
+            int redirects, CancellationToken cancellationToken = default)
         {
             if (redirects > MaxNumberOfRedirects)
             {
@@ -145,9 +152,14 @@ namespace RuriLib.Http
                 throw new ArgumentNullException(nameof(request));
             }
 
+            if (UseCookies && CookieContainer == null)
+            {
+                throw new ArgumentNullException(nameof(CookieContainer));
+            }
+
             await CreateConnection(request, cancellationToken).ConfigureAwait(false);
             await SendDataAsync(request, cancellationToken).ConfigureAwait(false);
-
+            
             var responseMessage = await ReceiveDataAsync(request, cancellationToken).ConfigureAwait(false);
 
             try
@@ -155,21 +167,16 @@ namespace RuriLib.Http
                 // Optionally perform auto redirection on 3xx response
                 if (((int)responseMessage.StatusCode) / 100 == 3 && AllowAutoRedirect)
                 {
-                    // Compute the redirection URI
-                    var locationHeaderName = responseMessage.Headers.Keys
-                        .FirstOrDefault(k => k.Equals("Location", StringComparison.OrdinalIgnoreCase));
-
-                    if (locationHeaderName is null)
+                    if (!responseMessage.Headers.Contains("Location"))
                     {
                         throw new Exception($"Status code was {(int)responseMessage.StatusCode} but no Location header received. " +
                             $"Disable auto redirect and try again.");
                     }
 
-                    Uri.TryCreate(responseMessage.Headers[locationHeaderName], UriKind.RelativeOrAbsolute, out var newLocation);
-
-                    var redirectUri = newLocation.IsAbsoluteUri
-                        ? newLocation
-                        : new Uri(request.Uri, newLocation);
+                    // Compute the redirection URI
+                    var redirectUri = responseMessage.Headers.Location.IsAbsoluteUri
+                        ? responseMessage.Headers.Location
+                        : new Uri(request.RequestUri, responseMessage.Headers.Location);
 
                     // If not 307, change the method to GET
                     if (responseMessage.StatusCode != HttpStatusCode.RedirectKeepVerb)
@@ -178,28 +185,25 @@ namespace RuriLib.Http
                         request.Content = null;
                     }
 
-                    // Adjust the request if the host is different
-                    if (request.Uri.Host != redirectUri.Host)
+                    // Port over the cookies if the domains are different
+                    if (request.RequestUri.Host != redirectUri.Host)
                     {
+                        var cookies = CookieContainer.GetCookies(request.RequestUri);
+                        foreach (Cookie cookie in cookies)
+                        {
+                            CookieContainer.Add(redirectUri, new Cookie(cookie.Name, cookie.Value));
+                        }
+
                         // This is needed otherwise if the Host header was set manually
                         // it will keep the previous one after a domain switch
-                        if (request.HeaderExists("Host", out var hostHeaderName))
-                        {
-                            request.Headers.Remove(hostHeaderName);
-                        }
+                        request.Headers.Host = string.Empty;
 
                         // Remove additional headers that could cause trouble
                         request.Headers.Remove("Origin");
                     }
 
                     // Set the new URI
-                    request.Uri = redirectUri;
-
-                    // Prevent duplicate Cookie headers: if a Cookie header is present, clear the Cookies dictionary
-                    if (request.Headers.Keys.Any(k => k.Equals("Cookie", StringComparison.OrdinalIgnoreCase)))
-                    {
-                        request.Cookies.Clear();
-                    }
+                    request.RequestUri = redirectUri;
 
                     // Dispose the previous response
                     responseMessage.Dispose();
@@ -217,42 +221,49 @@ namespace RuriLib.Http
             return responseMessage;
         }
 
-        private async Task SendDataAsync(HttpRequest request, CancellationToken cancellationToken = default)
+        private async Task SendDataAsync(HttpRequestMessage request, CancellationToken cancellationToken = default)
         {
-            // Use ArrayBufferWriter to collect the request bytes
-            var bufferWriter = new ArrayBufferWriter<byte>();
-            await request.WriteToAsync(bufferWriter, cancellationToken);
-            var buffer = bufferWriter.WrittenSpan.ToArray();
-            
+            byte[] buffer;
+            using var ms = new MemoryStream();
+
+            // Send the first line
+            buffer = Encoding.ASCII.GetBytes(HttpRequestMessageBuilder.BuildFirstLine(request));
+            ms.Write(buffer);
             await connectionCommonStream.WriteAsync(buffer.AsMemory(0, buffer.Length), cancellationToken).ConfigureAwait(false);
 
-            RawRequests.Add(buffer);
+            // Send the headers
+            buffer = Encoding.ASCII.GetBytes(HttpRequestMessageBuilder.BuildHeaders(request, CookieContainer));
+            ms.Write(buffer);
+            await connectionCommonStream.WriteAsync(buffer.AsMemory(0, buffer.Length), cancellationToken).ConfigureAwait(false);
+
+            // Optionally send the content
+            if (request.Content != null)
+            {
+                buffer = await request.Content.ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false);
+                ms.Write(buffer);
+                await connectionCommonStream.WriteAsync(buffer.AsMemory(0, buffer.Length), cancellationToken).ConfigureAwait(false);
+            }
+
+            ms.Seek(0, SeekOrigin.Begin);
+            RawRequests.Add(ms.ToArray());
         }
 
-        private Task<HttpResponse> ReceiveDataAsync(HttpRequest request,
+        private Task<HttpResponseMessage> ReceiveDataAsync(HttpRequestMessage request,
             CancellationToken cancellationToken)
         {
-            var pipeReader = PipeReader.Create(connectionCommonStream);
-            return new HttpResponseBuilder().GetResponseAsync(request, pipeReader, ReadResponseContent, cancellationToken);
+            var responseBuilder = new HttpResponseMessageBuilder(1024, CookieContainer, request.RequestUri);
+            return responseBuilder.GetResponseAsync(request, connectionCommonStream, ReadResponseContent, cancellationToken);
         }
 
-        private async Task CreateConnection(HttpRequest request, CancellationToken cancellationToken)
+        private async Task CreateConnection(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             // Dispose of any previous connection (if we're coming from a redirect)
             tcpClient?.Close();
-
-            if (connectionCommonStream is not null)
-            {
-                await connectionCommonStream.DisposeAsync().ConfigureAwait(false);
-            }
-            
-            if (connectionNetworkStream is not null)
-            {
-                await connectionNetworkStream.DisposeAsync().ConfigureAwait(false);
-            }
+            connectionCommonStream?.Dispose();
+            connectionNetworkStream?.Dispose();
 
             // Get the stream from the proxies TcpClient
-            var uri = request.Uri;
+            var uri = request.RequestUri;
             tcpClient = await proxyClient.ConnectAsync(uri.Host, uri.Port, null, cancellationToken);
             connectionNetworkStream = tcpClient.GetStream();
 
@@ -267,16 +278,16 @@ namespace RuriLib.Http
                     {
                         TargetHost = uri.Host,
                         EnabledSslProtocols = SslProtocols,
-                        CertificateRevocationCheckMode = CertRevocationMode
+                        CertificateRevocationCheckMode = CertRevocationMode,
                     };
 
                     if (CertRevocationMode != X509RevocationMode.Online)
                     {
                         sslOptions.RemoteCertificateValidationCallback =
-                            (_, _, _, _) => true;
+                            new RemoteCertificateValidationCallback((s, c, ch, e) => { return true; });
                     }
 
-                    if (UseCustomCipherSuites && !RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                    if (UseCustomCipherSuites)
                     {
                         sslOptions.CipherSuitesPolicy = new CipherSuitesPolicy(AllowedCipherSuites);
                     }
@@ -301,11 +312,16 @@ namespace RuriLib.Http
         }
 
         /// <inheritdoc/>
-        public void Dispose()
+        protected override void Dispose(bool disposing)
         {
-            tcpClient?.Dispose();
-            connectionCommonStream?.Dispose();
-            connectionNetworkStream?.Dispose();
+            if (disposing)
+            {
+                tcpClient?.Dispose();
+                connectionCommonStream?.Dispose();
+                connectionNetworkStream?.Dispose();
+            }
+
+            base.Dispose(disposing);
         }
     }
 }

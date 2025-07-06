@@ -83,6 +83,7 @@ namespace RuriLib.Helpers.Transpilers
                     var block = new LoliCodeBlockInstance(descriptor);
 
                     var sb = new StringBuilder();
+                    var startingLineNumber = lineNumber; // Capture the starting line number
 
                     sb.Append(line);
 
@@ -106,7 +107,9 @@ namespace RuriLib.Helpers.Transpilers
                         sb.Append(line);
                     }
 
-                    block.Script = sb.ToString();
+                    var blockScript = sb.ToString();
+                    var tempLineNumber = startingLineNumber;
+                    block.FromLC(ref blockScript, ref tempLineNumber); // Properly call FromLC to set StartingLineNumber
 
                     // Make sure the script is not empty
                     if (!string.IsNullOrWhiteSpace(block.Script.Replace("\n", "").Replace("\r\n", "")))

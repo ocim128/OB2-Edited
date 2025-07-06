@@ -501,10 +501,12 @@ namespace OpenBullet2.Native.ViewModels
         {
             if (MultiRunJob.Status is JobStatus.Idle)
             {
+                // Reset skip and reload data pool to reflect updated source file
                 MultiRunJob.Skip = 0;
+                MultiRunJob.DataPool.Reload();
                 Job.UpdateSkip();
+                Job.UpdateViewModel();
                 OnPropertyChanged(nameof(Job.Skip));
-                // Update progress string since it depends on skip value
                 OnPropertyChanged(nameof(Job.ProgressString));
             }
         }

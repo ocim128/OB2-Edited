@@ -22,6 +22,11 @@
             <SolidColorBrush x:Key="ForegroundMenuSelected" Color="#3B82F6"/>
             <SolidColorBrush x:Key="Headers" Color="#F8FAFC" />
 
+            <!-- Border Colors -->
+            <SolidColorBrush x:Key="BorderLight" Color="#475569"/>
+            <Color x:Key="BorderLightColor">#475569</Color>
+            <Color x:Key="BorderDarkColor">#1E293B</Color>
+
             <SolidColorBrush x:Key="SuccessButton" Color="#065F46"/>
             <SolidColorBrush x:Key="PrimaryButton" Color="#1E40AF"/>
             <SolidColorBrush x:Key="WarningButton" Color="#92400E"/>

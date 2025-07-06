@@ -293,33 +293,52 @@ namespace RuriLib.Http
         // Sets the value of a cookie
         private static void SetCookie(HttpResponse response, string value)
         {
-            if (value.Length == 0)
-            {
+            if (string.IsNullOrEmpty(value))
                 return;
-            }
 
-            var endCookiePos = value.IndexOf(';');
-            var separatorPos = value.IndexOf('=');
-
-            if (separatorPos == -1)
+            // A single header can (incorrectly but commonly) contain multiple cookies separated by commas.
+            // We iterate through the string, splitting at commas that appear to start a new cookie (lookahead for '=')
+            int start = 0;
+            bool inQuotes = false;
+            for (int i = 0; i <= value.Length; i++)
             {
-                // Invalid cookie, simply don't add it
-                return;
-            }
+                bool atEnd = i == value.Length;
+                char c = atEnd ? ',' : value[i]; // treat end as comma delimiter
 
-            string cookieValue;
-            var cookieName = value.Substring(0, separatorPos);
+                if (c == '"')
+                    inQuotes = !inQuotes;
 
-            if (endCookiePos == -1)
-            {
-                cookieValue = value[(separatorPos + 1)..];
-            }
-            else
-            {
-                cookieValue = value.Substring(separatorPos + 1, (endCookiePos - separatorPos) - 1);
-            }
+                if ((c == ',' && !inQuotes) || atEnd)
+                {
+                    int length = (atEnd ? i : i) - start;
+                    if (length > 0)
+                    {
+                        var segment = value.Substring(start, length).Trim();
 
-            response.Request.Cookies[cookieName] = cookieValue;
+                        var eqPos = segment.IndexOf('=');
+                        if (eqPos > 0)
+                        {
+                            var name = segment.Substring(0, eqPos).Trim();
+
+                            // Value ends at next ';' if present, otherwise till end
+                            var semiPos = segment.IndexOf(';', eqPos + 1);
+                            string val;
+                            if (semiPos == -1)
+                                val = segment.Substring(eqPos + 1).Trim();
+                            else
+                                val = segment.Substring(eqPos + 1, semiPos - eqPos - 1).Trim();
+
+                            // Remove quotes around value
+                            if (val.Length >= 2 && val[0] == '"' && val[^1] == '"')
+                                val = val.Substring(1, val.Length - 2);
+
+                            response.Request.Cookies[name] = val;
+                        }
+                    }
+
+                    start = i + 1; // skip comma
+                }
+            }
         }
 
         private async Task ReceiveContentAsync(bool readResponseContent = true, CancellationToken cancellationToken = default)
@@ -450,14 +469,19 @@ namespace RuriLib.Http
 
                     foreach (var segment in buff)
                     {
-                        var spanToCopy = segment.Span;
-                        if (spanToCopy.Length > bytesToCopy)
+                        // Convert span to array immediately to avoid async span usage
+                        var segmentArray = segment.Span.ToArray();
+                        var arrayToCopy = segmentArray;
+                        
+                        if (arrayToCopy.Length > bytesToCopy)
                         {
-                            spanToCopy = spanToCopy.Slice(0, (int)bytesToCopy);
+                            arrayToCopy = new byte[(int)bytesToCopy];
+                            Array.Copy(segmentArray, 0, arrayToCopy, 0, arrayToCopy.Length);
                         }
-                        ms.Write(spanToCopy);
-                        bytesRead += spanToCopy.Length;
-                        bytesToCopy -= spanToCopy.Length;
+                        
+                        ms.Write(arrayToCopy);
+                        bytesRead += arrayToCopy.Length;
+                        bytesToCopy -= arrayToCopy.Length;
                         if (bytesToCopy == 0 && bytesRead == length) break; // copied all the requested amount
                     }
                     
@@ -578,14 +602,19 @@ namespace RuriLib.Http
 
                         foreach (var segment in buff)
                         {
-                            var spanToCopy = segment.Span;
-                            if (spanToCopy.Length > bytesToCopy)
+                            // Convert span to array immediately to avoid async span usage
+                            var segmentArray = segment.Span.ToArray();
+                            var arrayToCopy = segmentArray;
+                            
+                            if (arrayToCopy.Length > bytesToCopy)
                             {
-                                spanToCopy = spanToCopy.Slice(0, (int)bytesToCopy);
+                                arrayToCopy = new byte[(int)bytesToCopy];
+                                Array.Copy(segmentArray, 0, arrayToCopy, 0, arrayToCopy.Length);
                             }
-                            ms.Write(spanToCopy);
-                            bytesRead += spanToCopy.Length;
-                            bytesToCopy -= spanToCopy.Length;
+                            
+                            ms.Write(arrayToCopy);
+                            bytesRead += arrayToCopy.Length;
+                            bytesToCopy -= arrayToCopy.Length;
                             if (bytesToCopy == 0 && bytesRead == chunkSize) break; // copied all the requested amount
                         }
                         reader.AdvanceTo(buff.GetPosition(bytesRead));

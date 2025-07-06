@@ -777,7 +777,7 @@
                         <GridViewColumn Width="60" Header="Type" DisplayMemberBinding="{Binding Type}" />
                         <GridViewColumn Width="200" Header="Data" DisplayMemberBinding="{Binding Data}" />
                         <GridViewColumn Width="150" Header="Proxy" DisplayMemberBinding="{Binding Proxy}" />
-                        <GridViewColumn Width="400" Header="Captured Data" DisplayMemberBinding="{Binding CapturedDataString}" />
+                        <GridViewColumn Width="400" Header="Captured Data" DisplayMemberBinding="{Binding Capture}" />
                         </GridView>
                     </ListView.View>
                 </ListView>

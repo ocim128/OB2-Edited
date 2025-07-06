@@ -97,6 +97,9 @@ namespace RuriLib.Functions.Http
                    ((int)response.StatusCode >= 300 && (int)response.StatusCode < 400) && 
                    response.Headers.Location != null)
             {
+                // Before following redirect, log response to update data.COOKIES
+                await LogHttpResponseData(data, response, cookieContainer, options).ConfigureAwait(false);
+
                 var location = response.Headers.Location.IsAbsoluteUri 
                     ? response.Headers.Location 
                     : new Uri(new Uri(options.Url), response.Headers.Location);
@@ -112,6 +115,13 @@ namespace RuriLib.Functions.Http
                 // Copy essential headers only
                 if (request.Headers.UserAgent.Count > 0)
                     redirectRequest.Headers.UserAgent.ParseAdd(request.Headers.UserAgent.ToString());
+
+                // Re-add accumulated cookies for the redirect
+                if (data.COOKIES.Count > 0)
+                {
+                    var cookieHeader = string.Join("; ", data.COOKIES.Select(c => $"{c.Key}={c.Value}"));
+                    redirectRequest.Headers.TryAddWithoutValidation("Cookie", cookieHeader);
+                }
                 
                 response = await client.SendAsync(redirectRequest, options.ReadResponseContent ?
                     HttpCompletionOption.ResponseContentRead : HttpCompletionOption.ResponseHeadersRead,
@@ -179,6 +189,9 @@ namespace RuriLib.Functions.Http
                    ((int)response.StatusCode >= 300 && (int)response.StatusCode < 400) && 
                    response.Headers.Location != null)
             {
+                // Before following redirect, log response to update data.COOKIES
+                await LogHttpResponseData(data, response, cookieContainer, options).ConfigureAwait(false);
+
                 var location = response.Headers.Location.IsAbsoluteUri 
                     ? response.Headers.Location 
                     : new Uri(new Uri(options.Url), response.Headers.Location);
@@ -192,6 +205,13 @@ namespace RuriLib.Functions.Http
                 
                 if (request.Headers.UserAgent.Count > 0)
                     redirectRequest.Headers.UserAgent.ParseAdd(request.Headers.UserAgent.ToString());
+                
+                // Re-add accumulated cookies for the redirect
+                if (data.COOKIES.Count > 0)
+                {
+                    var cookieHeader = string.Join("; ", data.COOKIES.Select(c => $"{c.Key}={c.Value}"));
+                    redirectRequest.Headers.TryAddWithoutValidation("Cookie", cookieHeader);
+                }
                 
                 response = await client.SendAsync(redirectRequest, options.ReadResponseContent ?
                     HttpCompletionOption.ResponseContentRead : HttpCompletionOption.ResponseHeadersRead,
@@ -260,6 +280,9 @@ namespace RuriLib.Functions.Http
                    ((int)response.StatusCode >= 300 && (int)response.StatusCode < 400) && 
                    response.Headers.Location != null)
             {
+                // Before following redirect, log response to update data.COOKIES
+                await LogHttpResponseData(data, response, cookieContainer, options).ConfigureAwait(false);
+
                 var location = response.Headers.Location.IsAbsoluteUri 
                     ? response.Headers.Location 
                     : new Uri(new Uri(options.Url), response.Headers.Location);
@@ -279,6 +302,13 @@ namespace RuriLib.Functions.Http
                 {
                     redirectRequest.Headers.TryAddWithoutValidation("Authorization", "Basic " + Convert.ToBase64String(
                         Encoding.UTF8.GetBytes($"{options.Username}:{options.Password}")));
+                }
+                
+                // Re-add accumulated cookies for the redirect
+                if (data.COOKIES.Count > 0)
+                {
+                    var cookieHeader = string.Join("; ", data.COOKIES.Select(c => $"{c.Key}={c.Value}"));
+                    redirectRequest.Headers.TryAddWithoutValidation("Cookie", cookieHeader);
                 }
                 
                 response = await client.SendAsync(redirectRequest, options.ReadResponseContent ?
@@ -384,6 +414,9 @@ namespace RuriLib.Functions.Http
                        ((int)response.StatusCode >= 300 && (int)response.StatusCode < 400) && 
                        response.Headers.Location != null)
                 {
+                    // Before following redirect, log response to update data.COOKIES
+                    await LogHttpResponseData(data, response, cookieContainer, options).ConfigureAwait(false);
+
                     var location = response.Headers.Location.IsAbsoluteUri 
                         ? response.Headers.Location 
                         : new Uri(new Uri(options.Url), response.Headers.Location);
@@ -397,6 +430,13 @@ namespace RuriLib.Functions.Http
                     
                     if (request.Headers.UserAgent.Count > 0)
                         redirectRequest.Headers.UserAgent.ParseAdd(request.Headers.UserAgent.ToString());
+                    
+                    // Re-add accumulated cookies for the redirect
+                    if (data.COOKIES.Count > 0)
+                    {
+                        var cookieHeader = string.Join("; ", data.COOKIES.Select(c => $"{c.Key}={c.Value}"));
+                        redirectRequest.Headers.TryAddWithoutValidation("Cookie", cookieHeader);
+                    }
                     
                     response = await client.SendAsync(redirectRequest, options.ReadResponseContent ?
                         HttpCompletionOption.ResponseContentRead : HttpCompletionOption.ResponseHeadersRead,
@@ -472,16 +512,16 @@ namespace RuriLib.Functions.Http
         private static async Task LogHttpResponseData(BotData data, HttpResponseMessage response,
             CookieContainer cookieContainer, Options.HttpRequestOptions requestOptions)
         {
-            if (requestOptions.ReadResponseContent)
+            // Skip reading payload on redirects and read content only if requested
+            int status = (int)response.StatusCode;
+            if (requestOptions.ReadResponseContent && (status < 300 || status >= 400))
             {
-                // Try to read the raw source for Content-Length calculation
                 try
                 {
                     data.RAWSOURCE = await response.Content.ReadAsByteArrayAsync(data.CancellationToken).ConfigureAwait(false);
                 }
                 catch (NullReferenceException)
                 {
-                    // Thrown when there is no content (204) or we decided to not read it
                     data.RAWSOURCE = Array.Empty<byte>();
                 }
             }

@@ -4,5 +4,6 @@ namespace RuriLib.Models.Settings
     {
         public string ChromeBinaryLocation { get; set; } = @"C:\Program Files\Google\Chrome\Application\chrome.exe";
          public bool DrawMouseMovement { get; set; } = true;
+        public bool UseRealBrowser { get; set; } = true;
     }
 }

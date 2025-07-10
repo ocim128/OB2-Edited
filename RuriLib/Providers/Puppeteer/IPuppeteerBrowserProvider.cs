@@ -3,5 +3,6 @@
     public interface IPuppeteerBrowserProvider
     {
         string ChromeBinaryLocation { get; }
+        bool UseRealBrowser { get; }
     }
 }

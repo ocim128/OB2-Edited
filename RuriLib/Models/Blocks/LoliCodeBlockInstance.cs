@@ -2,6 +2,8 @@
 using RuriLib.Helpers;
 using RuriLib.Helpers.CSharp;
 using RuriLib.Helpers.LoliCode;
+using RuriLib.Models.Blocks.Settings;
+using RuriLib.Models.Blocks.Settings.Interpolated;
 using RuriLib.Models.Configs;
 using RuriLib.Models.Proxies;
 using System;
@@ -40,11 +42,60 @@ namespace RuriLib.Models.Blocks
             string line, trimmedLine;
             int relativeLineNumber = 0;
 
+            // First pass: detect all missing variables from the entire script
+            var detectedVariables = new HashSet<string>();
+            using var firstPassReader = new StringReader(Script);
+            while ((line = firstPassReader.ReadLine()) != null)
+            {
+                trimmedLine = line.Trim();
+                if (!string.IsNullOrWhiteSpace(trimmedLine) && !trimmedLine.StartsWith("//"))
+                {
+                    // Only detect variables from actual LoliCode statements, not from block definitions
+                    if (IsLoliCodeStatement(trimmedLine))
+                    {
+                        detectedVariables.UnionWith(VariableDetector.DetectFromLoliCodeStatement(trimmedLine));
+                    }
+
+                    // Special case: output variable declaration lines ("=> VAR @name")
+                    var varDeclMatch = Regex.Match(trimmedLine, @"^=> VAR @?([A-Za-z][A-Za-z0-9_]*)");
+                    if (varDeclMatch.Success)
+                    {
+                        detectedVariables.Add(varDeclMatch.Groups[1].Value);
+                    }
+                }
+            }
+
+            // Also detect variables from IF/WHILE conditions with keys
+            var keyVariables = DetectVariablesFromKeys();
+            detectedVariables.UnionWith(keyVariables);
+
+            // Emit NullDynamic declarations for ALL detected variables (except special prefixes)
+            foreach (var varName in detectedVariables.Where(v => !v.StartsWith("input.") && !v.StartsWith("globals.") && !v.StartsWith("data.")))
+            {
+                if (!definedVariables.Contains(varName))
+                {
+                    writer.WriteLine($"dynamic {varName} = RuriLib.Models.NullDynamic.Instance;");
+                    definedVariables.Add(varName);
+                }
+            }
+
+            // Second pass: transpile the script
             while ((line = reader.ReadLine()) != null)
             {
                 relativeLineNumber++;
                 int absoluteLineNumber = StartingLineNumber + relativeLineNumber - 1;
                 trimmedLine = line.Trim();
+
+                // Look for @variable tokens and auto-declare them if missing
+                foreach (Match m in Regex.Matches(trimmedLine, "@([A-Za-z][A-Za-z0-9_]*)"))
+                {
+                    var varName = m.Groups[1].Value;
+                    if (!definedVariables.Contains(varName) && varName is not ("input" or "globals" or "data"))
+                    {
+                        writer.WriteLine($"dynamic {varName} = RuriLib.Models.NullDynamic.Instance;");
+                        definedVariables.Add(varName);
+                    }
+                }
 
                 // Skip empty lines or comments
                 if (string.IsNullOrWhiteSpace(trimmedLine) || trimmedLine.StartsWith("//"))
@@ -310,6 +361,161 @@ namespace RuriLib.Models.Blocks
             }
 
             throw new NotSupportedException();
+        }
+
+        /// <summary>
+        /// Detects variables from Key objects in IF/WHILE statements.
+        /// </summary>
+        private HashSet<string> DetectVariablesFromKeys()
+        {
+            var variables = new HashSet<string>();
+
+            if (string.IsNullOrEmpty(Script))
+                return variables;
+
+            using var reader = new StringReader(Script);
+            string line;
+
+            while ((line = reader.ReadLine()) != null)
+            {
+                var trimmed = line.Trim();
+
+                // Check for IF statements with keys
+                var ifMatch = Regex.Match(trimmed, @"^IF (.+)$");
+                if (ifMatch.Success)
+                {
+                    var condition = ifMatch.Groups[1].Value.Trim();
+                    if (LoliCodeParser.keyIdentifiers.Any(t => condition.StartsWith(t)))
+                    {
+                        variables.UnionWith(ExtractVariablesFromKeyCondition(condition));
+                    }
+                }
+
+                // Check for WHILE statements with keys
+                var whileMatch = Regex.Match(trimmed, @"^WHILE (.+)$");
+                if (whileMatch.Success)
+                {
+                    var condition = whileMatch.Groups[1].Value.Trim();
+                    if (LoliCodeParser.keyIdentifiers.Any(t => condition.StartsWith(t)))
+                    {
+                        variables.UnionWith(ExtractVariablesFromKeyCondition(condition));
+                    }
+                }
+
+                // Check for ELSE IF statements with keys
+                var elseIfMatch = Regex.Match(trimmed, @"^ELSE IF (.+)$");
+                if (elseIfMatch.Success)
+                {
+                    var condition = elseIfMatch.Groups[1].Value.Trim();
+                    if (LoliCodeParser.keyIdentifiers.Any(t => condition.StartsWith(t)))
+                    {
+                        variables.UnionWith(ExtractVariablesFromKeyCondition(condition));
+                    }
+                }
+            }
+
+            return variables;
+        }
+
+        /// <summary>
+        /// Determines if a line is a LoliCode statement vs a block definition or other content.
+        /// </summary>
+        private bool IsLoliCodeStatement(string line)
+        {
+            // Skip block definitions and other non-LoliCode content
+            if (line.StartsWith("BLOCK:") || 
+                line.StartsWith("LABEL:") || 
+                line.StartsWith("ENDBLOCK") ||
+                line.StartsWith("TYPE:") ||
+                line.StartsWith("CONTENT:") ||
+                line.StartsWith("SAFE") ||
+                line.Contains("=") && !line.StartsWith("IF ") && !line.StartsWith("WHILE ") && !line.StartsWith("SET ") ||
+                line.StartsWith("url =") ||
+                line.StartsWith("method =") ||
+                line.StartsWith("value =") ||
+                line.Contains("\"application/"))
+            {
+                return false;
+            }
+
+            // These are LoliCode statements
+            return line.StartsWith("IF ") || 
+                   line.StartsWith("WHILE ") || 
+                   line.StartsWith("ELSE") ||
+                   line.StartsWith("END") ||
+                   line.StartsWith("JUMP ") ||
+                   line.StartsWith("LOG ") ||
+                   line.StartsWith("CLOG ") ||
+                   line.StartsWith("SET ") ||
+                   line.StartsWith("MARK ") ||
+                   line.StartsWith("UNMARK ") ||
+                   line.StartsWith("REPEAT ") ||
+                   line.StartsWith("FOREACH ") ||
+                   line.StartsWith("LOCK ") ||
+                   line.StartsWith("ACQUIRELOCK ") ||
+                   line.StartsWith("RELEASELOCK ") ||
+                   line.StartsWith("TAKEONE ") ||
+                   line.StartsWith("TAKE ") ||
+                   line.StartsWith("#") ||
+                   line.StartsWith("=> ");
+        }
+
+        /// <summary>
+        /// Extracts variable names from a key condition like "STRINGKEY @cp Contains "%""
+        /// </summary>
+        private HashSet<string> ExtractVariablesFromKeyCondition(string condition)
+        {
+            var variables = new HashSet<string>();
+
+            try
+            {
+                var lineCopy = condition;
+                var keyType = LineParser.ParseToken(ref lineCopy);
+                var key = LoliCodeParser.ParseKey(ref lineCopy, keyType);
+
+                // Check left side of the condition
+                if (key.Left.InputMode == SettingInputMode.Variable && !string.IsNullOrEmpty(key.Left.InputVariableName))
+                {
+                    var baseVar = VariableDetector.ExtractBaseVariableName(key.Left.InputVariableName);
+                    if (!string.IsNullOrEmpty(baseVar))
+                    {
+                        variables.Add(baseVar);
+                    }
+                }
+
+                // Check right side of the condition 
+                if (key.Right.InputMode == SettingInputMode.Variable && !string.IsNullOrEmpty(key.Right.InputVariableName))
+                {
+                    var baseVar = VariableDetector.ExtractBaseVariableName(key.Right.InputVariableName);
+                    if (!string.IsNullOrEmpty(baseVar))
+                    {
+                        variables.Add(baseVar);
+                    }
+                }
+
+                // Check interpolated strings in left side
+                if (key.Left.InputMode == SettingInputMode.Interpolated && key.Left.InterpolatedSetting is InterpolatedStringSetting leftString)
+                {
+                    variables.UnionWith(VariableDetector.DetectFromInterpolatedString(leftString.Value));
+                }
+
+                // Check interpolated strings in right side
+                if (key.Right.InputMode == SettingInputMode.Interpolated && key.Right.InterpolatedSetting is InterpolatedStringSetting rightString)
+                {
+                    variables.UnionWith(VariableDetector.DetectFromInterpolatedString(rightString.Value));
+                }
+            }
+            catch
+            {
+                // If parsing fails, fall back to regex detection
+                var varMatches = Regex.Matches(condition, @"@([A-Za-z][A-Za-z0-9_]*)");
+                foreach (Match match in varMatches)
+                {
+                    variables.Add(match.Groups[1].Value);
+                }
+            }
+
+            return variables;
         }
     }
 }

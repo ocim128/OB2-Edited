@@ -6,6 +6,7 @@ using RuriLib.Models.Blocks.Custom.HttpRequest;
 using RuriLib.Models.Blocks.Custom.HttpRequest.Multipart;
 using RuriLib.Models.Blocks.Parameters;
 using RuriLib.Models.Blocks.Settings;
+using RuriLib.Models.Blocks.Settings.Interpolated;
 using RuriLib.Models.Configs;
 using System;
 using System.Collections.Generic;
@@ -330,6 +331,7 @@ namespace RuriLib.Models.Blocks.Custom
         {
             using var writer = new StringWriter();
 
+            // Begin safe wrapper if needed
             if (Safe)
             {
                 writer.WriteLine("try {");

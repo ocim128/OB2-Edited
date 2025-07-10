@@ -10,7 +10,7 @@ namespace OpenBullet2.Native.Services
 {
     public class UpdateService : IDisposable
     {
-        private readonly string versionFile = "version.txt";
+        private readonly string versionFile;
         private readonly Timer timer;
 
         public Version CurrentVersion { get; private set; } = new(0, 3, 2);
@@ -24,6 +24,9 @@ namespace OpenBullet2.Native.Services
 
         public UpdateService()
         {
+            var baseDir = AppDomain.CurrentDomain.BaseDirectory;
+            versionFile = Path.Combine(baseDir, "version.txt");
+
             // Try to read the current version from disk
             try
             {

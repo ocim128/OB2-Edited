@@ -9,9 +9,24 @@ namespace RuriLib.Providers.Emails
 {
     public class FileEmailDomainRepository : IEmailDomainRepository
     {
-        private const string imapFile = "UserData/imapdomains.dat";
-        private const string pop3File = "UserData/pop3domains.dat";
-        private const string smtpFile = "UserData/smtpdomains.dat";
+        private static readonly string imapFile;
+        private static readonly string pop3File;
+        private static readonly string smtpFile;
+
+        static FileEmailDomainRepository()
+        {
+            // Build absolute paths so that multiple instances started from different working
+            // directories still refer to the same UserData folder next to the executable.
+            var baseDir = AppDomain.CurrentDomain.BaseDirectory;
+            var userData = Path.Combine(baseDir, "UserData");
+
+            // Ensure the UserData directory exists
+            Directory.CreateDirectory(userData);
+
+            imapFile = Path.Combine(userData, "imapdomains.dat");
+            pop3File = Path.Combine(userData, "pop3domains.dat");
+            smtpFile = Path.Combine(userData, "smtpdomains.dat");
+        }
 
         private readonly ConcurrentDictionary<string, List<HostEntry>> imapHosts = new(StringComparer.OrdinalIgnoreCase);
         private readonly ConcurrentDictionary<string, List<HostEntry>> pop3Hosts = new(StringComparer.OrdinalIgnoreCase);

@@ -29,17 +29,29 @@ namespace RuriLib.Helpers.CSharp
         {
             if (setting.InputMode == SettingInputMode.Variable)
             {
-                // TODO: Find a better way to cast things from an ExpandoObject
-
-                // If it's a variable from an ExpandoObject we need to hard cast it, otherwise we get
-                // a runtime exception when trying to use extension methods on it.
-                if (setting.InputVariableName.StartsWith("globals.") || setting.InputVariableName.StartsWith("input."))
+                // Check if this is a built-in property access (data.*, globals.*, input.*)
+                if (setting.InputVariableName.StartsWith("data.") || 
+                    setting.InputVariableName.StartsWith("globals.") || 
+                    setting.InputVariableName.StartsWith("input."))
                 {
-                    return $"({GetTypeName(setting)})((object){setting.InputVariableName}){GetCasting(setting, true)}";
+                    // For input.* properties, return direct access since they're already the correct type from ExpandoObject
+                    if (setting.InputVariableName.StartsWith("input."))
+                    {
+                        return $"({GetTypeName(setting)})({setting.InputVariableName})";
+                    }
+                    else
+                    {
+                        // For data.* and globals.* properties, apply casting
+                        var expr = $"({GetTypeName(setting)})({setting.InputVariableName}){GetCasting(setting, false)}";
+                        return expr;
+                    }
                 }
                 else
                 {
-                    return $"{setting.InputVariableName}{GetCasting(setting)}";
+                    // Always cast the variable to object and use DynamicAs* extensions so that
+                    // even NullDynamic (or any other dynamic object) is handled safely.
+                    var expr = $"({GetTypeName(setting)})((object){setting.InputVariableName}){GetCasting(setting, true)}";
+                    return expr;
                 }
             }
 
@@ -97,9 +109,13 @@ namespace RuriLib.Helpers.CSharp
                 .Replace("}", "}}");
 
             foreach (Match match in Regex.Matches(value, @"<([^>]+)>"))
-                sb.Replace(match.Groups[0].Value.Replace("\\", "\\\\").Replace("\"", "\\\""), '{' + match.Groups[1].Value + '}');
+            {
+                var variable = match.Groups[1].Value;
+                sb.Replace(match.Groups[0].Value.Replace("\\", "\\\\").Replace("\"", "\\\""), '{' + variable + '}');
+            }
 
-            return '$' + sb.ToString();
+            var result = '$' + sb.ToString();
+            return result;
         }
 
         /// <summary>

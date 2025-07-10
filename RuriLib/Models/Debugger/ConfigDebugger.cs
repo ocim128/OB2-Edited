@@ -256,19 +256,30 @@ namespace RuriLib.Models.Debugger
                     {
                         try
                         {
-                            var type = DescriptorsRepository.ToVariableType(scriptVar.Type);
-
-                            if (type.HasValue && !scriptVar.Name.StartsWith("tmp_"))
+                            // Determine variable type: use declared type or fallback to runtime type for dynamic variables
+                            var declaredType = scriptVar.Type;
+                            var actualType = declaredType;
+                            VariableType? vType;
+                            try
                             {
-                                var variable = DescriptorsRepository.ToVariable(scriptVar.Name, scriptVar.Type, scriptVar.Value);
+                                vType = DescriptorsRepository.ToVariableType(declaredType);
+                            }
+                            catch (InvalidCastException)
+                            {
+                                if (scriptVar.Value != null)
+                                    actualType = scriptVar.Value.GetType();
+                                vType = DescriptorsRepository.ToVariableType(actualType);
+                            }
+                            if (vType.HasValue && !scriptVar.Name.StartsWith("tmp_"))
+                            {
+                                var variable = DescriptorsRepository.ToVariable(scriptVar.Name, actualType, scriptVar.Value);
                                 variable.MarkedForCapture = data.MarkedForCapture.Contains(scriptVar.Name);
                                 Options.Variables.Add(variable);
                             }
                         }
                         catch
                         {
-                            // The type is not supported, e.g. it was generated using custom C# code and not blocks
-                            // so we just disregard it
+                            // Unsupported types are ignored
                         }
                     }
                 }
@@ -311,107 +322,11 @@ namespace RuriLib.Models.Debugger
                 // For compilation errors, show better error information
                 if (ex.GetType().Name.Contains("CompilationError"))
                 {
-                    bool errorAlreadyLogged = false;
-                    try
-                    {
-                        var csharpScript = Config.CSharpScript;
-                        var lines = csharpScript.Split('\n');
-                        
-                        // Try to extract C# line number from error message
-                        var errorMatch = System.Text.RegularExpressions.Regex.Match(ex.Message, @"\((\d+),\d+\)");
-                        if (errorMatch.Success && int.TryParse(errorMatch.Groups[1].Value, out int csharpLineNumber))
-                        {
-                            csharpLineNumber--; // Convert to 0-based index
-                            
-                            // Look for the closest LoliCode line comment
-                            int loliCodeLineNumber = -1;
-                            for (int i = csharpLineNumber; i >= 0; i--)
-                            {
-                                if (i < lines.Length)
-                                {
-                                    var commentMatch = System.Text.RegularExpressions.Regex.Match(lines[i], @"// LoliCode line (\d+):");
-                                    if (commentMatch.Success && int.TryParse(commentMatch.Groups[1].Value, out loliCodeLineNumber))
-                                    {
-                                        break;
-                                    }
-                                }
-                            }
-                            
-                            if (loliCodeLineNumber > 0)
-                            {
-                                // Clean, concise error reporting
-                                var errorMessage = ex.Message.Contains("error CS") 
-                                    ? ex.Message.Substring(ex.Message.IndexOf("error CS"))
-                                    : ex.Message.Split(':').LastOrDefault()?.Trim();
-                                Logger.Log($"❌ Compilation Error at Line {loliCodeLineNumber}: {errorMessage}", LogColors.Tomato);
-                                
-                                // Show the problematic LoliCode line
-                                try
-                                {
-                                    if (!string.IsNullOrEmpty(Config.LoliCodeScript))
-                                    {
-                                        var loliCodeLines = Config.LoliCodeScript.Split('\n');
-                                        if (loliCodeLineNumber > 0 && loliCodeLineNumber <= loliCodeLines.Length)
-                                        {
-                                            Logger.Log($"📍 {loliCodeLines[loliCodeLineNumber - 1].Trim()}", LogColors.Yellow);
-                                        }
-                                    }
-                                }
-                                catch
-                                {
-                                    // Silently ignore - no need to clutter output with this error
-                                }
-                                
-                                if (RuriLibSettings.RuriLibSettings.GeneralSettings.VerboseMode)
-                                {
-                                    Logger.Log($"📝 Generated C# code around error (line {csharpLineNumber + 1}):", LogColors.Gray);
-                                    int start = Math.Max(0, csharpLineNumber - 2);
-                                    int end = Math.Min(lines.Length - 1, csharpLineNumber + 2);
-                                    for (int i = start; i <= end; i++)
-                                    {
-                                        string marker = i == csharpLineNumber ? ">>> " : "    ";
-                                        Logger.Log($"{marker}{i + 1:D3}: {lines[i].TrimEnd()}", LogColors.Gray);
-                                    }
-                                }
-                                
-                                errorAlreadyLogged = true;
-                                Status = ConfigDebuggerStatus.Idle;
-                                throw;
-                            }
-                        }
-                        
-                        // Fallback to simple error reporting only if we haven't logged already
-                        if (!errorAlreadyLogged)
-                        {
-                            Logger.Log($"❌ Compilation Error: {ex.Message}", LogColors.Tomato);
-                            
-                            if (RuriLibSettings.RuriLibSettings.GeneralSettings.VerboseMode)
-                            {
-                                Logger.Log("📝 Generated C# code:", LogColors.Gray);
-                                for (int i = 0; i < lines.Length; i++)
-                                {
-                                    Logger.Log($"{i + 1:D3}: {lines[i].TrimEnd()}", LogColors.Gray);
-                                }
-                            }
-                        }
-                    }
-                    catch
-                    {
-                        // Simple fallback if everything fails and we haven't logged already
-                        if (!errorAlreadyLogged)
-                        {
-                            Logger.Log($"❌ Compilation Error: {ex.Message}", LogColors.Tomato);
-                        }
-                    }
+                    Logger.Log($"Compilation Error: {ex.Message}", LogColors.Tomato);
                 }
                 else
                 {
-                    // Non-compilation errors
-                    Logger.Log($"❌ {ex.GetType().Name}: {ex.Message}", LogColors.Tomato);
-                    if (RuriLibSettings.RuriLibSettings.GeneralSettings.VerboseMode)
-                    {
-                        Logger.Log(ex.StackTrace, LogColors.Gray);
-                    }
+                    Logger.Log(logErrorMessage, LogColors.Tomato);
                 }
                 
                 Status = ConfigDebuggerStatus.Idle;

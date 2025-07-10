@@ -10,6 +10,7 @@ using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Controls;
 using System.Text.Json;
+using System.Collections.Generic;
 
 namespace OpenBullet2.Native.Services
 {
@@ -240,19 +241,27 @@ namespace OpenBullet2.Native.Services
 
                 if (hasDisavow || hasSixDigitNumber)
                 {
-                    string filePath = Path.Combine(Directory.GetCurrentDirectory(), "otp.txt");
-                    
-                    // Delete existing file if it exists
-                    if (File.Exists(filePath))
-                        File.Delete(filePath);
-                    
-                    // Write clipboard content to file
-                    File.WriteAllText(filePath, clipboardContent);
-                    
+                    // Write the otp.txt file into every running OpenBullet2.Native directory
+                    var targetDirs = GetOpenBullet2Directories();
+                    int writtenCount = 0;
+                    foreach (var dir in targetDirs)
+                    {
+                        try
+                        {
+                            var filePath = Path.Combine(dir, "otp.txt");
+                            File.WriteAllText(filePath, clipboardContent);
+                            writtenCount++;
+                        }
+                        catch (Exception ex)
+                        {
+                            Debug.WriteLine($"Failed to write OTP file in {dir}: {ex.Message}");
+                        }
+                    }
+
                     // Play success sound
                     PlayPopSound();
                     
-                    ShowTrayNotification("OTP", "OTP file updated with clipboard content.");
+                    ShowTrayNotification("OTP", $"OTP file updated in {writtenCount} location{(writtenCount == 1 ? string.Empty : "s")}.");
                 }
                 else
                 {
@@ -263,6 +272,36 @@ namespace OpenBullet2.Native.Services
             {
                 ShowTrayNotification("OTP Error", $"Failed to process clipboard: {ex.Message}");
             }
+        }
+
+        // Returns directories of all running OpenBullet2.Native processes (including current)
+        private IEnumerable<string> GetOpenBullet2Directories()
+        {
+            var dirs = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            // Always include current directory
+            try { dirs.Add(Directory.GetCurrentDirectory()); } catch { }
+
+            try
+            {
+                foreach (var proc in Process.GetProcessesByName("OpenBullet2.Native"))
+                {
+                    try
+                    {
+                        var exePath = proc.MainModule?.FileName;
+                        if (!string.IsNullOrEmpty(exePath))
+                        {
+                            var dir = Path.GetDirectoryName(exePath);
+                            if (!string.IsNullOrEmpty(dir))
+                                dirs.Add(dir);
+                        }
+                    }
+                    catch { /* Access denied for some processes, ignore */ }
+                }
+            }
+            catch { }
+
+            return dirs;
         }
 
         private void PlayPopSound()

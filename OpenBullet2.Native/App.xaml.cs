@@ -24,6 +24,8 @@ using Microsoft.Extensions.Hosting;
 using System.Diagnostics;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+using System.Globalization;
+using System.Text;
 
 namespace OpenBullet2.Native
 {
@@ -37,26 +39,34 @@ namespace OpenBullet2.Native
 
         public App()
         {
+            Trace("App constructor START");
             Dispatcher.UnhandledException += OnDispatcherUnhandledException;
             TaskScheduler.UnobservedTaskException += OnTaskException;
 
+            Trace("After exception handlers");
             // Get the directory where the executable is located
             var appDirectory = AppDomain.CurrentDomain.BaseDirectory;
             
             // Create UserData directory in the executable's directory
             var userDataPath = Path.Combine(appDirectory, "UserData");
             Directory.CreateDirectory(userDataPath);
+
+            Trace($"UserDataPath: {userDataPath}");
             
             var builder = new ConfigurationBuilder()
                 .SetBasePath(appDirectory)
                 .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
             config = builder.Build(); // Build the config once and assign it to the field
 
+            Trace("Configuration built");
+
             var serviceCollection = new ServiceCollection();
             serviceCollection.AddTransient<IConfiguration>(_ => config);
             ConfigureServices(serviceCollection);
             serviceProvider = serviceCollection.BuildServiceProvider();
             SP.Init(serviceProvider);
+
+            Trace("ServiceProvider built");
 
             var workerThreads = config.GetSection("Resources").GetValue("WorkerThreads", 1000);
             var ioThreads = config.GetSection("Resources").GetValue("IOThreads", 1000);
@@ -65,22 +75,78 @@ namespace OpenBullet2.Native
             ThreadPool.SetMinThreads(workerThreads, ioThreads);
             ServicePointManager.DefaultConnectionLimit = connectionLimit;
 
+            Trace("ThreadPool / connection limits set");
+
             // Apply DB migrations or create a DB if it doesn't exist
-            using (var serviceScope = serviceProvider.GetService<IServiceScopeFactory>().CreateScope())
+            using var serviceScope = serviceProvider.GetService<IServiceScopeFactory>().CreateScope();
+            var context = serviceScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+            // Attempt to apply pending migrations. If the database is locked because another
+            // instance is already using it, catch the exception and continue so that the
+            // current process can still start (it will operate on the existing schema).
+            try
             {
-                var context = serviceScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                Trace("Applying migrations");
                 context.Database.Migrate();
+                Trace("Migrations complete");
+            }
+            catch (Microsoft.Data.Sqlite.SqliteException ex) when (ex.SqliteErrorCode == 5)
+            {
+                // SQLite error code 5 = "database is locked". This happens when another
+                // process keeps the DB open. We log the issue and move on – the schema is
+                // assumed to be up-to-date because the first instance already applied any
+                // pending migrations.
+                Debug.WriteLine($"SQLite database locked, skipping migrations: {ex.Message}");
+            }
+            catch (ArgumentException ex) when (ex.Message.Contains("journal mode", StringComparison.OrdinalIgnoreCase))
+            {
+                // Some versions of Microsoft.Data.Sqlite throw if the connection string contains an
+                // unsupported keyword (e.g. "journal mode" in lower case). This is harmless for our
+                // purposes, so we log and keep going.
+                Debug.WriteLine($"SQLite connection string issue, skipping migrations: {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                // Any other migration exception should not crash the whole application when
+                // launching additional instances. Log the exception and proceed.
+                Debug.WriteLine($"Database migration failed: {ex.Message}");
             }
 
             // Load the configs
             var configService = serviceProvider.GetService<ConfigService>();
-            configService.ReloadConfigsAsync().Wait();
+            try
+            {
+                Trace("Reloading configs");
+                configService.ReloadConfigsAsync().Wait();
+                Trace("Configs reloaded");
+            }
+            catch (AggregateException aggEx) when (aggEx.InnerException is ArgumentException argEx && argEx.Message.Contains("journal mode", StringComparison.OrdinalIgnoreCase))
+            {
+                Debug.WriteLine($"Ignoring journal mode exception during config reload: {argEx.Message}");
+                Trace($"Journal mode exception while reloading configs: {argEx.Message}");
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Config reload failed: {ex.Message}");
+                Trace($"Config reload failed: {ex}");
+            }
 
             AutocompletionProvider.Init();
+            Trace("AutocompletionProvider.Init complete");
 
             // Start the job monitor at the start of the application,
             // otherwise it will only be started when navigating to the page
-            _ = serviceProvider.GetService<JobMonitorService>();
+            try
+            {
+                _ = serviceProvider.GetService<JobMonitorService>();
+                Trace("JobMonitorService retrieved");
+            }
+            catch (Exception ex)
+            {
+                Trace($"JobMonitorService retrieval failed: {ex}");
+            }
+
+            Trace("App constructor END");
         }
 
         private void ConfigureServices(IServiceCollection services)
@@ -152,9 +218,11 @@ namespace OpenBullet2.Native
             
             try
             {
+                Trace("Creating MainWindow");
                 var mainWindow = serviceProvider.GetService<MainWindow>();
                 mainWindow.NavigateTo(MainWindowPage.Home);
                 mainWindow.Show();
+                Trace("MainWindow shown");
                 
                 // Ensure the application doesn't shut down immediately
                 this.ShutdownMode = ShutdownMode.OnMainWindowClose;
@@ -164,6 +232,7 @@ namespace OpenBullet2.Native
             }
             catch (Exception ex)
             {
+                Trace($"Startup exception: {ex}");
                 var appDirectory = AppDomain.CurrentDomain.BaseDirectory;
                 var errorLogPath = Path.Combine(appDirectory, $"startup-error-{System.Diagnostics.Process.GetCurrentProcess().Id}.log");
                 File.WriteAllText(errorLogPath, $"Startup error on {DateTime.Now}\r\n{ex}");
@@ -261,5 +330,21 @@ namespace OpenBullet2.Native
                 $" Please open the crash.log file, copy the error message inside it and open an issue on the official github repository." +
                 $" A few details about the exception: {ex.Message}");
         }
+
+        // Simple file trace helper: writes only in DEBUG builds or when OB2_TRACE symbol is defined
+#if DEBUG || OB2_TRACE
+        private void Trace(string msg)
+        {
+            try
+            {
+                var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "startup-trace.log");
+                File.AppendAllText(path, $"{DateTime.Now.ToString("o", CultureInfo.InvariantCulture)} | {msg}{Environment.NewLine}", Encoding.UTF8);
+            }
+            catch { /* ignore */ }
+        }
+#else
+        [System.Diagnostics.Conditional("OB2_TRACE")]
+        private void Trace(string msg) { }
+#endif
     }
 }

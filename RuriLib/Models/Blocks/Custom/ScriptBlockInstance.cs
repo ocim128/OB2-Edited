@@ -139,6 +139,23 @@ namespace RuriLib.Models.Blocks.Custom
             var engineName = "tmp_" + VariableNames.RandomName(6);
             var scopeName = "tmp_" + VariableNames.RandomName(6);
 
+            // Ensure that all input variables exist; if not, declare them with an empty string default
+            if (!string.IsNullOrWhiteSpace(InputVariables))
+            {
+                foreach (var rawInput in InputVariables.Split(','))
+                {
+                    var input = rawInput.Trim();
+                    if (string.IsNullOrWhiteSpace(input))
+                        continue;
+
+                    if (!definedVariables.Contains(input) && input is not ("input" or "globals" or "data"))
+                    {
+                        writer.WriteLine($"dynamic {input} = RuriLib.Helpers.NullDynamic.Instance;");
+                        definedVariables.Add(input);
+                    }
+                }
+            }
+
             switch (Interpreter)
             {
                 case Interpreter.Jint:

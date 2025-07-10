@@ -4,12 +4,14 @@ using RuriLib.Helpers;
 using RuriLib.Helpers.CSharp;
 using RuriLib.Helpers.LoliCode;
 using RuriLib.Models.Configs;
+using RuriLib.Models.Blocks.Settings;
 using RuriLib.Models.Variables;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using RuriLib.Models.Blocks.Settings.Interpolated;
 
 namespace RuriLib.Models.Blocks
 {
@@ -119,6 +121,54 @@ namespace RuriLib.Models.Blocks
              */
 
             using var writer = new StringWriter();
+
+            // Detect and declare missing variables from all settings
+            var detectedVariables = new HashSet<string>();
+            foreach (var setting in Settings.Values)
+            {
+                // Interpolated strings: detect <var> usage
+                if (setting.InterpolatedSetting != null)
+                {
+                    switch (setting.InterpolatedSetting)
+                    {
+                        case InterpolatedStringSetting str:
+                            detectedVariables.UnionWith(VariableDetector.DetectFromInterpolatedString(str.Value));
+                            break;
+                        case InterpolatedListOfStringsSetting list:
+                            foreach (var item in list.Value)
+                                detectedVariables.UnionWith(VariableDetector.DetectFromInterpolatedString(item));
+                            break;
+                        case InterpolatedDictionaryOfStringsSetting dict:
+                            foreach (var kvp in dict.Value)
+                            {
+                                detectedVariables.UnionWith(VariableDetector.DetectFromInterpolatedString(kvp.Key));
+                                detectedVariables.UnionWith(VariableDetector.DetectFromInterpolatedString(kvp.Value));
+                            }
+                            break;
+                    }
+                }
+                // Variable mode: detect direct @var usage
+                if (setting.InputMode == SettingInputMode.Variable && !string.IsNullOrEmpty(setting.InputVariableName))
+                {
+                    var baseVar = VariableDetector.ExtractBaseVariableName(setting.InputVariableName);
+                    if (!string.IsNullOrEmpty(baseVar))
+                        detectedVariables.Add(baseVar);
+                }
+            }
+            // Emit NullDynamic declarations for missing variables
+            var missingVariables = VariableDetector.GetMissingVariables(detectedVariables, declaredVariables);
+            foreach (var missingVar in missingVariables)
+            {
+                writer.WriteLine($"dynamic {missingVar} = RuriLib.Models.NullDynamic.Instance;");
+                declaredVariables.Add(missingVar);
+            }
+
+            static string GetBaseVar(string placeholder)
+            {
+                // Extract variable name up to first invalid char like '[', '.', '(', etc.
+                var match = Regex.Match(placeholder, "^[A-Za-z][A-Za-z0-9_]*");
+                return match.Success ? match.Value : placeholder;
+            }
 
             // Safe mode, wrap method in try/catch but declare variable outside of it
             if (Safe)

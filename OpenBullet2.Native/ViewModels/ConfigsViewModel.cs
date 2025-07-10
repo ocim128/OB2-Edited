@@ -192,7 +192,11 @@ namespace OpenBullet2.Native.ViewModels
 
         public void CreateCollection()
         {
-            var viewModels = configService.Configs.Select(c => new ConfigViewModel(c));
+            // Order configs by LastModified descending so the most recently edited ones appear first
+            var viewModels = configService.Configs
+                .OrderByDescending(c => c.Metadata.LastModified)
+                .Select(c => new ConfigViewModel(c));
+
             ConfigsCollection = new ObservableCollection<ConfigViewModel>(viewModels);
             Application.Current.Dispatcher.Invoke(() => HookFilters());
         }

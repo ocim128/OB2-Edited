@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json;
+using Newtonsoft.Json;
 using RuriLib.Helpers;
 using RuriLib.Models.Environment;
 using RuriLib.Models.Settings;

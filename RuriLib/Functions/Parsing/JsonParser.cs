@@ -1,5 +1,4 @@
 ﻿using Newtonsoft.Json.Linq;
-using RuriLib.Attributes;
 using System;
 using System.Collections.Generic;
 using System.Globalization;

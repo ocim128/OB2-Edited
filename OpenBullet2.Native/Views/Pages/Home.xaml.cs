@@ -1,5 +1,4 @@
 ﻿using OpenBullet2.Core.Repositories;
-using OpenBullet2.Native.Helpers;
 using OpenBullet2.Native.Services;
 using OpenBullet2.Native.ViewModels;
 using System;

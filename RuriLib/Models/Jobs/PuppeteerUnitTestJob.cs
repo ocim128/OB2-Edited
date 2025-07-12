@@ -1,13 +1,8 @@
 ﻿using RuriLib.Logging;
 using RuriLib.Services;
 
-namespace RuriLib.Models.Jobs
+namespace RuriLib.Models.Jobs;
+
+public class PuppeteerUnitTestJob(RuriLibSettingsService settings, PluginRepository pluginRepo, IJobLogger logger = null) : Job(settings, pluginRepo, logger)
 {
-    public class PuppeteerUnitTestJob : Job
-    {
-        public PuppeteerUnitTestJob(RuriLibSettingsService settings, PluginRepository pluginRepo, IJobLogger logger = null)
-            : base(settings, pluginRepo, logger)
-        {
-        }
-    }
 }

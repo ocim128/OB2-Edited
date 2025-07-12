@@ -11,59 +11,44 @@ using System.Threading;
 
 namespace RuriLib.Models.Bots;
 
-public class BotData
+public class BotData(Providers providers, ConfigSettings configSettings, IBotLogger logger,
+    DataLine line, Proxy? proxy = null, bool useProxy = false)
 {
-    public DataLine Line { get; set; }
-    public Proxy? Proxy { get; set; }
-    public bool UseProxy { get; set; }
+    public DataLine Line { get; set; } = line;
+    public Proxy? Proxy { get; set; } = proxy;
+    public bool UseProxy { get; set; } = useProxy;
 
-    public ConfigSettings ConfigSettings { get; }
-    public Providers Providers { get; }
-    public IBotLogger Logger { get; set; }
-    public Random Random { get; }
+    public ConfigSettings ConfigSettings { get; } = configSettings;
+    public Providers Providers { get; } = providers;
+    public IBotLogger Logger { get; set; } = logger;
+    public Random Random { get; } = providers.RNG.GetNew();
     public CancellationToken CancellationToken { get; set; }
     public AsyncLocker? AsyncLocker { get; set; }
     public Stepper? Stepper { get; set; }
     public decimal CaptchaCredit { get; set; } = 0;
     public string ExecutionInfo { get; set; } = "IDLE";
 
-    // Fixed properties
+    /// <summary>
+    /// Fixed properties
+    /// </summary>
     public string STATUS { get; set; } = "NONE";
     public string SOURCE { get; set; } = string.Empty;
     public byte[] RAWSOURCE { get; set; } = [];
     public string ADDRESS { get; set; } = string.Empty;
-    public int RESPONSECODE { get; set; } = 0;
-    public Dictionary<string, string> COOKIES { get; set; } = new();
-    public Dictionary<string, string> HEADERS { get; set; } = new();
+    public int RESPONSECODE { get; set; }
+    public Dictionary<string, string> COOKIES { get; set; } = [];
+    public Dictionary<string, string> HEADERS { get; set; } = [];
     public string ERROR { get; set; } = string.Empty;
-    public int BOTNUM { get; set; } = 0;
+    public int BOTNUM { get; set; }
 
-    // This dictionary will hold stateful objects like a captcha provider, a TCP client, a selenium webdriver...
-    private readonly Dictionary<string, object> _objects = new();
-        
     [Obsolete("Do not use this property, it's only here for retro compatibility but it can cause memory leaks." +
               " Use the SetObject and TryGetObject methods instead!")]
-    public Dictionary<string, object> Objects => _objects;
+    public Dictionary<string, object> Objects { get; } = [];
 
-    // This list will hold the names of all variables that are marked for capture
-    public List<string> MarkedForCapture { get; } = new List<string>();
-
-    public BotData(Providers providers, ConfigSettings configSettings, IBotLogger logger,
-        DataLine line, Proxy? proxy = null, bool useProxy = false)
-    {
-        Providers = providers;
-        ConfigSettings = configSettings;
-        Logger = logger;
-
-        // Create a new local RNG seeded with a random seed from the global RNG
-        // This is needed because when multiple threads try to access the same RNG it stops giving
-        // random values after a while!
-        Random = providers.RNG.GetNew();
-
-        Line = line;
-        Proxy = proxy;
-        UseProxy = useProxy;
-    }
+    /// <summary>
+    /// This list will hold the names of all variables that are marked for capture
+    /// </summary>
+    public List<string> MarkedForCapture { get; } = [];
 
     public void LogVariableAssignment(string name)
         => Logger.Log($"Assigned value to variable '{name}'", LogColors.Yellow);
@@ -79,7 +64,7 @@ public class BotData
         {
             return;
         }
-        
+
         MarkedForCapture.Add(name);
         Logger.Log($"Variable '{name}' marked for capture", LogColors.Tomato);
     }
@@ -87,21 +72,23 @@ public class BotData
     public void UnmarkCapture(string name)
     {
         if (string.IsNullOrWhiteSpace(name))
+        {
             throw new ArgumentException("Name cannot be null or empty");
+        }
 
         if (!MarkedForCapture.Contains(name))
         {
             return;
         }
-        
-        MarkedForCapture.Remove(name);
+
+        _ = MarkedForCapture.Remove(name);
         Logger.Log($"Variable '{name}' removed from capture", LogColors.Yellow);
     }
 
     public void ExecutingBlock(string label)
     {
         ExecutionInfo = $"Executing block {label}";
-            
+
         if (Logger != null)
         {
             Logger.ExecutingBlock = label;
@@ -129,29 +116,33 @@ public class BotData
 
     public void SetObject(string name, object obj, bool disposeExisting = true)
     {
-        if (_objects.TryGetValue(name, out var existing))
+        if (Objects.TryGetValue(name, out var existing) && existing is IDisposable d && disposeExisting)
         {
-            if (existing is IDisposable d && disposeExisting)
-            {
-                Logger.Log($"Disposing existing object '{name}'", LogColors.Yellow);
-                d.Dispose();
-            }
+            Logger.Log($"Disposing existing object '{name}'", LogColors.Yellow);
+            d.Dispose();
         }
 
-        _objects[name] = obj;
-        if (ConfigSettings.GeneralSettings.VerboseMode)
+        Objects[name] = obj;
+        // Avoid cluttering the verbose log with common system-managed objects
+        var suppressedObjects = new[] { "httpClient", "ironPyEngine" };
+        if (ConfigSettings.GeneralSettings.VerboseMode && !suppressedObjects.Contains(name))
         {
             Logger.Log($"Set object '{name}'", LogColors.DarkGreen);
         }
     }
 
-    public T? TryGetObject<T>(string name) where T : class 
+    public T? TryGetObject<T>(string name) where T : class
     {
-        if (_objects.TryGetValue(name, out var value) && value is T t)
+        if (Objects.TryGetValue(name, out var value) && value is T t)
         {
             if (ConfigSettings.GeneralSettings.VerboseMode)
             {
-                Logger.Log($"Retrieved object '{name}'", LogColors.DarkGreen);
+                // Avoid cluttering logs for frequently accessed internal objects
+                var suppressedObjects = new[] { "httpClient", "ironPyEngine", "puppeteer", "puppeteerPage", "puppeteerFrame", "selenium", "seleniumDriver" };
+                if (!suppressedObjects.Contains(name))
+                {
+                    Logger.Log($"Retrieved object '{name}'", LogColors.DarkGreen);
+                }
             }
             return t;
         }
@@ -175,7 +166,7 @@ public class BotData
     {
         except ??= [];
 
-        foreach (var obj in _objects.Where(o => o.Value is IDisposable && !except.Contains(o.Key)))
+        foreach (var obj in Objects.Where(o => o.Value is IDisposable && !except.Contains(o.Key)))
         {
             try
             {

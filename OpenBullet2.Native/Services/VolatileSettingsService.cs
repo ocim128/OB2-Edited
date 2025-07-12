@@ -1,8 +1,6 @@
-﻿using OpenBullet2.Native.Helpers;
-using RuriLib.Models.Blocks;
+﻿using RuriLib.Models.Blocks;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Windows.Controls;
 
 namespace OpenBullet2.Native.Services
 {

@@ -29,388 +29,488 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace RuriLib.Models.Debugger
+namespace RuriLib.Models.Debugger;
+
+public enum ConfigDebuggerStatus
 {
-    public enum ConfigDebuggerStatus
+    Idle = 0,
+    Running = 1,
+    WaitingForStep = 2
+}
+
+public partial class ConfigDebugger : IDisposable
+{
+    public IRandomUAProvider RandomUAProvider { get; set; }
+    public IRNGProvider RNGProvider { get; set; }
+    public RuriLibSettingsService RuriLibSettings { get; set; }
+    public PluginRepository PluginRepo { get; set; }
+
+    public ConfigDebuggerStatus Status { get; private set; }
+
+    public Config Config { get; init; }
+    public DebuggerOptions Options { get; init; }
+    public BotLogger Logger { get; init; }
+
+    public event EventHandler<ConfigDebuggerStatus> StatusChanged;
+    public event EventHandler<BotLoggerEntry> NewLogEntry;
+
+    private BotData _data;
+    private Stepper _stepper;
+    private CancellationTokenSource _cts;
+    private Browser _lastPuppeteerBrowser;
+    private OpenQA.Selenium.WebDriver _lastSeleniumBrowser;
+
+    public ConfigDebugger(Config config, DebuggerOptions options = null, BotLogger logger = null)
     {
-        Idle,
-        Running,
-        WaitingForStep
+        Config = config;
+        Options = options ?? new DebuggerOptions();
+        Logger = logger ?? new BotLogger();
+        Logger.NewEntry += OnNewEntry;
     }
 
-    public class ConfigDebugger : IDisposable
+    public async Task Run()
     {
-        public IRandomUAProvider RandomUAProvider { get; set; }
-        public IRNGProvider RNGProvider { get; set; }
-        public RuriLibSettingsService RuriLibSettings { get; set; }
-        public PluginRepository PluginRepo { get; set; }
-
-        public ConfigDebuggerStatus Status { get; private set; }
-
-        public Config Config { get; init; }
-        public DebuggerOptions Options { get; init; }
-        public BotLogger Logger { get; init; }
-
-        public event EventHandler<ConfigDebuggerStatus> StatusChanged;
-        public event EventHandler<BotLoggerEntry> NewLogEntry;
-
-        private BotData data;
-        private Stepper stepper;
-        private CancellationTokenSource cts;
-        private Browser lastPuppeteerBrowser;
-        private OpenQA.Selenium.WebDriver lastSeleniumBrowser;
-
-        public ConfigDebugger(Config config, DebuggerOptions options = null, BotLogger logger = null)
+        // Build the C# script if in Stack or LoliCode mode
+        if (Config.Mode is ConfigMode.Stack or ConfigMode.LoliCode)
         {
-            Config = config;
-            Options = options ?? new DebuggerOptions();
-            Logger = logger ?? new BotLogger();
-            Logger.NewEntry += OnNewEntry;
+            Config.CSharpScript = Config.Mode == ConfigMode.Stack
+                ? Stack2CSharpTranspiler.Transpile(Config.Stack, Config.Settings, Options.StepByStep)
+                : Loli2CSharpTranspiler.Transpile(Config.LoliCodeScript, Config.Settings, Options.StepByStep);
+
+            // Stacker is not currently available for the startup phase
+            Config.StartupCSharpScript = Loli2CSharpTranspiler.Transpile(Config.StartupLoliCodeScript, Config.Settings, Options.StepByStep);
         }
 
-        public async Task Run()
+        if (Options.UseProxy && !Options.TestProxy.Contains(':'))
         {
-            // Build the C# script if in Stack or LoliCode mode
-            if (Config.Mode == ConfigMode.Stack || Config.Mode == ConfigMode.LoliCode)
-            {
-                Config.CSharpScript = Config.Mode == ConfigMode.Stack
-                    ? Stack2CSharpTranspiler.Transpile(Config.Stack, Config.Settings, Options.StepByStep)
-                    : Loli2CSharpTranspiler.Transpile(Config.LoliCodeScript, Config.Settings, Options.StepByStep);
+            throw new InvalidProxyException(Options.TestProxy);
+        }
 
-                // Stacker is not currently available for the startup phase
-                Config.StartupCSharpScript = Loli2CSharpTranspiler.Transpile(Config.StartupLoliCodeScript, Config.Settings, Options.StepByStep);
+        if (!Options.PersistLog)
+        {
+            Logger.Clear();
+        }
+
+        // Close any previously opened browsers
+        if (_lastPuppeteerBrowser != null)
+        {
+            await _lastPuppeteerBrowser.CloseAsync().ConfigureAwait(false);
+            await _lastPuppeteerBrowser.DisposeAsync();
+            _lastPuppeteerBrowser = null;
+        }
+
+        if (_lastSeleniumBrowser != null)
+        {
+            _lastSeleniumBrowser.Quit();
+            _lastSeleniumBrowser.Dispose();
+            _lastSeleniumBrowser = null;
+        }
+
+        Options.Variables.Clear();
+        Status = ConfigDebuggerStatus.Running;
+        _cts = new CancellationTokenSource();
+        var sw = new Stopwatch();
+
+        var wordlistType = RuriLibSettings.Environment.WordlistTypes.First(w => w.Name == Options.WordlistType);
+        var dataLine = new DataLine(Options.TestData, wordlistType);
+        var proxy = Options.UseProxy ? Proxy.Parse(Options.TestProxy, Options.ProxyType) : null;
+
+        var providers = new Bots.Providers(RuriLibSettings)
+        {
+            RNG = RNGProvider
+        };
+
+        // Ensure the debugger respects the current VerboseMode setting coming from the global RuriLibSettingsService
+        if (RuriLibSettings != null)
+        {
+            Config.Settings.GeneralSettings.VerboseMode = RuriLibSettings.RuriLibSettings.GeneralSettings.VerboseMode;
+        }
+
+        if (!RuriLibSettings.RuriLibSettings.GeneralSettings.UseCustomUserAgentsList)
+        {
+            providers.RandomUA = RandomUAProvider;
+        }
+
+        // Unregister the previous event if there was an existing stepper
+        if (_stepper != null)
+        {
+            _stepper.WaitingForStep -= OnWaitingForStep;
+        }
+
+        _stepper = new Stepper();
+        _stepper.WaitingForStep += OnWaitingForStep;
+
+        // Build the BotData
+        _data = new BotData(providers, Config.Settings, Logger, dataLine, proxy, Options.UseProxy)
+        {
+            CancellationToken = _cts.Token,
+            Stepper = _stepper
+        };
+        using var httpClient = new HttpClient();
+        _data.SetObject("httpClient", httpClient);
+        var runtime = Python.CreateRuntime();
+        var pyengine = runtime.GetEngine("py");
+        var pco = (PythonCompilerOptions)pyengine.GetCompilerOptions();
+        pco.Module &= ~ModuleOptions.Optimized;
+        _data.SetObject("ironPyEngine", pyengine);
+        _data.AsyncLocker = new();
+
+        dynamic globals = new ExpandoObject();
+
+        var script = new ScriptBuilder()
+            .Build(Config.CSharpScript, Config.Settings.ScriptSettings, PluginRepo);
+
+        var startupScript = new ScriptBuilder().Build(Config.StartupCSharpScript, Config.Settings.ScriptSettings, PluginRepo);
+
+        Logger.Log($"Sliced {dataLine.Data} into:");
+        foreach (var slice in dataLine.GetVariables())
+        {
+            var sliceValue = _data.ConfigSettings.DataSettings.UrlEncodeDataAfterSlicing
+                ? Uri.EscapeDataString(slice.AsString())
+                : slice.AsString();
+
+            Logger.Log($"{slice.Name}: {sliceValue}");
+        }
+
+        // Initialize resources
+        Dictionary<string, ConfigResource> resources = [];
+
+        // Resources will need to be disposed of
+        foreach (var opt in Config.Settings.DataSettings.Resources)
+        {
+            try
+            {
+                resources[opt.Name] = opt switch
+                {
+                    LinesFromFileResourceOptions x => new LinesFromFileResource(x),
+                    RandomLinesFromFileResourceOptions x => new RandomLinesFromFileResource(x),
+                    _ => throw new NotImplementedException()
+                };
             }
-
-            if (Options.UseProxy && !Options.TestProxy.Contains(':'))
+            catch
             {
-                throw new InvalidProxyException(Options.TestProxy);
+                Logger.Log($"Could not create resource {opt.Name}", LogColors.Tomato);
             }
+        }
 
-            if (!Options.PersistLog)
-            {
-                Logger.Clear();
-            }
+        // Add resources to global variables
+        globals.Resources = resources;
+        globals.OwnerId = 0;
+        globals.JobId = 0;
+        var scriptGlobals = new ScriptGlobals(_data, globals);
 
-            // Close any previously opened browsers
-            if (lastPuppeteerBrowser != null)
-            {
-                await lastPuppeteerBrowser.CloseAsync().ConfigureAwait(false);
-                await lastPuppeteerBrowser.DisposeAsync();
-                lastPuppeteerBrowser = null;
-            }
+        // Set custom inputs
+        foreach (var input in Config.Settings.InputSettings.CustomInputs)
+        {
+            (scriptGlobals.input as IDictionary<string, object>).Add(input.VariableName, input.DefaultAnswer);
+        }
 
-            if (lastSeleniumBrowser != null)
-            {
-                lastSeleniumBrowser.Quit();
-                lastSeleniumBrowser.Dispose();
-                lastSeleniumBrowser = null;
-            }
+        // [LEGACY] Set up the VariablesList
+        if (Config.Mode == ConfigMode.Legacy)
+        {
+            var slices = new List<Variable>();
 
-            Options.Variables.Clear();
-            Status = ConfigDebuggerStatus.Running;
-            cts = new CancellationTokenSource();
-            var sw = new Stopwatch();
-
-            var wordlistType = RuriLibSettings.Environment.WordlistTypes.First(w => w.Name == Options.WordlistType);
-            var dataLine = new DataLine(Options.TestData, wordlistType);
-            var proxy = Options.UseProxy ? Proxy.Parse(Options.TestProxy, Options.ProxyType) : null;
-
-            var providers = new Bots.Providers(RuriLibSettings)
-            {
-                RNG = RNGProvider
-            };
-
-            if (!RuriLibSettings.RuriLibSettings.GeneralSettings.UseCustomUserAgentsList)
-            {
-                providers.RandomUA = RandomUAProvider;
-            }
-
-            // Unregister the previous event if there was an existing stepper
-            if (stepper != null)
-            {
-                stepper.WaitingForStep -= OnWaitingForStep;
-            }
-
-            stepper = new Stepper();
-            stepper.WaitingForStep += OnWaitingForStep;
-
-            // Build the BotData
-            data = new BotData(providers, Config.Settings, Logger, dataLine, proxy, Options.UseProxy)
-            {
-                CancellationToken = cts.Token,
-                Stepper = stepper
-            };
-            using var httpClient = new HttpClient();
-            data.SetObject("httpClient", httpClient);
-            var runtime = Python.CreateRuntime();
-            var pyengine = runtime.GetEngine("py");
-            var pco = (PythonCompilerOptions)pyengine.GetCompilerOptions();
-            pco.Module &= ~ModuleOptions.Optimized;
-            data.SetObject("ironPyEngine", pyengine);
-            data.AsyncLocker = new();
-
-            dynamic globals = new ExpandoObject();
-
-            var script = new ScriptBuilder()
-                .Build(Config.CSharpScript, Config.Settings.ScriptSettings, PluginRepo);
-
-            var startupScript = new ScriptBuilder().Build(Config.StartupCSharpScript, Config.Settings.ScriptSettings, PluginRepo);
-
-            Logger.Log($"Sliced {dataLine.Data} into:");
             foreach (var slice in dataLine.GetVariables())
             {
-                var sliceValue = data.ConfigSettings.DataSettings.UrlEncodeDataAfterSlicing
+                var sliceValue = _data.ConfigSettings.DataSettings.UrlEncodeDataAfterSlicing
                     ? Uri.EscapeDataString(slice.AsString())
                     : slice.AsString();
 
-                Logger.Log($"{slice.Name}: {sliceValue}");
+                slices.Add(new StringVariable(sliceValue) { Name = slice.Name });
             }
 
-            // Initialize resources
-            Dictionary<string, ConfigResource> resources = new();
+            var legacyVariables = new VariablesList(slices);
 
-            // Resources will need to be disposed of
-            foreach (var opt in Config.Settings.DataSettings.Resources)
+            foreach (var input in Config.Settings.InputSettings.CustomInputs)
             {
+                legacyVariables.Set(new StringVariable(input.DefaultAnswer) { Name = input.VariableName });
+            }
+
+            _data.SetObject("legacyVariables", legacyVariables);
+        }
+
+        try
+        {
+            sw.Start();
+            StatusChanged?.Invoke(this, ConfigDebuggerStatus.Running);
+
+            if (Config.Mode != ConfigMode.Legacy)
+            {
+                // If the startup script is not empty, execute it
+                if (!string.IsNullOrWhiteSpace(Config.StartupCSharpScript))
+                {
+                    // This data is temporary and will not be persisted to the bots, it is
+                    // only used in this context to be able to use variables e.g. data.SOURCE
+                    // and other things like providers, settings, logger.
+                    // By default it doesn't support proxies.
+                    var startupData = new BotData(providers, Config.Settings, Logger,
+                        new DataLine(string.Empty, wordlistType), null, false)
+                    {
+                        CancellationToken = _cts.Token,
+                        Stepper = _stepper
+                    };
+
+                    Logger.Log("Executing startup script...");
+                    var startupGlobals = new ScriptGlobals(startupData, globals);
+                    _ = await startupScript.RunAsync(startupGlobals, null, _cts.Token).ConfigureAwait(false);
+                    Logger.Log("Executing main script...");
+                }
+
+                var state = await script.RunAsync(scriptGlobals, null, _cts.Token).ConfigureAwait(false);
+
+                foreach (var scriptVar in state.Variables)
+                {
+                    try
+                    {
+                        // Determine variable type: use declared type or fallback to runtime type for dynamic variables
+                        var declaredType = scriptVar.Type;
+                        var actualType = declaredType;
+                        VariableType? vType;
+                        try
+                        {
+                            vType = DescriptorsRepository.ToVariableType(declaredType);
+                        }
+                        catch (InvalidCastException)
+                        {
+                            if (scriptVar.Value != null)
+                            {
+                                actualType = scriptVar.Value.GetType();
+                            }
+
+                            vType = DescriptorsRepository.ToVariableType(actualType);
+                        }
+                        if (vType.HasValue && !scriptVar.Name.StartsWith("tmp_"))
+                        {
+                            var variable = DescriptorsRepository.ToVariable(scriptVar.Name, actualType, scriptVar.Value);
+                            variable.MarkedForCapture = _data.MarkedForCapture.Contains(scriptVar.Name);
+                            Options.Variables.Add(variable);
+                        }
+                    }
+                    catch
+                    {
+                        // Unsupported types are ignored
+                    }
+                }
+            }
+            else
+            {
+                // [LEGACY] Run the LoliScript in the old way
+                var loliScript = new LoliScript(Config.LoliScript);
+                var lsGlobals = new LSGlobals(_data);
+
+                do
+                {
+                    if (_cts.IsCancellationRequested)
+                    {
+                        break;
+                    }
+
+                    await loliScript.TakeStep(lsGlobals).ConfigureAwait(false);
+
+                    Options.Variables.Clear();
+                    var legacyVariables = _data.TryGetObject<VariablesList>("legacyVariables");
+                    Options.Variables.AddRange(legacyVariables.Variables);
+                    Options.Variables.AddRange(lsGlobals.Globals.Variables);
+                }
+                while (loliScript.CanProceed);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            _data.STATUS = "ERROR";
+            Logger.Log("Operation canceled", LogColors.Tomato);
+        }
+        catch (Exception ex)
+        {
+            _data.STATUS = "ERROR";
+
+            // Enhanced error handling with detailed verbose output, especially for compilation errors
+            if (ex.GetType().Name.Contains("CompilationError"))
+            {
+                var errorAlreadyLogged = false;
                 try
                 {
-                    resources[opt.Name] = opt switch
+                    var csharpScript = Config.CSharpScript;
+                    var lines = csharpScript.Split('\n');
+
+                    // Try to extract C# line number from error message ("(line,col)")
+                    var errorMatch = MyRegex().Match(ex.Message);
+                    if (errorMatch.Success && int.TryParse(errorMatch.Groups[1].Value, out var csharpLineNumber))
                     {
-                        LinesFromFileResourceOptions x => new LinesFromFileResource(x),
-                        RandomLinesFromFileResourceOptions x => new RandomLinesFromFileResource(x),
-                        _ => throw new NotImplementedException()
-                    };
+                        csharpLineNumber--; // Convert to 0-based index
+
+                        // Look for the closest LoliCode line comment going backwards from the error line
+                        var loliCodeLineNumber = -1;
+                        for (var i = csharpLineNumber; i >= 0; i--)
+                        {
+                            if (i < lines.Length)
+                            {
+                                var commentMatch = MyRegex1().Match(lines[i]);
+                                if (commentMatch.Success && int.TryParse(commentMatch.Groups[1].Value, out loliCodeLineNumber))
+                                {
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (loliCodeLineNumber > 0)
+                        {
+                            // Concise error description
+                            var conciseError = ex.Message.Contains("error CS")
+                                ? ex.Message[ex.Message.IndexOf("error CS")..]
+                                : ex.Message.Split(':').LastOrDefault()?.Trim();
+                            Logger.Log($"❌ Compilation Error at Line {loliCodeLineNumber}: {conciseError}", LogColors.Tomato);
+
+                            // Problematic LoliCode line
+                            try
+                            {
+                                if (!string.IsNullOrEmpty(Config.LoliCodeScript))
+                                {
+                                    var loliCodeLines = Config.LoliCodeScript.Split('\n');
+                                    if (loliCodeLineNumber > 0 && loliCodeLineNumber <= loliCodeLines.Length)
+                                    {
+                                        Logger.Log($"📍 {loliCodeLines[loliCodeLineNumber - 1].Trim()}", LogColors.Yellow);
+                                    }
+                                }
+                            }
+                            catch { /* ignore failures here */ }
+
+                            // Surrounding generated C# (only if verbose mode)
+                            if (RuriLibSettings.RuriLibSettings.GeneralSettings.VerboseMode)
+                            {
+                                Logger.Log($"📝 Generated C# code around error (line {csharpLineNumber + 1}):", LogColors.Gray);
+                                var start = Math.Max(0, csharpLineNumber - 2);
+                                var end = Math.Min(lines.Length - 1, csharpLineNumber + 2);
+                                for (var i = start; i <= end; i++)
+                                {
+                                    var marker = i == csharpLineNumber ? ">>> " : "    ";
+                                    Logger.Log($"{marker}{i + 1:D3}: {lines[i].TrimEnd()}", LogColors.Gray);
+                                }
+                            }
+
+                            errorAlreadyLogged = true;
+                        }
+                    }
+
+                    // Fallback to simple error reporting if detailed mapping was not possible
+                    if (!errorAlreadyLogged)
+                    {
+                        Logger.Log($"❌ Compilation Error: {ex.Message}", LogColors.Tomato);
+
+                        if (RuriLibSettings.RuriLibSettings.GeneralSettings.VerboseMode)
+                        {
+                            Logger.Log("📝 Generated C# code:", LogColors.Gray);
+                            for (var i = 0; i < lines.Length; i++)
+                            {
+                                Logger.Log($"{i + 1:D3}: {lines[i].TrimEnd()}", LogColors.Gray);
+                            }
+                        }
+                    }
                 }
                 catch
                 {
-                    Logger.Log($"Could not create resource {opt.Name}", LogColors.Tomato);
+                    // Final fallback if everything else failed
+                    Logger.Log($"❌ Compilation Error: {ex.Message}", LogColors.Tomato);
                 }
             }
-
-            // Add resources to global variables
-            globals.Resources = resources;
-            globals.OwnerId = 0;
-            globals.JobId = 0;
-            var scriptGlobals = new ScriptGlobals(data, globals);
-
-            // Set custom inputs
-            foreach (var input in Config.Settings.InputSettings.CustomInputs)
+            else
             {
-                (scriptGlobals.input as IDictionary<string, object>).Add(input.VariableName, input.DefaultAnswer);
-            }
-
-            // [LEGACY] Set up the VariablesList
-            if (Config.Mode == ConfigMode.Legacy)
-            {
-                var slices = new List<Variable>();
-
-                foreach (var slice in dataLine.GetVariables())
+                // Non-compilation errors
+                Logger.Log($"❌ {ex.GetType().Name}: {ex.Message}", LogColors.Tomato);
+                if (RuriLibSettings.RuriLibSettings.GeneralSettings.VerboseMode)
                 {
-                    var sliceValue = data.ConfigSettings.DataSettings.UrlEncodeDataAfterSlicing
-                        ? Uri.EscapeDataString(slice.AsString())
-                        : slice.AsString();
-
-                    slices.Add(new StringVariable(sliceValue) { Name = slice.Name });
-                }
-
-                var legacyVariables = new VariablesList(slices);
-
-                foreach (var input in Config.Settings.InputSettings.CustomInputs)
-                {
-                    legacyVariables.Set(new StringVariable(input.DefaultAnswer) { Name = input.VariableName });
-                }
-
-                data.SetObject("legacyVariables", legacyVariables);
-            }
-
-            try
-            {
-                sw.Start();
-                StatusChanged?.Invoke(this, ConfigDebuggerStatus.Running);
-
-                if (Config.Mode != ConfigMode.Legacy)
-                {
-                    // If the startup script is not empty, execute it
-                    if (!string.IsNullOrWhiteSpace(Config.StartupCSharpScript))
-                    {
-                        // This data is temporary and will not be persisted to the bots, it is
-                        // only used in this context to be able to use variables e.g. data.SOURCE
-                        // and other things like providers, settings, logger.
-                        // By default it doesn't support proxies.
-                        var startupData = new BotData(providers, Config.Settings, Logger,
-                            new DataLine(string.Empty, wordlistType), null, false)
-                        {
-                            CancellationToken = cts.Token,
-                            Stepper = stepper
-                        };
-
-                        Logger.Log("Executing startup script...");
-                        var startupGlobals = new ScriptGlobals(startupData, globals);
-                        await startupScript.RunAsync(startupGlobals, null, cts.Token).ConfigureAwait(false);
-                        Logger.Log("Executing main script...");
-                    }
-                    
-                    var state = await script.RunAsync(scriptGlobals, null, cts.Token).ConfigureAwait(false);
-
-                    foreach (var scriptVar in state.Variables)
-                    {
-                        try
-                        {
-                            // Determine variable type: use declared type or fallback to runtime type for dynamic variables
-                            var declaredType = scriptVar.Type;
-                            var actualType = declaredType;
-                            VariableType? vType;
-                            try
-                            {
-                                vType = DescriptorsRepository.ToVariableType(declaredType);
-                            }
-                            catch (InvalidCastException)
-                            {
-                                if (scriptVar.Value != null)
-                                    actualType = scriptVar.Value.GetType();
-                                vType = DescriptorsRepository.ToVariableType(actualType);
-                            }
-                            if (vType.HasValue && !scriptVar.Name.StartsWith("tmp_"))
-                            {
-                                var variable = DescriptorsRepository.ToVariable(scriptVar.Name, actualType, scriptVar.Value);
-                                variable.MarkedForCapture = data.MarkedForCapture.Contains(scriptVar.Name);
-                                Options.Variables.Add(variable);
-                            }
-                        }
-                        catch
-                        {
-                            // Unsupported types are ignored
-                        }
-                    }
-                }
-                else
-                {
-                    // [LEGACY] Run the LoliScript in the old way
-                    var loliScript = new LoliScript(Config.LoliScript);
-                    var lsGlobals = new LSGlobals(data);
-
-                    do
-                    {
-                        if (cts.IsCancellationRequested)
-                        {
-                            break;
-                        }
-
-                        await loliScript.TakeStep(lsGlobals).ConfigureAwait(false);
-
-                        Options.Variables.Clear();
-                        var legacyVariables = data.TryGetObject<VariablesList>("legacyVariables");
-                        Options.Variables.AddRange(legacyVariables.Variables);
-                        Options.Variables.AddRange(lsGlobals.Globals.Variables);
-                    }
-                    while (loliScript.CanProceed);
+                    Logger.Log(ex.StackTrace ?? string.Empty, LogColors.Gray);
                 }
             }
-            catch (OperationCanceledException)
-            {
-                data.STATUS = "ERROR";
-                Logger.Log($"Operation canceled", LogColors.Tomato);
-            }
-            catch (Exception ex)
-            {
-                data.STATUS = "ERROR";
 
-                var logErrorMessage = RuriLibSettings.RuriLibSettings.GeneralSettings.VerboseMode
-                    ? ex.ToString()
-                    : ex.Message;
-
-                // For compilation errors, show better error information
-                if (ex.GetType().Name.Contains("CompilationError"))
-                {
-                    Logger.Log($"Compilation Error: {ex.Message}", LogColors.Tomato);
-                }
-                else
-                {
-                    Logger.Log(logErrorMessage, LogColors.Tomato);
-                }
-                
-                Status = ConfigDebuggerStatus.Idle;
-                throw;
-            }
-            finally
-            {
-                sw.Stop();
-
-                Logger.Log($"BOT ENDED AFTER {sw.ElapsedMilliseconds} ms WITH STATUS: {data.STATUS}");
-
-                // Save the browsers for later use if they were set during this run
-                lastPuppeteerBrowser = data.TryGetObject<Browser>("puppeteer");
-                lastSeleniumBrowser = data.TryGetObject<OpenQA.Selenium.WebDriver>("selenium");
-
-                // Dispose stuff in data.Objects
-                // We only want to dispose of general objects, not browser objects that are managed by the debugger itself
-                data.DisposeObjectsExcept(new[] { "httpClient", "ironPyEngine", "puppeteer", "puppeteerPage", "puppeteerFrame", "selenium", "seleniumDriver" });
-
-                // Dispose resources
-                foreach (var resource in resources.Where(r => r.Value is IDisposable)
-                    .Select(r => r.Value).Cast<IDisposable>())
-                {
-                    resource.Dispose();
-                }
-
-                data.AsyncLocker.Dispose();
-
-                Status = ConfigDebuggerStatus.Idle;
-                StatusChanged?.Invoke(this, ConfigDebuggerStatus.Idle);
-            }
-
-            if (stepper is not null)
-            {
-                stepper.WaitingForStep -= OnWaitingForStep;
-            }
-
-            // Completely remove browser disposal from here to ensure the browser persists.
-            // The browser will now only be closed by the application's overall shutdown
-            // or by the logic at the start of a new debug session.
-
-            GC.SuppressFinalize(this);
+            Status = ConfigDebuggerStatus.Idle;
+            throw;
         }
-
-        /// <summary>
-        /// Tries to take a step. Returns true if a step was taken.
-        /// </summary>
-        public bool TryTakeStep()
+        finally
         {
-            if (stepper == null || !stepper.IsWaiting)
+            sw.Stop();
+
+            Logger.Log($"BOT ENDED AFTER {sw.ElapsedMilliseconds} ms WITH STATUS: {_data.STATUS}");
+
+            // Save the browsers for later use if they were set during this run
+            _lastPuppeteerBrowser = _data.TryGetObject<Browser>("puppeteer");
+            _lastSeleniumBrowser = _data.TryGetObject<OpenQA.Selenium.WebDriver>("selenium");
+
+            // Dispose stuff in data.Objects
+            // We only want to dispose of general objects, not browser objects that are managed by the debugger itself
+            _data.DisposeObjectsExcept(["httpClient", "ironPyEngine", "puppeteer", "puppeteerPage", "puppeteerFrame", "selenium", "seleniumDriver"]);
+
+            // Dispose resources
+            foreach (var resource in resources.Where(r => r.Value is IDisposable)
+                .Select(r => r.Value).Cast<IDisposable>())
             {
-                return false;
+                resource.Dispose();
             }
 
-            StatusChanged?.Invoke(this, ConfigDebuggerStatus.Running);
-            return stepper.TryTakeStep();
+            _data.AsyncLocker.Dispose();
+
+            Status = ConfigDebuggerStatus.Idle;
+            StatusChanged?.Invoke(this, ConfigDebuggerStatus.Idle);
         }
 
-        public void Stop() => cts.Cancel();
-
-        // Propagate the events
-        private void OnNewEntry(object sender, BotLoggerEntry entry) => NewLogEntry?.Invoke(this, entry);
-        private void OnWaitingForStep(object sender, EventArgs e)
+        if (_stepper is not null)
         {
-            Status = ConfigDebuggerStatus.WaitingForStep;
-            StatusChanged?.Invoke(this, ConfigDebuggerStatus.WaitingForStep);
+            _stepper.WaitingForStep -= OnWaitingForStep;
         }
 
-        public void Dispose()
-        {
-            Logger.NewEntry -= OnNewEntry;
+        // Completely remove browser disposal from here to ensure the browser persists.
+        // The browser will now only be closed by the application's overall shutdown
+        // or by the logic at the start of a new debug session.
 
-            if (stepper is not null)
-            {
-                stepper.WaitingForStep -= OnWaitingForStep;
-            }
-
-            if (Config.Settings.BrowserSettings.Headless == false || (Config.Settings.BrowserSettings.CommandLineArgs != "--disable-notifications" && !string.IsNullOrWhiteSpace(Config.Settings.BrowserSettings.CommandLineArgs)))
-            {
-                lastPuppeteerBrowser?.Dispose();
-                lastSeleniumBrowser?.Dispose();
-            }
-
-            GC.SuppressFinalize(this);
-        }
+        // GC.SuppressFinalize(this);
     }
+
+    /// <summary>
+    /// Tries to take a step. Returns true if a step was taken.
+    /// </summary>
+    public bool TryTakeStep()
+    {
+        if (_stepper?.IsWaiting != true)
+        {
+            return false;
+        }
+
+        StatusChanged?.Invoke(this, ConfigDebuggerStatus.Running);
+        return _stepper.TryTakeStep();
+    }
+
+    public void Stop() => _cts.Cancel();
+
+    /// <summary>
+    /// Propagate the events
+    /// </summary>
+    private void OnNewEntry(object sender, BotLoggerEntry entry) => NewLogEntry?.Invoke(this, entry);
+    private void OnWaitingForStep(object sender, EventArgs e)
+    {
+        Status = ConfigDebuggerStatus.WaitingForStep;
+        StatusChanged?.Invoke(this, ConfigDebuggerStatus.WaitingForStep);
+    }
+
+    public void Dispose()
+    {
+        Logger.NewEntry -= OnNewEntry;
+
+        if (_stepper is not null)
+        {
+            _stepper.WaitingForStep -= OnWaitingForStep;
+        }
+
+        if (!Config.Settings.BrowserSettings.Headless || (Config.Settings.BrowserSettings.CommandLineArgs != "--disable-notifications" && !string.IsNullOrWhiteSpace(Config.Settings.BrowserSettings.CommandLineArgs)))
+        {
+            _lastPuppeteerBrowser?.Dispose();
+            _lastSeleniumBrowser?.Dispose();
+        }
+
+        GC.SuppressFinalize(this);
+    }
+
+    [System.Text.RegularExpressions.GeneratedRegex(@"\((\d+),\d+\)")]
+    private static partial System.Text.RegularExpressions.Regex MyRegex();
+    [System.Text.RegularExpressions.GeneratedRegex(@"// LoliCode line (\d+):")]
+    private static partial System.Text.RegularExpressions.Regex MyRegex1();
 }

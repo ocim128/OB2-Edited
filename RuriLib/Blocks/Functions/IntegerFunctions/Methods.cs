@@ -1,10 +1,7 @@
 ﻿using RuriLib.Attributes;
-using RuriLib.Functions.Parsing;
 using RuriLib.Logging;
 using RuriLib.Models.Bots;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace RuriLib.Blocks.Functions.Integer
 {

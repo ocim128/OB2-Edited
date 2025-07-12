@@ -9,6 +9,7 @@
         LinkText,
         PartialLinkText,
         CssSelector,
+        Selector,
         XPath
     }
 }

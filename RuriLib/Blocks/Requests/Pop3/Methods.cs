@@ -9,7 +9,6 @@ using RuriLib.Http.Models;
 using RuriLib.Logging;
 using RuriLib.Models.Bots;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;

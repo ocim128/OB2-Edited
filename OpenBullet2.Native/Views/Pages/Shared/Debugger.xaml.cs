@@ -5,7 +5,6 @@ using OpenBullet2.Native.ViewModels;
 using RuriLib.Logging;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 
@@ -19,11 +18,11 @@ namespace OpenBullet2.Native.Views.Pages.Shared
         private readonly DebuggerViewModel vm;
         private const int MAX_LOG_LINES = 50000; // Increased limit to keep all blocks 
         private const int TRIM_TO_LINES = 40000;  // Trim to this number when max is reached
-        private int logLineCount = 0;
-        private bool isResizing = false;
-        private bool updatesPaused = false;
+        private int logLineCount;
+        private bool isResizing;
+        private bool updatesPaused;
         private System.Windows.Threading.DispatcherTimer resizeTimer;
-        private System.Collections.Generic.Queue<BotLoggerEntry> pendingEntries;
+        private Queue<BotLoggerEntry> pendingEntries;
         private System.Windows.Threading.DispatcherTimer updateTimer;
 
         public Debugger()
@@ -50,7 +49,7 @@ namespace OpenBullet2.Native.Views.Pages.Shared
             variablesRTB.HandleCreated += (_, _) => FixAutoWordSelection(variablesRTB);
 
             // Initialize pending entries queue for batching
-            pendingEntries = new System.Collections.Generic.Queue<BotLoggerEntry>();
+            pendingEntries = new Queue<BotLoggerEntry>();
 
             // Initialize resize timer for performance optimization
             resizeTimer = new System.Windows.Threading.DispatcherTimer
@@ -86,7 +85,7 @@ namespace OpenBullet2.Native.Views.Pages.Shared
             rtb.ZoomFactor = 1.0f;
         }
 
-        private void Debugger_SizeChanged(object sender, System.Windows.SizeChangedEventArgs e)
+        private void Debugger_SizeChanged(object sender, SizeChangedEventArgs e)
         {
             // Completely pause all updates during resize operations
             if (!isResizing)
@@ -426,7 +425,7 @@ namespace OpenBullet2.Native.Views.Pages.Shared
 
         #region Search
         private readonly Dictionary<int, System.Drawing.Color> originalTextColors = new Dictionary<int, System.Drawing.Color>();
-        private bool isSearching = false;
+        private bool isSearching;
 
         private void Search(object sender, RoutedEventArgs e)
         {

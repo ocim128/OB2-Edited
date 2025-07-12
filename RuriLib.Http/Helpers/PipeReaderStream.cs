@@ -4,120 +4,122 @@ using System.IO.Pipelines;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace RuriLib.Http.Helpers
+namespace RuriLib.Http.Helpers;
+
+/// <summary>
+/// A Stream that wraps a PipeReader for efficient, low-allocation content reading.
+/// </summary>
+public class PipeReaderStream : Stream
 {
-    /// <summary>
-    /// A Stream that wraps a PipeReader for efficient, low-allocation content reading.
-    /// </summary>
-    public class PipeReaderStream : Stream
+    private PipeReader _reader;
+    private readonly bool _leaveOpen;
+
+    public PipeReaderStream(PipeReader reader, bool leaveOpen = false)
     {
-        private PipeReader _reader;
-        private bool _leaveOpen;
+        _reader = reader ?? throw new ArgumentNullException(nameof(reader));
+        _leaveOpen = leaveOpen;
+    }
 
-        public PipeReaderStream(PipeReader reader, bool leaveOpen = false)
+    public override bool CanRead => true;
+    public override bool CanSeek => false; // Cannot seek a pipe
+    public override bool CanWrite => false; // Cannot write to a pipe
+
+    public override long Length => throw new NotSupportedException();
+    public override long Position
+    {
+        get => throw new NotSupportedException();
+        set => throw new NotSupportedException();
+    }
+
+    public override void Flush() => throw new NotSupportedException();
+    public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+    public override void SetLength(long value) => throw new NotSupportedException();
+    public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+
+    public override int Read(byte[] buffer, int offset, int count)
+        => ReadAsync(buffer, offset, count).GetAwaiter().GetResult();
+
+    public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+    {
+        // If the buffer is null or invalid, throw an exception
+        if (buffer == null)
         {
-            _reader = reader ?? throw new ArgumentNullException(nameof(reader));
-            _leaveOpen = leaveOpen;
+            throw new ArgumentNullException(nameof(buffer));
+        }
+        if (offset < 0 || offset > buffer.Length)
+        {
+            throw new ArgumentOutOfRangeException(nameof(offset));
+        }
+        if (count < 0 || count > buffer.Length - offset)
+        {
+            throw new ArgumentOutOfRangeException(nameof(count));
         }
 
-        public override bool CanRead => true;
-        public override bool CanSeek => false; // Cannot seek a pipe
-        public override bool CanWrite => false; // Cannot write to a pipe
-
-        public override long Length => throw new NotSupportedException();
-        public override long Position
+        if (count == 0)
         {
-            get => throw new NotSupportedException();
-            set => throw new NotSupportedException();
+            return 0;
         }
 
-        public override void Flush() => throw new NotSupportedException();
-        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
-        public override void SetLength(long value) => throw new NotSupportedException();
-        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
-
-        public override int Read(byte[] buffer, int offset, int count)
-            => ReadAsync(buffer, offset, count).GetAwaiter().GetResult();
-
-        public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+        while (true)
         {
-            // If the buffer is null or invalid, throw an exception
-            if (buffer == null)
+            ReadResult result = await _reader.ReadAsync(cancellationToken).ConfigureAwait(false);
+            var readableBuffer = result.Buffer;
+
+            if (readableBuffer.IsEmpty && result.IsCompleted)
             {
-                throw new ArgumentNullException(nameof(buffer));
-            }
-            if (offset < 0 || offset > buffer.Length)
-            {
-                throw new ArgumentOutOfRangeException(nameof(offset));
-            }
-            if (count < 0 || count > buffer.Length - offset)
-            {
-                throw new ArgumentOutOfRangeException(nameof(count));
+                return 0; // End of stream
             }
 
-            if (count == 0) return 0;
+            // Copy data from the pipe's buffer to the provided buffer
+            var bytesToCopy = Math.Min(count, readableBuffer.Length);
+            int copiedBytes = 0;
 
-            while (true)
+            if (bytesToCopy > 0)
             {
-                ReadResult result = await _reader.ReadAsync(cancellationToken).ConfigureAwait(false);
-                System.Buffers.ReadOnlySequence<byte> readableBuffer = result.Buffer;
-
-                if (readableBuffer.IsEmpty && result.IsCompleted)
+                // Copy to the user's buffer
+                foreach (var segment in readableBuffer)
                 {
-                    return 0; // End of stream
-                }
-
-                // Copy data from the pipe's buffer to the provided buffer
-                long bytesToCopy = Math.Min(count, readableBuffer.Length);
-                int copiedBytes = 0;
-
-                if (bytesToCopy > 0)
-                {
-                    // Copy to the user's buffer
-                    foreach (var segment in readableBuffer)
+                    // Convert span to array immediately to avoid async span usage
+                    var segmentArray = segment.Span.ToArray();
+                    var arrayToCopy = segmentArray;
+                    
+                    if (copiedBytes + arrayToCopy.Length > bytesToCopy)
                     {
-                        // Convert span to array immediately to avoid async span usage
-                        var segmentArray = segment.Span.ToArray();
-                        var arrayToCopy = segmentArray;
-                        
-                        if (copiedBytes + arrayToCopy.Length > bytesToCopy)
-                        {
-                            arrayToCopy = new byte[(int)(bytesToCopy - copiedBytes)];
-                            Array.Copy(segmentArray, 0, arrayToCopy, 0, arrayToCopy.Length);
-                        }
-                        
-                        arrayToCopy.CopyTo(buffer, offset + copiedBytes);
-                        copiedBytes += arrayToCopy.Length;
-
-                        if (copiedBytes == bytesToCopy) break; // Finished copying the requested amount
+                        arrayToCopy = new byte[(int)(bytesToCopy - copiedBytes)];
+                        Array.Copy(segmentArray, 0, arrayToCopy, 0, arrayToCopy.Length);
                     }
-                }
-                
-                _reader.AdvanceTo(readableBuffer.Start, readableBuffer.GetPosition(copiedBytes));
-                
-                if (copiedBytes > 0)
-                {
-                    return copiedBytes;
-                }
-                
-                if (result.IsCompleted)
-                {
-                    return 0;
-                }
-            }
-        }
+                    
+                    arrayToCopy.CopyTo(buffer, offset + copiedBytes);
+                    copiedBytes += arrayToCopy.Length;
 
-        protected override void Dispose(bool disposing)
-        {
-            if (disposing && _reader != null)
-            {
-                if (!_leaveOpen)
-                {
-                    _reader.Complete();
+                    if (copiedBytes == bytesToCopy) break; // Finished copying the requested amount
                 }
-                _reader = null; // Clear reference
             }
-            base.Dispose(disposing);
+            
+            _reader.AdvanceTo(readableBuffer.Start, readableBuffer.GetPosition(copiedBytes));
+            
+            if (copiedBytes > 0)
+            {
+                return copiedBytes;
+            }
+            
+            if (result.IsCompleted)
+            {
+                return 0;
+            }
         }
     }
-} 
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing && _reader != null)
+        {
+            if (!_leaveOpen)
+            {
+                _reader.Complete();
+            }
+            _reader = null; // Clear reference
+        }
+        base.Dispose(disposing);
+    }
+}

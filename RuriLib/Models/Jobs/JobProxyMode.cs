@@ -1,9 +1,8 @@
-﻿namespace RuriLib.Models.Jobs
+﻿namespace RuriLib.Models.Jobs;
+
+public enum JobProxyMode
 {
-    public enum JobProxyMode
-    {
-        On,
-        Off,
-        Default
-    }
+    On = 0,
+    Off = 1,
+    Default = 2
 }

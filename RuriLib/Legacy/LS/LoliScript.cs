@@ -16,7 +16,6 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using Jint.Native;
 
 namespace RuriLib.Legacy.LS
 {

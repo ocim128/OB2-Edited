@@ -1,15 +1,16 @@
-﻿namespace RuriLib.Models.Jobs
+﻿namespace RuriLib.Models.Jobs;
+
+/// <summary>
+/// Has all the underlying TaskManager statuses plus some extra ones like Waiting for additional job-specific features
+/// </summary>
+public enum JobStatus
 {
-    // Has all the underlying TaskManager statuses plus some extra ones like Waiting for additional job-specific features
-    public enum JobStatus
-    {
-        Idle,
-        Waiting,
-        Starting,
-        Running,
-        Pausing,
-        Paused,
-        Stopping,
-        Resuming
-    }
+    Idle = 0,
+    Waiting = 1,
+    Starting = 2,
+    Running = 3,
+    Pausing = 4,
+    Paused = 5,
+    Stopping = 6,
+    Resuming = 7
 }

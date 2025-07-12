@@ -18,8 +18,6 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls; // Make sure this is included for TextBox and TextChangedEventArgs
 using System.Windows.Input;
-using System.Text.Json;
-using System.Text.RegularExpressions;
 
 namespace OpenBullet2.Native.Views.Pages
 {

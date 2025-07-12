@@ -1,5 +1,4 @@
-﻿using OpenBullet2.Core.Services;
-using RuriLib.Models.Jobs;
+﻿using RuriLib.Models.Jobs;
 using RuriLib.Models.Jobs.StartConditions;
 using RuriLib.Models.Proxies;
 using RuriLib.Parallelization.Models;

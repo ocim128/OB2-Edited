@@ -370,6 +370,7 @@ namespace RuriLib.Blocks.Puppeteer.Elements
                 FindElementBy.Id => '#' + identifier,
                 FindElementBy.ClassName => '.' + string.Join('.', identifier.Split(' ')), // "class1 class2" => ".class1.class2"
                 FindElementBy.CssSelector => identifier,
+                FindElementBy.Selector => identifier,
                 _ => throw new NotSupportedException()
             };
 

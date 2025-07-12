@@ -1,0 +1,112 @@
+OpenBullet2.Core is the core backend library for OpenBullet2, targeting .NET 8.
+It references the RuriLib project for core functionality.
+It uses Entity Framework Core version 8.0.6 with SQLite for database persistence.
+It depends on BCrypt.Net-Core version 1.6.0 for password hashing.
+It depends on MaxMind.GeoIP2 version 5.2.0 for geolocation.
+It depends on SixLabors.ImageSharp version 3.1.5 for image processing.
+It uses Microsoft.Extensions.Configuration for handling configuration files, including JSON support.
+The main database context is ApplicationDbContext.
+HitEntity is an entity that stores information about hits from jobs.
+HitEntity has properties: Data (string), CapturedData (string), Proxy (string), Date (DateTime), Type (string), OwnerId (int), ConfigId (string), ConfigName (string), ConfigCategory (string), WordlistId (int), WordlistName (string).
+HitEntity inherits from Entity, which likely provides an Id property.
+RuriLib is a backend library targeting .NET 8.
+RuriLib is a core dependency of OpenBullet2.Core.
+RuriLib references RuriLib.Http, RuriLib.Parallelization, and RuriLib.Proxies.
+RuriLib uses AngleSharp for HTML parsing.
+RuriLib uses CaptchaSharp for solving captchas.
+RuriLib uses DeviceId for generating device identifiers.
+RuriLib uses FluentFTP for FTP clients.
+RuriLib uses HtmlAgilityPack for HTML parsing.
+RuriLib uses IronPython for executing Python code.
+RuriLib uses Jint and Jering.Javascript.NodeJS for executing JavaScript.
+RuriLib uses JWT for handling JSON Web Tokens.
+RuriLib uses MailKit for IMAP/POP3/SMTP clients.
+RuriLib uses Roslyn (Microsoft.CodeAnalysis.CSharp.Scripting) for C# scripting.
+RuriLib uses Newtonsoft.Json for JSON manipulation.
+RuriLib uses PuppeteerSharp and PuppeteerExtraSharp for browser automation.
+RuriLib uses Scrypt.NET for the scrypt key derivation function.
+RuriLib uses Selenium for browser automation.
+RuriLib uses SSH.NET for SSH clients.
+RuriLib uses Svg for SVG image manipulation.
+RuriLib uses Websocket.Client for WebSocket communication.
+RuriLib uses Yove.Proxy for proxy clients.
+RuriLib's 'Blocks' are organized into categories like Utility, Selenium, Requests, Puppeteer, Parsing, Interop, Functions, Conditions, and Captchas.
+The HTTP request blocks are not actual blocks but static methods in RuriLib.Blocks.Requests.Http.Methods.
+The HttpRequestBlockInstance transpiles C# code to call these methods.
+The HTTP blocks support multiple HTTP libraries: a custom RuriLibHttp client and the standard System.Net.HttpClient.
+The HTTP blocks provide methods for standard, raw, basic auth, and multipart requests.
+RuriLib provides a static Crypto class in RuriLib.Functions.Crypto for cryptographic operations.
+The Crypto class supports hashing functions: MD4, MD5, SHA1, SHA256, SHA384, SHA512, and NTLM.
+The Crypto class supports HMAC with MD5, SHA1, SHA256, SHA384, and SHA512.
+The Crypto class supports RSA encryption and decryption with OAEP or PKCS1 padding.
+The Crypto class supports PBKDF2 with configurable salt, iterations, key length, and hash function.
+The Crypto class supports AES encryption and decryption with configurable key, IV, cipher mode, and padding.
+The Crypto class provides functions for JWT (JSON Web Token) encoding with various algorithms.
+The Crypto class provides functions for BCrypt hashing, salt generation, and verification.
+The Crypto class includes a function for AWS Signature Version 4 encryption.
+The Crypto class includes a bitwise XOR operation for byte arrays and strings.
+RuriLib's BotData class (in RuriLib.Models.Bots) represents the state of a single automation bot.
+BotData holds the input DataLine, the Proxy to use, and ConfigSettings.
+BotData contains providers for services like RNG.
+BotData has a logger (IBotLogger) for logging bot activities.
+BotData holds standard variables like STATUS, SOURCE, ADDRESS, RESPONSECODE, COOKIES, HEADERS, and ERROR.
+BotData maintains a dictionary of stateful objects (e.g., HTTP clients, browser instances) that can be accessed by name.
+BotData has methods to manage objects, including setting them and disposing of them, with exceptions for long-lived objects like browser instances.
+BotData manages a list of variables that are marked for capture.
+BotData includes a ResetState method to clear volatile data for retries, while preserving some objects like browser instances.
+Bots are executed by a Parallelizer, which runs a 'workFunction' concurrently for each data line.
+The 'workFunction' for a bot involves executing a C# script that is generated from the config.
+Config logic can be defined in multiple modes: a visual stack of blocks, a LoliCode script, or raw C#.
+LoliCode is not interpreted; it is a high-level scripting language that is transpiled to C#.
+The transpilation process first converts LoliCode into a 'stack' of block instances (using Loli2StackTranspiler).
+Then, the stack of blocks is transpiled into a single C# script (using Stack2CSharpTranspiler).
+Each block type is responsible for generating its own C# code snippet via a 'ToCSharp()' method.
+Custom variables are detected from the script and declared as 'dynamic' at the top of the generated C# script, initialized to a NullDynamic instance.
+The debugger works by injecting an 'await data.Stepper.WaitForStepAsync()' call between each block's generated C# code, allowing execution to be paused.
+The final C# script is then compiled and executed by the Roslyn scripting engine.
+RuriLib provides a static 'Methods' class for data parsing (in RuriLib.Blocks.Parsing).
+For each parsing technique, there is a 'recursive' method to get all matches and a 'single' method to get the first match.
+Supported parsing techniques include LR (Left/Right string delimiters), CSS Selectors, XPath, JSON (JToken), and Regex.
+The CSS and XPath parsers can extract specific attribute values from the matched HTML/XML elements.
+The Regex parser can use an output format string to construct a result from capture groups.
+All parsing methods support adding a prefix and suffix to the results.
+All parsing methods support optional URL encoding of the output.
+The parsing methods log their findings to the bot's logger.
+RuriLib.Http contains a fully custom, low-level HTTP client called RLHttpClient.
+RLHttpClient is built on top of TcpClient and SslStream for maximum control.
+RLHttpClient allows for customizing the TLS/SSL protocols and the exact cipher suites used in the handshake.
+RLHttpClient implements its own logic for handling HTTP redirects.
+RuriLib.Http also contains a ProxyClientHandler, which is a standard HttpMessageHandler for use with System.Net.Http.HttpClient.
+RuriLib.Proxies provides from-scratch implementations for various proxy protocols.
+Supported proxy types are HTTP, HTTPS, SOCKS4, SOCKS4a, and SOCKS5.
+The proxy clients are responsible for establishing the initial connection and authenticating with the proxy server.
+The custom HTTP clients (RLHttpClient and ProxyClientHandler) build an SSL tunnel over the proxy connection for HTTPS requests.
+The library does not rely on system-level proxy settings, providing full isolation and control.
+The Utility block category provides miscellaneous but essential functions.
+The main Utility blocks include: ClearCookies (wipes the bot's cookie jar), Delay (pauses execution), and GetHWID (generates a unique machine identifier).
+The Utility->Files subcategory provides a comprehensive set of blocks for file and folder I/O.
+All file operations are thread-safe, using a FileLocker to prevent race conditions.
+File operations can be restricted to the application's current working directory for security.
+Read blocks can read a file to a string, a list of lines, or a byte array.
+Write blocks can write a string, a list of lines, or a byte array, overwriting existing files.
+Append blocks can add a string or a list of lines to the end of a file.
+File management blocks include copy, move, and delete.
+Folder management blocks include checking existence, creating, deleting, and listing contained files.
+Text-based file blocks support multiple encodings (UTF8, ASCII, Unicode, etc.).
+The Conditions blocks provide boolean logic for controlling execution flow, similar to an 'if' statement.
+These methods are not blocks themselves but are called by the 'KeycheckBlockInstance' during transpilation.
+The core logic is a set of overloaded 'CheckCondition' methods for different data types.
+Supported data types for comparison are Boolean, String, List of strings, Integer, Float, and Dictionary.
+Each data type has its own set of relevant comparison operators (e.g., EqualTo, Contains, GreaterThan).
+A special 'CheckGlobalBanKeys' method checks if the bot's last response source contains a globally defined ban keyword.
+A special 'CheckGlobalRetryKeys' method checks if the bot's last response source contains a globally defined retry keyword.
+The Functions block category provides a wide range of data manipulation tools.
+The main Functions block can generate a random User-Agent string, with optional filtering by OS platform.
+The StringFunctions subcategory provides comprehensive tools for text manipulation.
+String inspection blocks can count occurrences of a substring or get the total length.
+String modification blocks include substring, reverse, trim, and case conversion.
+String replacement can be done via simple text, regex patterns, or a dictionary of translations.
+String encoding/decoding blocks are available for URL, HTML Entities, and C-style escape sequences.
+A powerful RandomString block can generate random strings from a mask (e.g., ?l for lowercase, ?d for digit).
+String conversion blocks can split a string into a list or get a character at a specific index.
+Other function categories exist for Lists, Integers, Floats, Dictionaries, etc., providing type-specific operations. 

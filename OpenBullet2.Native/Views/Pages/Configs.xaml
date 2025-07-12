@@ -13,6 +13,7 @@
 
     <Page.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
+        <converters:LessThanConverter x:Key="LessThanConverter" />
     </Page.Resources>
 
     <Grid Margin="24,20,24,24">
@@ -25,7 +26,18 @@
         </Grid.RowDefinitions>
 
         <!-- Modern Header Section -->
-        <Border Grid.Row="0" Style="{StaticResource CompactCardStyle}" Margin="0,0,0,16">
+        <Border Grid.Row="0" Margin="0,0,0,16">
+            
+            <Border.Style>
+                <Style TargetType="Border" BasedOn="{StaticResource CompactCardStyle}">
+                    <Style.Triggers>
+                        <!-- Hide toolbar when window width is very small -->
+                        <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=Page}, Path=ActualWidth, Converter={StaticResource LessThanConverter}, ConverterParameter=1050}" Value="True">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
             <Grid>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
@@ -43,7 +55,17 @@
         </Border>
 
         <!-- Modern Toolbar Section -->
-        <Border Grid.Row="1" Style="{StaticResource CompactCardStyle}" Margin="0,0,0,16">
+        <Border Grid.Row="1" Margin="0,0,0,16">
+            <Border.Style>
+                <Style TargetType="Border" BasedOn="{StaticResource CompactCardStyle}">
+                    <Style.Triggers>
+                        <!-- Hide toolbar when window width is very small -->
+                        <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=Page}, Path=ActualWidth, Converter={StaticResource LessThanConverter}, ConverterParameter=1000}" Value="True">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
             <Grid>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
@@ -424,6 +446,17 @@
         
         <!-- Modern Information Section -->
         <Border Grid.Row="4" Background="#C0353535" CornerRadius="8" Padding="8">
+            
+            <Border.Style>
+                <Style TargetType="Border" BasedOn="{StaticResource CompactCardStyle}">
+                    <Style.Triggers>
+                        <!-- Hide when window width is very small -->
+                        <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=Page}, Path=ActualWidth, Converter={StaticResource LessThanConverter}, ConverterParameter=1050}" Value="True">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="auto" />

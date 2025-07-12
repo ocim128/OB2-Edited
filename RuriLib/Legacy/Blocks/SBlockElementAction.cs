@@ -3,14 +3,12 @@ using OpenQA.Selenium.Support.UI;
 using RuriLib.Legacy.LS;
 using RuriLib.Legacy.Models;
 using RuriLib.Logging;
-using RuriLib.Models.Bots;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace RuriLib.Legacy.Blocks

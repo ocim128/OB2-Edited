@@ -2,7 +2,6 @@
 using OpenBullet2.Native.Helpers;
 using OpenBullet2.Native.Views.Pages;
 using RuriLib.Models.Environment;
-using RuriLib.Models.Proxies;
 using RuriLib.Services;
 using System;
 using System.IO;

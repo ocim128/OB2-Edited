@@ -1,5 +1,4 @@
-﻿using RuriLib.Models.Settings;
-using System;
+﻿using System;
 
 namespace RuriLib.Providers.Proxies
 {

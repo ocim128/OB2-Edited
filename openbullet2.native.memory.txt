@@ -1,0 +1,25 @@
+OpenBullet2.Native is a Windows desktop application built with WPF and targeting .NET 8.
+It uses the MahApps.Metro library for its user interface components and styling.
+It uses WpfAnimatedGif for displaying animated GIFs.
+It uses AvalonEdit for its text editor controls, likely for config and script editing.
+It includes syntax highlighting definitions (XSHD files) for C#, JavaScript, LoliCode, LoliScript, Markdown, and Python.
+It directly references the OpenBullet2.Core project to interact with the backend logic and database.
+It uses Microsoft.Extensions.DependencyInjection for setting up dependency injection.
+The project is configured to be memory-efficient, with specific settings for garbage collection, compilation, and analysis.
+It copies several files to the output directory, including appsettings.json, user-agents.json, and the GeoIP database.
+The Native application features an UpdateService that checks for new versions.
+UpdateService reads the current version from version.txt and defaults to 0.3.2 if the file is missing or invalid.
+UpdateService queries the GitHub API for the latest release of the openbullet/OpenBullet2 repository.
+The update check is performed once a day.
+An UpdateAvailable event is triggered if the remote version is greater than the local version.
+The update check is skipped when the application is built in DEBUG mode.
+The Native application has a HotkeyService for managing global keyboard shortcuts.
+HotkeyService uses P/Invoke on the user32.dll library to register and unregister global hotkeys.
+It registers a single global hotkey: Ctrl+Alt+Q.
+The Ctrl+Alt+Q hotkey is used for a specific OTP (One-Time Password) functionality.
+When triggered, the hotkey reads text from the clipboard.
+If the clipboard text contains the word "disavow" or any 6-digit number, it proceeds.
+It then finds all running OpenBullet2.Native processes.
+For each process found, it writes the clipboard content into a file named otp.txt in the process's main directory.
+The service includes a 500ms debounce interval to prevent rapid, repeated execution.
+The service displays custom tray notifications to provide feedback to the user. 

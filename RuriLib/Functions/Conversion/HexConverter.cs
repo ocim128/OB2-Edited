@@ -1,8 +1,6 @@
-﻿using RuriLib.Attributes;
-using RuriLib.Extensions;
+﻿using RuriLib.Extensions;
 using System;
 using System.Linq;
-using System.Text;
 
 namespace RuriLib.Functions.Conversion
 {

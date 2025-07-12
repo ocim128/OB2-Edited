@@ -2,7 +2,6 @@
 using OpenBullet2.Native.DTOs;
 using OpenBullet2.Native.Helpers;
 using OpenBullet2.Native.Views.Pages;
-using RuriLib.Functions.Files;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;

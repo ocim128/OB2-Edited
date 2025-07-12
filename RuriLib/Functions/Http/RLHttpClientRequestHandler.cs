@@ -2,7 +2,6 @@ using RuriLib.Extensions;
 using RuriLib.Functions.Files;
 using RuriLib.Functions.Http.Options;
 using RuriLib.Helpers;
-using RuriLib.Http;
 using RuriLib.Http.Models;
 using RuriLib.Logging;
 using RuriLib.Models.Blocks.Custom.HttpRequest.Multipart;

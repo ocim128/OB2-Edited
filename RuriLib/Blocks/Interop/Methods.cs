@@ -6,7 +6,6 @@ using RuriLib.Logging;
 using RuriLib.Models.Bots;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Threading.Tasks;
 
 namespace RuriLib.Blocks.Interop

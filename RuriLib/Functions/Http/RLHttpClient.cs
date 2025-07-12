@@ -1,5 +1,4 @@
 using RuriLib.Http.Models;
-using RuriLib.Models.Bots;
 using RuriLib.Proxies; // For ProxyClient
 using RuriLib.Proxies.Clients; // For ProxyClient implementations
 using System;
@@ -7,11 +6,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
-using System.Net.Http.Headers;
 using System.Net.Security; // For TlsCipherSuite
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 

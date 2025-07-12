@@ -1,5 +1,4 @@
 ﻿using RuriLib.Models.Blocks.Settings;
-using RuriLib.Models.Blocks.Settings.Interpolated;
 using RuriLib.Models.Conditions.Comparisons;
 
 namespace RuriLib.Models.Blocks.Custom.Keycheck

@@ -1,4 +1,3 @@
-using OpenBullet2.Native.Views.Pages;
 using System.Windows.Controls;
 
 namespace OpenBullet2.Native.Views.Pages

@@ -2,30 +2,29 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace RuriLib.Models.Variables
+namespace RuriLib.Models.Variables;
+
+public class ByteArrayVariable : Variable
 {
-    public class ByteArrayVariable : Variable
+    private readonly byte[] _value;
+
+    public ByteArrayVariable(byte[] value)
     {
-        private byte[] value;
-
-        public ByteArrayVariable(byte[] value)
-        {
-            this.value = value;
-            Type = VariableType.ByteArray;
-        }
-
-        public override string AsString() => value == null ? "null" : Encoding.UTF8.GetString(value);
-
-        public override int AsInt() => BitConverter.ToInt32(value, 0);
-
-        public override bool AsBool() => BitConverter.ToBoolean(value, 0);
-
-        public override byte[] AsByteArray() => value;
-
-        public override float AsFloat() => AsInt();
-
-        public override List<string> AsListOfStrings() => new List<string> { AsString() };
-
-        public override object AsObject() => value;
+        _value = value;
+        Type = VariableType.ByteArray;
     }
+
+    public override string AsString() => _value == null ? "null" : Encoding.UTF8.GetString(_value);
+
+    public override int AsInt() => BitConverter.ToInt32(_value, 0);
+
+    public override bool AsBool() => BitConverter.ToBoolean(_value, 0);
+
+    public override byte[] AsByteArray() => _value;
+
+    public override float AsFloat() => AsInt();
+
+    public override List<string> AsListOfStrings() => [AsString()];
+
+    public override object AsObject() => _value;
 }

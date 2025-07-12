@@ -6,10 +6,8 @@ using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Controls;
-using System.Text.Json;
 using System.Collections.Generic;
 
 namespace OpenBullet2.Native.Services
@@ -43,7 +41,7 @@ namespace OpenBullet2.Native.Services
         private HwndSource hwndSource;
         private bool isEnabled = true; // Default to enabled
         private bool disposed = false;
-        
+
         // Debouncing and execution control
         private DateTime lastHotkeyTime = DateTime.MinValue;
         private int lastHotkeyId = -1;
@@ -51,7 +49,7 @@ namespace OpenBullet2.Native.Services
         private bool isExecutingHotkey = false;
         private const int DEBOUNCE_INTERVAL_MS = 500; // 500ms between hotkey executions
         private const int EXECUTION_TIMEOUT_MS = 2000; // 2 second timeout for stuck executions
-        
+
         // OTP validation for "disavow" or 6-digit numbers only
         private const int MAX_CLIPBOARD_LENGTH = 1000;
 
@@ -64,9 +62,13 @@ namespace OpenBullet2.Native.Services
                 {
                     isEnabled = value;
                     if (isEnabled)
+                    {
                         RegisterHotkeys();
+                    }
                     else
+                    {
                         UnregisterHotkeys();
+                    }
 
                     EnabledChanged?.Invoke(this, EventArgs.Empty);
                 }
@@ -82,7 +84,10 @@ namespace OpenBullet2.Native.Services
 
         public void Initialize(Window window)
         {
-            if (window == null) return;
+            if (window == null)
+            {
+                return;
+            }
 
             var helper = new WindowInteropHelper(window);
             windowHandle = helper.Handle;
@@ -95,7 +100,7 @@ namespace OpenBullet2.Native.Services
                     var h = new WindowInteropHelper(window);
                     windowHandle = h.Handle;
                     SetupMessageHook();
-                    
+
                     // Register hotkeys since plugin is enabled by default
                     if (isEnabled)
                     {
@@ -106,7 +111,7 @@ namespace OpenBullet2.Native.Services
             else
             {
                 SetupMessageHook();
-                
+
                 // Register hotkeys since plugin is enabled by default
                 if (isEnabled)
                 {
@@ -117,7 +122,10 @@ namespace OpenBullet2.Native.Services
 
         private void SetupMessageHook()
         {
-            if (windowHandle == IntPtr.Zero) return;
+            if (windowHandle == IntPtr.Zero)
+            {
+                return;
+            }
 
             hwndSource = HwndSource.FromHwnd(windowHandle);
             hwndSource?.AddHook(WndProc);
@@ -127,7 +135,7 @@ namespace OpenBullet2.Native.Services
         {
             if (msg == WM_HOTKEY && isEnabled)
             {
-                int id = wParam.ToInt32();
+                var id = wParam.ToInt32();
                 HandleHotkey(id);
                 handled = true;
             }
@@ -136,7 +144,10 @@ namespace OpenBullet2.Native.Services
 
         private void RegisterHotkeys()
         {
-            if (windowHandle == IntPtr.Zero) return;
+            if (windowHandle == IntPtr.Zero)
+            {
+                return;
+            }
 
             try
             {
@@ -153,7 +164,10 @@ namespace OpenBullet2.Native.Services
 
         private void UnregisterHotkeys()
         {
-            if (windowHandle == IntPtr.Zero) return;
+            if (windowHandle == IntPtr.Zero)
+            {
+                return;
+            }
 
             try
             {
@@ -183,7 +197,7 @@ namespace OpenBullet2.Native.Services
                     // Debouncing: prevent rapid successive executions
                     var now = DateTime.Now;
                     var timeSinceLastHotkey = (now - lastHotkeyTime).TotalMilliseconds;
-                    
+
                     if (timeSinceLastHotkey < DEBOUNCE_INTERVAL_MS && lastHotkeyId == hotkeyId)
                     {
                         Debug.WriteLine($"Hotkey {hotkeyId} ignored - debounce interval not met ({timeSinceLastHotkey}ms < {DEBOUNCE_INTERVAL_MS}ms)");
@@ -196,7 +210,7 @@ namespace OpenBullet2.Native.Services
                     lastHotkeyId = hotkeyId;
 
                     Debug.WriteLine($"Executing hotkey ID: {hotkeyId} at {now:HH:mm:ss.fff}");
-                    
+
                     switch (hotkeyId)
                     {
                         case HOTKEY_CTRL_ALT_Q:
@@ -228,7 +242,7 @@ namespace OpenBullet2.Native.Services
             {
                 // Wait up to 1 second for clipboard content
                 var clipboardContent = GetClipboardText();
-                
+
                 if (string.IsNullOrEmpty(clipboardContent))
                 {
                     ShowTrayNotification("OTP", "Clipboard is empty");
@@ -236,14 +250,14 @@ namespace OpenBullet2.Native.Services
                 }
 
                 // Check if clipboard contains "disavow" or a 6-digit number
-                bool hasDisavow = clipboardContent.Contains("disavow", StringComparison.OrdinalIgnoreCase);
-                bool hasSixDigitNumber = Regex.IsMatch(clipboardContent, @"\d{6}");
+                var hasDisavow = clipboardContent.Contains("disavow", StringComparison.OrdinalIgnoreCase);
+                var hasSixDigitNumber = Regex.IsMatch(clipboardContent, @"\d{6}");
 
                 if (hasDisavow || hasSixDigitNumber)
                 {
                     // Write the otp.txt file into every running OpenBullet2.Native directory
                     var targetDirs = GetOpenBullet2Directories();
-                    int writtenCount = 0;
+                    var writtenCount = 0;
                     foreach (var dir in targetDirs)
                     {
                         try
@@ -260,7 +274,7 @@ namespace OpenBullet2.Native.Services
 
                     // Play success sound
                     PlayPopSound();
-                    
+
                     ShowTrayNotification("OTP", $"OTP file updated in {writtenCount} location{(writtenCount == 1 ? string.Empty : "s")}.");
                 }
                 else
@@ -293,7 +307,9 @@ namespace OpenBullet2.Native.Services
                         {
                             var dir = Path.GetDirectoryName(exePath);
                             if (!string.IsNullOrEmpty(dir))
+                            {
                                 dirs.Add(dir);
+                            }
                         }
                     }
                     catch { /* Access denied for some processes, ignore */ }
@@ -310,7 +326,7 @@ namespace OpenBullet2.Native.Services
             {
                 // Use the ui-sound.mp3 file from the application directory (portable)
                 var soundPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ui-sound.mp3");
-                
+
                 if (File.Exists(soundPath))
                 {
                     // Use MediaPlayer in a separate thread to avoid blocking
@@ -318,16 +334,18 @@ namespace OpenBullet2.Native.Services
                     {
                         try
                         {
-                            System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                            Application.Current.Dispatcher.Invoke(() =>
                             {
                                 var player = new System.Windows.Media.MediaPlayer();
                                 player.Open(new Uri(soundPath));
                                 player.Volume = 0.7; // Set reasonable volume
                                 player.Play();
-                                
+
                                 // Clean up after a reasonable time
-                                var timer = new System.Windows.Threading.DispatcherTimer();
-                                timer.Interval = TimeSpan.FromSeconds(3);
+                                var timer = new System.Windows.Threading.DispatcherTimer
+                                {
+                                    Interval = TimeSpan.FromSeconds(3)
+                                };
                                 timer.Tick += (s, e) =>
                                 {
                                     timer.Stop();
@@ -371,8 +389,10 @@ namespace OpenBullet2.Native.Services
         {
             try
             {
-                if (System.Windows.Clipboard.ContainsText())
-                    return System.Windows.Clipboard.GetText();
+                if (Clipboard.ContainsText())
+                {
+                    return Clipboard.GetText();
+                }
             }
             catch (Exception ex)
             {
@@ -387,7 +407,7 @@ namespace OpenBullet2.Native.Services
             {
                 // Simple way to show notification using MessageBox for now
                 // In a real implementation, you might want to use Windows Toast notifications
-                System.Windows.Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+                Application.Current.Dispatcher.BeginInvoke(new Action(() =>
                 {
                     // Show a brief tooltip-style notification
                     var notification = new NotificationWindow(title, message);
@@ -445,7 +465,7 @@ namespace OpenBullet2.Native.Services
                 Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(240, 33, 37, 43)),
                 BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(100, 120, 130, 140)),
                 BorderThickness = new Thickness(1),
-                CornerRadius = new System.Windows.CornerRadius(8),
+                CornerRadius = new CornerRadius(8),
                 Effect = new System.Windows.Media.Effects.DropShadowEffect
                 {
                     Color = System.Windows.Media.Colors.Black,
@@ -459,7 +479,7 @@ namespace OpenBullet2.Native.Services
             var grid = new Grid();
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(50) });
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            
+
             // Icon based on title
             var iconPath = GetIconPath(title);
             var iconGeometry = System.Windows.Media.Geometry.Parse(iconPath);
@@ -520,8 +540,10 @@ namespace OpenBullet2.Native.Services
             BeginAnimation(OpacityProperty, fadeIn);
 
             // Auto-close after 4 seconds with fade-out
-            var timer = new System.Windows.Threading.DispatcherTimer();
-            timer.Interval = TimeSpan.FromSeconds(4);
+            var timer = new System.Windows.Threading.DispatcherTimer
+            {
+                Interval = TimeSpan.FromSeconds(4)
+            };
             timer.Tick += (s, e) =>
             {
                 timer.Stop();
@@ -571,4 +593,3 @@ namespace OpenBullet2.Native.Services
     }
 }
 
- 

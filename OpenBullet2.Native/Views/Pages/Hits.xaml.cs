@@ -2,7 +2,6 @@
 using Newtonsoft.Json;
 using OpenBullet2.Core.Entities;
 using OpenBullet2.Core.Models.Data;
-using OpenBullet2.Core.Models.Hits;
 using OpenBullet2.Core.Models.Jobs;
 using OpenBullet2.Core.Services;
 using OpenBullet2.Native.Extensions;

@@ -1,7 +1,6 @@
 ﻿using RuriLib.Http.Extensions;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
@@ -20,7 +19,7 @@ namespace RuriLib.Http.Models
         /// Whether to write the absolute URI in the first line of the request instead of
         /// the relative path (e.g. https://example.com/abc instead of /abc)
         /// </summary>
-        public bool AbsoluteUriInFirstLine { get; set; } = false;
+        public bool AbsoluteUriInFirstLine { get; set; }
 
         /// <summary>
         /// The HTTP version to use.
@@ -95,7 +94,9 @@ namespace RuriLib.Http.Models
         private void BuildFirstLine(IBufferWriter<byte> writer)
         {
             if (Version >= new Version(2, 0))
+            {
                 throw new Exception($"HTTP/{Version.Major}.{Version.Minor} not supported yet");
+            }
 
             writer.Write(Encoding.ASCII.GetBytes(Method.Method));
             writer.Write(Space);
@@ -131,21 +132,21 @@ namespace RuriLib.Http.Models
             }
 
             // Add the Cookie header if not set manually and cookies exist
-            if (!HeaderExists("Cookie", out _) && Cookies.Any())
+            if (!HeaderExists("Cookie", out _) && Cookies.Count != 0)
             {
                 var cookieBuilder = new StringBuilder();
                 var firstCookie = true;
-                
+
                 foreach (var cookie in Cookies)
                 {
                     if (!firstCookie)
                     {
-                        cookieBuilder.Append("; ");
+                        _ = cookieBuilder.Append("; ");
                     }
-                    cookieBuilder.Append($"{cookie.Key}={cookie.Value}");
+                    _ = cookieBuilder.Append($"{cookie.Key}={cookie.Value}");
                     firstCookie = false;
                 }
-                
+
                 finalHeaders.Add("Cookie", cookieBuilder.ToString());
             }
 
@@ -162,11 +163,11 @@ namespace RuriLib.Http.Models
                 }
 
                 // Add the Content-Length header if not already present
-                if (!finalHeaders.Any(h => h.Key.Equals("Content-Length", StringComparison.OrdinalIgnoreCase)))
+                if (!finalHeaders.Any(static h => h.Key.Equals("Content-Length", StringComparison.OrdinalIgnoreCase)))
                 {
                     var contentLength = Content.Headers.ContentLength;
 
-                    if (contentLength.HasValue && contentLength.Value > 0)
+                    if (contentLength > 0)
                     {
                         finalHeaders.Add("Content-Length", contentLength.Value.ToString());
                     }
@@ -174,7 +175,7 @@ namespace RuriLib.Http.Models
             }
 
             // Write all non-empty headers to the IBufferWriter<byte>
-            foreach (var header in finalHeaders.Where(h => !string.IsNullOrEmpty(h.Value)))
+            foreach (var header in finalHeaders.Where(static h => !string.IsNullOrEmpty(h.Value)))
             {
                 writer.Write(Encoding.ASCII.GetBytes(header.Key));
                 writer.Write(ColonSpace);

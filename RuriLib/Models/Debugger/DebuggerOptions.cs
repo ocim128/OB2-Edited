@@ -1,8 +1,6 @@
 ﻿using RuriLib.Models.Proxies;
 using RuriLib.Models.Variables;
-using System;
 using System.Collections.Generic;
-using System.Text.Json.Serialization;
 
 namespace RuriLib.Models.Debugger
 {

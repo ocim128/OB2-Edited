@@ -33,7 +33,7 @@
     <SolidColorBrush x:Key="Modern.BorderFocus" Color="#3B82F6" />
     <SolidColorBrush x:Key="Modern.BorderHover" Color="#64748B" />
 
-    <!-- Modern Button Styles -->
+    <!-- Performance-Optimized Modern Button Styles -->
     <Style x:Key="ModernButton" TargetType="{x:Type Button}" BasedOn="{StaticResource MahApps.Styles.Button}">
         <Setter Property="Background" Value="{StaticResource Modern.BackgroundInput}" />
         <Setter Property="BorderBrush" Value="{StaticResource Modern.BorderMain}" />
@@ -43,24 +43,31 @@
         <Setter Property="Padding" Value="16,8" />
         <Setter Property="MinHeight" Value="36" />
         <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="mah:ControlsHelper.CornerRadius" Value="8" />
+        <Setter Property="mah:ControlsHelper.CornerRadius" Value="6" />
+        <!-- Performance optimizations -->
+        <Setter Property="UseLayoutRounding" Value="True" />
+        <Setter Property="SnapsToDevicePixels" Value="True" />
+        <Setter Property="RenderOptions.ClearTypeHint" Value="Enabled" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type Button}">
-                    <Grid>
+                    <Grid UseLayoutRounding="True" SnapsToDevicePixels="True">
                         <mah:ClipBorder x:Name="Border"
                                       Background="{TemplateBinding Background}"
                                       BorderBrush="{TemplateBinding BorderBrush}"
                                       BorderThickness="{TemplateBinding BorderThickness}"
                                       CornerRadius="{TemplateBinding mah:ControlsHelper.CornerRadius}"
-                                      SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}">
+                                      SnapsToDevicePixels="True"
+                                      UseLayoutRounding="True">
+                            <!-- Simplified shadow for better performance -->
                             <mah:ClipBorder.Effect>
                                 <DropShadowEffect x:Name="DropShadow"
-                                                BlurRadius="4"
-                                                Opacity="0.1"
-                                                ShadowDepth="2"
+                                                BlurRadius="2"
+                                                Opacity="0.08"
+                                                ShadowDepth="1"
                                                 Direction="270"
-                                                Color="Black" />
+                                                Color="Black"
+                                                RenderingBias="Performance" />
                             </mah:ClipBorder.Effect>
                         </mah:ClipBorder>
                         
@@ -73,23 +80,24 @@
                                             ContentStringFormat="{TemplateBinding ContentStringFormat}"
                                             ContentTemplate="{TemplateBinding ContentTemplate}"
                                             ContentTemplateSelector="{TemplateBinding ContentTemplateSelector}"
-                                            SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
+                                            SnapsToDevicePixels="True"
+                                            UseLayoutRounding="True" />
                     </Grid>
                     
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="Border" Property="BorderBrush" Value="{StaticResource Modern.BorderHover}" />
+                            <Setter TargetName="Border" Property="Background" Value="{StaticResource Modern.BackgroundSecondary}" />
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
                             <Setter TargetName="Border" Property="Background" Value="{StaticResource Modern.BackgroundTertiary}" />
                         </Trigger>
                         <Trigger Property="IsFocused" Value="True">
                             <Setter TargetName="Border" Property="BorderBrush" Value="{StaticResource Modern.BorderFocus}" />
-                            <Setter TargetName="Border" Property="BorderThickness" Value="2" />
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
-                            <Setter TargetName="Border" Property="Opacity" Value="0.6" />
-                            <Setter TargetName="PART_ContentPresenter" Property="Opacity" Value="0.6" />
+                            <Setter TargetName="Border" Property="Opacity" Value="0.5" />
+                            <Setter TargetName="PART_ContentPresenter" Property="Opacity" Value="0.5" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -200,22 +208,38 @@
         <Setter Property="mah:ControlsHelper.CornerRadius" Value="6" />
     </Style>
 
-    <!-- Modern Card Style -->
+    <!-- Performance-Optimized Modern Card Style -->
     <Style x:Key="ModernCard" TargetType="{x:Type Border}">
         <Setter Property="Background" Value="{StaticResource Modern.BackgroundCard}" />
         <Setter Property="BorderBrush" Value="{StaticResource Modern.BorderMain}" />
         <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="CornerRadius" Value="12" />
-        <Setter Property="Padding" Value="20" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="Padding" Value="16" />
+        <Setter Property="UseLayoutRounding" Value="True" />
+        <Setter Property="SnapsToDevicePixels" Value="True" />
+        <!-- Lighter shadow for better performance -->
         <Setter Property="Effect">
             <Setter.Value>
-                <DropShadowEffect BlurRadius="8"
-                                Opacity="0.1"
-                                ShadowDepth="4"
+                <DropShadowEffect BlurRadius="4"
+                                Opacity="0.06"
+                                ShadowDepth="2"
                                 Direction="270"
-                                Color="Black" />
+                                Color="Black"
+                                RenderingBias="Performance" />
             </Setter.Value>
         </Setter>
+    </Style>
+    
+    <!-- Lightweight Card Style for Low-Spec Systems -->
+    <Style x:Key="ModernCardLite" TargetType="{x:Type Border}">
+        <Setter Property="Background" Value="{StaticResource Modern.BackgroundCard}" />
+        <Setter Property="BorderBrush" Value="{StaticResource Modern.BorderMain}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="Padding" Value="12" />
+        <Setter Property="UseLayoutRounding" Value="True" />
+        <Setter Property="SnapsToDevicePixels" Value="True" />
+        <!-- No shadow for maximum performance -->
     </Style>
 
     <!-- Modern Typography -->
@@ -295,8 +319,8 @@
         <Setter Property="Foreground" Value="{StaticResource Modern.ThemeMain}" />
     </Style>
 
-    <!-- Modern Navigation Button -->
-    <Style x:Key="ModernNavButton" TargetType="{x:Type Button}" BasedOn="{StaticResource ModernButton}">
+    <!-- Performance-Optimized Navigation Button -->
+    <Style x:Key="ModernNavButton" TargetType="{x:Type Button}">
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="BorderBrush" Value="Transparent" />
         <Setter Property="BorderThickness" Value="0" />
@@ -304,20 +328,145 @@
         <Setter Property="HorizontalContentAlignment" Value="Left" />
         <Setter Property="Padding" Value="12,8" />
         <Setter Property="MinHeight" Value="32" />
-        <Setter Property="mah:ControlsHelper.CornerRadius" Value="6" />
         <Setter Property="FontWeight" Value="Medium" />
         <Setter Property="FontSize" Value="13" />
         <Setter Property="Foreground" Value="{StaticResource Modern.ForegroundSecondary}" />
-        <Style.Triggers>
-            <Trigger Property="IsMouseOver" Value="True">
-                <Setter Property="Background" Value="{StaticResource Modern.BackgroundTertiary}" />
-                <Setter Property="Foreground" Value="{StaticResource Modern.ForegroundMain}" />
-            </Trigger>
-            <Trigger Property="IsPressed" Value="True">
-                <Setter Property="Background" Value="{StaticResource Modern.ThemeMain}" />
-                <Setter Property="Foreground" Value="White" />
-            </Trigger>
-        </Style.Triggers>
+        <Setter Property="UseLayoutRounding" Value="True" />
+        <Setter Property="SnapsToDevicePixels" Value="True" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type Button}">
+                    <Border x:Name="Border"
+                           Background="{TemplateBinding Background}"
+                           BorderBrush="{TemplateBinding BorderBrush}"
+                           BorderThickness="{TemplateBinding BorderThickness}"
+                           CornerRadius="6"
+                           UseLayoutRounding="True"
+                           SnapsToDevicePixels="True">
+                        <ContentPresenter x:Name="ContentPresenter"
+                                        Margin="{TemplateBinding Padding}"
+                                        HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                        VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                        Content="{TemplateBinding Content}"
+                                        UseLayoutRounding="True"
+                                        SnapsToDevicePixels="True" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Border" Property="Background" Value="{StaticResource Modern.BackgroundSecondary}" />
+                            <Setter Property="Foreground" Value="{StaticResource Modern.ForegroundMain}" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Border" Property="Background" Value="{StaticResource Modern.ThemeMain}" />
+                            <Setter Property="Foreground" Value="White" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.5" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    
+    <!-- Active Navigation Button Style -->
+    <Style x:Key="ModernNavButtonActive" TargetType="{x:Type Button}" BasedOn="{StaticResource ModernNavButton}">
+        <Setter Property="Background" Value="{StaticResource Modern.ThemeMain}" />
+        <Setter Property="Foreground" Value="White" />
     </Style>
 
-</ResourceDictionary> 
+    <!-- Performance-Optimized List Styles -->
+    <Style x:Key="ModernListBox" TargetType="{x:Type ListBox}" BasedOn="{StaticResource MahApps.Styles.ListBox}">
+        <Setter Property="Background" Value="{StaticResource Modern.BackgroundInput}" />
+        <Setter Property="BorderBrush" Value="{StaticResource Modern.BorderInput}" />
+        <Setter Property="Foreground" Value="{StaticResource Modern.ForegroundInput}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="UseLayoutRounding" Value="True" />
+        <Setter Property="SnapsToDevicePixels" Value="True" />
+        <Setter Property="VirtualizingPanel.IsVirtualizing" Value="True" />
+        <Setter Property="VirtualizingPanel.VirtualizationMode" Value="Recycling" />
+        <Setter Property="ScrollViewer.CanContentScroll" Value="True" />
+    </Style>
+    
+    <!-- Optimized DataGrid Style -->
+    <Style x:Key="ModernDataGrid" TargetType="{x:Type DataGrid}" BasedOn="{StaticResource MahApps.Styles.DataGrid}">
+        <Setter Property="Background" Value="{StaticResource Modern.BackgroundInput}" />
+        <Setter Property="BorderBrush" Value="{StaticResource Modern.BorderInput}" />
+        <Setter Property="Foreground" Value="{StaticResource Modern.ForegroundInput}" />
+        <Setter Property="GridLinesVisibility" Value="Horizontal" />
+        <Setter Property="HorizontalGridLinesBrush" Value="{StaticResource Modern.BorderMain}" />
+        <Setter Property="UseLayoutRounding" Value="True" />
+        <Setter Property="SnapsToDevicePixels" Value="True" />
+        <Setter Property="EnableRowVirtualization" Value="True" />
+        <Setter Property="EnableColumnVirtualization" Value="True" />
+        <Setter Property="VirtualizingPanel.VirtualizationMode" Value="Recycling" />
+    </Style>
+    
+    <!-- Lightweight ScrollViewer for Performance -->
+    <Style x:Key="ModernScrollViewer" TargetType="{x:Type ScrollViewer}">
+        <Setter Property="UseLayoutRounding" Value="True" />
+        <Setter Property="SnapsToDevicePixels" Value="True" />
+        <Setter Property="CanContentScroll" Value="True" />
+        <Setter Property="PanningMode" Value="VerticalOnly" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type ScrollViewer}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        
+                        <ScrollContentPresenter Grid.Column="0" Grid.Row="0"
+                                              Content="{TemplateBinding Content}"
+                                              ContentTemplate="{TemplateBinding ContentTemplate}"
+                                              CanContentScroll="{TemplateBinding CanContentScroll}"
+                                              UseLayoutRounding="True"
+                                              SnapsToDevicePixels="True" />
+                        
+                        <ScrollBar x:Name="PART_VerticalScrollBar"
+                                 Grid.Column="1" Grid.Row="0"
+                                 Orientation="Vertical"
+                                 Value="{TemplateBinding VerticalOffset}"
+                                 Maximum="{TemplateBinding ScrollableHeight}"
+                                 ViewportSize="{TemplateBinding ViewportHeight}"
+                                 Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}" />
+                        
+                        <ScrollBar x:Name="PART_HorizontalScrollBar"
+                                 Grid.Column="0" Grid.Row="1"
+                                 Orientation="Horizontal"
+                                 Value="{TemplateBinding HorizontalOffset}"
+                                 Maximum="{TemplateBinding ScrollableWidth}"
+                                 ViewportSize="{TemplateBinding ViewportWidth}"
+                                 Visibility="{TemplateBinding ComputedHorizontalScrollBarVisibility}" />
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    
+    <!-- Performance Metrics Display -->
+    <Style x:Key="MetricCard" TargetType="{x:Type Border}">
+        <Setter Property="Background" Value="{StaticResource Modern.BackgroundCard}" />
+        <Setter Property="BorderBrush" Value="{StaticResource Modern.BorderMain}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="Padding" Value="12" />
+        <Setter Property="UseLayoutRounding" Value="True" />
+        <Setter Property="SnapsToDevicePixels" Value="True" />
+        <Setter Property="Margin" Value="4" />
+    </Style>
+    
+    <!-- Optimized Icon Styles -->
+    <Style x:Key="ModernIcon" TargetType="{x:Type iconPacks:PackIconMaterial}">
+        <Setter Property="Foreground" Value="{StaticResource Modern.ForegroundSecondary}" />
+        <Setter Property="UseLayoutRounding" Value="True" />
+        <Setter Property="SnapsToDevicePixels" Value="True" />
+        <Setter Property="RenderOptions.EdgeMode" Value="Aliased" />
+    </Style>
+
+</ResourceDictionary>

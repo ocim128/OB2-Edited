@@ -11,11 +11,12 @@ namespace RuriLib.Http;
 
 internal static class HttpRequestMessageBuilder
 {
-    private const string newLine = "\r\n";
+    private const string NewLine = "\r\n";
+    private const string ContentLengthHeader = "Content-Length";
     private static readonly byte[] CRLF_Bytes = Encoding.ASCII.GetBytes("\r\n");
     private static readonly byte[] Space_Bytes = Encoding.ASCII.GetBytes(" ");
     private static readonly byte[] ColonSpace_Bytes = Encoding.ASCII.GetBytes(": ");
-    private static readonly string[] commaHeaders = ["Accept", "Accept-Encoding"];
+    private static readonly string[] CommaHeaders = ["Accept", "Accept-Encoding"];
 
     /// <summary>
     /// Builds the first line, for example
@@ -23,8 +24,8 @@ internal static class HttpRequestMessageBuilder
     /// </summary>
     /// <param name="request"></param>
     public static string BuildFirstLine(HttpRequestMessage request) => request.Version >= new Version(2, 0)
-            ? throw new Exception($"HTTP/{request.Version.Major}.{request.Version.Minor} not supported yet")
-            : $"{request.Method.Method} {request.RequestUri.PathAndQuery} HTTP/{request.Version}{newLine}";
+            ? throw new NotSupportedException($"HTTP/{request.Version.Major}.{request.Version.Minor} not supported yet")
+            : $"{request.Method.Method} {request.RequestUri.PathAndQuery} HTTP/{request.Version}{NewLine}";
 
     /// <summary>
     /// Builds the first line, for example
@@ -36,7 +37,7 @@ internal static class HttpRequestMessageBuilder
     {
         if (request.Version >= new Version(2, 0))
         {
-            throw new Exception($"HTTP/{request.Version.Major}.{request.Version.Minor} not supported yet");
+            throw new NotSupportedException($"HTTP/{request.Version.Major}.{request.Version.Minor} not supported yet");
         }
 
         writer.Write(Encoding.ASCII.GetBytes(request.Method.Method));
@@ -80,49 +81,10 @@ internal static class HttpRequestMessageBuilder
         }
 
         // Add the Cookie header
-        if (cookies != null)
-        {
-            var cookiesCollection = cookies.GetCookies(request.RequestUri);
-            if (cookiesCollection.Count > 0)
-            {
-                var cookieBuilder = new StringBuilder();
-
-                foreach (var cookie in cookiesCollection)
-                {
-                    _ = cookieBuilder
-                        .Append(cookie)
-                        .Append("; ");
-                }
-
-                // Remove the last ; and space if not empty
-                if (cookieBuilder.Length > 2)
-                {
-                    _ = cookieBuilder.Remove(cookieBuilder.Length - 2, 2);
-                }
-
-                headers.Add("Cookie", cookieBuilder.ToString());
-            }
-        }
+        AddCookieHeader(request, cookies, headers);
 
         // Add the content headers
-        if (request.Content != null)
-        {
-            foreach (var header in request.Content.Headers)
-            {
-                headers.Add(header.Key, GetHeaderValue(header));
-            }
-
-            // Add the Content-Length header if not already present
-            if (!headers.Any(static h => h.Key.Equals("Content-Length", StringComparison.OrdinalIgnoreCase)))
-            {
-                var contentLength = request.Content.Headers.ContentLength;
-
-                if (contentLength > 0)
-                {
-                    headers.Add("Content-Length", contentLength.Value.ToString());
-                }
-            }
-        }
+        AddContentHeaders(request, headers);
 
         // Write all non-empty headers to the StringBuilder
         foreach (var header in headers.Where(static h => !string.IsNullOrEmpty(h.Value)))
@@ -131,11 +93,11 @@ internal static class HttpRequestMessageBuilder
                 .Append(header.Key)
                 .Append(": ")
                 .Append(header.Value)
-                .Append(newLine);
+                .Append(NewLine);
         }
 
         // Write the final blank line after all headers
-        _ = sb.Append(newLine);
+        _ = sb.Append(NewLine);
 
         return sb.ToString();
     }
@@ -171,6 +133,38 @@ internal static class HttpRequestMessageBuilder
         }
 
         // Add the Cookie header
+        AddCookieHeader(request, cookies, headers);
+
+        // Add the content headers
+        AddContentHeaders(request, headers);
+
+        // Write all non-empty headers to the IBufferWriter<byte>
+        foreach (var header in headers.Where(static h => !string.IsNullOrEmpty(h.Value)))
+        {
+            writer.Write(Encoding.ASCII.GetBytes(header.Key));
+            writer.Write(ColonSpace_Bytes);
+            writer.Write(Encoding.ASCII.GetBytes(header.Value));
+            writer.Write(CRLF_Bytes);
+        }
+
+        // Write the final blank line after all headers
+        writer.Write(CRLF_Bytes);
+    }
+
+    private static string GetHeaderValue(KeyValuePair<string, IEnumerable<string>> header)
+    {
+        var values = header.Value.ToArray();
+
+        return values.Length switch
+        {
+            0 => string.Empty,
+            1 => values[0],
+            _ => string.Join(CommaHeaders.Contains(header.Key) ? ", " : " ", values)
+        };
+    }
+
+    private static void AddCookieHeader(HttpRequestMessage request, CookieContainer cookies, List<KeyValuePair<string, string>> headers)
+    {
         if (cookies != null)
         {
             var cookiesCollection = cookies.GetCookies(request.RequestUri);
@@ -194,8 +188,10 @@ internal static class HttpRequestMessageBuilder
                 headers.Add("Cookie", cookieBuilder.ToString());
             }
         }
+    }
 
-        // Add the content headers
+    private static void AddContentHeaders(HttpRequestMessage request, List<KeyValuePair<string, string>> headers)
+    {
         if (request.Content != null)
         {
             foreach (var header in request.Content.Headers)
@@ -204,39 +200,15 @@ internal static class HttpRequestMessageBuilder
             }
 
             // Add the Content-Length header if not already present
-            if (!headers.Any(static h => h.Key.Equals("Content-Length", StringComparison.OrdinalIgnoreCase)))
+            if (!headers.Any(static h => h.Key.Equals(ContentLengthHeader, StringComparison.OrdinalIgnoreCase)))
             {
                 var contentLength = request.Content.Headers.ContentLength;
 
                 if (contentLength > 0)
                 {
-                    headers.Add("Content-Length", contentLength.Value.ToString());
+                    headers.Add(ContentLengthHeader, contentLength.Value.ToString());
                 }
             }
         }
-
-        // Write all non-empty headers to the IBufferWriter<byte>
-        foreach (var header in headers.Where(static h => !string.IsNullOrEmpty(h.Value)))
-        {
-            writer.Write(Encoding.ASCII.GetBytes(header.Key));
-            writer.Write(ColonSpace_Bytes);
-            writer.Write(Encoding.ASCII.GetBytes(header.Value));
-            writer.Write(CRLF_Bytes);
-        }
-
-        // Write the final blank line after all headers
-        writer.Write(CRLF_Bytes);
-    }
-
-    private static string GetHeaderValue(KeyValuePair<string, IEnumerable<string>> header)
-    {
-        var values = header.Value.ToArray();
-
-        return values.Length switch
-        {
-            0 => string.Empty,
-            1 => values[0],
-            _ => string.Join(commaHeaders.Contains(header.Key) ? ", " : " ", values)
-        };
     }
 }

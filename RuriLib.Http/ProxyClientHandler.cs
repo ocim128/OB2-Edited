@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Net;
 using System.Net.Http;
@@ -273,7 +273,7 @@ public class ProxyClientHandler(ProxyClient proxyClient) : HttpMessageHandler, I
 
     private Task<HttpResponseMessage> ReceiveDataAsync(HttpRequestMessage request,
         CancellationToken cancellationToken) =>
-        new HttpResponseMessageBuilder(1024, CookieContainer, request.RequestUri).GetResponseAsync(request, pipe.Reader, ReadResponseContent, cancellationToken);
+        new HttpResponseMessageBuilder(1024, CookieContainer, request.RequestUri).BuildResponseAsync(request, pipe.Reader, ReadResponseContent, cancellationToken);
 
     private async Task CreateConnection(HttpRequestMessage request, CancellationToken cancellationToken)
     {

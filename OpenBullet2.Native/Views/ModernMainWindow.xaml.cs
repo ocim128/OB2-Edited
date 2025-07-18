@@ -14,11 +14,11 @@ namespace OpenBullet2.Native.Views
         public ModernMainWindow()
         {
             InitializeComponent();
-            
+
             // Handle window state changes to set minimum size on restore
             this.StateChanged += OnWindowStateChanged;
         }
-        
+
         private void OnWindowStateChanged(object sender, EventArgs e)
         {
             if (this.WindowState == WindowState.Normal)
@@ -95,7 +95,7 @@ namespace OpenBullet2.Native.Views
             {
                 // Get the position of the Configs button relative to the main grid
                 var configsPosition = navConfigs.TransformToAncestor(this).Transform(new Point(0, 0));
-                
+
                 // Position the submenu to the right of the sidebar and aligned with the Configs button
                 configSubmenu.Margin = new Thickness(
                     260 + 8, // sidebar width + small gap
@@ -113,23 +113,23 @@ namespace OpenBullet2.Native.Views
         // Action handlers
         private void TakeScreenshot(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("Screenshot functionality not yet implemented in modernization demo.", 
+            MessageBox.Show("Screenshot functionality not yet implemented in modernization demo.",
                            "Feature Demo", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         private void ShowUpdateConfirmation(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("Update check functionality not yet implemented in modernization demo.", 
+            MessageBox.Show("Update check functionality not yet implemented in modernization demo.",
                            "Feature Demo", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         // Helper method for navigation
-        private void NavigateToPage(string pageName)
+        private static void NavigateToPage(string pageName)
         {
             MessageBox.Show($"Navigation to {pageName} page not yet implemented in modernization demo.\n\n" +
                            "This is a demonstration of the modern UI design. " +
-                           "Full integration would connect these buttons to the existing pages.", 
+                           "Full integration would connect these buttons to the existing pages.",
                            "Navigation Demo", MessageBoxButton.OK, MessageBoxImage.Information);
         }
     }
-} 
+}

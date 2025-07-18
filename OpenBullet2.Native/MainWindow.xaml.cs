@@ -25,7 +25,6 @@ namespace OpenBullet2.Native;
 /// </summary>
 public partial class MainWindow : MetroWindow
 {
-    private readonly UpdateService _updateService;
     private readonly MainWindowViewModel vm;
 
     private bool hoveringConfigsMenuOption;
@@ -111,7 +110,6 @@ public partial class MainWindow : MetroWindow
         // when clicking on them, as it can be frustrating for the user on specific pages.
         configsPage = new();
 
-        _updateService = SP.GetService<UpdateService>();
         Title = "OpenBullet 2 - 0.3.3 [akunlama MOD]";
 
         // Initialize HotkeyService
@@ -329,7 +327,7 @@ public partial class MainWindow : MetroWindow
 
     #endregion Responsive Design Methods
 
-    public async void NavigateTo(MainWindowPage page)
+    public async Task NavigateTo(MainWindowPage page)
     {
         vm.IsLoading = true;
 
@@ -339,32 +337,38 @@ public partial class MainWindow : MetroWindow
             configEditorPage?.OnPageChanged();
         }
 
-        try
+        // Handle Jobs page navigation directly to avoid threading issues
+        if (page == MainWindowPage.Jobs)
         {
-            // For Jobs page, navigate directly without Task.Run to avoid threading issues
-            if (page == MainWindowPage.Jobs)
-            {
-                System.Diagnostics.Debug.WriteLine("Direct Jobs navigation");
-                if (jobsPage is null)
-                {
-                    System.Diagnostics.Debug.WriteLine("Creating new Jobs page directly");
-                    jobsPage = new();
-                    System.Diagnostics.Debug.WriteLine("Jobs page created successfully");
-                }
-                ChangePage(jobsPage, menuOptionJobs);
-                vm.IsLoading = false;
-                return;
-            }
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"Direct Jobs navigation error: {ex.Message}");
-            Alert.Exception(ex);
+            await HandleJobsPageNavigation();
             vm.IsLoading = false;
             return;
         }
 
         // Simulate async loading to show the indicator for other pages
+        await HandleOtherPageNavigation(page);
+
+        vm.IsLoading = false;
+    }
+
+    private async Task HandleJobsPageNavigation()
+    {
+        try
+        {
+            System.Diagnostics.Debug.WriteLine("Direct Jobs navigation");
+            jobsPage ??= new();
+            System.Diagnostics.Debug.WriteLine("Jobs page created successfully");
+            ChangePage(jobsPage, menuOptionJobs);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Direct Jobs navigation error: {ex.Message}");
+            Alert.Exception(ex);
+        }
+    }
+
+    private async Task HandleOtherPageNavigation(MainWindowPage page)
+    {
         await Task.Run(() =>
         {
             Application.Current.Dispatcher.Invoke(() =>
@@ -372,133 +376,169 @@ public partial class MainWindow : MetroWindow
                 switch (page)
                 {
                     case MainWindowPage.Home:
-                        homePage = new Home(); // We recreate the homepage each time to display updated announcements
-                        ChangePage(homePage, menuOptionHome);
+                        NavigateToHomePage();
                         break;
-
                     case MainWindowPage.Monitor:
-                        monitorPage ??= new();
-
-                        ChangePage(monitorPage, menuOptionMonitor);
+                        NavigateToMonitorPage();
                         break;
-
                     case MainWindowPage.Proxies:
-                        (proxiesPage ??= new()).UpdateViewModel();
-                        ChangePage(proxiesPage, menuOptionProxies);
+                        NavigateToProxiesPage();
                         break;
-
                     case MainWindowPage.Wordlists:
-                        wordlistsPage ??= new();
-                        ChangePage(wordlistsPage, menuOptionWordlists);
+                        NavigateToWordlistsPage();
                         break;
-
                     case MainWindowPage.Configs:
-                        (configsPage ??= new()).UpdateViewModel();
-                        ChangePage(configsPage, menuOptionConfigs);
+                        NavigateToConfigsPage();
                         break;
-
                     case MainWindowPage.Hits:
-                        (hitsPage ??= new()).UpdateViewModel();
-                        ChangePage(hitsPage, menuOptionHits);
+                        NavigateToHitsPage();
                         break;
-
                     case MainWindowPage.Plugins:
-                        pluginsPage ??= new();
-                        ChangePage(pluginsPage, menuOptionPlugins);
+                        NavigateToPluginsPage();
                         break;
-
                     case MainWindowPage.OBSettings:
-                        obSettingsPage ??= new();
-                        ChangePage(obSettingsPage, menuOptionSettings);
+                        NavigateToOBSettingsPage();
                         break;
-
                     case MainWindowPage.RLSettings:
-                        rlSettingsPage ??= new();
-                        ChangePage(rlSettingsPage, menuOptionRLSettings);
+                        NavigateToRLSettingsPage();
                         break;
-
                     case MainWindowPage.About:
-                        aboutPage ??= new();
-                        ChangePage(aboutPage, menuOptionAbout);
+                        NavigateToAboutPage();
                         break;
-
-                    // Initialize config pages when we click on them because a user might not even load them
-                    // so we save some RAM (especially the heavy ones that involve a WebBrowser control)
-
                     case MainWindowPage.ConfigMetadata:
-                        CloseSubmenu();
-                        (configMetadataPage ??= new()).UpdateViewModel();
-                        ChangePage(configMetadataPage, menuOptionMetadata);
+                        NavigateToConfigMetadataPage();
                         break;
-
                     case MainWindowPage.ConfigReadme:
-                        CloseSubmenu();
-                        (configReadmePage ??= new()).UpdateViewModel();
-                        ChangePage(configReadmePage, menuOptionReadme);
+                        NavigateToConfigReadmePage();
                         break;
-
                     case MainWindowPage.ConfigStacker:
-
-                        if (vm.Config.Mode is not ConfigMode.Stack and not ConfigMode.LoliCode)
-                        {
-                            return;
-                        }
-
-                        CloseSubmenu();
-                        (configEditorPage ??= new()).NavigateTo(ConfigEditorSection.Stacker);
-                        ChangePage(configEditorPage, menuOptionStacker);
+                        NavigateToConfigStackerPage();
                         break;
-
                     case MainWindowPage.ConfigLoliCode:
-
-                        if (vm.Config.Mode is not ConfigMode.Stack and not ConfigMode.LoliCode)
-                        {
-                            return;
-                        }
-
-                        CloseSubmenu();
-                        (configEditorPage ??= new()).NavigateTo(ConfigEditorSection.LoliCode);
-                        ChangePage(configEditorPage, menuOptionLoliCode);
+                        NavigateToConfigLoliCodePage();
                         break;
-
                     case MainWindowPage.ConfigSettings:
-                        CloseSubmenu();
-                        (configSettingsPage ??= new()).UpdateViewModel();
-                        ChangePage(configSettingsPage, menuOptionConfigSettings);
+                        NavigateToConfigSettingsPage();
                         break;
-
                     case MainWindowPage.ConfigCSharpCode:
-
-                        if (vm.Config.Mode is not ConfigMode.Stack and not ConfigMode.LoliCode and not ConfigMode.CSharp)
-                        {
-                            return;
-                        }
-
-                        CloseSubmenu();
-                        (configEditorPage ??= new()).NavigateTo(ConfigEditorSection.CSharp);
-                        ChangePage(configEditorPage, menuOptionCSharpCode);
+                        NavigateToConfigCSharpCodePage();
                         break;
-
                     case MainWindowPage.ConfigLoliScript:
-
-                        if (vm.Config.Mode is not ConfigMode.Legacy)
-                        {
-                            return;
-                        }
-
-                        CloseSubmenu();
-                        (configEditorPage ??= new()).NavigateTo(ConfigEditorSection.LoliScript);
-                        ChangePage(configEditorPage, menuOptionLoliScript);
-                        break;
-                    case MainWindowPage.Jobs:
+                        NavigateToConfigLoliScriptPage();
                         break;
                     default:
                         break;
                 }
             });
         });
+    }
 
-        vm.IsLoading = false;
+    private void NavigateToHomePage()
+    {
+        homePage = new Home();
+        ChangePage(homePage, menuOptionHome);
+    }
+    private void NavigateToMonitorPage()
+    {
+        if (monitorPage == null) monitorPage = new();
+        ChangePage(monitorPage, menuOptionMonitor);
+    }
+    private void NavigateToProxiesPage()
+    {
+        if (proxiesPage == null) proxiesPage = new Proxies();
+        proxiesPage.UpdateViewModel();
+        ChangePage(proxiesPage, menuOptionProxies);
+    }
+    private void NavigateToWordlistsPage()
+    {
+        if (wordlistsPage == null) wordlistsPage = new Wordlists();
+        ChangePage(wordlistsPage, menuOptionWordlists);
+    }
+    private void NavigateToConfigsPage()
+    {
+        if (configsPage == null) configsPage = new Configs();
+        configsPage.UpdateViewModel();
+        ChangePage(configsPage, menuOptionConfigs);
+    }
+    private void NavigateToHitsPage()
+    {
+        if (hitsPage == null) hitsPage = new Hits();
+        hitsPage.UpdateViewModel();
+        ChangePage(hitsPage, menuOptionHits);
+    }
+    private void NavigateToPluginsPage()
+    {
+        if (pluginsPage == null) pluginsPage = new Plugins();
+        ChangePage(pluginsPage, menuOptionPlugins);
+    }
+    private void NavigateToOBSettingsPage()
+    {
+        if (obSettingsPage == null) obSettingsPage = new OBSettings();
+        ChangePage(obSettingsPage, menuOptionSettings);
+    }
+    private void NavigateToRLSettingsPage()
+    {
+        if (rlSettingsPage == null) rlSettingsPage = new RLSettings();
+        ChangePage(rlSettingsPage, menuOptionRLSettings);
+    }
+    private void NavigateToAboutPage()
+    {
+        if (aboutPage == null) aboutPage = new About();
+        ChangePage(aboutPage, menuOptionAbout);
+    }
+    private void NavigateToConfigMetadataPage()
+    {
+        CloseSubmenu();
+        if (configMetadataPage == null) configMetadataPage = new Views.Pages.ConfigMetadata();
+        configMetadataPage.UpdateViewModel();
+        ChangePage(configMetadataPage, menuOptionMetadata);
+    }
+    private void NavigateToConfigReadmePage()
+    {
+        CloseSubmenu();
+        if (configReadmePage == null) configReadmePage = new ConfigReadme();
+        configReadmePage.UpdateViewModel();
+        ChangePage(configReadmePage, menuOptionReadme);
+    }
+    private void NavigateToConfigStackerPage()
+    {
+        CloseSubmenu();
+        HandleConfigEditorNavigation(ConfigEditorSection.Stacker, menuOptionStacker);
+    }
+    private void NavigateToConfigLoliCodePage()
+    {
+        CloseSubmenu();
+        HandleConfigEditorNavigation(ConfigEditorSection.LoliCode, menuOptionLoliCode);
+    }
+    private void NavigateToConfigSettingsPage()
+    {
+        CloseSubmenu();
+        if (configSettingsPage == null) configSettingsPage = new Views.Pages.ConfigSettings();
+        configSettingsPage.UpdateViewModel();
+        ChangePage(configSettingsPage, menuOptionConfigSettings);
+    }
+    private void NavigateToConfigCSharpCodePage()
+    {
+        CloseSubmenu();
+        HandleConfigEditorNavigation(ConfigEditorSection.CSharp, menuOptionCSharpCode);
+    }
+    private void NavigateToConfigLoliScriptPage()
+    {
+        CloseSubmenu();
+        HandleConfigEditorNavigation(ConfigEditorSection.LoliScript, menuOptionLoliScript);
+    }
+
+    private void HandleConfigEditorNavigation(ConfigEditorSection section, TextBlock menuOption)
+    {
+        if (vm.Config != null && (vm.Config.Mode is ConfigMode.Stack or ConfigMode.LoliCode || (section == ConfigEditorSection.CSharp && vm.Config.Mode == ConfigMode.CSharp) || (section == ConfigEditorSection.LoliScript && vm.Config.Mode == ConfigMode.Legacy)))
+        {
+            if (configEditorPage == null)
+            {
+                configEditorPage = new ConfigEditor();
+            }
+            configEditorPage.NavigateTo(section);
+            ChangePage(configEditorPage, menuOption);
+        }
     }
 
     public void DisplayJob(JobViewModel jobVM)
@@ -506,12 +546,20 @@ public partial class MainWindow : MetroWindow
         switch (jobVM)
         {
             case MultiRunJobViewModel mrj:
-                (multiRunJobViewerPage ??= new()).BindViewModel(mrj);
+                if (multiRunJobViewerPage == null)
+                {
+                    multiRunJobViewerPage = new MultiRunJobViewer();
+                }
+                multiRunJobViewerPage.BindViewModel(mrj);
                 ChangePage(multiRunJobViewerPage, null);
                 break;
 
             case ProxyCheckJobViewModel pcj:
-                (proxyCheckJobViewerPage ??= new()).BindViewModel(pcj);
+                if (proxyCheckJobViewerPage == null)
+                {
+                    proxyCheckJobViewerPage = new ProxyCheckJobViewer();
+                }
+                proxyCheckJobViewerPage.BindViewModel(pcj);
                 ChangePage(proxyCheckJobViewerPage, null);
                 break;
             default:
@@ -825,7 +873,6 @@ public partial class MainWindow : MetroWindow
 
 public class MainWindowViewModel : ViewModelBase
 {
-    private readonly OpenBulletSettingsService _obSettingsService;
     private readonly JobManagerService jobManagerService;
     private readonly ConfigService configService;
     public event Action<Config> ConfigSelected;
@@ -846,7 +893,6 @@ public class MainWindowViewModel : ViewModelBase
 
     public MainWindowViewModel()
     {
-        _obSettingsService = SP.GetService<OpenBulletSettingsService>();
         jobManagerService = SP.GetService<JobManagerService>();
         configService = SP.GetService<ConfigService>();
         configService.OnConfigSelected += (_, config) =>

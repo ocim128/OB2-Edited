@@ -21,7 +21,6 @@ namespace RuriLib.Parallelization
         private int cpmLimitDelayMs = 50;
         private int cpmCheckCounter = 0; // More efficient than DateTime.Now
 
-        private readonly object queueLock = new object(); // For bulk operations
         private int adaptiveBatchSize; // Adaptive batch sizing for performance
         #endregion
 
@@ -39,7 +38,7 @@ namespace RuriLib.Parallelization
         /// <summary>
         /// Gets or sets the delay in milliseconds when CPM is limited.
         /// </summary>
-        public int CPMLimitDelayMs 
+        public int CPMLimitDelayMs
         {
             get => cpmLimitDelayMs;
             set => cpmLimitDelayMs = Math.Max(10, Math.Min(1000, value));
@@ -155,116 +154,19 @@ namespace RuriLib.Parallelization
         // Run is executed in fire and forget mode (not awaited)
         private async void Run()
         {
-            semaphore = new SemaphoreSlim(degreeOfParallelism, MaxDegreeOfParallelism);
-            dopDecreaseRequested = false;
+            InitializeRun();
 
-            // Skip the items
             using var items = workItems.Skip(skip).GetEnumerator();
-
-            // Create the queue
-            queue = new ConcurrentQueue<TInput>();
-
-            // Track if there are more items to process
-            bool hasMoreItems = true;
-
-            // Enqueue the first batch (at most adaptiveBatchSize items) with bulk operation
-            var initiallyAdded = FillQueue(items, adaptiveBatchSize);
-            if (initiallyAdded < adaptiveBatchSize)
-            {
-                hasMoreItems = false;
-            }
+            var processingState = new ProcessingState();
 
             try
             {
-                // While there are items in the queue and we didn't cancel, dequeue one, wait and then
-                // queue another task if there are more to queue
-                while ((hasMoreItems || !queue.IsEmpty) && !softCTS.IsCancellationRequested)
-                {
-                    // Wait for the semaphore
-                    await semaphore.WaitAsync(softCTS.Token).ConfigureAwait(false);
-
-                    if (softCTS.IsCancellationRequested)
-                    {
-                        semaphore.Release();
-                        break;
-                    }
-
-                    if (dopDecreaseRequested)
-                    {
-                        semaphore.Release();
-                        await Task.Delay(cpmLimitDelayMs, softCTS.Token).ConfigureAwait(false);
-                        continue;
-                    }
-
-                    // Check CPM limit occasionally (every ~50 iterations) for better performance
-                    if (++cpmCheckCounter >= 50 && IsCPMLimited())
-                    {
-                        cpmCheckCounter = 0;
-                        semaphore.Release();
-                        await Task.Delay(cpmLimitDelayMs, softCTS.Token).ConfigureAwait(false);
-                        continue;
-                    }
-
-                    // If the current batch is running out, refill it efficiently with adaptive sizing
-                    if (queue.Count < (adaptiveBatchSize / 2) && hasMoreItems)
-                    {
-                        // Adaptive batch size based on current load
-                        var targetQueueSize = Math.Min(adaptiveBatchSize, degreeOfParallelism * 4);
-                        var itemsToAdd = targetQueueSize - queue.Count;
-                        var actuallyAdded = FillQueue(items, itemsToAdd);
-                        
-                        // Check if we've reached the end of enumeration
-                        if (actuallyAdded < itemsToAdd)
-                        {
-                            hasMoreItems = false;
-                        }
-                        
-                        // Adapt batch size based on queue consumption rate
-                        var currentActiveTasks = CurrentTasks;
-                        if (currentActiveTasks > degreeOfParallelism * 0.8)
-                        {
-                            adaptiveBatchSize = Math.Min(adaptiveBatchSize * 2, MaxDegreeOfParallelism * 4);
-                        }
-                        else if (currentActiveTasks < degreeOfParallelism * 0.3)
-                        {
-                            adaptiveBatchSize = Math.Max(adaptiveBatchSize / 2, degreeOfParallelism);
-                        }
-                    }
-
-                    // If we can dequeue an item, run it
-                    if (queue.TryDequeue(out TInput item))
-                    {
-                        // The task will release its slot no matter what (original working pattern)
-                        _ = taskFunction.Invoke(item)
-                            .ContinueWith(_ => semaphore?.Release())
-                            .ConfigureAwait(false);
-                    }
-                    else
-                    {
-                        // No work available, release semaphore immediately
-                        semaphore.Release();
-                        
-                        // If no more items and queue is empty, we're done
-                        if (!hasMoreItems && queue.IsEmpty)
-                        {
-                            break;
-                        }
-                    }
-                }
-
-                // Wait for every remaining task from the last batch to finish unless aborted
-                while (Progress < 1 && !hardCTS.IsCancellationRequested)
-                {
-                    await Task.Delay(100).ConfigureAwait(false);
-                }
+                await ProcessWorkItems(items, processingState);
+                await WaitForCompletion();
             }
             catch (OperationCanceledException)
             {
-                // Wait for current tasks to finish unless aborted
-                while (semaphore?.CurrentCount < degreeOfParallelism && !hardCTS.IsCancellationRequested)
-                {
-                    await Task.Delay(100).ConfigureAwait(false);
-                }
+                await HandleCancellation();
             }
             catch (Exception ex)
             {
@@ -272,14 +174,161 @@ namespace RuriLib.Parallelization
             }
             finally
             {
-                OnCompleted();
-                Status = ParallelizerStatus.Idle;
-                hardCTS?.Dispose();
-                softCTS?.Dispose();
-                semaphore?.Dispose();
-                semaphore = null;
-                stopwatch?.Stop();
+                Cleanup();
             }
+        }
+
+        private void InitializeRun()
+        {
+            semaphore = new SemaphoreSlim(degreeOfParallelism, MaxDegreeOfParallelism);
+            dopDecreaseRequested = false;
+            queue = new ConcurrentQueue<TInput>();
+            adaptiveBatchSize = BatchSize;
+        }
+
+        private async Task ProcessWorkItems(IEnumerator<TInput> items, ProcessingState state)
+        {
+            state.HasMoreItems = InitializeQueue(items);
+
+            while (ShouldContinueProcessing(state))
+            {
+                await semaphore.WaitAsync(softCTS.Token).ConfigureAwait(false);
+
+                if (ShouldSkipIteration())
+                {
+                    continue;
+                }
+
+                await RefillQueueIfNeeded(items, state);
+                await ProcessNextItem(state);
+            }
+        }
+
+        private bool InitializeQueue(IEnumerator<TInput> items)
+        {
+            var initiallyAdded = FillQueue(items, adaptiveBatchSize);
+            return initiallyAdded >= adaptiveBatchSize;
+        }
+
+        private bool ShouldContinueProcessing(ProcessingState state)
+        {
+            return (state.HasMoreItems || !queue.IsEmpty) && !softCTS.IsCancellationRequested;
+        }
+
+        private bool ShouldSkipIteration()
+        {
+            if (softCTS.IsCancellationRequested)
+            {
+                semaphore.Release();
+                return true;
+            }
+
+            if (dopDecreaseRequested)
+            {
+                semaphore.Release();
+                return true;
+            }
+
+            if (ShouldApplyCPMLimit())
+            {
+                semaphore.Release();
+                return true;
+            }
+
+            return false;
+        }
+
+        private bool ShouldApplyCPMLimit()
+        {
+            if (++cpmCheckCounter < 50) return false;
+
+            cpmCheckCounter = 0;
+            return IsCPMLimited();
+        }
+
+        private async Task RefillQueueIfNeeded(IEnumerator<TInput> items, ProcessingState state)
+        {
+            if (!NeedsQueueRefill(state)) return;
+
+            var itemsToAdd = CalculateItemsToAdd();
+            var actuallyAdded = FillQueue(items, itemsToAdd);
+
+            if (actuallyAdded < itemsToAdd)
+            {
+                state.HasMoreItems = false;
+            }
+
+            AdaptBatchSize();
+        }
+
+        private bool NeedsQueueRefill(ProcessingState state)
+        {
+            return queue.Count < (adaptiveBatchSize / 2) && state.HasMoreItems;
+        }
+
+        private int CalculateItemsToAdd()
+        {
+            var targetQueueSize = Math.Min(adaptiveBatchSize, degreeOfParallelism * 4);
+            return targetQueueSize - queue.Count;
+        }
+
+        private void AdaptBatchSize()
+        {
+            var currentActiveTasks = CurrentTasks;
+
+            if (currentActiveTasks > degreeOfParallelism * 0.8)
+            {
+                adaptiveBatchSize = Math.Min(adaptiveBatchSize * 2, MaxDegreeOfParallelism * 4);
+            }
+            else if (currentActiveTasks < degreeOfParallelism * 0.3)
+            {
+                adaptiveBatchSize = Math.Max(adaptiveBatchSize / 2, degreeOfParallelism);
+            }
+        }
+
+        private async Task ProcessNextItem(ProcessingState state)
+        {
+            if (!queue.TryDequeue(out TInput item))
+            {
+                semaphore.Release();
+
+                if (!state.HasMoreItems && queue.IsEmpty)
+                {
+                    state.ShouldBreak = true;
+                }
+                return;
+            }
+
+            _ = taskFunction.Invoke(item)
+                .ContinueWith(_ => semaphore?.Release())
+                .ConfigureAwait(false);
+        }
+
+        private async Task WaitForCompletion()
+        {
+            while (Progress < 1 && !hardCTS.IsCancellationRequested)
+            {
+                await Task.Delay(100).ConfigureAwait(false);
+            }
+        }
+
+        private async Task HandleCancellation()
+        {
+            while (semaphore?.CurrentCount < degreeOfParallelism && !hardCTS.IsCancellationRequested)
+            {
+                await Task.Delay(100).ConfigureAwait(false);
+            }
+        }
+
+        private void Cleanup()
+        {
+            OnCompleted();
+            Status = ParallelizerStatus.Idle;
+            hardCTS?.Dispose();
+            softCTS?.Dispose();
+            semaphore?.Dispose();
+            semaphore = null;
+            stopwatch?.Stop();
         }
 
 
@@ -295,6 +344,14 @@ namespace RuriLib.Parallelization
                 added++;
             }
             return added;
+        }
+        #endregion
+
+        #region Helper Classes
+        private class ProcessingState
+        {
+            public bool HasMoreItems { get; set; } = true;
+            public bool ShouldBreak { get; set; } = false;
         }
         #endregion
     }

@@ -27,7 +27,6 @@ namespace OpenBullet2.Native.Views.Pages
     public partial class ConfigStacker : Page
     {
         private readonly ConfigService configService;
-        private readonly IConfigRepository configRepo;
         private readonly ConfigStackerViewModel vm;
 
         // Clipboard functionality for copy/paste blocks
@@ -39,13 +38,12 @@ namespace OpenBullet2.Native.Views.Pages
         public ConfigStacker()
         {
             configService = SP.GetService<ConfigService>();
-            configRepo = SP.GetService<IConfigRepository>();
             vm = SP.GetService<ViewModelsService>().ConfigStacker;
             vm.SelectionChanged += SelectionChanged;
             DataContext = vm;
 
             InitializeComponent();
-            
+
             // Ensure the page can receive keyboard focus for copy/paste shortcuts
             Loaded += (s, e) => Focus();
         }
@@ -98,27 +96,27 @@ namespace OpenBullet2.Native.Views.Pages
         private void CloneBlock(object sender, RoutedEventArgs e)
         {
             ClearPasteUndo(); // Clear paste undo when doing clone operation
-            
+
             // Record the current state before cloning
             var selectedBlocks = vm.Stack?.Where(b => b != null && b.Selected).ToList() ?? new List<BlockViewModel>();
-            
+
             if (!selectedBlocks.Any())
             {
                 vm.CloneSelected();
                 return;
             }
-            
+
             // Store the exact BlockViewModel references before cloning
             var originalBlocks = vm.Stack?.ToList() ?? new List<BlockViewModel>();
             var originalCount = originalBlocks.Count;
-            
+
             // Perform the clone operation
             vm.CloneSelected();
-            
+
             // Find the newly added blocks by comparing references
             var cloneInfo = new List<(int index, BlockViewModel blockVm)>();
             var newCount = vm.Stack?.Count ?? 0;
-            
+
             if (newCount > originalCount && vm.Stack != null)
             {
                 // Find blocks that are new (not in the original reference list)
@@ -132,10 +130,10 @@ namespace OpenBullet2.Native.Views.Pages
                     }
                 }
             }
-            
+
             // Store for undo
             lastCloneOperation = cloneInfo;
-            
+
             System.Diagnostics.Debug.WriteLine($"Recorded {cloneInfo.Count} cloned blocks for undo");
         }
 
@@ -218,12 +216,12 @@ namespace OpenBullet2.Native.Views.Pages
                 var hasSelectedBlocks = vm.Stack?.Any(b => b != null && b.Selected) == true;
                 var pageHasFocus = IsKeyboardFocusWithin || IsFocused;
                 var focusedElement = Keyboard.FocusedElement;
-                
+
                 // Don't handle if focus is on a text input (TextBox, etc.)
-                var isTextInputFocused = focusedElement is TextBox || 
+                var isTextInputFocused = focusedElement is TextBox ||
                                        focusedElement is System.Windows.Controls.RichTextBox ||
                                        focusedElement?.GetType().Name.Contains("TextBox") == true;
-                
+
                 if ((hasSelectedBlocks || pageHasFocus) && !isTextInputFocused)
                 {
                     UndoLastOperation();
@@ -272,99 +270,121 @@ namespace OpenBullet2.Native.Views.Pages
             ShowAutoNotification("Copy", $"Copied {clipboardBlocks.Count} block(s)");
         }
 
-        private string CreateDetailedBlockText(BlockInstance block)
+        private static string CreateDetailedBlockText(BlockInstance block)
         {
             if (block == null) return "Unknown Block";
 
-            // For LoliCode blocks, use the script directly
             if (block is LoliCodeBlockInstance loliBlock)
             {
-                return loliBlock.Script ?? "";
+                return GetLoliCodeBlockText(loliBlock);
             }
 
-            // For Script blocks and other complex blocks, use their ToLC format
             if (block is ScriptBlockInstance || block is KeycheckBlockInstance || block is ParseBlockInstance || block is HttpRequestBlockInstance)
             {
-                try
-                {
-                    // Get the full LoliCode representation
-                    var loliCode = block.ToLC(true); // true = print default params for full detail
-                    
-                    // Add BLOCK wrapper for non-LoliCode blocks
-                    if (!(block is LoliCodeBlockInstance))
-                    {
-                        return $"BLOCK:{block.Id}\n{loliCode}ENDBLOCK";
-                    }
-                    
-                    return loliCode;
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Failed to get ToLC for {block.Id}: {ex.Message}");
-                    // Fall back to basic format
-                }
+                return GetComplexBlockText(block);
             }
 
-            // Fall back to basic format for other blocks
+            return GetBasicBlockText(block);
+        }
+
+        private static string GetLoliCodeBlockText(LoliCodeBlockInstance loliBlock)
+        {
+            return loliBlock.Script ?? "";
+        }
+
+        private static string GetComplexBlockText(BlockInstance block)
+        {
+            try
+            {
+                var loliCode = block.ToLC(true);
+                return block is not LoliCodeBlockInstance ? $"BLOCK:{block.Id}\n{loliCode}ENDBLOCK" : loliCode;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to get ToLC for {block.Id}: {ex.Message}");
+                return string.Empty;
+            }
+        }
+
+        private static string GetBasicBlockText(BlockInstance block)
+        {
             var details = new List<string>();
             var blockType = block.Descriptor?.Name ?? "Unknown";
             var label = !string.IsNullOrEmpty(block.Label) ? block.Label : blockType;
 
             details.Add($"BLOCK: {blockType}");
             details.Add($"LABEL: {label}");
-            
+
             if (block.Disabled)
                 details.Add("DISABLED: true");
 
-            // Add key settings from the Settings dictionary
-            if (block.Settings != null)
-            {
-                // Add up to 5 most important settings
-                var importantSettings = new[] { "url", "method", "input", "script", "leftDelim", "rightDelim", "content", "username", "password" };
-                var addedSettings = 0;
-                
-                foreach (var settingName in importantSettings)
-                {
-                    if (addedSettings >= 5) break;
-                    
-                    if (block.Settings.TryGetValue(settingName, out var setting))
-                    {
-                        var value = GetSettingDisplayValue(setting);
-                        if (!string.IsNullOrEmpty(value))
-                        {
-                            details.Add($"{settingName.ToUpper()}: {value}");
-                            addedSettings++;
-                        }
-                    }
-                }
-                
-                // If we haven't added many settings, add any other non-empty ones
-                if (addedSettings < 3)
-                {
-                    foreach (var kvp in block.Settings.Take(5))
-                    {
-                        if (addedSettings >= 5) break;
-                        
-                        if (!importantSettings.Contains(kvp.Key))
-                        {
-                            var value = GetSettingDisplayValue(kvp.Value);
-                            if (!string.IsNullOrEmpty(value))
-                            {
-                                details.Add($"{kvp.Key.ToUpper()}: {value}");
-                                addedSettings++;
-                            }
-                        }
-                    }
-                }
-            }
+            AddBlockSettingsDetails(block, details);
 
             return string.Join(Environment.NewLine, details);
         }
 
-        private string GetSettingDisplayValue(BlockSetting setting)
+        private static void AddBlockSettingsDetails(BlockInstance block, List<string> details)
+        {
+            if (block.Settings == null) return;
+
+            var importantSettings = new[] { "url", "method", "input", "script", "leftDelim", "rightDelim", "content", "username", "password" };
+            var addedSettings = 0;
+
+            AddImportantSettings(block, details, importantSettings, ref addedSettings);
+            AddOtherSettings(block, details, importantSettings, ref addedSettings);
+        }
+
+        private static void AddImportantSettings(
+            BlockInstance block,
+            List<string> details,
+            string[] importantSettings,
+            ref int addedSettings)
+        {
+            foreach (var settingName in importantSettings)
+            {
+                if (addedSettings >= 5) break;
+
+                if (block.Settings.TryGetValue(settingName, out var setting))
+                {
+                    var value = GetSettingDisplayValue(setting);
+                    if (!string.IsNullOrEmpty(value))
+                    {
+                        details.Add($"{settingName.ToUpper()}: {value}");
+                        addedSettings++;
+                    }
+                }
+            }
+        }
+
+        private static void AddOtherSettings(
+            BlockInstance block,
+            List<string> details,
+            string[] importantSettings,
+            ref int addedSettings)
+        {
+            if (addedSettings < 3)
+            {
+                foreach (var kvp in block.Settings.Take(5))
+                {
+                    if (addedSettings >= 5) break;
+
+                    if (!importantSettings.Contains(kvp.Key))
+                    {
+                        var value = GetSettingDisplayValue(kvp.Value);
+                        if (!string.IsNullOrEmpty(value))
+                        {
+                            details.Add($"{kvp.Key.ToUpper()}: {value}");
+                            addedSettings++;
+                        }
+                    }
+                }
+            }
+        }
+
+        private static string GetSettingDisplayValue(BlockSetting setting)
         {
             if (setting == null) return "";
-            
+
             try
             {
                 // Get the value based on input mode
@@ -388,24 +408,41 @@ namespace OpenBullet2.Native.Views.Pages
 
         private void PasteBlocks()
         {
+            var (blocksToPaste, isFromSystemClipboard) = GetBlocksToPasteFromClipboard();
+
+            if (!blocksToPaste.Any())
+            {
+                ShowAutoNotification("Paste", "No blocks to paste");
+                return;
+            }
+
+            var undoInfo = new List<(int index, BlockViewModel blockVm)>();
+            var insertIndex = GetPasteInsertionIndex();
+
+            PerformBlockPasting(blocksToPaste, insertIndex, undoInfo);
+
+            // Show auto-dismissing notification
+            var source = isFromSystemClipboard ? "system clipboard" : "internal clipboard";
+            ShowAutoNotification("Paste", $"Pasted {blocksToPaste.Count} block(s) from {source}");
+        }
+
+        private (List<BlockInstance> blocks, bool isFromSystemClipboard) GetBlocksToPasteFromClipboard()
+        {
             List<BlockInstance> blocksToPaste = new List<BlockInstance>();
             bool isFromSystemClipboard = false;
 
-            // Always try system clipboard first to get the latest content
             try
             {
                 if (Clipboard.ContainsText())
                 {
                     var clipboardText = Clipboard.GetText();
                     var parsedBlocks = ParseBlocksFromText(clipboardText);
-                    
+
                     if (parsedBlocks.Any())
                     {
                         blocksToPaste = parsedBlocks;
                         isFromSystemClipboard = true;
-                        
-                        // Clear internal clipboard since we're using external content
-                        clipboardBlocks.Clear();
+                        clipboardBlocks.Clear(); // Clear internal clipboard since we're using external content
                     }
                 }
             }
@@ -414,73 +451,58 @@ namespace OpenBullet2.Native.Views.Pages
                 System.Diagnostics.Debug.WriteLine($"Failed to access system clipboard: {ex.Message}");
             }
 
-            // Only use internal clipboard if system clipboard didn't have valid blocks
             if (!blocksToPaste.Any() && clipboardBlocks.Any())
             {
-                // Clone blocks from internal clipboard
                 blocksToPaste = clipboardBlocks.Select(b => Cloner.Clone<BlockInstance>(b)).ToList();
                 isFromSystemClipboard = false;
             }
 
-            if (!blocksToPaste.Any())
-            {
-                ShowAutoNotification("Paste", "No blocks to paste");
-                return;
-            }
+            return (blocksToPaste, isFromSystemClipboard);
+        }
 
-            // Record the current state for undo before making changes
-            var undoInfo = new List<(int index, BlockViewModel blockVm)>();
-            
-            // Determine insertion point
+        private int GetPasteInsertionIndex()
+        {
             var selectedBlocks = vm.Stack?.Where(b => b != null && b.Selected).ToList() ?? new List<BlockViewModel>();
             var insertIndex = 0;
 
             if (selectedBlocks.Any())
             {
-                // Insert after the last selected block
                 var lastSelectedIndex = vm.Stack.ToList().FindLastIndex(b => selectedBlocks.Contains(b));
                 insertIndex = lastSelectedIndex + 1;
             }
             else
             {
-                // Insert at the end
                 insertIndex = vm.Stack?.Count ?? 0;
             }
+            return insertIndex;
+        }
 
-            // Paste each block
-            var pastedCount = 0;
+        private void PerformBlockPasting(List<BlockInstance> blocksToPaste, int insertIndex, List<(int index, BlockViewModel blockVm)> undoInfo)
+        {
             var pastedBlocks = new List<BlockViewModel>();
-            
+
             foreach (var blockToPaste in blocksToPaste)
             {
                 var newBlockVm = new BlockViewModel(blockToPaste);
 
-                // Insert at the calculated position
                 if (insertIndex >= 0 && insertIndex <= (vm.Stack?.Count ?? 0))
                 {
                     vm.Stack?.Insert(insertIndex, newBlockVm);
                     pastedBlocks.Add(newBlockVm);
-                    
-                    // Record for undo - store the inserted block and its position
                     undoInfo.Add((insertIndex, newBlockVm));
-                    
-                    insertIndex++; // Move insertion point for next block
-                    pastedCount++;
+                    insertIndex++;
                 }
             }
 
-            if (pastedCount > 0)
+            if (pastedBlocks.Any())
             {
-                // Record the paste operation for undo
                 RecordPasteForUndo(undoInfo);
-                
-                // Select the pasted blocks
+
                 foreach (var pastedBlock in pastedBlocks)
                 {
                     pastedBlock.Selected = true;
                 }
 
-                // Update the config stack
                 if (vm.Stack != null)
                 {
                     configService.SelectedConfig.Stack = vm.Stack
@@ -488,10 +510,6 @@ namespace OpenBullet2.Native.Views.Pages
                         .Select(b => b.Block)
                         .ToList();
                 }
-
-                // Show auto-dismissing notification
-                var source = isFromSystemClipboard ? "system clipboard" : "internal clipboard";
-                ShowAutoNotification("Paste", $"Pasted {pastedCount} block(s) from {source}");
             }
         }
 
@@ -530,11 +548,11 @@ namespace OpenBullet2.Native.Views.Pages
 
                 // Clear the clone operation record
                 lastCloneOperation.Clear();
-                
+
                 ShowAutoNotification("Undo", "Clone operation undone");
                 return;
             }
-            
+
             // Then try to undo paste operations
             if (lastPasteOperation.Any())
             {
@@ -558,7 +576,7 @@ namespace OpenBullet2.Native.Views.Pages
 
                 // Clear the paste operation record
                 lastPasteOperation.Clear();
-                
+
                 ShowAutoNotification("Undo", "Paste operation undone");
                 return;
             }
@@ -567,16 +585,16 @@ namespace OpenBullet2.Native.Views.Pages
             vm.Undo(); // This method handles its own empty case silently
         }
 
-        private List<BlockInstance> ParseBlocksFromText(string text)
+        private static List<BlockInstance> ParseBlocksFromText(string text)
         {
             var blocks = new List<BlockInstance>();
-            
+
             if (string.IsNullOrWhiteSpace(text))
                 return blocks;
 
             // Split by double newlines to get individual block definitions
             var blockTexts = text.Split(new[] { "\r\n\r\n", "\n\n" }, StringSplitOptions.RemoveEmptyEntries);
-            
+
             foreach (var blockText in blockTexts)
             {
                 var block = TryCreateBlockFromDetailedText(blockText);
@@ -607,7 +625,7 @@ namespace OpenBullet2.Native.Views.Pages
             return blocks;
         }
 
-        private BlockInstance TryCreateBlockFromDetailedText(string text)
+        private static BlockInstance TryCreateBlockFromDetailedText(string text)
         {
             try
             {
@@ -615,118 +633,13 @@ namespace OpenBullet2.Native.Views.Pages
                 if (!lines.Any())
                     return null;
 
-                // Check if this is a BLOCK:Id format (like BLOCK:Script)
                 var firstLine = lines[0].Trim();
-                if (firstLine.StartsWith("BLOCK:"))
+                if (firstLine.StartsWith("BLOCK:", StringComparison.OrdinalIgnoreCase))
                 {
-                    var blockId = firstLine.Substring(6).Trim();
-                    
-                    // Extract content between BLOCK:Id and ENDBLOCK
-                    var blockContent = new List<string>();
-                    var foundEndBlock = false;
-                    
-                    for (int i = 1; i < lines.Length; i++)
-                    {
-                        var line = lines[i].Trim();
-                        if (line == "ENDBLOCK")
-                        {
-                            foundEndBlock = true;
-                            break;
-                        }
-                        blockContent.Add(lines[i]); // Keep original formatting/indentation
-                    }
-                    
-                    if (foundEndBlock)
-                    {
-                        // Create the block and parse its content
-                        try
-                        {
-                            var block = BlockFactory.GetBlock<BlockInstance>(blockId);
-                            var contentScript = string.Join(Environment.NewLine, blockContent);
-                            var lineNumber = 0;
-                            
-                            // Use the block's FromLC method to parse the content
-                            block.FromLC(ref contentScript, ref lineNumber);
-                            
-                            return block;
-                        }
-                        catch (Exception ex)
-                        {
-                            System.Diagnostics.Debug.WriteLine($"Failed to create block {blockId}: {ex.Message}");
-                            return null;
-                        }
-                    }
+                    return ParseBlockFromBlockIdFormat(lines);
                 }
 
-                // Fall back to the original parsing method for other formats
-                // Parse the block definition
-                string blockType = null;
-                string label = null;
-                bool disabled = false;
-                var settings = new Dictionary<string, string>();
-
-                foreach (var line in lines)
-                {
-                    var trimmedLine = line.Trim();
-                    if (trimmedLine.StartsWith("BLOCK:"))
-                        blockType = trimmedLine.Substring(6).Trim();
-                    else if (trimmedLine.StartsWith("LABEL:"))
-                        label = trimmedLine.Substring(6).Trim();
-                    else if (trimmedLine.StartsWith("DISABLED:"))
-                        disabled = trimmedLine.Substring(9).Trim().ToLower() == "true";
-                    else if (trimmedLine.Contains(":") && !trimmedLine.StartsWith("  "))
-                    {
-                        var colonIndex = trimmedLine.IndexOf(':');
-                        var key = trimmedLine.Substring(0, colonIndex).Trim();
-                        var value = trimmedLine.Substring(colonIndex + 1).Trim();
-                        settings[key] = value;
-                    }
-                }
-
-                if (string.IsNullOrEmpty(blockType))
-                    return null;
-
-                // Try to create the block using BlockFactory
-                BlockInstance fallbackBlock = null;
-                try
-                {
-                    // Map common block names to their factory IDs
-                    var blockId = blockType switch
-                    {
-                        "Http Request" => "HttpRequest",
-                        "Parse" => "Parse",
-                        "Keycheck" => "Keycheck",
-                        "LoliCode" => "LoliCode",
-                        _ => blockType
-                    };
-
-                    fallbackBlock = BlockFactory.GetBlock<BlockInstance>(blockId);
-                }
-                catch
-                {
-                    // If specific block creation fails, try as AutoBlock
-                    try
-                    {
-                        fallbackBlock = BlockFactory.GetBlock<AutoBlockInstance>(blockType);
-                    }
-                    catch
-                    {
-                        return null;
-                    }
-                }
-
-                if (fallbackBlock != null)
-                {
-                    // Set basic properties
-                    if (!string.IsNullOrEmpty(label))
-                        fallbackBlock.Label = label;
-                    fallbackBlock.Disabled = disabled;
-
-                    // Apply settings to the block
-                    ApplySettingsToBlock(fallbackBlock, settings);
-                }
-
-                return fallbackBlock;
+                return ParseBlockFromFallbackFormat(lines);
             }
             catch (Exception ex)
             {
@@ -735,7 +648,137 @@ namespace OpenBullet2.Native.Views.Pages
             }
         }
 
-        private void ApplySettingsToBlock(BlockInstance block, Dictionary<string, string> settings)
+        private static BlockInstance ParseBlockFromBlockIdFormat(string[] lines)
+        {
+            var firstLine = lines[0].Trim();
+            var blockId = firstLine.Substring(6).Trim();
+
+            var blockContent = new List<string>();
+            var foundEndBlock = false;
+
+            for (int i = 1; i < lines.Length; i++)
+            {
+                var line = lines[i].Trim();
+                if (line == "ENDBLOCK")
+                {
+                    foundEndBlock = true;
+                    break;
+                }
+                blockContent.Add(lines[i]);
+            }
+
+            if (foundEndBlock)
+            {
+                try
+                {
+                    var block = BlockFactory.GetBlock<BlockInstance>(blockId);
+                    var contentScript = string.Join(Environment.NewLine, blockContent);
+                    var lineNumber = 0;
+                    block.FromLC(ref contentScript, ref lineNumber);
+                    return block;
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Failed to create block {blockId}: {ex.Message}");
+                    return null;
+                }
+            }
+            return null;
+        }
+
+        private static BlockInstance ParseBlockFromFallbackFormat(string[] lines)
+        {
+            string blockType = null;
+            string label = null;
+            bool disabled = false;
+            var settings = new Dictionary<string, string>();
+
+            foreach (var line in lines)
+            {
+                ParseFallbackLine(line, ref blockType, ref label, ref disabled, settings);
+            }
+
+            if (string.IsNullOrEmpty(blockType))
+                return null;
+
+            return CreateAndPopulateFallbackBlock(blockType, label, disabled, settings);
+        }
+
+        private static void ParseFallbackLine(
+            string line,
+            ref string blockType,
+            ref string label,
+            ref bool disabled,
+            Dictionary<string, string> settings)
+        {
+            var trimmedLine = line.Trim();
+            if (trimmedLine.StartsWith("BLOCK:", StringComparison.OrdinalIgnoreCase))
+                blockType = trimmedLine.Substring(6).Trim();
+            else if (trimmedLine.StartsWith("LABEL:", StringComparison.OrdinalIgnoreCase))
+                label = trimmedLine.Substring(6).Trim();
+            else if (trimmedLine.StartsWith("DISABLED:", StringComparison.OrdinalIgnoreCase))
+                disabled = trimmedLine.Substring(9).Trim().ToLower() == "true";
+            else if (trimmedLine.Contains(':') && !trimmedLine.StartsWith("  ", StringComparison.OrdinalIgnoreCase))
+            {
+                TryParseSetting(trimmedLine, settings);
+            }
+        }
+
+        private static BlockInstance CreateAndPopulateFallbackBlock(
+            string blockType,
+            string label,
+            bool disabled,
+            Dictionary<string, string> settings)
+        {
+            BlockInstance fallbackBlock = CreateFallbackBlock(blockType);
+
+            if (fallbackBlock != null)
+            {
+                if (!string.IsNullOrEmpty(label))
+                    fallbackBlock.Label = label;
+                fallbackBlock.Disabled = disabled;
+                ApplySettingsToBlock(fallbackBlock, settings);
+            }
+            return fallbackBlock;
+        }
+
+        private static void TryParseSetting(string trimmedLine, Dictionary<string, string> settings)
+        {
+            var colonIndex = trimmedLine.IndexOf(':');
+            var key = trimmedLine.Substring(0, colonIndex).Trim();
+            var value = trimmedLine.Substring(colonIndex + 1).Trim();
+            settings[key] = value;
+        }
+
+        private static BlockInstance CreateFallbackBlock(string blockType)
+        {
+            try
+            {
+                var blockId = blockType switch
+                {
+                    "Http Request" => "HttpRequest",
+                    "Parse" => "Parse",
+                    "Keycheck" => "Keycheck",
+                    "LoliCode" => "LoliCode",
+                    _ => blockType
+                };
+
+                return BlockFactory.GetBlock<BlockInstance>(blockId);
+            }
+            catch
+            {
+                try
+                {
+                    return BlockFactory.GetBlock<AutoBlockInstance>(blockType);
+                }
+                catch
+                {
+                    return null;
+                }
+            }
+        }
+
+        private static void ApplySettingsToBlock(BlockInstance block, Dictionary<string, string> settings)
         {
             if (block?.Settings == null) return;
 
@@ -749,40 +792,7 @@ namespace OpenBullet2.Native.Views.Pages
                 {
                     try
                     {
-                        // Set the value based on the setting type
-                        if (value.StartsWith("@"))
-                        {
-                            // Variable reference
-                            blockSetting.InputMode = RuriLib.Models.Blocks.Settings.SettingInputMode.Variable;
-                            blockSetting.InputVariableName = value.Substring(1);
-                        }
-                        else
-                        {
-                            // Fixed value - try to set it appropriately
-                            blockSetting.InputMode = RuriLib.Models.Blocks.Settings.SettingInputMode.Fixed;
-                            
-                            if (blockSetting.FixedSetting is RuriLib.Models.Blocks.Settings.StringSetting stringSetting)
-                            {
-                                stringSetting.Value = value;
-                            }
-                            else if (blockSetting.FixedSetting is RuriLib.Models.Blocks.Settings.IntSetting intSetting)
-                            {
-                                if (int.TryParse(value, out var intValue))
-                                    intSetting.Value = intValue;
-                            }
-                            else if (blockSetting.FixedSetting is RuriLib.Models.Blocks.Settings.BoolSetting boolSetting)
-                            {
-                                if (bool.TryParse(value, out var boolValue))
-                                    boolSetting.Value = boolValue;
-                            }
-                            else
-                            {
-                                // Fallback to interpolated mode
-                                blockSetting.InputMode = RuriLib.Models.Blocks.Settings.SettingInputMode.Interpolated;
-                                // Create a new InterpolatedStringSetting with the string value
-                                blockSetting.InterpolatedSetting = new InterpolatedStringSetting { Value = value };
-                            }
-                        }
+                        HandleSettingValue(blockSetting, value);
                     }
                     catch (Exception ex)
                     {
@@ -792,40 +802,64 @@ namespace OpenBullet2.Native.Views.Pages
             }
         }
 
-        private BlockInstance TryCreateBlockFromText(string text)
+        private static void HandleSettingValue(BlockSetting blockSetting, string value)
+        {
+            if (value.StartsWith('@'))
+            {
+                blockSetting.InputMode = RuriLib.Models.Blocks.Settings.SettingInputMode.Variable;
+                blockSetting.InputVariableName = value.Substring(1);
+            }
+            else
+            {
+                SetFixedSettingValue(blockSetting, value);
+            }
+        }
+
+        private static void SetFixedSettingValue(BlockSetting blockSetting, string value)
+        {
+            blockSetting.InputMode = RuriLib.Models.Blocks.Settings.SettingInputMode.Fixed;
+
+            if (blockSetting.FixedSetting is RuriLib.Models.Blocks.Settings.StringSetting stringSetting)
+            {
+                SetStringSettingValue(stringSetting, value);
+            }
+            else if (blockSetting.FixedSetting is RuriLib.Models.Blocks.Settings.IntSetting intSetting)
+            {
+                SetIntSettingValue(intSetting, value);
+            }
+            else if (blockSetting.FixedSetting is RuriLib.Models.Blocks.Settings.BoolSetting boolSetting)
+            {
+                SetBoolSettingValue(boolSetting, value);
+            }
+            else
+            {
+                blockSetting.InputMode = RuriLib.Models.Blocks.Settings.SettingInputMode.Interpolated;
+                blockSetting.InterpolatedSetting = new InterpolatedStringSetting { Value = value };
+            }
+        }
+
+        private static void SetStringSettingValue(RuriLib.Models.Blocks.Settings.StringSetting setting, string value)
+        {
+            setting.Value = value;
+        }
+
+        private static void SetIntSettingValue(RuriLib.Models.Blocks.Settings.IntSetting setting, string value)
+        {
+            if (int.TryParse(value, out var intValue))
+                setting.Value = intValue;
+        }
+
+        private static void SetBoolSettingValue(RuriLib.Models.Blocks.Settings.BoolSetting setting, string value)
+        {
+            if (bool.TryParse(value, out var boolValue))
+                setting.Value = boolValue;
+        }
+
+        private static BlockInstance TryCreateBlockFromText(string text)
         {
             try
             {
-                // Simple heuristics to create blocks from text
-                if (text.StartsWith("REQUEST", StringComparison.OrdinalIgnoreCase) || 
-                    text.Contains("http", StringComparison.OrdinalIgnoreCase))
-                {
-                    var httpBlock = BlockFactory.GetBlock<HttpRequestBlockInstance>("HttpRequest");
-                    httpBlock.Label = text.Length > 50 ? text.Substring(0, 50) + "..." : text;
-                    return httpBlock;
-                }
-                else if (text.StartsWith("PARSE", StringComparison.OrdinalIgnoreCase) ||
-                         text.Contains("regex", StringComparison.OrdinalIgnoreCase))
-                {
-                    var parseBlock = BlockFactory.GetBlock<ParseBlockInstance>("Parse");
-                    parseBlock.Label = text.Length > 50 ? text.Substring(0, 50) + "..." : text;
-                    return parseBlock;
-                }
-                else if (text.StartsWith("KEYCHECK", StringComparison.OrdinalIgnoreCase) ||
-                         text.Contains("keycheck", StringComparison.OrdinalIgnoreCase))
-                {
-                    var keycheckBlock = BlockFactory.GetBlock<KeycheckBlockInstance>("Keycheck");
-                    keycheckBlock.Label = text.Length > 50 ? text.Substring(0, 50) + "..." : text;
-                    return keycheckBlock;
-                }
-                else
-                {
-                    // Default to LoliCode block for any other text
-                    var loliCodeBlock = BlockFactory.GetBlock<LoliCodeBlockInstance>("LoliCode");
-                    loliCodeBlock.Label = text.Length > 50 ? text.Substring(0, 50) + "..." : text;
-                    loliCodeBlock.Script = text;
-                    return loliCodeBlock;
-                }
+                return GetBlockInstanceFromText(text);
             }
             catch (Exception ex)
             {
@@ -834,18 +868,52 @@ namespace OpenBullet2.Native.Views.Pages
             }
         }
 
-        private void ShowAutoNotification(string title, string message)
+        private static BlockInstance GetBlockInstanceFromText(string text)
+        {
+            // Simple heuristics to create blocks from text
+            BlockInstance block;
+
+            if (text.StartsWith("REQUEST", StringComparison.OrdinalIgnoreCase) || text.Contains("http", StringComparison.OrdinalIgnoreCase))
+            {
+                block = BlockFactory.GetBlock<HttpRequestBlockInstance>("HttpRequest");
+            }
+            else if (text.StartsWith("PARSE", StringComparison.OrdinalIgnoreCase) || text.Contains("regex", StringComparison.OrdinalIgnoreCase))
+            {
+                block = BlockFactory.GetBlock<ParseBlockInstance>("Parse");
+            }
+            else if (text.StartsWith("KEYCHECK", StringComparison.OrdinalIgnoreCase) || text.Contains("keycheck", StringComparison.OrdinalIgnoreCase))
+            {
+                block = BlockFactory.GetBlock<KeycheckBlockInstance>("Keycheck");
+            }
+            else
+            {
+                // Default to LoliCode block for any other text
+                var loliCodeBlock = BlockFactory.GetBlock<LoliCodeBlockInstance>("LoliCode");
+                loliCodeBlock.Script = text;
+                block = loliCodeBlock;
+            }
+
+            SetBlockLabelFromText(block, text);
+            return block;
+        }
+
+        private static void SetBlockLabelFromText(BlockInstance block, string text)
+        {
+            block.Label = text.Length > 50 ? text.Substring(0, 50) + "..." : text;
+        }
+
+        private static void ShowAutoNotification(string title, string message)
         {
             try
             {
                 Application.Current.Dispatcher.BeginInvoke(new Action(() =>
                 {
                     var notification = new NotificationWindow(title, message);
-                    
+
                     // Prevent the notification from stealing focus
                     notification.ShowActivated = false;
                     notification.Focusable = false;
-                    
+
                     notification.Show();
                 }), System.Windows.Threading.DispatcherPriority.Background);
             }
@@ -865,7 +933,7 @@ namespace OpenBullet2.Native.Views.Pages
             }
             lastPasteOperation.Clear();
         }
-        
+
         private void ClearCloneUndo()
         {
             if (lastCloneOperation.Any())
@@ -874,7 +942,7 @@ namespace OpenBullet2.Native.Views.Pages
             }
             lastCloneOperation.Clear();
         }
-        
+
         private void ClearAllUndo()
         {
             ClearPasteUndo();

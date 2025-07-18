@@ -1,4 +1,4 @@
-﻿using RuriLib.Extensions;
+using RuriLib.Extensions;
 using System;
 using System.IO;
 using System.Text.RegularExpressions;
@@ -69,7 +69,7 @@ namespace RuriLib.Functions.Files
         }
 
         /// <summary>
-        /// Creates the folder structure that contains a certain files if it doesn't already exist.
+        /// Creates the folder structure that contains a certain file if it doesn't already exist.
         /// </summary>
         /// <param name="file">The absolute or relative path to the file.</param>
         public static void CreatePath(string file)
@@ -79,8 +79,15 @@ namespace RuriLib.Functions.Files
 
             var dirName = Path.GetDirectoryName(file);
 
-            if (!string.IsNullOrWhiteSpace(dirName) && !Directory.Exists(dirName))
-                Directory.CreateDirectory(dirName);
+            if (string.IsNullOrWhiteSpace(dirName))
+                return;
+
+            // Check if a file already exists at the path where we want to create a directory.
+            // This prevents an IOException if Directory.CreateDirectory tries to create a directory over an existing file.
+            if (File.Exists(dirName))
+                throw new IOException($"A file with the name '{dirName}' already exists, preventing directory creation.");
+
+            Directory.CreateDirectory(dirName);
         }
     }
 }

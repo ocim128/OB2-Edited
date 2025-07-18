@@ -1,4 +1,5 @@
 using System;
+using System.Buffers;
 using System.IO;
 using System.IO.Pipelines;
 using System.Threading;
@@ -41,19 +42,11 @@ public class PipeReaderStream : Stream
 
     public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
     {
-        // If the buffer is null or invalid, throw an exception
-        if (buffer == null)
-        {
-            throw new ArgumentNullException(nameof(buffer));
-        }
-        if (offset < 0 || offset > buffer.Length)
-        {
-            throw new ArgumentOutOfRangeException(nameof(offset));
-        }
-        if (count < 0 || count > buffer.Length - offset)
-        {
-            throw new ArgumentOutOfRangeException(nameof(count));
-        }
+        // Argument validation (can be simplified in modern .NET but kept for clarity)
+        if (buffer == null) throw new ArgumentNullException(nameof(buffer));
+        if (offset < 0) throw new ArgumentOutOfRangeException(nameof(offset));
+        if (count < 0) throw new ArgumentOutOfRangeException(nameof(count));
+        if (buffer.Length - offset < count) throw new ArgumentException("Invalid offset or count for the buffer size.");
 
         if (count == 0)
         {
@@ -62,50 +55,36 @@ public class PipeReaderStream : Stream
 
         while (true)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            // Wait for data to be available in the pipe
             ReadResult result = await _reader.ReadAsync(cancellationToken).ConfigureAwait(false);
-            var readableBuffer = result.Buffer;
+            ReadOnlySequence<byte> readableBuffer = result.Buffer;
 
-            if (readableBuffer.IsEmpty && result.IsCompleted)
-            {
-                return 0; // End of stream
-            }
-
-            // Copy data from the pipe's buffer to the provided buffer
-            var bytesToCopy = Math.Min(count, readableBuffer.Length);
-            int copiedBytes = 0;
+            // Determine how many bytes we can actually copy
+            int bytesToCopy = (int)Math.Min(count, readableBuffer.Length);
 
             if (bytesToCopy > 0)
             {
-                // Copy to the user's buffer
-                foreach (var segment in readableBuffer)
-                {
-                    // Convert span to array immediately to avoid async span usage
-                    var segmentArray = segment.Span.ToArray();
-                    var arrayToCopy = segmentArray;
-                    
-                    if (copiedBytes + arrayToCopy.Length > bytesToCopy)
-                    {
-                        arrayToCopy = new byte[(int)(bytesToCopy - copiedBytes)];
-                        Array.Copy(segmentArray, 0, arrayToCopy, 0, arrayToCopy.Length);
-                    }
-                    
-                    arrayToCopy.CopyTo(buffer, offset + copiedBytes);
-                    copiedBytes += arrayToCopy.Length;
+                // Get the portion of the buffer to copy
+                ReadOnlySequence<byte> slice = readableBuffer.Slice(0, bytesToCopy);
 
-                    if (copiedBytes == bytesToCopy) break; // Finished copying the requested amount
-                }
+                // Use the efficient built-in CopyTo method
+                slice.CopyTo(buffer.AsSpan(offset, bytesToCopy));
+
+                // Tell the pipe reader that we've consumed the data
+                _reader.AdvanceTo(slice.End);
+
+                return bytesToCopy;
             }
-            
-            _reader.AdvanceTo(readableBuffer.Start, readableBuffer.GetPosition(copiedBytes));
-            
-            if (copiedBytes > 0)
-            {
-                return copiedBytes;
-            }
-            
+
+            // If no bytes were copied, we need to check if the stream has ended.
+            // We must advance the reader, marking the buffer as examined to avoid an infinite loop.
+            _reader.AdvanceTo(readableBuffer.Start, readableBuffer.End);
+
             if (result.IsCompleted)
             {
-                return 0;
+                return 0; // End of stream
             }
         }
     }

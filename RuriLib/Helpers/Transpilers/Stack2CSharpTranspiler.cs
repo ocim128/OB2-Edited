@@ -1,4 +1,4 @@
-﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using RuriLib.Helpers.CSharp;
 using RuriLib.Models.Blocks;
@@ -28,11 +28,11 @@ namespace RuriLib.Helpers.Transpilers
             using var writer = new StringWriter();
 
             var validBlocks = blocks.Where(b => !b.Disabled);
-            
+
             // OPTIMIZED: Only detect variables from specific block types that commonly reference variables
             // This is much faster than the comprehensive approach that was causing performance issues
             var detectedVariables = new HashSet<string>();
-            
+
             foreach (var block in validBlocks)
             {
                 // Only check blocks that commonly have variable references to avoid expensive ToLC() calls
@@ -41,7 +41,7 @@ namespace RuriLib.Helpers.Transpilers
                     case LoliCodeBlockInstance loli when !string.IsNullOrEmpty(loli.Script):
                         detectedVariables.UnionWith(VariableDetector.DetectFromLoliCodeStatement(loli.Script));
                         break;
-                        
+
                     case ScriptBlockInstance script when !string.IsNullOrEmpty(script.InputVariables):
                         // Add input variables from script blocks
                         foreach (var rawInput in script.InputVariables.Split(','))
@@ -53,7 +53,7 @@ namespace RuriLib.Helpers.Transpilers
                             }
                         }
                         break;
-                        
+
                     case AutoBlockInstance auto:
                         // Add output variable if defined
                         if (!string.IsNullOrEmpty(auto.OutputVariable))
@@ -63,7 +63,7 @@ namespace RuriLib.Helpers.Transpilers
                         break;
                 }
             }
-            
+
             // Emit NullDynamic declarations for detected variables
             var missingVars = VariableDetector.GetMissingVariables(detectedVariables, declaredVariables);
             foreach (var varName in missingVars)
@@ -71,7 +71,7 @@ namespace RuriLib.Helpers.Transpilers
                 writer.WriteLine($"dynamic {varName} = RuriLib.Models.NullDynamic.Instance;");
                 declaredVariables.Add(varName);
             }
-            
+
             // Pre-declare all AutoBlockInstance output variables to ensure method-scope visibility
             var outputVars = blocks.OfType<AutoBlockInstance>().Select(b => b.OutputVariable).Distinct();
             foreach (var varName in outputVars)

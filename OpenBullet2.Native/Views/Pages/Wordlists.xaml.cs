@@ -25,11 +25,10 @@ namespace OpenBullet2.Native.Views.Pages
     {
         private readonly WordlistsViewModel vm;
         private readonly EnvironmentSettings env;
-        private readonly MainWindow window;
         private GridViewColumnHeader listViewSortCol;
         private SortAdorner listViewSortAdorner;
 
-        private IEnumerable<WordlistEntity> SelectedWordlists => wordlistListView.SelectedItems.Cast<WordlistEntity>().ToList();
+        private IEnumerable<WordlistEntity> GetSelectedWordlists() => wordlistListView.SelectedItems.Cast<WordlistEntity>().ToList();
 
         public Wordlists()
         {
@@ -38,7 +37,6 @@ namespace OpenBullet2.Native.Views.Pages
             _ = vm.InitializeAsync();
 
             InitializeComponent();
-            window = SP.GetService<MainWindow>();
             env = SP.GetService<RuriLibSettingsService>().Environment;
         }
 
@@ -52,15 +50,15 @@ namespace OpenBullet2.Native.Views.Pages
 
         private async void DeleteSelected(object sender, RoutedEventArgs e)
         {
-            if (!SelectedWordlists.Any())
+            if (!GetSelectedWordlists().Any())
             {
                 Alert.Error("No wordlist selected", "Please select at least one wordlist to delete.");
                 return;
             }
 
-            if (Alert.Choice("Are you sure?", $"Do you really want to delete {SelectedWordlists.Count()} selected wordlist(s)? This cannot be undone."))
+            if (Alert.Choice("Are you sure?", $"Do you really want to delete {GetSelectedWordlists().Count()} selected wordlist(s)? This cannot be undone."))
             {
-                foreach (var wordlist in SelectedWordlists)
+                foreach (var wordlist in GetSelectedWordlists())
                 {
                     await vm.DeleteAsync(wordlist);
                 }
@@ -80,7 +78,7 @@ namespace OpenBullet2.Native.Views.Pages
 
         private async void ExportSelected(object sender, RoutedEventArgs e)
         {
-            if (!SelectedWordlists.Any())
+            if (!GetSelectedWordlists().Any())
             {
                 Alert.Error("No wordlist selected", "Please select at least one wordlist to export.");
                 return;
@@ -97,7 +95,7 @@ namespace OpenBullet2.Native.Views.Pages
             {
                 try
                 {
-                    foreach (var wordlist in SelectedWordlists)
+                    foreach (var wordlist in GetSelectedWordlists())
                     {
                         var sourceFile = wordlist.FileName;
                         var destinationFile = Path.Combine(Path.GetDirectoryName(sfd.FileName), Path.GetFileName(sourceFile));
@@ -131,7 +129,7 @@ namespace OpenBullet2.Native.Views.Pages
 
         private void Search(object sender, RoutedEventArgs e) => vm.SearchString = filterTextbox.Text;
 
-        public async void AddWordlist(WordlistEntity wordlist)
+        public async Task AddWordlist(WordlistEntity wordlist)
         {
             try
             {
@@ -147,7 +145,7 @@ namespace OpenBullet2.Native.Views.Pages
         {
             var column = sender as GridViewColumnHeader;
             var sortBy = column.Tag.ToString();
-            
+
             if (listViewSortCol != null)
             {
                 AdornerLayer.GetAdornerLayer(listViewSortCol).Remove(listViewSortAdorner);
@@ -155,7 +153,7 @@ namespace OpenBullet2.Native.Views.Pages
             }
 
             var newDir = ListSortDirection.Ascending;
-            
+
             if (listViewSortCol == column && listViewSortAdorner.Direction == newDir)
             {
                 newDir = ListSortDirection.Descending;
@@ -175,35 +173,38 @@ namespace OpenBullet2.Native.Views.Pages
 
                 foreach (var file in files.Where(f => f.EndsWith(".txt")))
                 {
-                    try
-                    {
-                        var path = file;
-                        var cwd = Directory.GetCurrentDirectory();
-
-                        // Make the path relative if inside the CWD
-                        if (path.StartsWith(cwd))
-                        {
-                            path = path[(cwd.Length + 1)..];
-                        }
-
-                        var firstLine = File.ReadLines(path).FirstOrDefault(l => !string.IsNullOrWhiteSpace(l)) ?? string.Empty;
-
-                        var entity = new WordlistEntity
-                        {
-                            Name = Path.GetFileNameWithoutExtension(file),
-                            FileName = path,
-                            Type = env.RecognizeWordlistType(firstLine),
-                            Purpose = string.Empty,
-                            Total = File.ReadLines(path).Count()
-                        };
-
-                        await vm.AddAsync(entity);
-                    }
-                    catch
-                    {
-
-                    }
+                    await ProcessDroppedFile(file);
                 }
+            }
+        }
+
+        private async Task ProcessDroppedFile(string file)
+        {
+            try
+            {
+                var path = file;
+                var cwd = Directory.GetCurrentDirectory();
+
+                // Make the path relative if inside the CWD
+                if (path.StartsWith(cwd))
+                {
+                    path = path[(cwd.Length + 1)..];
+                }
+
+                var firstLine = File.ReadLines(path).FirstOrDefault(l => !string.IsNullOrWhiteSpace(l)) ?? string.Empty;
+
+                await vm.AddAsync(new WordlistEntity
+                {
+                    Name = Path.GetFileNameWithoutExtension(file),
+                    FileName = path,
+                    Type = env.RecognizeWordlistType(firstLine),
+                    Purpose = string.Empty,
+                    Total = File.ReadLines(path).Count()
+                });
+            }
+            catch // Intentionally empty to gracefully handle file access errors during drag and drop
+            {
+
             }
         }
 

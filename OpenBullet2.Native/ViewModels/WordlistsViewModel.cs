@@ -70,7 +70,7 @@ public class WordlistsViewModel : ViewModelBase
     {
         if (WordlistsCollection.Any(w => w.FileName == wordlist.FileName))
         {
-            throw new Exception($"Wordlist already present: {wordlist.FileName}");
+            throw new InvalidOperationException($"Wordlist already present: {wordlist.FileName}");
         }
 
         WordlistsCollection.Add(wordlist);
@@ -104,7 +104,7 @@ public class WordlistsViewModel : ViewModelBase
     {
         var deleted = 0;
 
-        for (var i = 0; i < WordlistsCollection.Count; i++)
+        for (var i = WordlistsCollection.Count - 1; i >= 0; i--)
         {
             var wordlist = WordlistsCollection[i];
 
@@ -112,7 +112,6 @@ public class WordlistsViewModel : ViewModelBase
             {
                 await DeleteAsync(wordlist);
                 deleted++;
-                i--;
             }
         }
 

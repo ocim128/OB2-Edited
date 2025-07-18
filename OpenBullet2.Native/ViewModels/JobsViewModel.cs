@@ -178,7 +178,7 @@ public class JobsViewModel : ViewModelBase
 
         if (notIdleJobs.Any())
         {
-            throw new Exception($"The job #{notIdleJobs.First().Id} is not idle, please stop/abort the job first!");
+            throw new InvalidOperationException($"The job #{notIdleJobs.First().Id} is not idle, please stop/abort the job first!");
         }
 
         // If admin, just purge all
@@ -191,7 +191,7 @@ public class JobsViewModel : ViewModelBase
     {
         if (jobVM.Job.Status != JobStatus.Idle)
         {
-            throw new Exception("The job is not idle, please stop/abort the job first!");
+            throw new InvalidOperationException("The job is not idle, please stop/abort the job first!");
         }
 
         var entity = await jobRepo.GetAll().FirstAsync(e => e.Id == jobVM.Id);
@@ -267,12 +267,8 @@ public class MultiRunJobViewModel(MultiRunJob job) : JobViewModel(job)
 {
     private MultiRunJob MultiRunJob => Job as MultiRunJob;
 
-    public string ConfigName => MultiRunJob.Config is null ? "No config" : MultiRunJob.Config.Metadata.Name;
-    public string ConfigDisplayName => MultiRunJob.Config is null ? "No Config Selected" :
-        string.IsNullOrEmpty(MultiRunJob.Config.Metadata.Name) ? "Unnamed Config" : MultiRunJob.Config.Metadata.Name;
-
-    public string JobTypeDisplay => "Multi-Run Job";
-
+    public string ConfigName => MultiRunJob.Config.Metadata.Name;
+    public string ConfigDisplayName => ConfigName;
     public string DataPoolInfo => MultiRunJob.DataPool switch
     {
         WordlistDataPool w => $"{w.Wordlist.Name} (Wordlist)",
@@ -324,7 +320,7 @@ public class MultiRunJobViewModel(MultiRunJob job) : JobViewModel(job)
         get
         {
             var tested = MultiRunJob.Status == JobStatus.Idle ? Skip : DataTested + Skip;
-            return $"{tested} / {MultiRunJob.DataPool.Size} ({(Progress == -1 ? 0 : Progress * 100):0.00}%)";
+            return $"{tested} / {MultiRunJob.DataPool.Size} ({(Progress < 0 ? 0 : Progress * 100):0.00}%)";
         }
     }
 
@@ -429,11 +425,8 @@ public class ProxyCheckJobViewModel(ProxyCheckJob job) : JobViewModel(job)
     public int DataHits => Working;
     /// <summary>
     /// Proxy check doesn&#39;t have custom results
-    /// </summary>
-    public int DataCustom => 0;
-
     public float Progress => ProxyCheckJob.Progress;
-    public string ProgressString => $"{Tested} / {Total} ({(Progress == -1 ? 0 : Progress * 100):0.00}%)";
+    public string ProgressString => $"{Tested} / {Total} ({(Progress < 0 ? 0 : Progress * 100):0.00}%)";
 
     public int CPM => ProxyCheckJob.CPM;
     public string ElapsedString => $"{(int)ProxyCheckJob.Elapsed.TotalDays} day(s) {ProxyCheckJob.Elapsed:hh\\:mm\\:ss}";

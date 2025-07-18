@@ -11,13 +11,18 @@
         Title="OpenBullet 2 - Modern UI" Width="1200" Height="800"
         Background="{StaticResource Modern.BackgroundMain}"
         BorderThickness="0"
-        GlowBrush="Black"
+        GlowBrush="Transparent"
         ResizeMode="CanResizeWithGrip"
         WindowTitleBrush="{StaticResource Modern.BackgroundSecondary}"
         WindowTransitionsEnabled="False"
         WindowStartupLocation="CenterScreen"
         TitleCharacterCasing="Normal"
-        Icon="/Images/logohq_square_padded.png">
+        Icon="/Images/logohq_square_padded.png"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        RenderOptions.ClearTypeHint="Enabled"
+        TextOptions.TextFormattingMode="Display"
+        TextOptions.TextRenderingMode="ClearType">
 
     <Window.Resources>
         <ResourceDictionary>
@@ -36,9 +41,11 @@
 
         <!-- Modern Sidebar Navigation -->
         <Border Grid.Column="0" 
-                Style="{StaticResource ModernCard}"
-                CornerRadius="0,12,12,0"
-                Margin="0,0,8,0">
+                Style="{StaticResource ModernCardLite}"
+                CornerRadius="0,8,8,0"
+                Margin="0,0,8,0"
+                UseLayoutRounding="True"
+                SnapsToDevicePixels="True">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="auto" />
@@ -63,7 +70,12 @@
 
                 <!-- Navigation Menu -->
                 <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"
-                             HorizontalScrollBarVisibility="Disabled">
+                             HorizontalScrollBarVisibility="Disabled"
+                             Style="{StaticResource ModernScrollViewer}"
+                             VirtualizingPanel.IsVirtualizing="True"
+                             VirtualizingPanel.VirtualizationMode="Recycling"
+                             UseLayoutRounding="True"
+                             SnapsToDevicePixels="True">
                     <StackPanel Margin="12,0,12,0">
                         
                         <!-- Primary Navigation -->
@@ -266,10 +278,14 @@
             <!-- Content Frame -->
             <Border Grid.Row="1" 
                    Background="{StaticResource Modern.BackgroundMain}"
-                   Padding="20">
+                   Padding="20"
+                   UseLayoutRounding="True"
+                   SnapsToDevicePixels="True">
                 <Frame x:Name="mainFrame" 
                       NavigationUIVisibility="Hidden"
-                      Background="Transparent" />
+                      Background="Transparent"
+                      UseLayoutRounding="True"
+                      SnapsToDevicePixels="True" />
             </Border>
 
             <!-- Loading Indicator -->
@@ -353,4 +369,4 @@
         </Border>
     </Grid>
 
-</mah:MetroWindow> 
+</mah:MetroWindow>

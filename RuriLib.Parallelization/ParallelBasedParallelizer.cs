@@ -15,15 +15,15 @@ public class ParallelBasedParallelizer<TInput, TOutput>(IEnumerable<TInput> work
     int degreeOfParallelism, long totalAmount, int skip = 0, int maxDegreeOfParallelism = 200) : Parallelizer<TInput, TOutput>(workItems, workFunction, degreeOfParallelism, totalAmount, skip, maxDegreeOfParallelism)
 {
     #region Private Fields
-    private CancellationTokenSource parallelCTS = new();
-    private volatile bool isPaused;
-    private volatile bool shouldStop;
-    private readonly ManualResetEventSlim pauseEvent = new(true);
+    private CancellationTokenSource _parallelCTS = new();
+    private volatile bool _isPaused;
+    private volatile bool _shouldStop;
+    private readonly ManualResetEventSlim _pauseEvent = new(true);
     private int _savedDOP;
-    private int cpmCheckCounter;
-    private readonly ConcurrentQueue<TInput> workQueue = new();
-    private volatile bool isProducerFinished;
-    private int activeTasks;
+    private int _cpmCheckCounter;
+    private readonly ConcurrentQueue<TInput> _workQueue = new();
+    private volatile bool _isProducerFinished;
+    private int _activeTasks;
 
     #endregion
 
@@ -31,12 +31,12 @@ public class ParallelBasedParallelizer<TInput, TOutput>(IEnumerable<TInput> work
     /// <summary>
     /// Gets the number of currently active parallel tasks.
     /// </summary>
-    public int CurrentTasks => activeTasks;
+    public int CurrentTasks => _activeTasks;
 
     /// <summary>
     /// Gets the number of items currently waiting in the queue.
     /// </summary>
-    public int QueuedTasks => workQueue?.Count ?? 0;
+    public int QueuedTasks => _workQueue?.Count ?? 0;
     #endregion
 
     #region Public Methods
@@ -46,16 +46,16 @@ public class ParallelBasedParallelizer<TInput, TOutput>(IEnumerable<TInput> work
         await base.Start().ConfigureAwait(false);
 
         // Initialize state
-        isPaused = false;
-        shouldStop = false;
-        isProducerFinished = false;
-        activeTasks = 0;
-        cpmCheckCounter = 0;
+        _isPaused = false;
+        _shouldStop = false;
+        _isProducerFinished = false;
+        _activeTasks = 0;
+        _cpmCheckCounter = 0;
         _savedDOP = degreeOfParallelism;
 
-        parallelCTS?.Dispose();
-        parallelCTS = new CancellationTokenSource();
-        pauseEvent.Set();
+        _parallelCTS?.Dispose();
+        _parallelCTS = new CancellationTokenSource();
+        _pauseEvent.Set();
 
         stopwatch.Restart();
         Status = ParallelizerStatus.Running;
@@ -71,8 +71,8 @@ public class ParallelBasedParallelizer<TInput, TOutput>(IEnumerable<TInput> work
         await base.Pause().ConfigureAwait(false);
 
         Status = ParallelizerStatus.Pausing;
-        isPaused = true;
-        pauseEvent.Reset();
+        _isPaused = true;
+        _pauseEvent.Reset();
         Status = ParallelizerStatus.Paused;
         stopwatch.Stop();
     }
@@ -82,8 +82,8 @@ public class ParallelBasedParallelizer<TInput, TOutput>(IEnumerable<TInput> work
     {
         await base.Resume().ConfigureAwait(false);
 
-        isPaused = false;
-        pauseEvent.Set();
+        _isPaused = false;
+        _pauseEvent.Set();
         Status = ParallelizerStatus.Running;
         stopwatch.Start();
     }
@@ -94,8 +94,8 @@ public class ParallelBasedParallelizer<TInput, TOutput>(IEnumerable<TInput> work
         await base.Stop().ConfigureAwait(false);
 
         Status = ParallelizerStatus.Stopping;
-        shouldStop = true;
-        pauseEvent.Set(); // Unblock paused tasks
+        _shouldStop = true;
+        _pauseEvent.Set(); // Unblock paused tasks
         softCTS.Cancel();
         await WaitCompletion().ConfigureAwait(false);
         stopwatch.Stop();
@@ -107,9 +107,9 @@ public class ParallelBasedParallelizer<TInput, TOutput>(IEnumerable<TInput> work
         await base.Abort().ConfigureAwait(false);
 
         Status = ParallelizerStatus.Stopping;
-        shouldStop = true;
-        pauseEvent.Set(); // Unblock paused tasks
-        parallelCTS.Cancel();
+        _shouldStop = true;
+        _pauseEvent.Set(); // Unblock paused tasks
+        _parallelCTS.Cancel();
         hardCTS.Cancel();
         softCTS.Cancel();
         await WaitCompletion().ConfigureAwait(false);
@@ -151,28 +151,28 @@ public class ParallelBasedParallelizer<TInput, TOutput>(IEnumerable<TInput> work
             // Skip the items
             using var items = workItems.Skip(skip).GetEnumerator();
 
-            while (items.MoveNext() && !shouldStop && !softCTS.IsCancellationRequested)
+            while (items.MoveNext() && !_shouldStop && !softCTS.IsCancellationRequested)
             {
                 // Handle pause state
-                if (isPaused)
+                if (_isPaused)
                 {
-                    await Task.Run(() => pauseEvent.Wait(softCTS.Token), softCTS.Token).ConfigureAwait(false);
+                    await Task.Run(() => _pauseEvent.Wait(softCTS.Token), softCTS.Token).ConfigureAwait(false);
                     continue;
                 }
 
                 // CPM throttling with reduced checking frequency
-                if (++cpmCheckCounter >= 50 && IsCPMLimited())
+                if (++_cpmCheckCounter >= 50 && IsCPMLimited())
                 {
-                    cpmCheckCounter = 0;
+                    _cpmCheckCounter = 0;
                     await Task.Delay(50, softCTS.Token).ConfigureAwait(false);
                     continue;
                 }
 
                 // Queue work item
-                workQueue.Enqueue(items.Current);
+                _workQueue.Enqueue(items.Current);
 
                 // Throttle if queue gets too large
-                if (workQueue.Count > degreeOfParallelism * 3)
+                if (_workQueue.Count > degreeOfParallelism * 3)
                 {
                     await Task.Delay(1, softCTS.Token).ConfigureAwait(false);
                 }
@@ -184,7 +184,7 @@ public class ParallelBasedParallelizer<TInput, TOutput>(IEnumerable<TInput> work
         }
         finally
         {
-            isProducerFinished = true;
+            _isProducerFinished = true;
         }
     }
 
@@ -195,12 +195,12 @@ public class ParallelBasedParallelizer<TInput, TOutput>(IEnumerable<TInput> work
     {
         try
         {
-            while (!shouldStop && (!isProducerFinished || !workQueue.IsEmpty))
+            while (!_shouldStop && (!_isProducerFinished || !_workQueue.IsEmpty))
             {
                 // Handle pause state
-                if (isPaused)
+                if (_isPaused)
                 {
-                    await Task.Run(() => pauseEvent.Wait(softCTS.Token), softCTS.Token).ConfigureAwait(false);
+                    await Task.Run(() => _pauseEvent.Wait(softCTS.Token), softCTS.Token).ConfigureAwait(false);
                     continue;
                 }
 
@@ -208,7 +208,7 @@ public class ParallelBasedParallelizer<TInput, TOutput>(IEnumerable<TInput> work
                 var batch = new List<TInput>();
                 var batchSize = Math.Min(degreeOfParallelism * 2, 100);
 
-                for (var i = 0; i < batchSize && workQueue.TryDequeue(out var item); i++)
+                for (var i = 0; i < batchSize && _workQueue.TryDequeue(out var item); i++)
                 {
                     batch.Add(item);
                 }
@@ -222,7 +222,7 @@ public class ParallelBasedParallelizer<TInput, TOutput>(IEnumerable<TInput> work
 
                 // Process batch using optimized Parallel.ForEachAsync
                 var combinedCTS = CancellationTokenSource.CreateLinkedTokenSource(
-                    parallelCTS.Token, softCTS.Token, hardCTS.Token);
+                    _parallelCTS.Token, softCTS.Token, hardCTS.Token);
 
                 var options = new ParallelOptions
                 {
@@ -233,17 +233,17 @@ public class ParallelBasedParallelizer<TInput, TOutput>(IEnumerable<TInput> work
 
                 await Parallel.ForEachAsync(batch, options, async (item, token) =>
                 {
-                    _ = Interlocked.Increment(ref activeTasks);
+                    _ = Interlocked.Increment(ref _activeTasks);
                     try
                     {
-                        if (!shouldStop && !isPaused && !token.IsCancellationRequested)
+                        if (!_shouldStop && !_isPaused && !token.IsCancellationRequested)
                         {
                             await taskFunction(item).ConfigureAwait(false);
                         }
                     }
                     finally
                     {
-                        _ = Interlocked.Decrement(ref activeTasks);
+                        _ = Interlocked.Decrement(ref _activeTasks);
                     }
                 }).ConfigureAwait(false);
 
@@ -261,7 +261,7 @@ public class ParallelBasedParallelizer<TInput, TOutput>(IEnumerable<TInput> work
         finally
         {
             // Wait for any remaining active tasks
-            while (activeTasks > 0)
+            while (_activeTasks > 0)
             {
                 await Task.Delay(10).ConfigureAwait(false);
             }
@@ -270,8 +270,8 @@ public class ParallelBasedParallelizer<TInput, TOutput>(IEnumerable<TInput> work
             Status = ParallelizerStatus.Idle;
             hardCTS?.Dispose();
             softCTS?.Dispose();
-            parallelCTS?.Dispose();
-            pauseEvent?.Dispose();
+            _parallelCTS?.Dispose();
+            _pauseEvent?.Dispose();
             stopwatch?.Stop();
         }
     }

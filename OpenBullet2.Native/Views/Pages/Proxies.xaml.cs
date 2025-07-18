@@ -25,11 +25,12 @@ namespace OpenBullet2.Native.Views.Pages;
 /// </summary>
 public partial class Proxies : Page
 {
+    private const string ConfirmationTitle = "Are you sure?";
     private readonly ProxiesViewModel vm;
     private GridViewColumnHeader listViewSortCol;
     private SortAdorner listViewSortAdorner;
 
-    private IEnumerable<ProxyEntity> SelectedProxies => proxiesListView.SelectedItems.Cast<ProxyEntity>().ToList();
+    private IEnumerable<ProxyEntity> GetSelectedProxies() => proxiesListView.SelectedItems.Cast<ProxyEntity>().ToList();
 
     public Proxies()
     {
@@ -62,7 +63,7 @@ public partial class Proxies : Page
             return;
         }
 
-        if (Alert.Choice("Are you sure?", "Do you really want to delete the selected proxy group? This cannot be undone."))
+        if (Alert.Choice(ConfirmationTitle, "Do you really want to delete the selected proxy group? This cannot be undone."))
         {
             try
             {
@@ -83,7 +84,7 @@ public partial class Proxies : Page
             return;
         }
 
-        if (Alert.Choice("Are you sure?", "Do you really want to delete all not working proxies from the current group? This cannot be undone."))
+        if (Alert.Choice(ConfirmationTitle, "Do you really want to delete all not working proxies from the current group? This cannot be undone."))
         {
             try
             {
@@ -105,7 +106,7 @@ public partial class Proxies : Page
             return;
         }
 
-        if (Alert.Choice("Are you sure?", "Do you really want to delete all untested proxies from the current group? This cannot be undone."))
+        if (Alert.Choice(ConfirmationTitle, "Do you really want to delete all untested proxies from the current group? This cannot be undone."))
         {
             try
             {
@@ -168,9 +169,9 @@ public partial class Proxies : Page
 
         if (!string.IsNullOrWhiteSpace(sfd.FileName))
         {
-            if (SelectedProxies.Any())
+            if (GetSelectedProxies().Any())
             {
-                SelectedProxies.SaveToFile(sfd.FileName, static p => p.ToString());
+                GetSelectedProxies().SaveToFile(sfd.FileName, static p => p.ToString());
                 Alert.Success("Success", "Successfully exported the selected proxies");
             }
             else
@@ -181,10 +182,10 @@ public partial class Proxies : Page
     }
 
     private void CopySelectedProxies(object sender, RoutedEventArgs e)
-        => SelectedProxies.CopyToClipboard(static p => $"{p.Host}:{p.Port}");
+        => GetSelectedProxies().CopyToClipboard(static p => $"{p.Host}:{p.Port}");
 
     private void CopySelectedProxiesFull(object sender, RoutedEventArgs e)
-        => SelectedProxies.CopyToClipboard(static p => p.ToString());
+        => GetSelectedProxies().CopyToClipboard(static p => p.ToString());
 
     public async void AddProxies(ProxiesForImportDto dto)
     {
@@ -200,17 +201,17 @@ public partial class Proxies : Page
 
     private async void DeleteSelected(object sender, RoutedEventArgs e)
     {
-        if (!SelectedProxies.Any())
+        if (!GetSelectedProxies().Any())
         {
             Alert.Error("No proxies selected", "Please select at least one proxy to delete.");
             return;
         }
 
-        if (Alert.Choice("Are you sure?", $"Do you really want to delete {SelectedProxies.Count()} selected proxies? This cannot be undone."))
+        if (Alert.Choice(ConfirmationTitle, $"Do you really want to delete {GetSelectedProxies().Count()} selected proxies? This cannot be undone."))
         {
             try
             {
-                await vm.DeleteAsync(SelectedProxies);
+                await vm.DeleteAsync(GetSelectedProxies().ToList());
                 Alert.Success("Done", "Successfully deleted the selected proxies from the group");
             }
             catch (Exception ex)
@@ -271,14 +272,19 @@ public partial class Proxies : Page
                 {
                     dto.DefaultType = file.Contains("socks5", StringComparison.OrdinalIgnoreCase) ? ProxyType.Socks5 : ProxyType.Http;
                 }
+                // Call AddProxies to add the proxies from the dropped file
+                // await AddProxies(dto); // Uncomment and make AddProxies async Task if needed
             }
         }
     }
 
     private void ItemRightClick(object sender, MouseButtonEventArgs e)
     {
+        // This method is intentionally empty; the UI handles context menus directly.
     }
 
-    private void ShowInvalidGroupError()
-        => Alert.Error("Invalid group", "Please select or create a valid group first!");
+    private static void ShowInvalidGroupError()
+    {
+        Alert.Error("Invalid Group", "The provided group name is not valid. It cannot be empty or contain spaces.");
+    }
 }

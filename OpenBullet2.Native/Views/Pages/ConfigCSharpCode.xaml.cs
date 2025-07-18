@@ -23,7 +23,6 @@ namespace OpenBullet2.Native.Views.Pages
     {
         private readonly ConfigCSharpCodeViewModel vm;
         private readonly ConfigService configService;
-        private readonly OpenBulletSettingsService obSettingsService;
         private Config Config => configService.SelectedConfig;
 
         public ConfigCSharpCode()
@@ -33,7 +32,6 @@ namespace OpenBullet2.Native.Views.Pages
 
             InitializeComponent();
             configService = SP.GetService<ConfigService>();
-            obSettingsService = SP.GetService<OpenBulletSettingsService>();
 
             HighlightSyntax(editor);
             HighlightSyntax(startupEditor);
@@ -73,7 +71,7 @@ namespace OpenBullet2.Native.Views.Pages
             }
         }
 
-        private void HighlightSyntax(TextEditor textEditor)
+        private static void HighlightSyntax(TextEditor textEditor)
         {
             using var reader = XmlReader.Create("Highlighting/LoliCode.xshd");
             textEditor.SyntaxHighlighting = HighlightingLoader.Load(reader, HighlightingManager.Instance);

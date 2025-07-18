@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using OpenBullet2.Core;
@@ -172,7 +172,7 @@ public class JobIntegrationTests(ITestOutputHelper testOutputHelper)
                 Assert.Equal(mrJob.Config.Metadata.Name, j.ConfigName);
                 Assert.Contains("Combinations", j.DataPoolInfo);
                 Assert.Equal(mrJob.Bots, j.Bots);
-                Assert.Equal(mrJob.ShouldUseProxies(), j.UseProxies);
+                Assert.Equal(RuriLib.Models.Jobs.ProxyManager.ShouldUseProxies(mrJob.ProxyMode, mrJob.Config?.Settings.ProxySettings), j.UseProxies);
             });
     }
     

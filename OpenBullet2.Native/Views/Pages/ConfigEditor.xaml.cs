@@ -118,7 +118,7 @@ namespace OpenBullet2.Native.Views.Pages
         private void OpenStacker(object sender, RoutedEventArgs e) => mainWindow.NavigateTo(MainWindowPage.ConfigStacker);
         private void OpenLoliCode(object sender, RoutedEventArgs e) => mainWindow.NavigateTo(MainWindowPage.ConfigLoliCode);
         private void OpenCSharpCode(object sender, RoutedEventArgs e) => mainWindow.NavigateTo(MainWindowPage.ConfigCSharpCode);
-        
+
         public async void Save(object sender, RoutedEventArgs e)
         {
             try
@@ -139,7 +139,6 @@ namespace OpenBullet2.Native.Views.Pages
                 try
                 {
                     await vm.Save();
-                    // Alert.Info("Auto-saved", $"{vm.Config.Metadata.Name} was auto-saved.");
                 }
                 catch (Exception ex)
                 {

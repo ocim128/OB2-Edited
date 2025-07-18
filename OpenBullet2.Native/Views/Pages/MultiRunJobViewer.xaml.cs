@@ -14,6 +14,7 @@ using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Threading.Tasks;
 
 namespace OpenBullet2.Native.Views.Pages
 {
@@ -23,18 +24,16 @@ namespace OpenBullet2.Native.Views.Pages
     public partial class MultiRunJobViewer : Page
     {
         private readonly MainWindow mainWindow;
-        private readonly OpenBulletSettingsService obSettingsService;
         private MultiRunJobViewerViewModel vm;
         private GridViewColumnHeader listViewSortCol;
         private SortAdorner listViewSortAdorner;
 
-        private IEnumerable<HitViewModel> SelectedHits => resultsListView.SelectedItems.Cast<HitViewModel>().ToList();
-        private IEnumerable<BotViewModel> SelectedBots => botsListView.SelectedItems.Cast<BotViewModel>().ToList();
+        private IEnumerable<HitViewModel> GetSelectedHits() => resultsListView.SelectedItems.Cast<HitViewModel>().ToList();
+        private IEnumerable<BotViewModel> GetSelectedBots() => botsListView.SelectedItems.Cast<BotViewModel>().ToList();
 
         public MultiRunJobViewer()
         {
             mainWindow = SP.GetService<MainWindow>();
-            obSettingsService = SP.GetService<OpenBulletSettingsService>();
             InitializeComponent();
         }
 
@@ -50,13 +49,14 @@ namespace OpenBullet2.Native.Views.Pages
                 }
                 catch
                 {
+                    // The event might not have been subscribed, so we can ignore this exception.
                 }
             }
 
             vm = new MultiRunJobViewerViewModel(jobVM);
             vm.NewMessage += OnResultMessage;
             DataContext = vm;
-            
+
             // Set the initial active tab to Hits
             SetActiveTab("Hits");
         }
@@ -138,7 +138,7 @@ namespace OpenBullet2.Native.Views.Pages
         private void ChangeBots(object sender, MouseButtonEventArgs e)
             => new MainDialog(new ChangeBotsDialog(this, vm.Job.Bots), "Change bots").ShowDialog();
 
-        public async void ChangeBots(int newValue)
+        public async Task ChangeBots(int newValue)
         {
             try
             {
@@ -157,7 +157,7 @@ namespace OpenBullet2.Native.Views.Pages
                 var dialog = new ConfirmationDialog(
                     "Reset Skip Confirmation",
                     "Are you sure you want to reset the skip count to 0?\n\nThis will restart the job from the beginning of the data pool.");
-                
+
                 dialog.ShowDialog(Application.Current.MainWindow);
 
                 if (dialog.Result)
@@ -172,17 +172,17 @@ namespace OpenBullet2.Native.Views.Pages
         }
 
         private void CopySelectedHits(object sender, RoutedEventArgs e)
-            => SelectedHits.CopyToClipboard(h => h.Data);
+            => GetSelectedHits().CopyToClipboard(h => h.Data);
 
         private void CopySelectedProxies(object sender, RoutedEventArgs e)
-            => SelectedHits.CopyToClipboard(h => h.Proxy);
+            => GetSelectedHits().CopyToClipboard(h => h.Proxy);
 
         private void CopySelectedHitsCapture(object sender, RoutedEventArgs e)
-            => SelectedHits.CopyToClipboard(h => $"{h.Data} | {h.Capture}");
+            => GetSelectedHits().CopyToClipboard(h => $"{h.Data} | {h.Capture}");
 
         private void SendToDebugger(object sender, RoutedEventArgs e)
         {
-            var hitVM = SelectedHits.FirstOrDefault();
+            var hitVM = GetSelectedHits().FirstOrDefault();
 
             if (hitVM is not null)
             {
@@ -201,7 +201,7 @@ namespace OpenBullet2.Native.Views.Pages
 
         private void ShowBotLog(object sender, RoutedEventArgs e)
         {
-            var hitVM = SelectedHits.FirstOrDefault();
+            var hitVM = GetSelectedHits().FirstOrDefault();
 
             if (hitVM is null) return;
 
@@ -210,7 +210,7 @@ namespace OpenBullet2.Native.Views.Pages
                 Alert.Error("Bot log unavailable", "The bot log is not available for pre-compiled configs");
                 return;
             }
-            
+
             new MainDialog(new BotLogDialog(hitVM.Hit.BotLogger), $"Bot log for {hitVM.Data}").Show();
         }
 
@@ -240,6 +240,7 @@ namespace OpenBullet2.Native.Views.Pages
 
         private void LVIRightClick(object sender, MouseButtonEventArgs e)
         {
+            // This method is intentionally empty. The logic for right-click context menu is handled in XAML.
         }
 
         private void OnResultMessage(object sender, string message, Color color)
@@ -297,13 +298,13 @@ namespace OpenBullet2.Native.Views.Pages
 
         // Bot context menu methods
         private void CopySelectedBotData(object sender, RoutedEventArgs e)
-            => SelectedBots.CopyToClipboard(b => b.Data ?? "");
+            => GetSelectedBots().CopyToClipboard(b => b.Data);
 
         private void CopySelectedBotProxy(object sender, RoutedEventArgs e)
-            => SelectedBots.CopyToClipboard(b => b.Proxy ?? "");
+            => GetSelectedBots().CopyToClipboard(b => b.Proxy);
 
         private void CopySelectedBotInfo(object sender, RoutedEventArgs e)
-            => SelectedBots.CopyToClipboard(b => b.Info ?? "");
+            => GetSelectedBots().CopyToClipboard(b => b.Info ?? "");
 
         private void SelectAllBots(object sender, RoutedEventArgs e) => botsListView.SelectAll();
 

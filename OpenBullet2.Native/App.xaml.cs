@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using OpenBullet2.Core;
@@ -67,18 +67,37 @@ public partial class App : Application
 
         Trace("ServiceProvider built");
 
-        var workerThreads = _config.GetSection("Resources").GetValue("WorkerThreads", 1000);
-        var ioThreads = _config.GetSection("Resources").GetValue("IOThreads", 1000);
-        var connectionLimit = _config.GetSection("Resources").GetValue("ConnectionLimit", 1000);
+        var workerThreads = _config.GetSection("Resources").GetValue("WorkerThreads", 50);
+        var ioThreads = _config.GetSection("Resources").GetValue("IOThreads", 50);
+        var connectionLimit = _config.GetSection("Resources").GetValue("ConnectionLimit", 100);
+        var lowSpecMode = _config.GetSection("Performance").GetValue("LowSpecMode", true);
+        var enableGcOptimization = _config.GetSection("Performance").GetValue("EnableGarbageCollectionOptimization", true);
 
         // Dynamically cap the min threads based on the number of logical processors to avoid
         // spawning an excessive amount of threads which can hurt performance on low-core systems.
         var logicalCores = Environment.ProcessorCount;
-        workerThreads = Math.Min(workerThreads, logicalCores * 4);
-        ioThreads = Math.Min(ioThreads, logicalCores * 4);
+        
+        if (lowSpecMode)
+        {
+            // For low-spec systems, use conservative thread limits
+            workerThreads = Math.Min(workerThreads, Math.Max(logicalCores, 4));
+            ioThreads = Math.Min(ioThreads, Math.Max(logicalCores, 4));
+            connectionLimit = Math.Min(connectionLimit, 50);
+        }
+        else
+        {
+            workerThreads = Math.Min(workerThreads, logicalCores * 4);
+            ioThreads = Math.Min(ioThreads, logicalCores * 4);
+        }
 
         ThreadPool.SetMinThreads(workerThreads, ioThreads);
         ServicePointManager.DefaultConnectionLimit = connectionLimit;
+        
+        // Apply GC optimizations for low-spec systems
+        if (enableGcOptimization)
+        {
+            ApplyGarbageCollectionOptimizations();
+        }
 
         Trace($"ThreadPool min threads set to W:{workerThreads} IO:{ioThreads} on {logicalCores} cores");
 
@@ -217,6 +236,7 @@ public partial class App : Application
             new FileJobLogger(service.GetService<RuriLibSettingsService>(),
             Path.Combine(userDataPath, "Logs", "Jobs")));
         services.AddSingleton<HotkeyService>();
+        services.AddSingleton<OpenBullet2.Native.Services.PerformanceMonitorService>();
     }
 
     protected override void OnStartup(StartupEventArgs e)
@@ -256,27 +276,63 @@ public partial class App : Application
     {
         try
         {
-            // Set conservative animation settings (reduce from 60fps to 30fps)
-            Timeline.DesiredFrameRateProperty.OverrideMetadata(
-                typeof(Timeline),
-                new FrameworkPropertyMetadata { DefaultValue = 30 }
-            );
+            var reducedAnimations = _config.GetSection("Performance").GetValue("ReducedAnimations", true);
+            
+            if (reducedAnimations)
+            {
+                // Set conservative animation settings (reduce from 60fps to 20fps for low-spec)
+                Timeline.DesiredFrameRateProperty.OverrideMetadata(
+                    typeof(Timeline),
+                    new FrameworkPropertyMetadata { DefaultValue = 20 }
+                );
+                
+                // Disable hardware acceleration for low-spec systems to reduce GPU load
+                RenderOptions.ProcessRenderMode = System.Windows.Interop.RenderMode.SoftwareOnly;
+            }
+            else
+            {
+                // Standard performance mode
+                Timeline.DesiredFrameRateProperty.OverrideMetadata(
+                    typeof(Timeline),
+                    new FrameworkPropertyMetadata { DefaultValue = 30 }
+                );
+            }
 
-            Debug.WriteLine("Conservative GPU settings applied: 30fps animations to reduce laptop heating");
+            Debug.WriteLine($"Conservative GPU settings applied: {(reducedAnimations ? "20fps animations, software rendering" : "30fps animations")} to reduce laptop heating");
         }
         catch (Exception ex)
         {
             Debug.WriteLine($"Could not apply conservative GPU settings: {ex.Message}");
         }
     }
+    
+    private void ApplyGarbageCollectionOptimizations()
+    {
+        try
+        {
+            // Configure GC for low-latency, low-memory scenarios
+            System.Runtime.GCSettings.LatencyMode = System.Runtime.GCLatencyMode.Interactive;
+            
+            // Force an initial garbage collection to clean up startup overhead
+            GC.Collect(2, GCCollectionMode.Optimized, false);
+            GC.WaitForPendingFinalizers();
+            GC.Collect(2, GCCollectionMode.Optimized, false);
+            
+            Debug.WriteLine("Garbage collection optimizations applied for low-spec systems");
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Could not apply GC optimizations: {ex.Message}");
+        }
+    }
 
-    private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
+    private static void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
     {
         ReportCrash(e.Exception);
         e.Handled = true; // Set to false to close the app on exception
     }
 
-    private void OnTaskException(object sender, UnobservedTaskExceptionEventArgs e)
+    private static void OnTaskException(object sender, UnobservedTaskExceptionEventArgs e)
     {
         e.SetObserved(); // Comment this line to close the app on task exception
 
@@ -319,7 +375,7 @@ public partial class App : Application
 
     // Simple file trace helper: writes only in DEBUG builds or when OB2_TRACE symbol is defined
 #if DEBUG || OB2_TRACE
-    private void Trace(string msg)
+    private static void Trace(string msg)
     {
         try
         {
@@ -330,6 +386,6 @@ public partial class App : Application
     }
 #else
     [System.Diagnostics.Conditional("OB2_TRACE")]
-    private void Trace(string msg) { }
+    private static void Trace(string msg) { }
 #endif
 }

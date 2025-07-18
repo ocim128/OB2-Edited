@@ -79,7 +79,7 @@ namespace OpenBullet2.Native.Views.Pages
         public void OnPageChanged()
         {
             configService.SelectedConfig.LoliCodeScript = editor.Text;
-            configService.SelectedConfig.StartupLoliCodeScript= startupEditor.Text;
+            configService.SelectedConfig.StartupLoliCodeScript = startupEditor.Text;
         }
 
         private void EditorLostFocus(object sender, RoutedEventArgs e)
@@ -88,7 +88,7 @@ namespace OpenBullet2.Native.Views.Pages
             configService.SelectedConfig.StartupLoliCodeScript = startupEditor.Text;
         }
 
-        private void HighlightSyntax(TextEditor textEditor)
+        private static void HighlightSyntax(TextEditor textEditor)
         {
             using var reader = XmlReader.Create("Highlighting/LoliCode.xshd");
             textEditor.SyntaxHighlighting = HighlightingLoader.Load(reader, HighlightingManager.Instance);
@@ -104,14 +104,11 @@ namespace OpenBullet2.Native.Views.Pages
 
         private void TextEntering(object sender, TextCompositionEventArgs e)
         {
-            if (e.Text.Length > 0 && completionWindow != null)
+            if (e.Text.Length > 0 && completionWindow != null && !char.IsLetterOrDigit(e.Text[0]))
             {
-                if (!char.IsLetterOrDigit(e.Text[0]))
-                {
-                    // Whenever a non-letter is typed while the completion window is open,
-                    // insert the currently selected element.
-                    completionWindow.CompletionList.RequestInsertion(e);
-                }
+                // Whenever a non-letter is typed while the completion window is open,
+                // insert the currently selected element.
+                completionWindow.CompletionList.RequestInsertion(e);
             }
             // Do not set e.Handled=true.
             // We still want to insert the character that was typed.
@@ -124,13 +121,12 @@ namespace OpenBullet2.Native.Views.Pages
                 var textArea = sender as TextArea;
                 var offset = textArea.Caret.Offset;
                 var documentLine = textArea.Document.GetLineByOffset(offset);
-                var line = textArea.Document.GetText(documentLine.Offset, documentLine.Length);
 
                 // Do not complete if we are not typing at the start of the line without spaces
-                if (!string.IsNullOrWhiteSpace(line) && !line.Contains(' '))
+                if (!string.IsNullOrWhiteSpace(textArea.Document.GetText(documentLine.Offset, documentLine.Length)) && !textArea.Document.GetText(documentLine.Offset, documentLine.Length).Contains(' '))
                 {
                     var snippets = AutocompletionProvider.GetSnippets()
-                            .Where(s => s.Id.StartsWith(line, StringComparison.OrdinalIgnoreCase));
+                            .Where(s => s.Id.StartsWith(textArea.Document.GetText(documentLine.Offset, documentLine.Length), StringComparison.OrdinalIgnoreCase));
 
                     // If there are no snippets, do not even open the completion window
                     if (!snippets.Any())
@@ -236,7 +232,6 @@ namespace OpenBullet2.Native.Views.Pages
             {
                 var offset = textArea.Caret.Offset;
                 var documentLine = textArea.Document.GetLineByOffset(offset);
-                var line = textArea.Document.GetText(documentLine.Offset, documentLine.Length);
 
                 textArea.Document.Remove(documentLine);
                 textArea.Document.Insert(documentLine.Offset, snippet);

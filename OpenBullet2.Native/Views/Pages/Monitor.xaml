@@ -1,4 +1,4 @@
-﻿<Page x:Class="OpenBullet2.Native.Views.Pages.Monitor"
+<Page x:Class="OpenBullet2.Native.Views.Pages.Monitor"
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
@@ -6,7 +6,12 @@
       xmlns:local="clr-namespace:OpenBullet2.Native.Views.Pages"
       mc:Ignorable="d" 
       d:DesignHeight="450" d:DesignWidth="800"
-      Title="Monitor">
+      Title="Monitor"
+      TextOptions.TextFormattingMode="Display"
+      TextOptions.TextRenderingMode="ClearType"
+      RenderOptions.ClearTypeHint="Enabled"
+      UseLayoutRounding="True"
+      SnapsToDevicePixels="True">
 
     <Page.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
@@ -14,11 +19,15 @@
     
     <Grid Background="Transparent" Margin="24,20,24,24">
         <ScrollViewer VerticalScrollBarVisibility="Auto" 
-                     CanContentScroll="False" PanningMode="VerticalOnly">
+                     CanContentScroll="False" 
+                     PanningMode="VerticalOnly"
+                     Style="{StaticResource ModernScrollViewer}"
+                     UseLayoutRounding="True"
+                     SnapsToDevicePixels="True">
             <StackPanel>
                 
                 <!-- Main Coming Soon Card -->
-                <Border Style="{StaticResource StandardCardStyle}" Background="#C0353535" Margin="0,0,0,16">
+                <Border Style="{StaticResource ModernCardLite}" Background="#C0353535" Margin="0,0,0,16">
                     <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Margin="40">
                         <TextBlock Text="🚧" FontSize="48" HorizontalAlignment="Center" Margin="0,0,0,12"/>
                         <TextBlock Text="Monitor Page Under Construction!" 
@@ -44,7 +53,7 @@
                     </Grid.RowDefinitions>
 
                     <!-- Development Status -->
-                    <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource CompactCardStyle}" 
+                    <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource ModernCardLite}" 
                            Background="#C0353535" Margin="0,0,8,8" Padding="16">
                         <StackPanel>
                             <TextBlock Text="🔧 Development Status" Style="{StaticResource H3TextStyle}" Margin="0,0,0,8"/>
@@ -57,7 +66,7 @@
                     </Border>
 
                     <!-- Team Status -->
-                    <Border Grid.Row="0" Grid.Column="1" Style="{StaticResource CompactCardStyle}" 
+                    <Border Grid.Row="0" Grid.Column="1" Style="{StaticResource ModernCardLite}" 
                            Background="#C0353535" Margin="8,0,0,8" Padding="16">
                         <StackPanel>
                             <TextBlock Text="👨‍💻 Team Status" Style="{StaticResource H3TextStyle}" Margin="0,0,0,8"/>
@@ -70,7 +79,7 @@
                     </Border>
 
                     <!-- Fun Fact -->
-                    <Border Grid.Row="1" Grid.Column="0" Style="{StaticResource CompactCardStyle}" 
+                    <Border Grid.Row="1" Grid.Column="0" Style="{StaticResource ModernCardLite}" 
                            Background="#C0353535" Margin="0,8,8,0" Padding="16">
                         <StackPanel>
                             <TextBlock Text="🎯 Fun Fact" Style="{StaticResource H3TextStyle}" Margin="0,0,0,8"/>
@@ -83,7 +92,7 @@
                     </Border>
 
                     <!-- Easter Egg -->
-                    <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource CompactCardStyle}" 
+                    <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource ModernCardLite}" 
                            Background="#C0353535" Margin="8,8,0,0" Padding="16">
                         <StackPanel>
                             <TextBlock Text="🎮 Easter Egg" Style="{StaticResource H3TextStyle}" Margin="0,0,0,8"/>
@@ -97,7 +106,7 @@
                 </Grid>
 
                 <!-- Temporary Redirect -->
-                <Border Style="{StaticResource StandardCardStyle}" Background="#C0353535" Margin="0,16,0,0" Padding="20">
+                <Border Style="{StaticResource ModernCardLite}" Background="#C0353535" Margin="0,16,0,0" Padding="20">
                     <StackPanel>
                         <TextBlock Text="💡 Pro Tip" Style="{StaticResource H3TextStyle}" Margin="0,0,0,12"/>
                         <TextBlock Text="While we're building this awesome monitoring dashboard, you can check your current system stats on the Home page!" 
@@ -111,7 +120,7 @@
                 </Border>
 
                 <!-- What's Coming -->
-                <Border Style="{StaticResource StandardCardStyle}" Background="#C0353535" Margin="0,16,0,0" Padding="20">
+                <Border Style="{StaticResource ModernCardLite}" Background="#C0353535" Margin="0,16,0,0" Padding="20">
                     <StackPanel>
                         <TextBlock Text="🚀 What's Coming" Style="{StaticResource H3TextStyle}" Margin="0,0,0,12"/>
                         <TextBlock Text="• Real-time system monitoring 📊" Style="{StaticResource BodyTextStyle}" Margin="0,0,0,8"/>

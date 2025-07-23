@@ -25,7 +25,6 @@ namespace OpenBullet2.Native;
 /// </summary>
 public partial class MainWindow : MetroWindow
 {
-    private readonly UpdateService _updateService;
     private readonly MainWindowViewModel vm;
 
     private bool hoveringConfigsMenuOption;
@@ -56,9 +55,6 @@ public partial class MainWindow : MetroWindow
     /// <summary>
     /// Responsive design properties
     /// </summary>
-    private bool isInitialLoad = true;
-    private WindowState previousWindowState;
-    private bool firstRestoreFromMaximized = true;
 
     public MainWindow()
     {
@@ -67,6 +63,9 @@ public partial class MainWindow : MetroWindow
         Closing += vm.OnWindowClosing;
 
         InitializeComponent();
+
+        Loaded += OnWindowLoaded;
+        SizeChanged += OnWindowSizeChanged;
 
         // Command Bindings for Configs
         _ = CommandBindings.Add(new CommandBinding(CustomCommands.NewConfig, OnNewConfigExecuted, OnCanExecuteConfigCommand));
@@ -107,11 +106,9 @@ public partial class MainWindow : MetroWindow
             menuOptionWordlists
         ];
 
-        // Pages to initialize as soon as the program starts. This is done to reduce the loading time
-        // when clicking on them, as it can be frustrating for the user on specific pages.
-        configsPage = new();
+        // Defer page initialization to improve startup time
+        // configsPage will be created on-demand when first accessed
 
-        _updateService = SP.GetService<UpdateService>();
         Title = "OpenBullet 2 - 0.3.3 [akunlama MOD]";
 
         // Initialize HotkeyService
@@ -122,214 +119,36 @@ public partial class MainWindow : MetroWindow
         var obSettingsService = SP.GetService<OpenBulletSettingsService>();
         var customization = obSettingsService.Settings.CustomizationSettings;
         SetTheme(customization);
-
-        // Store initial window state
-        previousWindowState = WindowState;
     }
 
     #region Responsive Design Methods
 
     private void OnWindowLoaded(object sender, RoutedEventArgs e)
     {
-        if (isInitialLoad)
-        {
-            SetOptimalWindowSize();
-            AdjustLayoutForResolution();
-            isInitialLoad = false;
-        }
+        var workingArea = SystemParameters.WorkArea;
+        Width = Math.Min(1400, workingArea.Width * 0.9);
+        Height = Math.Min(900, workingArea.Height * 0.9);
+        Left = (workingArea.Width - Width) / 2;
+        Top = (workingArea.Height - Height) / 2;
     }
 
     private void OnWindowSizeChanged(object sender, SizeChangedEventArgs e)
     {
-        AdjustLayoutForResolution();
         UpdateConfigSubmenuPosition();
-    }
-
-    private void OnWindowStateChanged(object sender, EventArgs e)
-    {
-        HandleWindowStateChange();
-        previousWindowState = WindowState;
-    }
-
-    private void SetOptimalWindowSize()
-    {
-        try
-        {
-            // Skip setting size if window is maximized - let our restore logic handle minimal sizing
-            if (WindowState == WindowState.Maximized)
-            {
-                System.Diagnostics.Debug.WriteLine("Window is maximized - skipping optimal size setting to allow restore logic");
-                return;
-            }
-
-            // Get screen dimensions
-            var screenWidth = SystemParameters.PrimaryScreenWidth;
-            var screenHeight = SystemParameters.PrimaryScreenHeight;
-            var workAreaWidth = SystemParameters.WorkArea.Width;
-            var workAreaHeight = SystemParameters.WorkArea.Height;
-
-            // Calculate optimal size based on screen resolution
-            double optimalWidth, optimalHeight;
-
-            if (screenWidth >= 2560) // 4K and above
-            {
-                optimalWidth = Math.Min(1800, workAreaWidth * 0.75);
-                optimalHeight = Math.Min(1200, workAreaHeight * 0.8);
-            }
-            else if (screenWidth >= 1920) // Full HD
-            {
-                optimalWidth = Math.Min(1600, workAreaWidth * 0.8);
-                optimalHeight = Math.Min(1000, workAreaHeight * 0.85);
-            }
-            else if (screenWidth >= 1600) // HD+
-            {
-                optimalWidth = Math.Min(1400, workAreaWidth * 0.85);
-                optimalHeight = Math.Min(900, workAreaHeight * 0.9);
-            }
-            else if (screenWidth >= 1366) // HD
-            {
-                optimalWidth = Math.Min(1200, workAreaWidth * 0.9);
-                optimalHeight = Math.Min(800, workAreaHeight * 0.9);
-            }
-            else // Smaller resolutions
-            {
-                optimalWidth = Math.Min(1024, workAreaWidth * 0.95);
-                optimalHeight = Math.Min(600, workAreaHeight * 0.95);
-            }
-
-            // Ensure minimum size requirements
-            optimalWidth = Math.Max(optimalWidth, MinWidth);
-            optimalHeight = Math.Max(optimalHeight, MinHeight);
-
-            // Set the calculated size
-            Width = optimalWidth;
-            Height = optimalHeight;
-
-            // Center the window
-            Left = (screenWidth - Width) / 2;
-            Top = (screenHeight - Height) / 2;
-
-            System.Diagnostics.Debug.WriteLine($"Optimal size set: {Width}x{Height} on {screenWidth}x{screenHeight} screen");
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"Error setting optimal size: {ex.Message}");
-            // Fallback to default size only if not maximized
-            if (WindowState != WindowState.Maximized)
-            {
-                Width = 1400;
-                Height = 900;
-            }
-        }
-    }
-
-    private void AdjustLayoutForResolution()
-    {
-        try
-        {
-            var currentWidth = ActualWidth;
-            var currentHeight = ActualHeight;
-
-            // Adjust margins and padding based on window size
-            if (WindowState == WindowState.Maximized)
-            {
-                // Fullscreen - no margins
-                LeftMarginColumn.Width = new GridLength(0);
-                RightMarginColumn.Width = new GridLength(0);
-                BottomMarginRow.Height = new GridLength(0);
-                TopNavRow.Height = new GridLength(60);
-
-                NavigationHeader.Margin = new Thickness(0);
-                MainContentBorder.Margin = new Thickness(0);
-                NavigationGrid.Margin = new Thickness(16, 8, 16, 8);
-                mainFrame.Margin = new Thickness(16);
-            }
-            else
-            {
-                // Windowed mode - adaptive margins
-                var marginSize = Math.Max(8, Math.Min(24, currentWidth * 0.015));
-
-                LeftMarginColumn.Width = new GridLength(marginSize);
-                RightMarginColumn.Width = new GridLength(marginSize);
-                BottomMarginRow.Height = new GridLength(marginSize);
-                TopNavRow.Height = new GridLength(60);
-
-                NavigationHeader.Margin = new Thickness(0, marginSize * 0.5, 0, marginSize * 0.5);
-                MainContentBorder.Margin = new Thickness(0, marginSize * 0.5, 0, 0);
-                NavigationGrid.Margin = new Thickness(16, 8, 16, 8);
-                mainFrame.Margin = new Thickness(16);
-            }
-
-            // Adjust navigation menu for smaller screens
-            AdjustNavigationForSize(currentWidth);
-
-            System.Diagnostics.Debug.WriteLine($"Layout adjusted for {currentWidth}x{currentHeight}, State: {WindowState}");
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"Error adjusting layout: {ex.Message}");
-        }
-    }
-
-    private void AdjustNavigationForSize(double width)
-    {
-        // Navigation is now simple and responsive via CSS-like styling in XAML
-        // No complex responsive logic needed - the working version handles this automatically
-    }
-
-    private void HandleWindowStateChange()
-    {
-        try
-        {
-            if (WindowState == WindowState.Maximized)
-            {
-                // Handle maximize
-                System.Diagnostics.Debug.WriteLine("Window maximized - adjusting for fullscreen");
-                AdjustLayoutForResolution();
-            }
-            else if (previousWindowState == WindowState.Maximized && WindowState == WindowState.Normal)
-            {
-                // Handle restore from maximize
-                System.Diagnostics.Debug.WriteLine("Window restored from maximize");
-                AdjustLayoutForResolution();
-            }
-            else if (WindowState == WindowState.Minimized)
-            {
-                // Handle minimize
-                System.Diagnostics.Debug.WriteLine("Window minimized");
-            }
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"Error handling window state change: {ex.Message}");
-        }
     }
 
     private void UpdateConfigSubmenuPosition()
     {
-        try
+        if (FindName("menuOptionConfigs") is FrameworkElement configsButton && configSubmenu != null)
         {
-            if (configSubmenu.Visibility == Visibility.Visible)
-            {
-                // Calculate position relative to configs menu option
-                var configsPosition = menuOptionConfigs.TransformToAncestor(Root).Transform(new Point(0, 0));
-                var margin = WindowState == WindowState.Maximized ? 0 : LeftMarginColumn.Width.Value;
-
-                configSubmenu.Margin = new Thickness(
-                    configsPosition.X + margin,
-                    configsPosition.Y + menuOptionConfigs.ActualHeight + 8,
-                    0, 0);
-            }
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"Error updating submenu position: {ex.Message}");
+            var position = configsButton.TransformToAncestor(this).Transform(new Point(0, 0));
+            configSubmenu.Margin = new Thickness(position.X, position.Y + configsButton.ActualHeight + 5, 0, 0);
         }
     }
 
     #endregion Responsive Design Methods
 
-    public async void NavigateTo(MainWindowPage page)
+    public async Task NavigateTo(MainWindowPage page)
     {
         vm.IsLoading = true;
 
@@ -339,32 +158,38 @@ public partial class MainWindow : MetroWindow
             configEditorPage?.OnPageChanged();
         }
 
-        try
+        // Handle Jobs page navigation directly to avoid threading issues
+        if (page == MainWindowPage.Jobs)
         {
-            // For Jobs page, navigate directly without Task.Run to avoid threading issues
-            if (page == MainWindowPage.Jobs)
-            {
-                System.Diagnostics.Debug.WriteLine("Direct Jobs navigation");
-                if (jobsPage is null)
-                {
-                    System.Diagnostics.Debug.WriteLine("Creating new Jobs page directly");
-                    jobsPage = new();
-                    System.Diagnostics.Debug.WriteLine("Jobs page created successfully");
-                }
-                ChangePage(jobsPage, menuOptionJobs);
-                vm.IsLoading = false;
-                return;
-            }
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"Direct Jobs navigation error: {ex.Message}");
-            Alert.Exception(ex);
+            await HandleJobsPageNavigation();
             vm.IsLoading = false;
             return;
         }
 
         // Simulate async loading to show the indicator for other pages
+        await HandleOtherPageNavigation(page);
+
+        vm.IsLoading = false;
+    }
+
+    private async Task HandleJobsPageNavigation()
+    {
+        try
+        {
+            System.Diagnostics.Debug.WriteLine("Direct Jobs navigation");
+            jobsPage ??= new();
+            System.Diagnostics.Debug.WriteLine("Jobs page created successfully");
+            ChangePage(jobsPage, menuOptionJobs);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Direct Jobs navigation error: {ex.Message}");
+            Alert.Exception(ex);
+        }
+    }
+
+    private async Task HandleOtherPageNavigation(MainWindowPage page)
+    {
         await Task.Run(() =>
         {
             Application.Current.Dispatcher.Invoke(() =>
@@ -372,133 +197,132 @@ public partial class MainWindow : MetroWindow
                 switch (page)
                 {
                     case MainWindowPage.Home:
-                        homePage = new Home(); // We recreate the homepage each time to display updated announcements
+                        homePage = new Home();
                         ChangePage(homePage, menuOptionHome);
                         break;
-
                     case MainWindowPage.Monitor:
-                        monitorPage ??= new();
-
+                        if (monitorPage == null) monitorPage = new();
                         ChangePage(monitorPage, menuOptionMonitor);
                         break;
-
                     case MainWindowPage.Proxies:
-                        (proxiesPage ??= new()).UpdateViewModel();
+                        if (proxiesPage == null) proxiesPage = new Proxies();
+                        proxiesPage.UpdateViewModel();
                         ChangePage(proxiesPage, menuOptionProxies);
                         break;
-
                     case MainWindowPage.Wordlists:
-                        wordlistsPage ??= new();
+                        if (wordlistsPage == null) wordlistsPage = new Wordlists();
                         ChangePage(wordlistsPage, menuOptionWordlists);
                         break;
-
                     case MainWindowPage.Configs:
-                        (configsPage ??= new()).UpdateViewModel();
+                        if (configsPage == null) configsPage = new Configs();
+                        configsPage.UpdateViewModel();
                         ChangePage(configsPage, menuOptionConfigs);
                         break;
-
                     case MainWindowPage.Hits:
-                        (hitsPage ??= new()).UpdateViewModel();
+                        if (hitsPage == null) hitsPage = new Hits();
+                        hitsPage.UpdateViewModel();
                         ChangePage(hitsPage, menuOptionHits);
                         break;
-
                     case MainWindowPage.Plugins:
-                        pluginsPage ??= new();
+                        if (pluginsPage == null) pluginsPage = new Plugins();
                         ChangePage(pluginsPage, menuOptionPlugins);
                         break;
-
                     case MainWindowPage.OBSettings:
-                        obSettingsPage ??= new();
+                        if (obSettingsPage == null) obSettingsPage = new OBSettings();
                         ChangePage(obSettingsPage, menuOptionSettings);
                         break;
-
                     case MainWindowPage.RLSettings:
-                        rlSettingsPage ??= new();
+                        if (rlSettingsPage == null) rlSettingsPage = new RLSettings();
                         ChangePage(rlSettingsPage, menuOptionRLSettings);
                         break;
-
                     case MainWindowPage.About:
-                        aboutPage ??= new();
-                        ChangePage(aboutPage, menuOptionAbout);
+                        NavigateToAboutPage();
                         break;
-
-                    // Initialize config pages when we click on them because a user might not even load them
-                    // so we save some RAM (especially the heavy ones that involve a WebBrowser control)
-
                     case MainWindowPage.ConfigMetadata:
-                        CloseSubmenu();
-                        (configMetadataPage ??= new()).UpdateViewModel();
-                        ChangePage(configMetadataPage, menuOptionMetadata);
+                        NavigateToConfigMetadataPage();
                         break;
-
                     case MainWindowPage.ConfigReadme:
-                        CloseSubmenu();
-                        (configReadmePage ??= new()).UpdateViewModel();
-                        ChangePage(configReadmePage, menuOptionReadme);
+                        NavigateToConfigReadmePage();
                         break;
-
                     case MainWindowPage.ConfigStacker:
-
-                        if (vm.Config.Mode is not ConfigMode.Stack and not ConfigMode.LoliCode)
-                        {
-                            return;
-                        }
-
-                        CloseSubmenu();
-                        (configEditorPage ??= new()).NavigateTo(ConfigEditorSection.Stacker);
-                        ChangePage(configEditorPage, menuOptionStacker);
+                        NavigateToConfigStackerPage();
                         break;
-
                     case MainWindowPage.ConfigLoliCode:
-
-                        if (vm.Config.Mode is not ConfigMode.Stack and not ConfigMode.LoliCode)
-                        {
-                            return;
-                        }
-
-                        CloseSubmenu();
-                        (configEditorPage ??= new()).NavigateTo(ConfigEditorSection.LoliCode);
-                        ChangePage(configEditorPage, menuOptionLoliCode);
+                        NavigateToConfigLoliCodePage();
                         break;
-
                     case MainWindowPage.ConfigSettings:
-                        CloseSubmenu();
-                        (configSettingsPage ??= new()).UpdateViewModel();
-                        ChangePage(configSettingsPage, menuOptionConfigSettings);
+                        NavigateToConfigSettingsPage();
                         break;
-
                     case MainWindowPage.ConfigCSharpCode:
-
-                        if (vm.Config.Mode is not ConfigMode.Stack and not ConfigMode.LoliCode and not ConfigMode.CSharp)
-                        {
-                            return;
-                        }
-
-                        CloseSubmenu();
-                        (configEditorPage ??= new()).NavigateTo(ConfigEditorSection.CSharp);
-                        ChangePage(configEditorPage, menuOptionCSharpCode);
+                        NavigateToConfigCSharpCodePage();
                         break;
-
                     case MainWindowPage.ConfigLoliScript:
-
-                        if (vm.Config.Mode is not ConfigMode.Legacy)
-                        {
-                            return;
-                        }
-
-                        CloseSubmenu();
-                        (configEditorPage ??= new()).NavigateTo(ConfigEditorSection.LoliScript);
-                        ChangePage(configEditorPage, menuOptionLoliScript);
-                        break;
-                    case MainWindowPage.Jobs:
+                        NavigateToConfigLoliScriptPage();
                         break;
                     default:
                         break;
                 }
             });
         });
+    }
+    private void NavigateToAboutPage()
+    {
+        if (aboutPage == null) aboutPage = new About();
+        ChangePage(aboutPage, menuOptionAbout);
+    }
+    private void NavigateToConfigMetadataPage()
+    {
+        CloseSubmenu();
+        if (configMetadataPage == null) configMetadataPage = new Views.Pages.ConfigMetadata();
+        configMetadataPage.UpdateViewModel();
+        ChangePage(configMetadataPage, menuOptionMetadata);
+    }
+    private void NavigateToConfigReadmePage()
+    {
+        CloseSubmenu();
+        if (configReadmePage == null) configReadmePage = new ConfigReadme();
+        configReadmePage.UpdateViewModel();
+        ChangePage(configReadmePage, menuOptionReadme);
+    }
+    private void NavigateToConfigStackerPage()
+    {
+        CloseSubmenu();
+        HandleConfigEditorNavigation(ConfigEditorSection.Stacker, menuOptionStacker);
+    }
+    private void NavigateToConfigLoliCodePage()
+    {
+        CloseSubmenu();
+        HandleConfigEditorNavigation(ConfigEditorSection.LoliCode, menuOptionLoliCode);
+    }
+    private void NavigateToConfigSettingsPage()
+    {
+        CloseSubmenu();
+        if (configSettingsPage == null) configSettingsPage = new Views.Pages.ConfigSettings();
+        configSettingsPage.UpdateViewModel();
+        ChangePage(configSettingsPage, menuOptionConfigSettings);
+    }
+    private void NavigateToConfigCSharpCodePage()
+    {
+        CloseSubmenu();
+        HandleConfigEditorNavigation(ConfigEditorSection.CSharp, menuOptionCSharpCode);
+    }
+    private void NavigateToConfigLoliScriptPage()
+    {
+        CloseSubmenu();
+        HandleConfigEditorNavigation(ConfigEditorSection.LoliScript, menuOptionLoliScript);
+    }
 
-        vm.IsLoading = false;
+    private void HandleConfigEditorNavigation(ConfigEditorSection section, TextBlock menuOption)
+    {
+        if (vm.Config != null && (vm.Config.Mode is ConfigMode.Stack or ConfigMode.LoliCode || (section == ConfigEditorSection.CSharp && vm.Config.Mode == ConfigMode.CSharp) || (section == ConfigEditorSection.LoliScript && vm.Config.Mode == ConfigMode.Legacy)))
+        {
+            if (configEditorPage == null)
+            {
+                configEditorPage = new ConfigEditor();
+            }
+            configEditorPage.NavigateTo(section);
+            ChangePage(configEditorPage, menuOption);
+        }
     }
 
     public void DisplayJob(JobViewModel jobVM)
@@ -506,12 +330,20 @@ public partial class MainWindow : MetroWindow
         switch (jobVM)
         {
             case MultiRunJobViewModel mrj:
-                (multiRunJobViewerPage ??= new()).BindViewModel(mrj);
+                if (multiRunJobViewerPage == null)
+                {
+                    multiRunJobViewerPage = new MultiRunJobViewer();
+                }
+                multiRunJobViewerPage.BindViewModel(mrj);
                 ChangePage(multiRunJobViewerPage, null);
                 break;
 
             case ProxyCheckJobViewModel pcj:
-                (proxyCheckJobViewerPage ??= new()).BindViewModel(pcj);
+                if (proxyCheckJobViewerPage == null)
+                {
+                    proxyCheckJobViewerPage = new ProxyCheckJobViewer();
+                }
+                proxyCheckJobViewerPage.BindViewModel(pcj);
                 ChangePage(proxyCheckJobViewerPage, null);
                 break;
             default:
@@ -525,25 +357,34 @@ public partial class MainWindow : MetroWindow
         jobsPage.EditJob(jobVM);
     }
 
-    private void OpenHomePage(object sender, MouseEventArgs e) => NavigateTo(MainWindowPage.Home);
-    private void OpenJobsPage(object sender, MouseEventArgs e) => NavigateTo(MainWindowPage.Jobs);
-    private void OpenMonitorPage(object sender, MouseEventArgs e) => NavigateTo(MainWindowPage.Monitor);
-    private void OpenProxiesPage(object sender, MouseEventArgs e) => NavigateTo(MainWindowPage.Proxies);
-    private void OpenWordlistsPage(object sender, MouseEventArgs e) => NavigateTo(MainWindowPage.Wordlists);
-    private void OpenConfigsPage(object sender, MouseEventArgs e) => NavigateTo(MainWindowPage.Configs);
-    private void OpenHitsPage(object sender, MouseEventArgs e) => NavigateTo(MainWindowPage.Hits);
-    private void OpenPluginsPage(object sender, MouseEventArgs e) => NavigateTo(MainWindowPage.Plugins);
-    private void OpenOBSettingsPage(object sender, MouseEventArgs e) => NavigateTo(MainWindowPage.OBSettings);
-    private void OpenRLSettingsPage(object sender, MouseEventArgs e) => NavigateTo(MainWindowPage.RLSettings);
-    private void OpenAboutPage(object sender, MouseEventArgs e) => NavigateTo(MainWindowPage.About);
-
-    private void OpenMetadataPage(object sender, MouseEventArgs e) => NavigateTo(MainWindowPage.ConfigMetadata);
-    private void OpenReadmePage(object sender, MouseEventArgs e) => NavigateTo(MainWindowPage.ConfigReadme);
-    private void OpenStackerPage(object sender, MouseEventArgs e) => NavigateTo(MainWindowPage.ConfigStacker);
-    private void OpenLoliCodePage(object sender, MouseEventArgs e) => NavigateTo(MainWindowPage.ConfigLoliCode);
-    private void OpenConfigSettingsPage(object sender, MouseEventArgs e) => NavigateTo(MainWindowPage.ConfigSettings);
-    private void OpenCSharpCodePage(object sender, MouseEventArgs e) => NavigateTo(MainWindowPage.ConfigCSharpCode);
-    private void OpenLoliScriptPage(object sender, MouseEventArgs e) => NavigateTo(MainWindowPage.ConfigLoliScript);
+    // Consolidated navigation handler - reduced from 18 individual methods
+    private void HandleNavigation(object sender, MouseEventArgs e)
+    {
+        var element = sender as FrameworkElement;
+        var page = element?.Name switch
+        {
+            "menuOptionHome" => MainWindowPage.Home,
+            "menuOptionJobs" => MainWindowPage.Jobs,
+            "menuOptionMonitor" => MainWindowPage.Monitor,
+            "menuOptionProxies" => MainWindowPage.Proxies,
+            "menuOptionWordlists" => MainWindowPage.Wordlists,
+            "menuOptionConfigs" => MainWindowPage.Configs,
+            "menuOptionHits" => MainWindowPage.Hits,
+            "menuOptionPlugins" => MainWindowPage.Plugins,
+            "menuOptionSettings" => MainWindowPage.OBSettings,
+            "menuOptionRLSettings" => MainWindowPage.RLSettings,
+            "menuOptionAbout" => MainWindowPage.About,
+            "menuOptionMetadata" => MainWindowPage.ConfigMetadata,
+            "menuOptionReadme" => MainWindowPage.ConfigReadme,
+            "menuOptionStacker" => MainWindowPage.ConfigStacker,
+            "menuOptionLoliCode" => MainWindowPage.ConfigLoliCode,
+            "menuOptionConfigSettings" => MainWindowPage.ConfigSettings,
+            "menuOptionCSharpCode" => MainWindowPage.ConfigCSharpCode,
+            "menuOptionLoliScript" => MainWindowPage.ConfigLoliScript,
+            _ => MainWindowPage.Home
+        };
+        NavigateTo(page);
+    }
 
     private void ChangePage(Page newPage, TextBlock newLabel)
     {
@@ -716,28 +557,10 @@ public partial class MainWindow : MetroWindow
         if (WindowState == WindowState.Maximized)
         {
             WindowState = WindowState.Normal;
-
-            // Set minimal size on first restore from maximized
-            if (firstRestoreFromMaximized)
-            {
-                // Set to absolute minimum size for maximum compactness
-                Width = MinWidth;  // 1024 from XAML
-                Height = MinHeight; // 600 from XAML
-
-                // Center the window
-                var screenWidth = SystemParameters.PrimaryScreenWidth;
-                var screenHeight = SystemParameters.PrimaryScreenHeight;
-                Left = (screenWidth - Width) / 2;
-                Top = (screenHeight - Height) / 2;
-
-                firstRestoreFromMaximized = false;
-            }
         }
         else
         {
             WindowState = WindowState.Maximized;
-            // Reset the flag when returning to maximized state
-            firstRestoreFromMaximized = true;
         }
     }
 
@@ -825,7 +648,6 @@ public partial class MainWindow : MetroWindow
 
 public class MainWindowViewModel : ViewModelBase
 {
-    private readonly OpenBulletSettingsService _obSettingsService;
     private readonly JobManagerService jobManagerService;
     private readonly ConfigService configService;
     public event Action<Config> ConfigSelected;
@@ -846,7 +668,6 @@ public class MainWindowViewModel : ViewModelBase
 
     public MainWindowViewModel()
     {
-        _obSettingsService = SP.GetService<OpenBulletSettingsService>();
         jobManagerService = SP.GetService<JobManagerService>();
         configService = SP.GetService<ConfigService>();
         configService.OnConfigSelected += (_, config) =>

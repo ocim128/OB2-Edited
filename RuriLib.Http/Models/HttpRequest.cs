@@ -15,6 +15,8 @@ namespace RuriLib.Http.Models
     /// </summary>
     public class HttpRequest : IDisposable
     {
+        private bool _disposedValue;
+
         /// <summary>
         /// Whether to write the absolute URI in the first line of the request instead of
         /// the relative path (e.g. https://example.com/abc instead of /abc)
@@ -71,7 +73,6 @@ namespace RuriLib.Http.Models
         private static readonly byte[] CRLF = Encoding.ASCII.GetBytes("\r\n");
         private static readonly byte[] Space = Encoding.ASCII.GetBytes(" ");
         private static readonly byte[] ColonSpace = Encoding.ASCII.GetBytes(": ");
-        private static readonly byte[] SemicolonSpace = Encoding.ASCII.GetBytes("; ");
 
         /// <summary>
         /// Safely adds a header to the dictionary.
@@ -95,7 +96,7 @@ namespace RuriLib.Http.Models
         {
             if (Version >= new Version(2, 0))
             {
-                throw new Exception($"HTTP/{Version.Major}.{Version.Minor} not supported yet");
+                throw new NotSupportedException($"HTTP/{Version.Major}.{Version.Minor} not supported yet");
             }
 
             writer.Write(Encoding.ASCII.GetBytes(Method.Method));
@@ -113,6 +114,25 @@ namespace RuriLib.Http.Models
         {
             var finalHeaders = new List<KeyValuePair<string, string>>();
 
+            AddDefaultAndNonContentHeaders(finalHeaders);
+            AddCookieHeaders(finalHeaders);
+            AddContentRelatedHeaders(finalHeaders);
+
+            // Write all non-empty headers to the IBufferWriter<byte>
+            foreach (var header in finalHeaders.Where(static h => !string.IsNullOrEmpty(h.Value)))
+            {
+                writer.Write(Encoding.ASCII.GetBytes(header.Key));
+                writer.Write(ColonSpace);
+                writer.Write(Encoding.ASCII.GetBytes(header.Value));
+                writer.Write(CRLF);
+            }
+
+            // Write the final blank line after all headers
+            writer.Write(CRLF);
+        }
+
+        private void AddDefaultAndNonContentHeaders(List<KeyValuePair<string, string>> finalHeaders)
+        {
             // Add the Host header if not already provided
             if (!HeaderExists("Host", out _))
             {
@@ -120,7 +140,7 @@ namespace RuriLib.Http.Models
             }
 
             // If there is no Connection header, add it
-            if (!HeaderExists("Connection", out var connectionHeaderName))
+            if (!HeaderExists("Connection", out _))
             {
                 finalHeaders.Add("Connection", "Close");
             }
@@ -130,7 +150,10 @@ namespace RuriLib.Http.Models
             {
                 finalHeaders.Add(header);
             }
+        }
 
+        private void AddCookieHeaders(List<KeyValuePair<string, string>> finalHeaders)
+        {
             // Add the Cookie header if not set manually and cookies exist
             if (!HeaderExists("Cookie", out _) && Cookies.Count != 0)
             {
@@ -149,7 +172,10 @@ namespace RuriLib.Http.Models
 
                 finalHeaders.Add("Cookie", cookieBuilder.ToString());
             }
+        }
 
+        private void AddContentRelatedHeaders(List<KeyValuePair<string, string>> finalHeaders)
+        {
             // Add the content headers
             if (Content != null)
             {
@@ -173,18 +199,6 @@ namespace RuriLib.Http.Models
                     }
                 }
             }
-
-            // Write all non-empty headers to the IBufferWriter<byte>
-            foreach (var header in finalHeaders.Where(static h => !string.IsNullOrEmpty(h.Value)))
-            {
-                writer.Write(Encoding.ASCII.GetBytes(header.Key));
-                writer.Write(ColonSpace);
-                writer.Write(Encoding.ASCII.GetBytes(header.Value));
-                writer.Write(CRLF);
-            }
-
-            // Write the final blank line after all headers
-            writer.Write(CRLF);
         }
 
         /// <summary>
@@ -199,6 +213,22 @@ namespace RuriLib.Http.Models
         }
 
         /// <inheritdoc/>
-        public void Dispose() => Content?.Dispose();
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_disposedValue)
+            {
+                if (disposing)
+                {
+                    Content?.Dispose();
+                }
+                _disposedValue = true;
+            }
+        }
     }
 }

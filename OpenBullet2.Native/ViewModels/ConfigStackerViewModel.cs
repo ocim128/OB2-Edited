@@ -41,23 +41,7 @@ public class ConfigStackerViewModel : ViewModelBase
         var newBlockInstance = BlockFactory.GetBlock<BlockInstance>(descriptor.Id);
         var newBlockVm = new BlockViewModel(newBlockInstance);
 
-        var insertIndex = Stack.Count;
-        if (Stack.Any(static b => b?.Selected == true))
-        {
-            for (var i = Stack.Count - 1; i >= 0; i--)
-            {
-                if (Stack[i]?.Selected == true)
-                {
-                    insertIndex = i + 1;
-                    break;
-                }
-            }
-        }
-
-        if (insertIndex < 0 || insertIndex > Stack.Count)
-        {
-            insertIndex = Stack.Count;
-        }
+        var insertIndex = GetInsertIndex();
 
         Stack.Insert(insertIndex, newBlockVm);
 
@@ -79,6 +63,29 @@ public class ConfigStackerViewModel : ViewModelBase
         ApplySearchFilter(null);
     }
 
+    private int GetInsertIndex()
+    {
+        var insertIndex = Stack.Count;
+        if (Stack.Any(static b => b?.Selected == true))
+        {
+            for (var i = Stack.Count - 1; i >= 0; i--)
+            {
+                if (Stack[i]?.Selected == true)
+                {
+                    insertIndex = i + 1;
+                    break;
+                }
+            }
+        }
+
+        if (insertIndex < 0 || insertIndex > Stack.Count)
+        {
+            insertIndex = Stack.Count;
+        }
+
+        return insertIndex;
+    }
+
     public void SelectBlock(BlockViewModel block, bool ctrl = false, bool shift = false)
     {
         if (Stack != null && lastSelectedBlock != null && !Stack.Contains(lastSelectedBlock))
@@ -88,83 +95,110 @@ public class ConfigStackerViewModel : ViewModelBase
 
         if (ctrl)
         {
-            if (block != null)
-            {
-                block.Selected = !block.Selected;
-                lastSelectedBlock = block.Selected ? block : null;
-            }
+            HandleCtrlSelection(block);
         }
         else if (shift)
         {
-            if (lastSelectedBlock == null || lastSelectedBlock == block)
-            {
-                if (block != null)
-                {
-                    block.Selected = true;
-                }
-                lastSelectedBlock = block;
-            }
-            else
-            {
-                if (Stack != null)
-                {
-                    foreach (var b in Stack)
-                    {
-                        if (b != null)
-                        {
-                            b.Selected = false;
-                        }
-                    }
-                }
-
-                if (Stack != null)
-                {
-                    var lastSelectedBlockIndex = (lastSelectedBlock != null) ? Stack.IndexOf(lastSelectedBlock) : -1;
-                    var itemIndex = (block != null) ? Stack.IndexOf(block) : -1;
-
-                    if (lastSelectedBlockIndex != -1 && itemIndex != -1)
-                    {
-                        var minIndex = Math.Min(lastSelectedBlockIndex, itemIndex);
-                        var maxIndex = Math.Max(lastSelectedBlockIndex, itemIndex);
-
-                        for (var i = minIndex; i <= maxIndex; i++)
-                        {
-                            if (i >= 0 && i < Stack.Count)
-                            {
-                                var item = Stack[i];
-                                if (item != null)
-                                {
-                                    item.Selected = true;
-                                }
-                            }
-                        }
-                    }
-                }
-
-                lastSelectedBlock = block;
-            }
+            HandleShiftSelection(block);
         }
         else
         {
-            if (Stack != null)
-            {
-                foreach (var b in Stack)
-                {
-                    if (b != null)
-                    {
-                        b.Selected = false;
-                    }
-                }
-            }
+            HandleNormalSelection(block);
+        }
 
+        InvokeSelectionChanged();
+    }
+
+    private void HandleCtrlSelection(BlockViewModel block)
+    {
+        if (block != null)
+        {
+            block.Selected = !block.Selected;
+            lastSelectedBlock = block.Selected ? block : null;
+        }
+    }
+
+    private void HandleShiftSelection(BlockViewModel block)
+    {
+        if (lastSelectedBlock == null || lastSelectedBlock == block)
+        {
             if (block != null)
             {
                 block.Selected = true;
             }
+            lastSelectedBlock = block;
+        }
+        else
+        {
+            UnselectAllBlocks();
+            SelectBlockRange(block);
+            lastSelectedBlock = block;
+        }
+    }
 
-            lastSelectedBlock = block?.Selected == true ? block : null;
+    private void UnselectAllBlocks()
+    {
+        if (Stack != null)
+        {
+            foreach (var b in Stack.Where(static b => b != null))
+            {
+                b.Selected = false;
+            }
+        }
+    }
+
+    private void SelectBlockRange(BlockViewModel block)
+    {
+        if (Stack != null && lastSelectedBlock != null && block != null)
+        {
+            var lastSelectedBlockIndex = Stack.IndexOf(lastSelectedBlock);
+            var itemIndex = Stack.IndexOf(block);
+
+            if (lastSelectedBlockIndex != -1 && itemIndex != -1)
+            {
+                var minIndex = Math.Min(lastSelectedBlockIndex, itemIndex);
+                var maxIndex = Math.Max(lastSelectedBlockIndex, itemIndex);
+
+                SetSelectedStateForRange(minIndex, maxIndex, true);
+            }
+        }
+    }
+
+    private void SetSelectedStateForRange(int minIndex, int maxIndex, bool selectedState)
+    {
+        for (var i = minIndex; i <= maxIndex; i++)
+        {
+            if (i >= 0 && i < Stack.Count)
+            {
+                var item = Stack[i];
+                if (item != null)
+                {
+                    item.Selected = selectedState;
+                }
+            }
+        }
+    }
+
+    private void HandleNormalSelection(BlockViewModel block)
+    {
+        if (Stack != null)
+        {
+            foreach (var b in Stack.Where(static b => b != null))
+            {
+                b.Selected = false;
+            }
         }
 
+        if (block != null)
+        {
+            block.Selected = true;
+        }
+
+        lastSelectedBlock = block?.Selected == true ? block : null;
+    }
+
+    private void InvokeSelectionChanged()
+    {
         if (Stack != null)
         {
             SelectionChanged?.Invoke(Stack.Where(static s => s?.Selected == true));
@@ -198,6 +232,15 @@ public class ConfigStackerViewModel : ViewModelBase
             }
         }
 
+        RemoveBlocksFromOriginalStack(selectedBlocksToRemove);
+
+        SelectBlock(null, false);
+        SaveStack();
+        ApplySearchFilter(null);
+    }
+
+    private void RemoveBlocksFromOriginalStack(List<BlockViewModel> selectedBlocksToRemove)
+    {
         if (_originalStack != null)
         {
             for (var i = _originalStack.Count - 1; i >= 0; i--)
@@ -213,10 +256,6 @@ public class ConfigStackerViewModel : ViewModelBase
                 }
             }
         }
-
-        SelectBlock(null, false);
-        SaveStack();
-        ApplySearchFilter(null);
     }
 
     public void MoveSelectedUp()
@@ -284,62 +323,62 @@ public class ConfigStackerViewModel : ViewModelBase
 
         foreach (var blockVm in Stack.Where(static b => b?.Selected == true).ToList())
         {
-            if (blockVm?.Block != null)
-            {
-                var newBlockInstance = Cloner.Clone(blockVm.Block);
-                var newBlockVm = new BlockViewModel(newBlockInstance);
-
-                var insertIndex = Stack.IndexOf(blockVm) + 1;
-
-                if (insertIndex >= 0 && insertIndex <= Stack.Count)
-                {
-                    Stack.Insert(insertIndex, newBlockVm);
-
-                    if (_originalStack != null)
-                    {
-                        var originalIndex = -1;
-
-                        for (var i = 0; i < _originalStack.Count; i++)
-                        {
-                            if (_originalStack[i] != null && _originalStack[i].Block == blockVm.Block)
-                            {
-                                originalIndex = i;
-                                break;
-                            }
-                        }
-
-                        if (originalIndex != -1)
-                        {
-                            var originalInsertIndex = originalIndex + 1;
-                            if (originalInsertIndex >= 0 && originalInsertIndex <= _originalStack.Count)
-                            {
-                                _originalStack.Insert(originalInsertIndex, newBlockVm);
-                            }
-                            else
-                            {
-                                _originalStack.Add(newBlockVm);
-                            }
-                        }
-                        else
-                        {
-                            _originalStack.Add(newBlockVm);
-                        }
-                    }
-                }
-                else
-                {
-                    Stack.Add(newBlockVm);
-                    _originalStack?.Add(newBlockVm);
-                }
-            }
-            else
-            {
-                Console.WriteLine("Attempted to clone a null BlockViewModel or one with a null BlockInstance!");
-            }
+            CloneAndInsertBlock(blockVm);
         }
 
         SaveStack();
         ApplySearchFilter(null);
+    }
+
+    private void CloneAndInsertBlock(BlockViewModel blockVm)
+    {
+        if (blockVm?.Block != null)
+        {
+            var newBlockInstance = Cloner.Clone(blockVm.Block);
+            var newBlockVm = new BlockViewModel(newBlockInstance);
+
+            var insertIndex = Stack.IndexOf(blockVm) + 1;
+
+            if (insertIndex >= 0 && insertIndex <= Stack.Count)
+            {
+                Stack.Insert(insertIndex, newBlockVm);
+                InsertIntoOriginalStackForClone(newBlockVm, blockVm);
+            }
+            else
+            {
+                Stack.Add(newBlockVm);
+                _originalStack?.Add(newBlockVm);
+            }
+        }
+        else
+        {
+            Console.WriteLine("Attempted to clone a null BlockViewModel or one with a null BlockInstance!");
+        }
+    }
+
+    private void InsertIntoOriginalStackForClone(BlockViewModel newBlockVm, BlockViewModel originalBlockVm)
+    {
+        if (_originalStack != null)
+        {
+            var originalIndex = _originalStack.FindIndex(b => b != null && b.Block == originalBlockVm.Block);
+
+            if (originalIndex != -1)
+            {
+                var originalInsertIndex = originalIndex + 1;
+                if (originalInsertIndex >= 0 && originalInsertIndex <= _originalStack.Count)
+                {
+                    _originalStack.Insert(originalInsertIndex, newBlockVm);
+                }
+                else
+                {
+                    _originalStack.Add(newBlockVm);
+                }
+            }
+            else
+            {
+                _originalStack.Add(newBlockVm);
+            }
+        }
     }
 
     public void EnableDisableSelected()
@@ -387,35 +426,8 @@ public class ConfigStackerViewModel : ViewModelBase
         {
             var restoredBlockVm = new BlockViewModel(toRestore.Item1);
 
-            if (Stack != null && toRestore.Item2 >= 0 && toRestore.Item2 <= Stack.Count)
-            {
-                Stack.Insert(toRestore.Item2, restoredBlockVm);
-            }
-            else if (Stack != null)
-            {
-                Stack.Add(restoredBlockVm);
-            }
-            else
-            {
-                Stack = [restoredBlockVm];
-            }
-
-            if (_originalStack != null)
-            {
-                var originalInsertIndex = toRestore.Item2;
-                if (originalInsertIndex >= 0 && originalInsertIndex <= _originalStack.Count)
-                {
-                    _originalStack.Insert(originalInsertIndex, restoredBlockVm);
-                }
-                else
-                {
-                    _originalStack.Add(restoredBlockVm);
-                }
-            }
-            else
-            {
-                _originalStack = [restoredBlockVm];
-            }
+            InsertIntoStack(restoredBlockVm, toRestore.Item2);
+            InsertIntoOriginalStack(restoredBlockVm, toRestore.Item2);
         }
         else
         {
@@ -424,6 +436,35 @@ public class ConfigStackerViewModel : ViewModelBase
 
         SaveStack();
         ApplySearchFilter(null);
+    }
+
+    private void InsertIntoStack(BlockViewModel blockVm, int index)
+    {
+        if (Stack != null && index >= 0 && index <= Stack.Count)
+        {
+            Stack.Insert(index, blockVm);
+        }
+        else if (Stack != null)
+        {
+            Stack.Add(blockVm);
+        }
+        else
+        {
+            Stack = [blockVm];
+        }
+    }
+
+    private void InsertIntoOriginalStack(BlockViewModel blockVm, int index)
+    {
+        if (_originalStack != null && index >= 0 && index <= _originalStack.Count)
+        {
+            _originalStack.Insert(index, blockVm);
+        }
+        else
+        {
+            _originalStack ??= [];
+            _originalStack.Add(blockVm);
+        }
     }
 
     public override void UpdateViewModel()
@@ -479,29 +520,39 @@ public class ConfigStackerViewModel : ViewModelBase
 
         if (string.IsNullOrWhiteSpace(searchText))
         {
-            if (_originalStack != null)
-            {
-                foreach (var block in _originalStack.Where(static b => b != null))
-                {
-                    Stack.Add(block);
-                }
-            }
+            AddBlocksToStack(_originalStack);
         }
         else
         {
-            var lowerSearchText = searchText.ToLowerInvariant();
+            FilterAndAddBlocksToStack(searchText);
+        }
+    }
 
-            if (_originalStack != null)
+    private void AddBlocksToStack(IEnumerable<BlockViewModel> blocks)
+    {
+        if (blocks != null)
+        {
+            foreach (var block in blocks.Where(static b => b != null))
             {
-                foreach (var block in _originalStack.Where(static b => b != null))
-                {
-                    var matchesLabel = block.Label.ToLowerInvariant().Contains(lowerSearchText);
-                    var matchesType = block.Block?.Descriptor?.Name != null && block.Block.Descriptor.Name.ToLowerInvariant().Contains(lowerSearchText);
+                Stack.Add(block);
+            }
+        }
+    }
 
-                    if (matchesLabel || matchesType)
-                    {
-                        Stack.Add(block);
-                    }
+    private void FilterAndAddBlocksToStack(string searchText)
+    {
+        var lowerSearchText = searchText.ToLowerInvariant();
+
+        if (_originalStack != null)
+        {
+            foreach (var block in _originalStack.Where(static b => b != null))
+            {
+                var matchesLabel = block.Label.ToLowerInvariant().Contains(lowerSearchText);
+                var matchesType = block.Block?.Descriptor?.Name != null && block.Block.Descriptor.Name.ToLowerInvariant().Contains(lowerSearchText);
+
+                if (matchesLabel || matchesType)
+                {
+                    Stack.Add(block);
                 }
             }
         }

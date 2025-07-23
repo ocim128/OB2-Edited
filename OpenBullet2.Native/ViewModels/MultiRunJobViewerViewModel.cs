@@ -160,7 +160,7 @@ public class MultiRunJobViewerViewModel : ViewModelBase, IDisposable
         }
     }
 
-    public IEnumerable<HitsFilter> HitsFilters => Enum.GetValues(typeof(HitsFilter)).Cast<HitsFilter>();
+    public static IEnumerable<HitsFilter> HitsFilters => Enum.GetValues(typeof(HitsFilter)).Cast<HitsFilter>();
 
     private HitsFilter hitsFilter = HitsFilter.Hits;
     public HitsFilter HitsFilter
@@ -478,7 +478,7 @@ public class MultiRunJobViewerViewModel : ViewModelBase, IDisposable
     {
         if (MultiRunJob.Status is JobStatus.Starting or JobStatus.Waiting)
         {
-            startCTS.Cancel();
+            await startCTS.CancelAsync();
             return;
         }
 

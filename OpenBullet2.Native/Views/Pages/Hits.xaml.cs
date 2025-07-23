@@ -36,9 +36,9 @@ namespace OpenBullet2.Native.Views.Pages
         private GridViewColumnHeader listViewSortCol;
         private SortAdorner listViewSortAdorner;
 
-        private IEnumerable<HitEntity> SelectedHits => hitsListView.SelectedItems.Cast<HitEntity>().ToList();
+        private IEnumerable<HitEntity> SelectedHits => hitsListView.SelectedItems.Cast<HitEntity>().ToList(); // This cannot be static since it accesses a UI element (hitsListView)
 
-        private readonly Func<HitEntity, string> captureMapping = new (hit => $"{hit.Data} | {hit.CapturedData}");
+        private readonly Func<HitEntity, string> captureMapping = new(hit => $"{hit.Data} | {hit.CapturedData}");
         private readonly Func<HitEntity, string> fullMapping = new(hit =>
             "Data = " + hit.Data +
             " | Type = " + hit.Type +
@@ -66,18 +66,27 @@ namespace OpenBullet2.Native.Views.Pages
             var copyMenu = (MenuItem)menu.Items[0];
             var saveMenu = (MenuItem)menu.Items[1];
 
-            foreach (var f in env.ExportFormats)
+            foreach (var format in env.ExportFormats.Select(f => f.Format))
             {
-                var copyItem = new MenuItem();
-                copyItem.Header = f.Format;
-                copyItem.Click += new RoutedEventHandler(CopySelectedCustom);
-                ((MenuItem)copyMenu.Items[4]).Items.Add(copyItem);
-
-                var saveItem = new MenuItem();
-                saveItem.Header = f.Format;
-                saveItem.Click += new RoutedEventHandler(SaveSelectedCustom);
-                ((MenuItem)saveMenu.Items[3]).Items.Add(saveItem);
+                AddCopyMenuItem(format, copyMenu);
+                AddSaveMenuItem(format, saveMenu);
             }
+        }
+
+        private void AddCopyMenuItem(string format, MenuItem copyMenu)
+        {
+            var copyItem = new MenuItem();
+            copyItem.Header = format;
+            copyItem.Click += new RoutedEventHandler(CopySelectedCustom);
+            ((MenuItem)copyMenu.Items[4]).Items.Add(copyItem);
+        }
+
+        private void AddSaveMenuItem(string format, MenuItem saveMenu)
+        {
+            var saveItem = new MenuItem();
+            saveItem.Header = format;
+            saveItem.Click += new RoutedEventHandler(SaveSelectedCustom);
+            ((MenuItem)saveMenu.Items[3]).Items.Add(saveItem);
         }
 
         public void UpdateViewModel() => vm.UpdateViewModel();
@@ -168,7 +177,7 @@ namespace OpenBullet2.Native.Views.Pages
                 return;
             }
 
-            var firstHit = SelectedHits.First();
+            var firstHit = SelectedHits.ToList()[0];
 
             var jobOptions = (MultiRunJobOptions)JobOptionsFactory.CreateNew(JobType.MultiRun);
             var wordlistType = rlSettingsService.Environment.RecognizeWordlistType(firstHit.Data);
@@ -189,7 +198,7 @@ namespace OpenBullet2.Native.Views.Pages
             }
 
             // Write the temporary file
-            var tempFile = Path.GetTempFileName();
+            var tempFile = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
             await File.WriteAllLinesAsync(tempFile, SelectedHits.Select(h => h.Data)).ConfigureAwait(false);
             var dataPoolOptions = new FileDataPoolOptions
             {
@@ -199,16 +208,6 @@ namespace OpenBullet2.Native.Views.Pages
             jobOptions.DataPool = dataPoolOptions;
 
             // Create the job entity and add it to the database
-            var jsonSettings = new JsonSerializerSettings { TypeNameHandling = TypeNameHandling.Auto };
-            var jobOptionsWrapper = new JobOptionsWrapper { Options = jobOptions };
-
-            var entity = new JobEntity
-            {
-                CreationDate = DateTime.Now,
-                JobType = JobType.MultiRun,
-                JobOptions = JsonConvert.SerializeObject(jobOptionsWrapper, jsonSettings)
-            };
-
             await Application.Current.Dispatcher.InvokeAsync(async () =>
             {
                 var jobs = SP.GetService<ViewModelsService>().Jobs;
@@ -235,7 +234,7 @@ namespace OpenBullet2.Native.Views.Pages
             SelectedHits.CopyToClipboard(h => ApplyCustomFormat(h, format));
         }
 
-        private string GetSaveFile()
+        private static string GetSaveFile()
         {
             var sfd = new SaveFileDialog();
             sfd.Filter = "TXT files | *.txt";
@@ -284,7 +283,8 @@ namespace OpenBullet2.Native.Views.Pages
 
         private void LVIMouseRightButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
-
+            // This event handler is intentionally left empty. It's a placeholder in case
+            // custom logic for right-click on list view items is needed in the future.
         }
     }
 }

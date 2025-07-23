@@ -37,15 +37,14 @@ namespace OpenBullet2.Native.Views.Pages
         private Point dragStartPoint;
 
         private IEnumerable<ConfigViewModel> SelectedConfigs => configsListView.SelectedItems.Cast<ConfigViewModel>();
-
         private ConfigViewModel HoveredItem => (ConfigViewModel)configsListView.SelectedItem;
-        
+
         private string ListViewSortBy
         {
             get => volatileSettings.ListViewSorting["configs"].By;
             set => volatileSettings.ListViewSorting["configs"].By = value;
         }
-        
+
         private ListSortDirection ListViewSortDir
         {
             get => volatileSettings.ListViewSorting["configs"].Direction;
@@ -59,20 +58,16 @@ namespace OpenBullet2.Native.Views.Pages
             volatileSettings = SP.GetService<VolatileSettingsService>();
             vm = SP.GetService<ViewModelsService>().Configs;
             DataContext = vm;
-            
+
             InitializeComponent();
+            Loaded += (s, e) => configsListView.Focus();
         }
 
-        // This is needed otherwise if properties of a config are updated by another page this page will not
-        // get notified and will show the old values.
         public void UpdateViewModel()
         {
             vm.SelectedConfig?.UpdateViewModel();
-
             if (!string.IsNullOrEmpty(ListViewSortBy))
-            {
                 configsListView.Items.SortDescriptions.Add(new SortDescription(ListViewSortBy, ListViewSortDir));
-            }
         }
 
         public void Create(object sender, RoutedEventArgs e)
@@ -110,9 +105,7 @@ namespace OpenBullet2.Native.Views.Pages
             }
 
             if (Alert.Choice("Are you sure?", $"Do you really want to delete {HoveredItem.Name}? This cannot be undone."))
-            {
                 vm.Delete(HoveredItem);
-            }
         }
 
         private void DeleteSelected(object sender, RoutedEventArgs e)
@@ -126,9 +119,7 @@ namespace OpenBullet2.Native.Views.Pages
             if (Alert.Choice("Are you sure?", $"Do you really want to delete {SelectedConfigs.Count()} selected configs? This cannot be undone."))
             {
                 foreach (var config in SelectedConfigs)
-                {
                     vm.Delete(config);
-                }
             }
         }
 
@@ -162,10 +153,7 @@ namespace OpenBullet2.Native.Views.Pages
             }
         }
 
-        // TODO: Check if current config is not saved and prompt warning
         public async void Rescan(object sender, RoutedEventArgs e) => await vm.RescanAsync();
-
-        public async Task PerformRescanAsync() => await vm.RescanAsync();
 
         private void OpenFolder(object sender, RoutedEventArgs e)
         {
@@ -175,7 +163,6 @@ namespace OpenBullet2.Native.Views.Pages
             }
             catch (Exception ex)
             {
-                // This happens on access denied
                 Alert.Exception(ex);
             }
         }
@@ -185,59 +172,44 @@ namespace OpenBullet2.Native.Views.Pages
         private void NavigateToConfigSection()
         {
             var mode = vm.SelectedConfig.Config.Mode;
-            var page = obSettingsService.Settings.GeneralSettings.ConfigSectionOnLoad switch
+            var section = obSettingsService.Settings.GeneralSettings.ConfigSectionOnLoad;
+
+            var page = section switch
             {
                 ConfigSection.Metadata => MainWindowPage.ConfigMetadata,
                 ConfigSection.Readme => MainWindowPage.ConfigReadme,
-                ConfigSection.Stacker => mode switch
-                {
-                    ConfigMode.LoliCode or ConfigMode.Stack => MainWindowPage.ConfigStacker,
-                    ConfigMode.CSharp => MainWindowPage.ConfigCSharpCode,
-                    ConfigMode.Legacy => MainWindowPage.ConfigLoliScript,
-                    _ => MainWindowPage.ConfigMetadata
-                },
-                ConfigSection.LoliCode => mode switch
-                {
-                    ConfigMode.LoliCode or ConfigMode.Stack => MainWindowPage.ConfigLoliCode,
-                    ConfigMode.CSharp => MainWindowPage.ConfigCSharpCode,
-                    ConfigMode.Legacy => MainWindowPage.ConfigLoliScript,
-                    _ => MainWindowPage.ConfigMetadata
-                },
                 ConfigSection.Settings => MainWindowPage.ConfigSettings,
-                ConfigSection.CSharpCode => mode switch
-                {
-                    ConfigMode.LoliCode or ConfigMode.Stack or ConfigMode.CSharp  => MainWindowPage.ConfigLoliCode,
-                    ConfigMode.Legacy => MainWindowPage.ConfigLoliScript,
-                    _ => MainWindowPage.ConfigMetadata
-                },
-                ConfigSection.LoliScript => mode switch
-                {
-                    ConfigMode.LoliCode or ConfigMode.Stack => MainWindowPage.ConfigLoliCode,
-                    ConfigMode.CSharp => MainWindowPage.ConfigCSharpCode,
-                    ConfigMode.Legacy => MainWindowPage.ConfigLoliScript,
-                    _ => MainWindowPage.ConfigMetadata
-                },
-                _ => throw new NotImplementedException(),
+                _ => GetModeSpecificPage(section, mode)
             };
 
             SP.GetService<MainWindow>().NavigateTo(page);
         }
 
-        private void UpdateSearch(object sender, TextChangedEventArgs e)
+        private MainWindowPage GetModeSpecificPage(ConfigSection section, ConfigMode mode)
         {
-            vm.SearchString = filterTextbox.Text;
+            return (section, mode) switch
+            {
+                (ConfigSection.Stacker, ConfigMode.LoliCode or ConfigMode.Stack) => MainWindowPage.ConfigStacker,
+                (ConfigSection.Stacker, ConfigMode.CSharp) => MainWindowPage.ConfigCSharpCode,
+                (ConfigSection.Stacker, ConfigMode.Legacy) => MainWindowPage.ConfigLoliScript,
+                (ConfigSection.LoliCode, ConfigMode.LoliCode or ConfigMode.Stack) => MainWindowPage.ConfigLoliCode,
+                (ConfigSection.LoliCode, ConfigMode.CSharp) => MainWindowPage.ConfigCSharpCode,
+                (ConfigSection.LoliCode, ConfigMode.Legacy) => MainWindowPage.ConfigLoliScript,
+                (ConfigSection.CSharpCode, ConfigMode.LoliCode or ConfigMode.Stack or ConfigMode.CSharp) => MainWindowPage.ConfigLoliCode,
+                (ConfigSection.CSharpCode, ConfigMode.Legacy) => MainWindowPage.ConfigLoliScript,
+                (ConfigSection.LoliScript, ConfigMode.LoliCode or ConfigMode.Stack) => MainWindowPage.ConfigLoliCode,
+                (ConfigSection.LoliScript, ConfigMode.CSharp) => MainWindowPage.ConfigCSharpCode,
+                (ConfigSection.LoliScript, ConfigMode.Legacy) => MainWindowPage.ConfigLoliScript,
+                _ => MainWindowPage.ConfigMetadata
+            };
         }
 
-        private void Search(object sender, RoutedEventArgs e) { }
+        private void UpdateSearch(object sender, TextChangedEventArgs e) => vm.SearchString = filterTextbox.Text;
 
         private void ItemHovered(object sender, SelectionChangedEventArgs e)
         {
-            var items = e.AddedItems as IList<object>;
-
-            if (items.Count == 1)
-            {
+            if (e.AddedItems is IList<object> items && items.Count == 1)
                 vm.HoveredConfig = items[0] as ConfigViewModel;
-            }
         }
 
         private void ListItemDoubleClick(object sender, MouseButtonEventArgs e) => EditConfig();
@@ -256,15 +228,12 @@ namespace OpenBullet2.Native.Views.Pages
                 return;
             }
 
-            // Check if the config was saved
             if (obSettingsService.Settings.GeneralSettings.WarnConfigNotSaved
                 && configService.SelectedConfig != null
                 && configService.SelectedConfig.HasUnsavedChanges()
                 && !Alert.Confirm("Config not saved", $"The currently selected config ({configService.SelectedConfig.Metadata.Name}) has unsaved changes," +
                     $" are you sure you want to edit another config?", nameof(obSettingsService.Settings.GeneralSettings.WarnConfigNotSaved)))
-            {
                 return;
-            }
 
             vm.SelectedConfig = HoveredItem;
             SP.GetService<ViewModelsService>().Debugger.ClearLog();
@@ -282,12 +251,9 @@ namespace OpenBullet2.Native.Views.Pages
                 configsListView.Items.SortDescriptions.Clear();
             }
 
-            ListViewSortDir = ListSortDirection.Ascending;
-
-            if (listViewSortCol == column && listViewSortAdorner.Direction == ListViewSortDir)
-            {
-                ListViewSortDir = ListSortDirection.Descending;
-            }
+            ListViewSortDir = listViewSortCol == column && listViewSortAdorner?.Direction == ListViewSortDir
+                ? ListSortDirection.Descending
+                : ListSortDirection.Ascending;
 
             listViewSortCol = column;
             listViewSortAdorner = new SortAdorner(listViewSortCol, ListViewSortDir);
@@ -314,10 +280,7 @@ namespace OpenBullet2.Native.Views.Pages
 
                 if (listViewItem == null) return;
 
-                // Get the dragged item
                 var config = (ConfigViewModel)listView.ItemContainerGenerator.ItemFromContainer(listViewItem);
-
-                // Initialize the drag & drop operation
                 var dragData = new DataObject("myFormat", config);
                 DragDrop.DoDragDrop(listViewItem, dragData, DragDropEffects.Move);
             }
@@ -328,34 +291,22 @@ namespace OpenBullet2.Native.Views.Pages
             if (e.Data.GetDataPresent(DataFormats.FileDrop))
             {
                 var files = (string[])e.Data.GetData(DataFormats.FileDrop);
-
                 foreach (var file in files.Where(f => f.EndsWith(".opk")))
                 {
-                    try
-                    {
-                        await vm.ImportConfigFromFileAsync(file);
-                    }
-                    catch (Exception ex)
-                    {
-                        Alert.Exception(ex);
-                    }
+                    try { await vm.ImportConfigFromFileAsync(file); }
+                    catch (Exception ex) { Alert.Exception(ex); }
                 }
             }
         }
 
         private void SelectAll(object sender, RoutedEventArgs e) => configsListView.SelectAll();
-
         private void DeselectAll(object sender, RoutedEventArgs e) => configsListView.UnselectAll();
 
-        // Helper to find ancestor of a certain type
         private static T FindAncestor<T>(DependencyObject current) where T : DependencyObject
         {
-            do
-            {
-                if (current is T ancestor) return ancestor;
+            while (current != null && current is not T)
                 current = VisualTreeHelper.GetParent(current);
-            } while (current != null);
-            return null;
+            return current as T;
         }
     }
 }

@@ -160,7 +160,7 @@ namespace OpenBullet2.Native.ViewModels
         {
             if (vm.IsRemote)
             {
-                throw new Exception("You cannot save remote configs");
+                throw new InvalidOperationException("You cannot save remote configs");
             }
 
             return configRepo.SaveAsync(vm.Config);

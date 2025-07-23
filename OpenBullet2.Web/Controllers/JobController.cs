@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -121,7 +121,7 @@ public class JobController : ApiController
                 Status = job.Status,
                 Name = job.Name,
                 ConfigName = job.Config?.Metadata.Name,
-                UseProxies = job.ShouldUseProxies(),
+                UseProxies = RuriLib.Models.Jobs.ProxyManager.ShouldUseProxies(job.ProxyMode, job.Config?.Settings.ProxySettings),
                 Bots = job.Bots,
                 DataPoolInfo = dataPoolInfo,
                 DataHits = job.DataHits,

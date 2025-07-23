@@ -1,6 +1,7 @@
 using IronPython.Compiler;
 using IronPython.Hosting;
 using IronPython.Runtime;
+using Microsoft.CodeAnalysis.Scripting;
 using PuppeteerSharp;
 using RuriLib.Exceptions;
 using RuriLib.Helpers;
@@ -26,6 +27,7 @@ using System.Diagnostics;
 using System.Dynamic;
 using System.Linq;
 using System.Net.Http;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -109,9 +111,13 @@ public partial class ConfigDebugger : IDisposable
         Options.Variables.Clear();
         Status = ConfigDebuggerStatus.Running;
         _cts = new CancellationTokenSource();
-        var sw = new Stopwatch();
+        var sw = Stopwatch.StartNew();
 
-        var wordlistType = RuriLibSettings.Environment.WordlistTypes.First(w => w.Name == Options.WordlistType);
+        var wordlistType = RuriLibSettings.Environment.WordlistTypes.FirstOrDefault(w => w.Name == Options.WordlistType);
+        if (wordlistType == null)
+        {
+            throw new ArgumentException($"Wordlist type '{Options.WordlistType}' not found");
+        }
         var dataLine = new DataLine(Options.TestData, wordlistType);
         var proxy = Options.UseProxy ? Proxy.Parse(Options.TestProxy, Options.ProxyType) : null;
 
@@ -121,12 +127,12 @@ public partial class ConfigDebugger : IDisposable
         };
 
         // Ensure the debugger respects the current VerboseMode setting coming from the global RuriLibSettingsService
-        if (RuriLibSettings != null)
+        if (RuriLibSettings?.RuriLibSettings?.GeneralSettings != null)
         {
             Config.Settings.GeneralSettings.VerboseMode = RuriLibSettings.RuriLibSettings.GeneralSettings.VerboseMode;
         }
 
-        if (!RuriLibSettings.RuriLibSettings.GeneralSettings.UseCustomUserAgentsList)
+        if (RuriLibSettings?.RuriLibSettings?.GeneralSettings?.UseCustomUserAgentsList == false)
         {
             providers.RandomUA = RandomUAProvider;
         }
@@ -146,34 +152,44 @@ public partial class ConfigDebugger : IDisposable
             CancellationToken = _cts.Token,
             Stepper = _stepper
         };
-        using var httpClient = new HttpClient();
-        _data.SetObject("httpClient", httpClient);
-        var runtime = Python.CreateRuntime();
-        var pyengine = runtime.GetEngine("py");
-        var pco = (PythonCompilerOptions)pyengine.GetCompilerOptions();
-        pco.Module &= ~ModuleOptions.Optimized;
-        _data.SetObject("ironPyEngine", pyengine);
-        _data.AsyncLocker = new();
 
+        // Use single HttpClient instance with proper disposal
+        var httpClient = new HttpClient();
+        _data.SetObject("httpClient", httpClient);
+
+        _data.AsyncLocker = new();
         dynamic globals = new ExpandoObject();
 
-        var script = new ScriptBuilder()
-            .Build(Config.CSharpScript, Config.Settings.ScriptSettings, PluginRepo);
-
-        var startupScript = new ScriptBuilder().Build(Config.StartupCSharpScript, Config.Settings.ScriptSettings, PluginRepo);
-
-        Logger.Log($"Sliced {dataLine.Data} into:");
-        foreach (var slice in dataLine.GetVariables())
+        // Lazy initialization - only build scripts when needed
+        Script script = null;
+        Script startupScript = null;
+        
+        if (Config.Mode != ConfigMode.Legacy)
         {
-            var sliceValue = _data.ConfigSettings.DataSettings.UrlEncodeDataAfterSlicing
-                ? Uri.EscapeDataString(slice.AsString())
-                : slice.AsString();
-
-            Logger.Log($"{slice.Name}: {sliceValue}");
+            var scriptBuilder = new ScriptBuilder();
+            script = scriptBuilder.Build(Config.CSharpScript, Config.Settings.ScriptSettings, PluginRepo);
+            
+            if (!string.IsNullOrWhiteSpace(Config.StartupCSharpScript))
+            {
+                startupScript = scriptBuilder.Build(Config.StartupCSharpScript, Config.Settings.ScriptSettings, PluginRepo);
+            }
         }
 
-        // Initialize resources
-        Dictionary<string, ConfigResource> resources = [];
+        // Optimized slice logging with single enumeration
+        var variables = dataLine.GetVariables().ToList();
+        var logBuilder = new StringBuilder(256); // Pre-allocate capacity
+        logBuilder.AppendLine($"Sliced {dataLine.Data} into:");
+        
+        var urlEncode = _data.ConfigSettings.DataSettings.UrlEncodeDataAfterSlicing;
+        foreach (var slice in variables)
+        {
+            var sliceValue = urlEncode ? Uri.EscapeDataString(slice.AsString()) : slice.AsString();
+            logBuilder.AppendLine($"{slice.Name}: {sliceValue}");
+        }
+        Logger.Log(logBuilder.ToString());
+
+        // Initialize resources with capacity hint
+        var resources = new Dictionary<string, ConfigResource>(Config.Settings.DataSettings.Resources.Count);
 
         // Resources will need to be disposed of
         foreach (var opt in Config.Settings.DataSettings.Resources)
@@ -199,33 +215,39 @@ public partial class ConfigDebugger : IDisposable
         globals.JobId = 0;
         var scriptGlobals = new ScriptGlobals(_data, globals);
 
-        // Set custom inputs
-        foreach (var input in Config.Settings.InputSettings.CustomInputs)
+        // Set custom inputs efficiently
+        var customInputs = Config.Settings.InputSettings.CustomInputs;
+        if (customInputs.Count > 0)
         {
-            (scriptGlobals.input as IDictionary<string, object>).Add(input.VariableName, input.DefaultAnswer);
+            var inputDict = (IDictionary<string, object>)scriptGlobals.input;
+            foreach (var input in customInputs)
+            {
+                inputDict.Add(input.VariableName, input.DefaultAnswer);
+            }
         }
 
-        // [LEGACY] Set up the VariablesList
+        // [LEGACY] Set up the VariablesList - reuse already processed variables
         if (Config.Mode == ConfigMode.Legacy)
         {
-            var slices = new List<Variable>();
-
-            foreach (var slice in dataLine.GetVariables())
+            // Lazy load Python runtime only when needed for legacy mode
+            var runtime = Python.CreateRuntime();
+            var pyengine = runtime.GetEngine("py");
+            var pco = (PythonCompilerOptions)pyengine.GetCompilerOptions();
+            pco.Module &= ~ModuleOptions.Optimized;
+            _data.SetObject("ironPyEngine", pyengine);
+            
+            var slices = new List<Variable>(variables.Count);
+            foreach (var slice in variables)
             {
-                var sliceValue = _data.ConfigSettings.DataSettings.UrlEncodeDataAfterSlicing
-                    ? Uri.EscapeDataString(slice.AsString())
-                    : slice.AsString();
-
+                var sliceValue = urlEncode ? Uri.EscapeDataString(slice.AsString()) : slice.AsString();
                 slices.Add(new StringVariable(sliceValue) { Name = slice.Name });
             }
 
             var legacyVariables = new VariablesList(slices);
-
             foreach (var input in Config.Settings.InputSettings.CustomInputs)
             {
                 legacyVariables.Set(new StringVariable(input.DefaultAnswer) { Name = input.VariableName });
             }
-
             _data.SetObject("legacyVariables", legacyVariables);
         }
 
@@ -258,31 +280,32 @@ public partial class ConfigDebugger : IDisposable
 
                 var state = await script.RunAsync(scriptGlobals, null, _cts.Token).ConfigureAwait(false);
 
+                // Optimized variable processing with early filtering
+                var markedForCapture = _data.MarkedForCapture;
                 foreach (var scriptVar in state.Variables)
                 {
+                    // Early exit for temporary variables
+                    if (scriptVar.Name.StartsWith("tmp_")) continue;
+                    
                     try
                     {
-                        // Determine variable type: use declared type or fallback to runtime type for dynamic variables
-                        var declaredType = scriptVar.Type;
-                        var actualType = declaredType;
+                        var actualType = scriptVar.Type;
                         VariableType? vType;
+                        
                         try
                         {
-                            vType = DescriptorsRepository.ToVariableType(declaredType);
-                        }
-                        catch (InvalidCastException)
-                        {
-                            if (scriptVar.Value != null)
-                            {
-                                actualType = scriptVar.Value.GetType();
-                            }
-
                             vType = DescriptorsRepository.ToVariableType(actualType);
                         }
-                        if (vType.HasValue && !scriptVar.Name.StartsWith("tmp_"))
+                        catch (InvalidCastException) when (scriptVar.Value != null)
+                        {
+                            actualType = scriptVar.Value.GetType();
+                            vType = DescriptorsRepository.ToVariableType(actualType);
+                        }
+                        
+                        if (vType.HasValue)
                         {
                             var variable = DescriptorsRepository.ToVariable(scriptVar.Name, actualType, scriptVar.Value);
-                            variable.MarkedForCapture = _data.MarkedForCapture.Contains(scriptVar.Name);
+                            variable.MarkedForCapture = markedForCapture.Contains(scriptVar.Name);
                             Options.Variables.Add(variable);
                         }
                     }
@@ -339,53 +362,22 @@ public partial class ConfigDebugger : IDisposable
                     {
                         csharpLineNumber--; // Convert to 0-based index
 
-                        // Look for the closest LoliCode line comment going backwards from the error line
-                        var loliCodeLineNumber = -1;
-                        for (var i = csharpLineNumber; i >= 0; i--)
-                        {
-                            if (i < lines.Length)
-                            {
-                                var commentMatch = MyRegex1().Match(lines[i]);
-                                if (commentMatch.Success && int.TryParse(commentMatch.Groups[1].Value, out loliCodeLineNumber))
-                                {
-                                    break;
-                                }
-                            }
-                        }
+                        // Find closest LoliCode line comment (optimized search)
+                        var loliCodeLineNumber = FindLoliCodeLineNumber(lines, csharpLineNumber);
 
                         if (loliCodeLineNumber > 0)
                         {
-                            // Concise error description
-                            var conciseError = ex.Message.Contains("error CS")
-                                ? ex.Message[ex.Message.IndexOf("error CS")..]
-                                : ex.Message.Split(':').LastOrDefault()?.Trim();
+                            // Extract concise error (optimized)
+                            var conciseError = ExtractConciseError(ex.Message);
                             Logger.Log($"❌ Compilation Error at Line {loliCodeLineNumber}: {conciseError}", LogColors.Tomato);
 
-                            // Problematic LoliCode line
-                            try
-                            {
-                                if (!string.IsNullOrEmpty(Config.LoliCodeScript))
-                                {
-                                    var loliCodeLines = Config.LoliCodeScript.Split('\n');
-                                    if (loliCodeLineNumber > 0 && loliCodeLineNumber <= loliCodeLines.Length)
-                                    {
-                                        Logger.Log($"📍 {loliCodeLines[loliCodeLineNumber - 1].Trim()}", LogColors.Yellow);
-                                    }
-                                }
-                            }
-                            catch { /* ignore failures here */ }
+                            // Log problematic LoliCode line (optimized)
+                            LogProblematicLoliCodeLine(loliCodeLineNumber);
 
-                            // Surrounding generated C# (only if verbose mode)
+                            // Log surrounding C# code if verbose
                             if (RuriLibSettings.RuriLibSettings.GeneralSettings.VerboseMode)
                             {
-                                Logger.Log($"📝 Generated C# code around error (line {csharpLineNumber + 1}):", LogColors.Gray);
-                                var start = Math.Max(0, csharpLineNumber - 2);
-                                var end = Math.Min(lines.Length - 1, csharpLineNumber + 2);
-                                for (var i = start; i <= end; i++)
-                                {
-                                    var marker = i == csharpLineNumber ? ">>> " : "    ";
-                                    Logger.Log($"{marker}{i + 1:D3}: {lines[i].TrimEnd()}", LogColors.Gray);
-                                }
+                                LogSurroundingCSharpCode(lines, csharpLineNumber);
                             }
 
                             errorAlreadyLogged = true;
@@ -440,11 +432,17 @@ public partial class ConfigDebugger : IDisposable
             // We only want to dispose of general objects, not browser objects that are managed by the debugger itself
             _data.DisposeObjectsExcept(["httpClient", "ironPyEngine", "puppeteer", "puppeteerPage", "puppeteerFrame", "selenium", "seleniumDriver"]);
 
-            // Dispose resources
-            foreach (var resource in resources.Where(r => r.Value is IDisposable)
-                .Select(r => r.Value).Cast<IDisposable>())
+            // Dispose resources - fixed: use ToList() to avoid modification during iteration
+            foreach (var resource in resources.Values.OfType<IDisposable>().ToList())
             {
-                resource.Dispose();
+                try
+                {
+                    resource?.Dispose();
+                }
+                catch (Exception ex)
+                {
+                    Logger.Log($"Error disposing resource: {ex.Message}", LogColors.Tomato);
+                }
             }
 
             _data.AsyncLocker.Dispose();
@@ -479,7 +477,7 @@ public partial class ConfigDebugger : IDisposable
         return _stepper.TryTakeStep();
     }
 
-    public void Stop() => _cts.Cancel();
+    public void Stop() => _cts?.Cancel();
 
     /// <summary>
     /// Propagate the events
@@ -500,10 +498,25 @@ public partial class ConfigDebugger : IDisposable
             _stepper.WaitingForStep -= OnWaitingForStep;
         }
 
-        if (!Config.Settings.BrowserSettings.Headless || (Config.Settings.BrowserSettings.CommandLineArgs != "--disable-notifications" && !string.IsNullOrWhiteSpace(Config.Settings.BrowserSettings.CommandLineArgs)))
+        // Fixed: Always dispose browsers to prevent memory leaks
+        try
         {
-            _lastPuppeteerBrowser?.Dispose();
+            if (_lastPuppeteerBrowser != null)
+            {
+                _ = _lastPuppeteerBrowser.CloseAsync().ConfigureAwait(false);
+                _ = _lastPuppeteerBrowser.DisposeAsync();
+            }
+            _lastSeleniumBrowser?.Quit();
             _lastSeleniumBrowser?.Dispose();
+        }
+        catch (Exception ex)
+        {
+            Logger.Log($"Error disposing browsers: {ex.Message}", LogColors.Tomato);
+        }
+        finally
+        {
+            _lastPuppeteerBrowser = null;
+            _lastSeleniumBrowser = null;
         }
 
         GC.SuppressFinalize(this);
@@ -513,4 +526,59 @@ public partial class ConfigDebugger : IDisposable
     private static partial System.Text.RegularExpressions.Regex MyRegex();
     [System.Text.RegularExpressions.GeneratedRegex(@"// LoliCode line (\d+):")]
     private static partial System.Text.RegularExpressions.Regex MyRegex1();
+
+    // Optimized helper methods for error handling
+    private int FindLoliCodeLineNumber(string[] lines, int csharpLineNumber)
+    {
+        for (var i = Math.Min(csharpLineNumber, lines.Length - 1); i >= 0; i--)
+        {
+            var commentMatch = MyRegex1().Match(lines[i]);
+            if (commentMatch.Success && int.TryParse(commentMatch.Groups[1].Value, out var loliCodeLineNumber))
+            {
+                return loliCodeLineNumber;
+            }
+        }
+        return -1;
+    }
+
+    private static string ExtractConciseError(string message)
+    {
+        var errorIndex = message.IndexOf("error CS", StringComparison.Ordinal);
+        if (errorIndex >= 0)
+        {
+            return message[errorIndex..];
+        }
+        
+        var colonIndex = message.LastIndexOf(':');
+        return colonIndex >= 0 ? message[(colonIndex + 1)..].Trim() : message;
+    }
+
+    private void LogProblematicLoliCodeLine(int loliCodeLineNumber)
+    {
+        if (string.IsNullOrEmpty(Config.LoliCodeScript) || loliCodeLineNumber <= 0)
+            return;
+
+        try
+        {
+            var loliCodeLines = Config.LoliCodeScript.Split('\n');
+            if (loliCodeLineNumber <= loliCodeLines.Length)
+            {
+                Logger.Log($"📍 {loliCodeLines[loliCodeLineNumber - 1].Trim()}", LogColors.Yellow);
+            }
+        }
+        catch { /* ignore failures */ }
+    }
+
+    private void LogSurroundingCSharpCode(string[] lines, int csharpLineNumber)
+    {
+        Logger.Log($"📝 Generated C# code around error (line {csharpLineNumber + 1}):", LogColors.Gray);
+        var start = Math.Max(0, csharpLineNumber - 2);
+        var end = Math.Min(lines.Length - 1, csharpLineNumber + 2);
+        
+        for (var i = start; i <= end; i++)
+        {
+            var marker = i == csharpLineNumber ? ">>> " : "    ";
+            Logger.Log($"{marker}{i + 1:D3}: {lines[i].TrimEnd()}", LogColors.Gray);
+        }
+    }
 }

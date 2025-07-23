@@ -20,10 +20,10 @@ namespace OpenBullet2.Native.Views.Pages
         private readonly MainWindow mainWindow;
         private readonly ConfigEditorViewModel vm;
         private readonly Debugger debugger;
-        private readonly ConfigStacker stackerPage;
-        private readonly ConfigLoliCode loliCodePage;
-        private readonly ConfigCSharpCode cSharpPage;
-        private readonly ConfigLoliScript loliScriptPage;
+        private ConfigStacker stackerPage;
+        private ConfigLoliCode loliCodePage;
+        private ConfigCSharpCode cSharpPage;
+        private ConfigLoliScript loliScriptPage;
         private readonly DispatcherTimer autoSaveTimer;
         private readonly OpenBulletSettingsService obSettingsService;
 
@@ -38,19 +38,20 @@ namespace OpenBullet2.Native.Views.Pages
 
             editorFrame.Navigated += (_, _) => UpdateButtonsVisibility();
 
-            // Create the pages
+            // Create debugger only (essential for initial load)
             debugger = new();
-            stackerPage = new();
-            loliCodePage = new();
-            cSharpPage = new();
-            loliScriptPage = new();
-
             debuggerFrame.Content = debugger;
 
-            // Set up auto-save timer
+            // Lazy load other pages on demand
+            stackerPage = null;
+            loliCodePage = null;
+            cSharpPage = null;
+            loliScriptPage = null;
+
+            // Set up auto-save timer with optimized interval
             autoSaveTimer = new DispatcherTimer();
-            autoSaveTimer.Interval = TimeSpan.FromSeconds(obSettingsService.Settings.GeneralSettings.AutoSaveInterval);
-            autoSaveTimer.Tick += async (sender, e) => await AutoSave();
+            autoSaveTimer.Interval = TimeSpan.FromSeconds(Math.Max(5, obSettingsService.Settings.GeneralSettings.AutoSaveInterval));
+            autoSaveTimer.Tick += async (_, _) => await AutoSave();
             autoSaveTimer.Start();
         }
 
@@ -59,48 +60,44 @@ namespace OpenBullet2.Native.Views.Pages
             switch (section)
             {
                 case ConfigEditorSection.Stacker:
+                    stackerPage ??= new ConfigStacker();
                     stackerPage.UpdateViewModel();
                     editorFrame.Content = stackerPage;
                     break;
 
                 case ConfigEditorSection.LoliCode:
+                    loliCodePage ??= new ConfigLoliCode();
                     loliCodePage.UpdateViewModel();
                     editorFrame.Content = loliCodePage;
                     break;
 
                 case ConfigEditorSection.CSharp:
+                    cSharpPage ??= new ConfigCSharpCode();
                     cSharpPage.UpdateViewModel();
                     editorFrame.Content = cSharpPage;
                     break;
 
                 case ConfigEditorSection.LoliScript:
+                    loliScriptPage ??= new ConfigLoliScript();
                     loliScriptPage.UpdateViewModel();
                     editorFrame.Content = loliScriptPage;
-                    break;
-
-                default:
                     break;
             }
         }
 
         private void UpdateButtonsVisibility()
         {
-            if (vm.Config.Mode == ConfigMode.Stack || vm.Config.Mode == ConfigMode.LoliCode)
-            {
-                stackerButton.Visibility = editorFrame.Content != stackerPage
-                    ? Visibility.Visible : Visibility.Collapsed;
+            var isStackOrLoliCode = vm.Config.Mode == ConfigMode.Stack || vm.Config.Mode == ConfigMode.LoliCode;
+            var currentContent = editorFrame.Content;
 
-                loliCodeButton.Visibility = editorFrame.Content != loliCodePage
-                    ? Visibility.Visible : Visibility.Collapsed;
+            stackerButton.Visibility = isStackOrLoliCode && currentContent != stackerPage
+                ? Visibility.Visible : Visibility.Collapsed;
 
-                cSharpButton.Visibility = editorFrame.Content != cSharpPage ? Visibility.Visible : Visibility.Collapsed;
-            }
-            else // C# only mode OR LoliScript mode
-            {
-                stackerButton.Visibility = Visibility.Collapsed;
-                loliCodeButton.Visibility = Visibility.Collapsed;
-                cSharpButton.Visibility = Visibility.Collapsed;
-            }
+            loliCodeButton.Visibility = isStackOrLoliCode && currentContent != loliCodePage
+                ? Visibility.Visible : Visibility.Collapsed;
+
+            cSharpButton.Visibility = isStackOrLoliCode && currentContent != cSharpPage
+                ? Visibility.Visible : Visibility.Collapsed;
         }
 
         /// <summary>
@@ -118,7 +115,7 @@ namespace OpenBullet2.Native.Views.Pages
         private void OpenStacker(object sender, RoutedEventArgs e) => mainWindow.NavigateTo(MainWindowPage.ConfigStacker);
         private void OpenLoliCode(object sender, RoutedEventArgs e) => mainWindow.NavigateTo(MainWindowPage.ConfigLoliCode);
         private void OpenCSharpCode(object sender, RoutedEventArgs e) => mainWindow.NavigateTo(MainWindowPage.ConfigCSharpCode);
-        
+
         public async void Save(object sender, RoutedEventArgs e)
         {
             try
@@ -134,12 +131,11 @@ namespace OpenBullet2.Native.Views.Pages
 
         private async Task AutoSave()
         {
-            if (vm.Config != null && vm.Config.HasUnsavedChanges())
+            if (vm.Config?.HasUnsavedChanges() == true)
             {
                 try
                 {
                     await vm.Save();
-                    // Alert.Info("Auto-saved", $"{vm.Config.Metadata.Name} was auto-saved.");
                 }
                 catch (Exception ex)
                 {

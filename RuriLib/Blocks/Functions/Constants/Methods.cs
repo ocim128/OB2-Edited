@@ -1,4 +1,4 @@
-﻿using RuriLib.Attributes;
+using RuriLib.Attributes;
 using RuriLib.Functions.Conversion;
 using RuriLib.Logging;
 using RuriLib.Models.Bots;

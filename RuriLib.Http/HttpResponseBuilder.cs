@@ -35,7 +35,7 @@ internal class HttpResponseBuilder : IDisposable
     /// Nested PooledMemoryStream for ArrayPool integration
     /// </summary>
     /// <param name="buffer"></param>
-    private class PooledMemoryStream(byte[] buffer) : MemoryStream(buffer)
+    private sealed class PooledMemoryStream(byte[] buffer) : MemoryStream(buffer)
     {
         private byte[] _buffer = buffer;
 
@@ -54,7 +54,6 @@ internal class HttpResponseBuilder : IDisposable
 
     internal HttpResponseBuilder()
     {
-        //  pipe = new Pipe();
     }
 
     /// <summary>
@@ -64,7 +63,7 @@ internal class HttpResponseBuilder : IDisposable
     /// <param name="pipeReader"></param>
     /// <param name="readResponseContent"></param>
     /// <param name="cancellationToken"></param>
-    [MethodImpl(methodImplOptions: MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     internal async Task<HttpResponse> GetResponseAsync(HttpRequest request, PipeReader pipeReader,
         bool readResponseContent = true, CancellationToken cancellationToken = default)
     {
@@ -97,7 +96,7 @@ internal class HttpResponseBuilder : IDisposable
             if (readResponseContent)
             {
                 // Only complete the reader if the content was fully read and buffered
-                reader.Complete();
+                await reader.CompleteAsync();
             }
             // If readResponseContent is false, PipeReaderStream will complete the reader upon its disposal.
         }
@@ -140,7 +139,7 @@ internal class HttpResponseBuilder : IDisposable
             }
             else
             {
-                // the responce is incomplete ex. (HTTP/1.1 200 O)
+                // the response is incomplete ex. (HTTP/1.1 200 O)
                 reader.AdvanceTo(buff.Start, buff.End); // nothing consumed but all the buffer examined loop and read more.
             }
             if (res.IsCanceled || res.IsCompleted)
@@ -175,7 +174,7 @@ internal class HttpResponseBuilder : IDisposable
                 reader.AdvanceTo(buff.Start);
                 break;
             }
-            reader.AdvanceTo(buff.Start, buff.End); // not adding this line might result in infinit loop.
+            reader.AdvanceTo(buff.Start, buff.End); // not adding this line might result in infinite loop.
             if (res.IsCanceled || res.IsCompleted)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -185,7 +184,7 @@ internal class HttpResponseBuilder : IDisposable
     }
 
     /// <summary>
-    /// Reads all Header Lines using <see cref="Span{T}"/> For High Perfromace Parsing.
+    /// Reads all Header Lines using <see cref="Span{T}"/> For High Performance Parsing.
     /// </summary>
     /// <param name="buff">Buffered Data From Pipe</param>
     private bool ReadHeadersFastPath(ref ReadOnlySequence<byte> buff)
@@ -208,25 +207,26 @@ internal class HttpResponseBuilder : IDisposable
 
         return false;
     }
+
     /// <summary>
     /// Reads all Header Lines using SequenceReader.
     /// </summary>
     /// <param name="buff">Buffered Data From Pipe</param>
     private bool ReadHeadersSlowerPath(ref ReadOnlySequence<byte> buff)
     {
-        var reader = new SequenceReader<byte>(buff);
+        var sequenceReader = new SequenceReader<byte>(buff);
 
-        while (reader.TryReadTo(out ReadOnlySpan<byte> Line, CRLF, true))
+        while (sequenceReader.TryReadTo(out ReadOnlySpan<byte> Line, CRLF, true))
         {
             if (Line.Length == 0)// reached last crlf (empty line)
             {
-                buff = buff.Slice(reader.Position);
+                buff = buff.Slice(sequenceReader.Position);
                 return true;// all headers received
             }
             ProcessHeaderLine(Line);
         }
 
-        buff = buff.Slice(reader.Position);
+        buff = buff.Slice(sequenceReader.Position);
         return false;// empty line not found need more data
     }
 
@@ -258,34 +258,43 @@ internal class HttpResponseBuilder : IDisposable
             SetCookie(response, headerValue);
         }
         // If it's a content header
-        else if (headerName.Equals("Content-Type", StringComparison.OrdinalIgnoreCase) ||
-                 headerName.Equals("Content-Length", StringComparison.OrdinalIgnoreCase) ||
-                 headerName.Equals("Content-Encoding", StringComparison.OrdinalIgnoreCase) ||
-                 headerName.Equals("Content-Disposition", StringComparison.OrdinalIgnoreCase) ||
-                 headerName.Equals("Content-Location", StringComparison.OrdinalIgnoreCase) ||
-                 headerName.Equals("Content-Range", StringComparison.OrdinalIgnoreCase) ||
-                 headerName.Equals("Last-Modified", StringComparison.OrdinalIgnoreCase) ||
-                 headerName.Equals("Expires", StringComparison.OrdinalIgnoreCase))
+        else if (IsContentHeader(headerName))
         {
-            // These content headers are specifically handled in HttpResponseBuilder (e.g., Content-Length sets contentLength field)
-            // Add to contentHeaders for potential further processing
-            if (contentHeaders.ContainsKey(headerName))
-            {
-                contentHeaders[headerName].Add(headerValue);
-            }
-            else
-            {
-                contentHeaders.Add(headerName, [headerValue]);
-            }
+            AddContentHeader(headerName, headerValue);
         }
         else
         {
-            // Add to general response headers
-            if (!response.Headers.TryAdd(headerName, headerValue))
-            {
-                // If header already exists, append new value (for multi-value headers)
-                response.Headers[headerName] += ", " + headerValue;
-            }
+            AddGeneralHeader(headerName, headerValue);
+        }
+    }
+
+    private static bool IsContentHeader(string headerName) =>
+        headerName.Equals("Content-Type", StringComparison.OrdinalIgnoreCase) ||
+        headerName.Equals("Content-Length", StringComparison.OrdinalIgnoreCase) ||
+        headerName.Equals("Content-Encoding", StringComparison.OrdinalIgnoreCase) ||
+        headerName.Equals("Content-Disposition", StringComparison.OrdinalIgnoreCase) ||
+        headerName.Equals("Content-Location", StringComparison.OrdinalIgnoreCase) ||
+        headerName.Equals("Content-Range", StringComparison.OrdinalIgnoreCase) ||
+        headerName.Equals("Last-Modified", StringComparison.OrdinalIgnoreCase) ||
+        headerName.Equals("Expires", StringComparison.OrdinalIgnoreCase);
+
+    private void AddContentHeader(string headerName, string headerValue)
+    {
+        if (contentHeaders.ContainsKey(headerName))
+        {
+            contentHeaders[headerName].Add(headerValue);
+        }
+        else
+        {
+            contentHeaders.Add(headerName, [headerValue]);
+        }
+    }
+
+    private void AddGeneralHeader(string headerName, string headerValue)
+    {
+        if (!response.Headers.TryAdd(headerName, headerValue))
+        {
+            response.Headers[headerName] += ", " + headerValue;
         }
     }
 
@@ -301,14 +310,23 @@ internal class HttpResponseBuilder : IDisposable
             return;
         }
 
-        // A single header can (incorrectly but commonly) contain multiple cookies separated by commas.
-        // We iterate through the string, splitting at commas that appear to start a new cookie (lookahead for '=')
+        var cookies = ParseCookies(value);
+        foreach (var cookie in cookies)
+        {
+            response.Request.Cookies[cookie.Key] = cookie.Value;
+        }
+    }
+
+    private static Dictionary<string, string> ParseCookies(string cookieHeader)
+    {
+        var cookies = new Dictionary<string, string>();
         var start = 0;
         var inQuotes = false;
-        for (var i = 0; i <= value.Length; i++)
+
+        for (var i = 0; i <= cookieHeader.Length; i++)
         {
-            var atEnd = i == value.Length;
-            var c = atEnd ? ',' : value[i]; // treat end as comma delimiter
+            var atEnd = i == cookieHeader.Length;
+            var c = atEnd ? ',' : cookieHeader[i];
 
             if (c == '"')
             {
@@ -317,33 +335,44 @@ internal class HttpResponseBuilder : IDisposable
 
             if ((c == ',' && !inQuotes) || atEnd)
             {
-                var length = (atEnd ? i : i) - start;
+                var length = i - start;
                 if (length > 0)
                 {
-                    var segment = value.Substring(start, length).Trim();
-
-                    var eqPos = segment.IndexOf('=');
-                    if (eqPos > 0)
+                    var segment = cookieHeader.Substring(start, length).Trim();
+                    var cookie = ParseSingleCookie(segment);
+                    if (cookie.HasValue)
                     {
-                        var name = segment[..eqPos].Trim();
-
-                        // Value ends at next ';' if present, otherwise till end
-                        var semiPos = segment.IndexOf(';', eqPos + 1);
-                        var val = semiPos == -1 ? segment[(eqPos + 1)..].Trim() : segment.Substring(eqPos + 1, semiPos - eqPos - 1).Trim();
-
-                        // Remove quotes around value
-                        if (val.Length >= 2 && val[0] == '"' && val[^1] == '"')
-                        {
-                            val = val[1..^1];
-                        }
-
-                        response.Request.Cookies[name] = val;
+                        cookies[cookie.Value.Key] = cookie.Value.Value;
                     }
                 }
-
-                start = i + 1; // skip comma
+                start = i + 1;
             }
         }
+
+        return cookies;
+    }
+
+    private static KeyValuePair<string, string>? ParseSingleCookie(string segment)
+    {
+        var eqPos = segment.IndexOf('=');
+        if (eqPos <= 0)
+        {
+            return null;
+        }
+
+        var name = segment[..eqPos].Trim();
+        var semiPos = segment.IndexOf(';', eqPos + 1);
+        var val = semiPos == -1
+            ? segment[(eqPos + 1)..].Trim()
+            : segment.Substring(eqPos + 1, semiPos - eqPos - 1).Trim();
+
+        // Remove quotes around value
+        if (val.Length >= 2 && val[0] == '"' && val[^1] == '"')
+        {
+            val = val[1..^1];
+        }
+
+        return new KeyValuePair<string, string>(name, val);
     }
 
     private async Task ReceiveContentAsync(bool readResponseContent = true, CancellationToken cancellationToken = default)
@@ -373,9 +402,8 @@ internal class HttpResponseBuilder : IDisposable
     }
 
     private Task<Stream> GetMessageBodySource(CancellationToken cancellationToken) =>
-        // Chunked
         response.Headers.TryGetValue("Transfer-Encoding", out var value) &&
-value.Equals("chunked", StringComparison.OrdinalIgnoreCase)
+        value.Equals("chunked", StringComparison.OrdinalIgnoreCase)
             ? GetChunkedDecompressedStream(cancellationToken)
             : GetContentLength() != -1
             ? GetContentLengthDecompressedStream(cancellationToken)
@@ -399,7 +427,7 @@ value.Equals("chunked", StringComparison.OrdinalIgnoreCase)
 
                 foreach (var segment in buff)
                 {
-                    ms.Write(segment.Span);
+                    await ms.WriteAsync(segment.Span.ToArray(), cancellationToken);
                 }
 
                 reader.AdvanceTo(buff.End);
@@ -412,7 +440,7 @@ value.Equals("chunked", StringComparison.OrdinalIgnoreCase)
         }
         catch
         {
-            ms.Dispose();
+            await ms.DisposeAsync();
             throw;
         }
 
@@ -420,11 +448,14 @@ value.Equals("chunked", StringComparison.OrdinalIgnoreCase)
         return ms;
     }
 
-    private async Task<Stream> GetContentLengthDecompressedStream(CancellationToken cancellationToken) => GetZipStream(await ReciveContentLength(cancellationToken).ConfigureAwait(false));
+    private async Task<Stream> GetContentLengthDecompressedStream(CancellationToken cancellationToken) =>
+        GetZipStream(await ReciveContentLength(cancellationToken).ConfigureAwait(false));
 
-    private async Task<Stream> GetChunkedDecompressedStream(CancellationToken cancellationToken) => GetZipStream(await ReceiveMessageBodyChunked(cancellationToken).ConfigureAwait(false));
+    private async Task<Stream> GetChunkedDecompressedStream(CancellationToken cancellationToken) =>
+        GetZipStream(await ReceiveMessageBodyChunked(cancellationToken).ConfigureAwait(false));
 
-    private async Task<Stream> GetResponcestreamUntilCloseDecompressed(CancellationToken cancellationToken) => GetZipStream(await GetResponcestreamUntilClose(cancellationToken).ConfigureAwait(false));
+    private async Task<Stream> GetResponcestreamUntilCloseDecompressed(CancellationToken cancellationToken) =>
+        GetZipStream(await GetResponcestreamUntilClose(cancellationToken).ConfigureAwait(false));
 
     private async Task<Stream> ReciveContentLength(CancellationToken cancellationToken)
     {
@@ -454,26 +485,11 @@ value.Equals("chunked", StringComparison.OrdinalIgnoreCase)
 
                 foreach (var segment in buff)
                 {
-                    // Convert span to array immediately to avoid async span usage
-                    var segmentArray = segment.Span.ToArray();
-                    var arrayToCopy = segmentArray;
-
-                    if (arrayToCopy.Length > bytesToCopy)
-                    {
-                        arrayToCopy = new byte[(int)bytesToCopy];
-                        Array.Copy(segmentArray, 0, arrayToCopy, 0, arrayToCopy.Length);
-                    }
-
-                    ms.Write(arrayToCopy);
-                    bytesRead += arrayToCopy.Length;
-                    bytesToCopy -= arrayToCopy.Length;
-                    if (bytesToCopy == 0 && bytesRead == length)
-                    {
-                        break; // copied all the requested amount
-                    }
+                    await ms.WriteAsync(segment.Span.ToArray(), cancellationToken);
+                    bytesRead += segment.Length;
                 }
 
-                reader.AdvanceTo(buff.GetPosition(bytesRead)); // advance the pipe for the read bytes
+                reader.AdvanceTo(buff.End);
 
                 if (res.IsCompleted && bytesRead < length)
                 {
@@ -483,7 +499,7 @@ value.Equals("chunked", StringComparison.OrdinalIgnoreCase)
         }
         catch
         {
-            ms.Dispose();
+            await ms.DisposeAsync();
             throw;
         }
 
@@ -504,7 +520,8 @@ value.Equals("chunked", StringComparison.OrdinalIgnoreCase)
         return contentLength;
     }
 
-    private string GetContentEncoding() => contentHeaders.TryGetValue("Content-Encoding", out var value) ? value[0] : string.Empty;
+    private string GetContentEncoding() =>
+        contentHeaders.TryGetValue("Content-Encoding", out var value) ? value[0] : string.Empty;
 
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private async Task<Stream> ReceiveMessageBodyChunked(CancellationToken cancellationToken)
@@ -515,128 +532,89 @@ value.Equals("chunked", StringComparison.OrdinalIgnoreCase)
         {
             while (true)
             {
-                // Read chunk size line
-                var chunkSizeLine = string.Empty;
-                while (true)
-                {
-                    var res = await reader.ReadAsync(cancellationToken).ConfigureAwait(false);
-                    var buff = res.Buffer;
-                    var crlfIndex = buff.FirstSpan.IndexOf(CRLF);
-
-                    if (crlfIndex > -1)
-                    {
-                        chunkSizeLine = Encoding.UTF8.GetString(buff.FirstSpan[..crlfIndex]);
-                        reader.AdvanceTo(buff.GetPosition(crlfIndex + 2));
-                        break;
-                    }
-
-                    reader.AdvanceTo(buff.Start, buff.End);
-
-                    if (res.IsCanceled || res.IsCompleted)
-                    {
-                        throw new EndOfStreamException("Reached end of stream before chunk size line");
-                    }
-                }
-
-                var chunkSize = int.Parse(chunkSizeLine.Split(';')[0], System.Globalization.NumberStyles.HexNumber);
-
-                // If chunk size is 0, we're done
+                var chunkSize = await ReadChunkSizeAsync(cancellationToken);
                 if (chunkSize == 0)
                 {
-                    // Read the trailing CRLF after the last chunk
-                    var finalCrlfLine = string.Empty;
-                    while (true)
-                    {
-                        var res = await reader.ReadAsync(cancellationToken).ConfigureAwait(false);
-                        var buff = res.Buffer;
-                        var crlfIndex = buff.FirstSpan.IndexOf(CRLF);
-
-                        if (crlfIndex > -1)
-                        {
-                            finalCrlfLine = Encoding.UTF8.GetString(buff.FirstSpan[..crlfIndex]);
-                            reader.AdvanceTo(buff.GetPosition(crlfIndex + 2));
-                            break;
-                        }
-
-                        reader.AdvanceTo(buff.Start, buff.End);
-
-                        if (res.IsCanceled || res.IsCompleted)
-                        {
-                            throw new EndOfStreamException("Reached end of stream before final CRLF");
-                        }
-                    }
+                    await SkipTrailingCrlfAsync(cancellationToken);
                     break;
                 }
 
-                // Read chunk data
-                long bytesRead = 0;
-                while (bytesRead < chunkSize)
-                {
-                    var res = await reader.ReadAsync(cancellationToken).ConfigureAwait(false);
-                    var buff = res.Buffer;
-
-                    var bytesToCopy = Math.Min(buff.Length, chunkSize - bytesRead);
-
-                    foreach (var segment in buff)
-                    {
-                        // Convert span to array immediately to avoid async span usage
-                        var segmentArray = segment.Span.ToArray();
-                        var arrayToCopy = segmentArray;
-
-                        if (arrayToCopy.Length > bytesToCopy)
-                        {
-                            arrayToCopy = new byte[(int)bytesToCopy];
-                            Array.Copy(segmentArray, 0, arrayToCopy, 0, arrayToCopy.Length);
-                        }
-
-                        ms.Write(arrayToCopy);
-                        bytesRead += arrayToCopy.Length;
-                        bytesToCopy -= arrayToCopy.Length;
-                        if (bytesToCopy == 0 && bytesRead == chunkSize)
-                        {
-                            break; // copied all the requested amount
-                        }
-                    }
-                    reader.AdvanceTo(buff.GetPosition(bytesRead));
-
-                    if (res.IsCompleted && bytesRead < chunkSize)
-                    {
-                        throw new EndOfStreamException("Reached end of stream before expected chunk size");
-                    }
-                }
-
-                // Read the trailing CRLF after the chunk
-                var chunkCrlfLine = string.Empty;
-                while (true)
-                {
-                    var res = await reader.ReadAsync(cancellationToken).ConfigureAwait(false);
-                    var buff = res.Buffer;
-                    var crlfIndex = buff.FirstSpan.IndexOf(CRLF);
-
-                    if (crlfIndex > -1)
-                    {
-                        chunkCrlfLine = Encoding.UTF8.GetString(buff.FirstSpan[..crlfIndex]);
-                        reader.AdvanceTo(buff.GetPosition(crlfIndex + 2));
-                        break;
-                    }
-
-                    reader.AdvanceTo(buff.Start, buff.End);
-
-                    if (res.IsCanceled || res.IsCompleted)
-                    {
-                        throw new EndOfStreamException("Reached end of stream before chunk CRLF");
-                    }
-                }
+                await ReadChunkDataAsync(ms, chunkSize, cancellationToken);
+                await SkipChunkCrlfAsync(cancellationToken);
             }
         }
         catch
         {
-            ms.Dispose();
+            await ms.DisposeAsync();
             throw;
         }
 
         ms.Position = 0;
         return ms;
+    }
+
+    private async Task<int> ReadChunkSizeAsync(CancellationToken cancellationToken)
+    {
+        var chunkSizeLine = await ReadLineAsync(cancellationToken);
+        return int.Parse(chunkSizeLine.Split(';')[0], System.Globalization.NumberStyles.HexNumber);
+    }
+
+    private async Task ReadChunkDataAsync(MemoryStream destination, int chunkSize, CancellationToken cancellationToken)
+    {
+        long bytesRead = 0;
+        while (bytesRead < chunkSize)
+        {
+            var res = await reader.ReadAsync(cancellationToken).ConfigureAwait(false);
+            var buff = res.Buffer;
+
+            var bytesToCopy = Math.Min(buff.Length, chunkSize - bytesRead);
+
+            foreach (var segment in buff)
+            {
+                await destination.WriteAsync(segment.Span.ToArray(), cancellationToken);
+                bytesRead += segment.Length;
+            }
+            reader.AdvanceTo(buff.GetPosition(bytesRead));
+
+            if (res.IsCompleted && bytesRead < chunkSize)
+            {
+                throw new EndOfStreamException("Reached end of stream before expected chunk size");
+            }
+        }
+    }
+
+    private async Task<string> ReadLineAsync(CancellationToken cancellationToken)
+    {
+        while (true)
+        {
+            var res = await reader.ReadAsync(cancellationToken).ConfigureAwait(false);
+            var buff = res.Buffer;
+            var crlfIndex = buff.FirstSpan.IndexOf(CRLF);
+
+            if (crlfIndex > -1)
+            {
+                var line = Encoding.UTF8.GetString(buff.FirstSpan[..crlfIndex]);
+                reader.AdvanceTo(buff.GetPosition(crlfIndex + 2));
+                return line;
+            }
+
+            reader.AdvanceTo(buff.Start, buff.End);
+
+            if (res.IsCanceled || res.IsCompleted)
+            {
+                throw new EndOfStreamException("Reached end of stream before line");
+            }
+        }
+    }
+
+    private async Task SkipTrailingCrlfAsync(CancellationToken cancellationToken)
+    {
+        await ReadLineAsync(cancellationToken);
+    }
+
+    private async Task SkipChunkCrlfAsync(CancellationToken cancellationToken)
+    {
+        await ReadLineAsync(cancellationToken);
     }
 
     private Stream GetZipStream(Stream stream)

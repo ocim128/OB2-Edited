@@ -1,4 +1,4 @@
-﻿using OpenBullet2.Native.Extensions;
+using OpenBullet2.Native.Extensions;
 using OpenBullet2.Native.ViewModels;
 using RuriLib.Models.Blocks.Settings;
 using RuriLib.Models.Blocks.Settings.Interpolated;

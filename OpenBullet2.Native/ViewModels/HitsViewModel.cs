@@ -62,7 +62,7 @@ namespace OpenBullet2.Native.ViewModels
 
         public IEnumerable<string> HitTypes => new string[] { "All" }.Concat(
             HitsCollection.GroupBy(h => h.Type).Select(g => g.First().Type));
-        
+
         private string typeFilter = "All";
         public string TypeFilter
         {

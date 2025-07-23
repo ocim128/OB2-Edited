@@ -1,7 +1,8 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using OpenBullet2.Core;
+using OpenBullet2.Core.Models.Proxies;
 using OpenBullet2.Core.Repositories;
 using OpenBullet2.Core.Services;
 using OpenBullet2.Logging;
@@ -19,7 +20,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Threading;
-using OpenBullet2.Core.Models.Proxies;
 using System.Diagnostics;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
@@ -36,6 +36,7 @@ public partial class App : Application
     private readonly ServiceProvider _serviceProvider;
     private readonly IConfiguration _config;
 
+
     public App()
     {
         Trace("App constructor START");
@@ -49,6 +50,18 @@ public partial class App : Application
         // Create UserData directory in the executable's directory
         var userDataPath = Path.Combine(appDirectory, "UserData");
         Directory.CreateDirectory(userDataPath);
+
+        // Ensure the directory is writable
+        try
+        {
+            var testFile = Path.Combine(userDataPath, ".write_test");
+            File.WriteAllText(testFile, "test");
+            File.Delete(testFile);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            throw new InvalidOperationException($"UserData directory '{userDataPath}' is not writable. Please check folder permissions.");
+        }
 
         Trace($"UserDataPath: {userDataPath}");
 
@@ -67,95 +80,78 @@ public partial class App : Application
 
         Trace("ServiceProvider built");
 
-        var workerThreads = _config.GetSection("Resources").GetValue("WorkerThreads", 1000);
-        var ioThreads = _config.GetSection("Resources").GetValue("IOThreads", 1000);
-        var connectionLimit = _config.GetSection("Resources").GetValue("ConnectionLimit", 1000);
-
-        // Dynamically cap the min threads based on the number of logical processors to avoid
-        // spawning an excessive amount of threads which can hurt performance on low-core systems.
-        var logicalCores = Environment.ProcessorCount;
-        workerThreads = Math.Min(workerThreads, logicalCores * 4);
-        ioThreads = Math.Min(ioThreads, logicalCores * 4);
-
-        ThreadPool.SetMinThreads(workerThreads, ioThreads);
-        ServicePointManager.DefaultConnectionLimit = connectionLimit;
-
-        Trace($"ThreadPool min threads set to W:{workerThreads} IO:{ioThreads} on {logicalCores} cores");
-
-        // Apply DB migrations or create a DB if it doesn't exist
-        using var serviceScope = _serviceProvider.GetService<IServiceScopeFactory>().CreateScope();
-        var context = serviceScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-
-        // Attempt to apply pending migrations. If the database is locked because another
-        // instance is already using it, catch the exception and continue so that the
-        // current process can still start (it will operate on the existing schema).
-        try
+        // Optimized startup - minimal critical initialization only
+        ThreadPool.SetMinThreads(Environment.ProcessorCount, Environment.ProcessorCount);
+        
+        // Batch all non-critical optimizations into single background task
+        Task.Run(() =>
         {
-            Trace("Applying migrations");
-            context.Database.Migrate();
-            Trace("Migrations complete");
-        }
-        catch (Microsoft.Data.Sqlite.SqliteException ex) when (ex.SqliteErrorCode == 5)
-        {
-            // SQLite error code 5 = "database is locked". This happens when another
-            // process keeps the DB open. We log the issue and move on – the schema is
-            // assumed to be up-to-date because the first instance already applied any
-            // pending migrations.
-            Debug.WriteLine($"SQLite database locked, skipping migrations: {ex.Message}");
-        }
-        catch (ArgumentException ex) when (ex.Message.Contains("journal mode", StringComparison.OrdinalIgnoreCase))
-        {
-            // Some versions of Microsoft.Data.Sqlite throw if the connection string contains an
-            // unsupported keyword (e.g. "journal mode" in lower case). This is harmless for our
-            // purposes, so we log and keep going.
-            Debug.WriteLine($"SQLite connection string issue, skipping migrations: {ex.Message}");
-        }
-        catch (Exception ex)
-        {
-            // Any other migration exception should not crash the whole application when
-            // launching additional instances. Log the exception and proceed.
-            Debug.WriteLine($"Database migration failed: {ex.Message}");
-        }
+            // Network optimizations
+            ServicePointManager.DefaultConnectionLimit = Environment.ProcessorCount * 4;
+            ServicePointManager.Expect100Continue = false;
+            ServicePointManager.UseNagleAlgorithm = false;
+            
+            // ThreadPool optimization
+            ThreadPool.SetMaxThreads(Environment.ProcessorCount * 4, Environment.ProcessorCount * 2);
+            
+            // GC optimization
+            ApplyGarbageCollectionOptimizations();
+        });
 
-        // Load the configs
-        var configService = _serviceProvider.GetService<ConfigService>();
-        try
+        Trace($"ThreadPool minimal configuration applied, full optimization deferred");
+
+        // Defer database migration to improve startup time
+        Task.Run(() =>
         {
-            Trace("Starting async config reload");
-            _ = Task.Run(async () =>
+            try
             {
-                try
-                {
-                    await configService.ReloadConfigsAsync();
-                    Trace("Configs reloaded (async)");
-                }
-                catch (Exception ex2)
-                {
-                    Debug.WriteLine($"Config reload failed: {ex2.Message}");
-                    Trace($"Config reload failed: {ex2}");
-                }
-            });
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"Config reload task start failed: {ex.Message}");
-            Trace($"Config reload task start failed: {ex}");
-        }
+                Trace("Starting database migration");
+                using var scope = _serviceProvider.CreateScope();
+                var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                context.Database.Migrate();
+                Trace("Database migration completed");
+            }
+            catch (Exception ex)
+            {
+                Trace($"Database migration failed: {ex}");
+                Dispatcher.BeginInvoke(() => Alert.Error("Database Error", $"Failed to migrate database: {ex.Message}"));
+            }
+        });
 
-        AutocompletionProvider.Init();
-        Trace("AutocompletionProvider.Init complete");
+        // Load config asynchronously with priority
+        Task.Run(async () =>
+        {
+            try
+            {
+                Trace("Loading configuration asynchronously");
+                var configService = _serviceProvider.GetService<ConfigService>();
+                await configService.ReloadConfigsAsync();
+                Trace("Configuration loaded successfully");
+            }
+            catch (Exception ex)
+            {
+                Trace($"Config loading failed: {ex.Message}");
+            }
+        });
 
-        // Start the job monitor at the start of the application,
-        // otherwise it will only be started when navigating to the page
-        try
+        // Defer non-critical initialization to improve startup time
+        _ = Task.Run(() =>
         {
-            _ = _serviceProvider.GetService<JobMonitorService>();
-            Trace("JobMonitorService retrieved");
-        }
-        catch (Exception ex)
-        {
-            Trace($"JobMonitorService retrieval failed: {ex}");
-        }
+            try
+            {
+                // Initialize autocompletion provider in background
+                AutocompletionProvider.Init();
+                Trace("AutocompletionProvider.Init complete (deferred)");
+                
+                // Start job monitor service in background
+                _ = _serviceProvider.GetService<JobMonitorService>();
+                Trace("JobMonitorService retrieved (deferred)");
+            }
+            catch (Exception ex)
+            {
+                Trace($"Deferred initialization failed: {ex}");
+            }
+        });
 
         Trace("App constructor END");
     }
@@ -172,8 +168,14 @@ public partial class App : Application
 
         // EF - Use absolute path for database
         var dbConnectionString = _config.GetConnectionString("DefaultConnection");
-        var absoluteDbPath = dbConnectionString.Replace("UserData/OpenBullet.db",
-            Path.Combine(userDataPath, "OpenBullet.db").Replace('\\', '/'));
+        if (string.IsNullOrEmpty(dbConnectionString))
+        {
+            throw new InvalidOperationException("DefaultConnection connection string is missing from configuration");
+        }
+
+        var absoluteDbPath = dbConnectionString?.Replace("UserData/OpenBullet.db",
+            Path.Combine(userDataPath, "OpenBullet.db").Replace('\\', '/')) ??
+            throw new InvalidOperationException("Failed to construct database path from connection string");
 
         services.AddDbContext<ApplicationDbContext>(options =>
             options.UseSqlite(absoluteDbPath,
@@ -196,8 +198,6 @@ public partial class App : Application
         // Singletons
         services.AddSingleton<VolatileSettingsService>();
         services.AddSingleton<ViewModelsService>();
-        services.AddSingleton<AnnouncementService>();
-        services.AddSingleton<UpdateService>();
         services.AddSingleton<ConfigService>();
         services.AddSingleton<ProxyReloadService>();
         services.AddSingleton<ProxyCheckOutputFactory>();
@@ -256,13 +256,22 @@ public partial class App : Application
     {
         try
         {
-            // Set conservative animation settings (reduce from 60fps to 30fps)
+            var reducedAnimations = _config.GetSection("Performance").GetValue("ReducedAnimations", true);
+            var frameRate = reducedAnimations ? 20 : 30;
+            
+            // Set animation frame rate based on performance mode
             Timeline.DesiredFrameRateProperty.OverrideMetadata(
                 typeof(Timeline),
-                new FrameworkPropertyMetadata { DefaultValue = 30 }
+                new FrameworkPropertyMetadata { DefaultValue = frameRate }
             );
 
-            Debug.WriteLine("Conservative GPU settings applied: 30fps animations to reduce laptop heating");
+            if (reducedAnimations)
+            {
+                // Disable hardware acceleration for low-spec systems to reduce GPU load
+                RenderOptions.ProcessRenderMode = System.Windows.Interop.RenderMode.SoftwareOnly;
+            }
+
+            Debug.WriteLine($"Conservative GPU settings applied: {frameRate}fps animations{(reducedAnimations ? ", software rendering" : "")} to reduce laptop heating");
         }
         catch (Exception ex)
         {
@@ -270,13 +279,31 @@ public partial class App : Application
         }
     }
 
-    private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
+    private void ApplyGarbageCollectionOptimizations()
+    {
+        try
+        {
+            // Configure GC for low-latency scenarios without aggressive collection
+            System.Runtime.GCSettings.LatencyMode = System.Runtime.GCLatencyMode.Interactive;
+            
+            // Single optimized collection to clean up startup overhead
+            GC.Collect(1, GCCollectionMode.Optimized, false);
+
+            Debug.WriteLine("Garbage collection optimizations applied for low-spec systems");
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Could not apply GC optimizations: {ex.Message}");
+        }
+    }
+
+    private static void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
     {
         ReportCrash(e.Exception);
         e.Handled = true; // Set to false to close the app on exception
     }
 
-    private void OnTaskException(object sender, UnobservedTaskExceptionEventArgs e)
+    private static void OnTaskException(object sender, UnobservedTaskExceptionEventArgs e)
     {
         e.SetObserved(); // Comment this line to close the app on task exception
 
@@ -299,18 +326,64 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
+        // Dispose service provider on exit
         if (_serviceProvider is IDisposable disposable)
         {
-            disposable.Dispose();
+            try
+            {
+                disposable.Dispose();
+            }
+            catch (ObjectDisposedException)
+            {
+                // Service provider already disposed, ignore
+                Trace("Service provider already disposed");
+            }
+            catch (Exception ex)
+            {
+                Trace($"Error disposing service provider: {ex}");
+            }
         }
         base.OnExit(e);
     }
 
     private static void ReportCrash(Exception ex)
     {
-        var appDirectory = AppDomain.CurrentDomain.BaseDirectory;
-        var crashLogPath = Path.Combine(appDirectory, "crash.log");
-        File.WriteAllText(crashLogPath, $"Unhandled exception thrown on {DateTime.Now}\r\n{ex}");
+        try
+        {
+            var appDirectory = AppDomain.CurrentDomain.BaseDirectory;
+            var crashLogPath = Path.Combine(appDirectory, "crash.log");
+
+            // Ensure directory exists
+            Directory.CreateDirectory(Path.GetDirectoryName(crashLogPath));
+
+            // Use proper file handling with retry logic for file locks
+            var maxRetries = 3;
+            var retryDelay = TimeSpan.FromMilliseconds(100);
+
+            for (int attempt = 1; attempt <= maxRetries; attempt++)
+            {
+                try
+                {
+                    File.WriteAllText(crashLogPath,
+                        $"Unhandled exception thrown on {DateTime.Now}\r\n{ex}\r\n\r\nStack Trace:\r\n{ex.StackTrace}");
+                    break;
+                }
+                catch (IOException) when (attempt < maxRetries)
+                {
+                    Thread.Sleep(retryDelay);
+                }
+            }
+
+            // Also write to a timestamped file to avoid overwriting
+            var timestampedPath = Path.Combine(appDirectory, $"crash-{DateTime.Now:yyyyMMdd-HHmmss}.log");
+            File.WriteAllText(timestampedPath,
+                $"Unhandled exception thrown on {DateTime.Now}\r\n{ex}\r\n\r\nStack Trace:\r\n{ex.StackTrace}");
+        }
+        catch (Exception logEx)
+        {
+            // Last resort: try to write to Windows Event Log or show in message box
+            Debug.WriteLine($"Failed to write crash log: {logEx.Message}");
+        }
 
         Alert.Error("Unhandled exception", "An unhandled exception was thrown, the application will try to continue running." +
             " Please open the crash.log file, copy the error message inside it and open an issue on the official github repository." +
@@ -319,7 +392,7 @@ public partial class App : Application
 
     // Simple file trace helper: writes only in DEBUG builds or when OB2_TRACE symbol is defined
 #if DEBUG || OB2_TRACE
-    private void Trace(string msg)
+    private static void Trace(string msg)
     {
         try
         {
@@ -330,6 +403,6 @@ public partial class App : Application
     }
 #else
     [System.Diagnostics.Conditional("OB2_TRACE")]
-    private void Trace(string msg) { }
+    private static void Trace(string msg) { }
 #endif
 }

@@ -1,7 +1,11 @@
-﻿using OpenBullet2.Core.Repositories;
+using OpenBullet2.Core.Repositories;
+using OpenBullet2.Core.Services;
 using OpenBullet2.Native.Services;
 using OpenBullet2.Native.ViewModels;
+using OpenBullet2.Native.Helpers;
+using OpenBullet2.Native.Utils;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -11,6 +15,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Threading;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 
 namespace OpenBullet2.Native.Views.Pages
 {
@@ -27,7 +32,7 @@ namespace OpenBullet2.Native.Views.Pages
 
             vm = new HomeViewModel();
             DataContext = vm;
-            
+
             // Cleanup when page is unloaded
             Unloaded += (s, e) => vm?.Dispose();
         }
@@ -35,7 +40,6 @@ namespace OpenBullet2.Native.Views.Pages
 
     public class HomeViewModel : ViewModelBase, IDisposable
     {
-        private readonly AnnouncementService annService;
         private readonly IJobRepository jobRepo;
         private readonly IConfigRepository configRepo;
         private readonly IHitRepository hitRepo;
@@ -44,19 +48,25 @@ namespace OpenBullet2.Native.Views.Pages
         private readonly IGuestRepository guestRepo;
         private readonly DispatcherTimer refreshTimer;
         private readonly DispatcherTimer statisticsTimer;
-        
+
         // Static application start time to persist across ViewModel instances
-        private static readonly DateTime applicationStartTime = DateTime.Now;
-        
+        private static readonly DateTime applicationStartTime = DateTime.UtcNow;
+
         // Cache for statistics to reduce database queries
         private DateTime lastStatisticsUpdate = DateTime.MinValue;
-        private readonly TimeSpan statisticsUpdateInterval = TimeSpan.FromSeconds(10); // Update stats every 10 seconds instead of 2
-        
+        private readonly TimeSpan statisticsUpdateInterval;
+        private readonly TimeSpan systemMetricsUpdateInterval;
+
+        // Performance optimization flags
+        private readonly bool isLowSpecMode;
+        private readonly bool enableSmoothing;
+        private int updateCounter = 0;
+
         private bool disposed = false;
 
 
 
-        private string announcement = "Loading announcement...";
+        private string announcement = "Welcome to OpenBullet 2!";
         public string Announcement
         {
             get => announcement;
@@ -68,7 +78,7 @@ namespace OpenBullet2.Native.Views.Pages
             }
         }
 
-        public bool HasAnnouncement => !string.IsNullOrWhiteSpace(announcement) && announcement != "Loading announcement...";
+        public bool HasAnnouncement => !string.IsNullOrWhiteSpace(announcement);
 
         // Collection Statistics
         private int jobsCount;
@@ -163,14 +173,14 @@ namespace OpenBullet2.Native.Views.Pages
         }
 
         // System Information
-        public string OperatingSystem => RuntimeInformation.OSDescription;
-        public string DotNetVersion => RuntimeInformation.FrameworkDescription;
-        public string ApplicationVersion => System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "Unknown";
-        public string WorkingDirectory => Directory.GetCurrentDirectory();
-        public string WorkingDirectoryShort => Path.GetFileName(Directory.GetCurrentDirectory()) ?? "Unknown";
-        public string BuildDate => File.GetCreationTime(System.Reflection.Assembly.GetExecutingAssembly().Location).ToString("yyyy-MM-dd HH:mm");
-        
-        private string currentTime = DateTime.Now.ToString("ddd, MMM dd, yyyy h:mm tt");
+        public static string OperatingSystem => RuntimeInformation.OSDescription;
+        public static string DotNetVersion => RuntimeInformation.FrameworkDescription;
+        public static string ApplicationVersion => System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "Unknown";
+        public static string WorkingDirectory => Directory.GetCurrentDirectory();
+        public static string WorkingDirectoryShort => Path.GetFileName(Directory.GetCurrentDirectory()) ?? "Unknown";
+        public static string BuildDate => File.GetCreationTime(System.Reflection.Assembly.GetExecutingAssembly().Location).ToString("yyyy-MM-dd HH:mm");
+
+        private string currentTime = DateTime.UtcNow.ToString("ddd, MMM dd, yyyy h:mm tt");
         public string CurrentTime
         {
             get => currentTime;
@@ -180,7 +190,7 @@ namespace OpenBullet2.Native.Views.Pages
                 OnPropertyChanged();
             }
         }
-        
+
         private string applicationUptime = "00:00:00";
         public string ApplicationUptime
         {
@@ -202,7 +212,7 @@ namespace OpenBullet2.Native.Views.Pages
                 OnPropertyChanged();
             }
         }
-        
+
         private string cpuUsage = "0.00%";
         public string CpuUsage
         {
@@ -211,9 +221,32 @@ namespace OpenBullet2.Native.Views.Pages
             {
                 cpuUsage = value;
                 OnPropertyChanged();
+                UpdatePerformanceIndicator();
             }
         }
-        
+
+        private string performanceStatus = "Normal";
+        public string PerformanceStatus
+        {
+            get => performanceStatus;
+            set
+            {
+                performanceStatus = value;
+                OnPropertyChanged();
+            }
+        }
+
+        private string performanceIndicatorColor = "LightGreen";
+        public string PerformanceIndicatorColor
+        {
+            get => performanceIndicatorColor;
+            set
+            {
+                performanceIndicatorColor = value;
+                OnPropertyChanged();
+            }
+        }
+
         private int threadCount = 0;
         public int ThreadCount
         {
@@ -229,7 +262,6 @@ namespace OpenBullet2.Native.Views.Pages
         {
             try
             {
-                annService = SP.GetService<AnnouncementService>();
                 jobRepo = SP.GetService<IJobRepository>();
                 configRepo = SP.GetService<IConfigRepository>();
                 hitRepo = SP.GetService<IHitRepository>();
@@ -237,120 +269,232 @@ namespace OpenBullet2.Native.Views.Pages
                 wordlistRepo = SP.GetService<IWordlistRepository>();
                 guestRepo = SP.GetService<IGuestRepository>();
 
-                // Fetch announcement and load initial statistics
-                FetchAnnouncement();
-                LoadCollectionStatistics();
-                
-                // Setup fast refresh timer for system metrics (every 2 seconds)
-                refreshTimer = new DispatcherTimer
+                // Get performance settings from configuration
+                var config = SP.GetService<IConfiguration>();
+                var performanceSection = config.GetSection("Performance");
+                var statisticsInterval = performanceSection.GetValue<int>("StatisticsUpdateInterval", 45);
+                var systemMetricsInterval = performanceSection.GetValue<int>("SystemMetricsUpdateInterval", 8);
+
+                // Performance optimization settings
+                isLowSpecMode = performanceSection.GetValue<bool>("LowSpecMode", false);
+                enableSmoothing = performanceSection.GetValue<bool>("EnableSmoothing", true);
+
+                // Adjust intervals for low-spec mode
+                if (isLowSpecMode)
                 {
-                    Interval = TimeSpan.FromSeconds(2)
-                };
-                refreshTimer.Tick += (s, e) => 
+                    statisticsInterval = Math.Max(statisticsInterval, 60); // Minimum 60s for low-spec
+                    systemMetricsInterval = Math.Max(systemMetricsInterval, 10); // Minimum 10s for low-spec
+                }
+
+                statisticsUpdateInterval = TimeSpan.FromSeconds(statisticsInterval);
+                systemMetricsUpdateInterval = TimeSpan.FromSeconds(systemMetricsInterval);
+
+                // Load initial statistics
+                _ = Task.Run(async () => await LoadCollectionStatistics());
+
+                // Setup optimized refresh timer for system metrics
+                refreshTimer = new DispatcherTimer(DispatcherPriority.Background)
                 {
-                    UpdateApplicationUptime();
-                    UpdateMemoryUsage();
-                    UpdateCurrentTime();
-                    UpdateCpuUsage();
-                    UpdateThreadCount();
-                    
-                    // Update statistics less frequently to reduce database load
-                    if (DateTime.Now - lastStatisticsUpdate > statisticsUpdateInterval)
-                    {
-                        LoadCollectionStatistics();
-                        lastStatisticsUpdate = DateTime.Now;
-                    }
+                    Interval = systemMetricsUpdateInterval
                 };
+                refreshTimer.Tick += OnSystemMetricsTimerTick;
+
+                // Setup separate timer for statistics to avoid blocking UI updates
+                statisticsTimer = new DispatcherTimer(DispatcherPriority.Background)
+                {
+                    Interval = statisticsUpdateInterval
+                };
+                statisticsTimer.Tick += OnStatisticsTimerTick;
+
                 refreshTimer.Start();
-                
-                // Mark initial statistics as updated
-                lastStatisticsUpdate = DateTime.Now;
-            }
-            catch (Exception ex)
-            {
-                // If service initialization fails, set default values
-                Announcement = "Failed to load services: " + ex.Message;
-                System.Diagnostics.Debug.WriteLine($"HomeViewModel initialization error: {ex}");
-            }
-            
-            // Initial updates (always do these)
-            UpdateApplicationUptime();
-            UpdateMemoryUsage();
-            UpdateCurrentTime();
-            UpdateCpuUsage();
-            UpdateThreadCount();
-        }
+                statisticsTimer.Start();
 
-        private async void FetchAnnouncement()
-        {
-            try
-            {
-                Announcement = await annService.FetchAnnouncementAsync();
-            }
-            catch
-            {
-                Announcement = ""; // Hide announcement section if fetch fails
-            }
-        }
+                // Initial updates with staggered execution
+                UpdateCurrentTime();
+                UpdateApplicationUptime();
 
-        private async void LoadCollectionStatistics()
-        {
-            try
-            {
-                // Use Task.Run to offload database queries to background thread
-                await Task.Run(async () =>
+                // Delay heavy operations to avoid startup lag
+                _ = Task.Delay(1000).ContinueWith(_ =>
                 {
-                    // Parallel execution of independent database queries for better performance
-                    var jobCountTask = Task.Run(() => jobRepo.GetAll().CountAsync());
-                    var configCountTask = Task.Run(() => configRepo.GetAllAsync().ContinueWith(t => t.Result.Count()));
-                    var hitCountTask = Task.Run(() => hitRepo.CountAsync());
-                    var guestCountTask = Task.Run(() => guestRepo.GetAll().CountAsync());
-                    var proxyCountTask = CountProxiesAsync();
-                    var wordlistTask = CountWordlistsAsync();
-                    var pluginCountTask = Task.Run(() => CountPlugins());
-                    
-                    await Task.WhenAll(jobCountTask, configCountTask, hitCountTask, guestCountTask, proxyCountTask, wordlistTask, pluginCountTask);
-                    
-                    // Update UI on main thread
-                    Application.Current.Dispatcher.Invoke(() =>
+                    Application.Current?.Dispatcher.BeginInvoke(() =>
                     {
-                        JobsCount = jobCountTask.Result;
-                        ConfigsCount = configCountTask.Result;
-                        HitsCount = (int)Math.Min(hitCountTask.Result, int.MaxValue);
-                        GuestsCount = (int)guestCountTask.Result;
-                        ProxiesCount = (int)proxyCountTask.Result;
-                        
-                        var wordlistResult = wordlistTask.Result;
-                        WordlistsCount = wordlistResult.count;
-                        wordlistLines = wordlistResult.lines;
-                        OnPropertyChanged(nameof(WordlistLines));
-                        
-                        PluginsCount = pluginCountTask.Result;
+                        UpdateMemoryUsage();
+                        UpdateThreadCount();
+                    }, DispatcherPriority.Background);
+
+                    _ = Task.Run(async () =>
+                    {
+                        var cpuUsage = await CalculateCpuUsage();
+                        CpuUsage = $"{cpuUsage:F2}%";
                     });
                 });
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"LoadCollectionStatistics error: {ex}");
-                
-                // If any repository call fails, set counts to 0
-                JobsCount = 0;
-                ConfigsCount = 0;
-                HitsCount = 0;
-                ProxiesCount = 0;
-                WordlistsCount = 0;
-                wordlistLines = 0;
-                OnPropertyChanged(nameof(WordlistLines));
-                GuestsCount = 0;
-                PluginsCount = 0;
+                Alert.Exception(ex);
             }
         }
-        
-        private async Task<long> CountProxiesAsync()
+
+
+
+        private async Task LoadCollectionStatistics()
         {
             try
             {
-                var proxyGroups = await Task.Run(() => proxyRepo.GetAll().Include(g => g.Proxies).ToListAsync());
+                // Skip if recently updated to reduce database load
+                if (DateTime.UtcNow - lastStatisticsUpdate < TimeSpan.FromSeconds(30))
+                {
+                    return;
+                }
+
+                // Check if repositories are available
+                if (jobRepo == null || configRepo == null || hitRepo == null ||
+                    guestRepo == null || wordlistRepo == null || proxyRepo == null)
+                {
+                    System.Diagnostics.Debug.WriteLine("One or more repositories are null, skipping statistics update");
+                    return;
+                }
+
+                // Get timeout setting from configuration
+                var config = SP.GetService<IConfiguration>();
+                var timeoutSeconds = config?.GetSection("Performance")?.GetValue<int>("DatabaseQueryTimeout", 10) ?? 10;
+                var timeout = TimeSpan.FromSeconds(isLowSpecMode ? 15 : timeoutSeconds);
+
+                using var cts = new System.Threading.CancellationTokenSource(timeout);
+
+                // Use Task.Run to offload database queries to background thread
+                await Task.Run(async () =>
+                {
+                    // Prioritize most important statistics for low-spec mode
+                    if (isLowSpecMode)
+                    {
+                        // Only update essential statistics in low-spec mode
+                        var jobCountTask = Task.Run(async () =>
+                        {
+                            try { return await jobRepo.GetAll().CountAsync(cts.Token); }
+                            catch { return 0; }
+                        }, cts.Token);
+
+                        var configCountTask = Task.Run(async () =>
+                        {
+                            try { return (await configRepo.GetAllAsync())?.Count() ?? 0; }
+                            catch { return 0; }
+                        }, cts.Token);
+
+                        var hitCountTask = Task.Run(async () =>
+                        {
+                            try { return await hitRepo.CountAsync(); }
+                            catch { return 0L; }
+                        }, cts.Token);
+
+                        var pluginCountTask = Task.Run(() => CountPlugins(), cts.Token);
+
+                        await Task.WhenAll(jobCountTask, configCountTask, hitCountTask, pluginCountTask);
+
+                        // Update UI on main thread with null checks
+                        await Application.Current.Dispatcher.InvokeAsync(() =>
+                        {
+                            if (disposed) return;
+
+                            JobsCount = jobCountTask.Result;
+                            ConfigsCount = configCountTask.Result;
+                            HitsCount = (int)Math.Min(hitCountTask.Result, int.MaxValue);
+                            PluginsCount = pluginCountTask.Result;
+                            // Keep previous values for other properties to reduce UI updates
+                        });
+                    }
+                    else
+                    {
+                        // Full statistics update for normal mode
+                        var jobCountTask = Task.Run(async () =>
+                        {
+                            try { return await jobRepo.GetAll().CountAsync(cts.Token); }
+                            catch { return 0; }
+                        }, cts.Token);
+
+                        var configCountTask = Task.Run(async () =>
+                        {
+                            try { return (await configRepo.GetAllAsync())?.Count() ?? 0; }
+                            catch { return 0; }
+                        }, cts.Token);
+
+                        var hitCountTask = Task.Run(async () =>
+                        {
+                            try { return await hitRepo.CountAsync(); }
+                            catch { return 0L; }
+                        }, cts.Token);
+
+                        var guestCountTask = Task.Run(async () =>
+                        {
+                            try { return await guestRepo.GetAll().CountAsync(cts.Token); }
+                            catch { return 0; }
+                        }, cts.Token);
+
+                        var proxyCountTask = CountProxiesAsync(cts.Token);
+                        var wordlistTask = CountWordlistsAsync(cts.Token);
+                        var pluginCountTask = Task.Run(() => CountPlugins(), cts.Token);
+
+                        await Task.WhenAll(jobCountTask, configCountTask, hitCountTask, guestCountTask, proxyCountTask, wordlistTask, pluginCountTask);
+
+                        // Update UI on main thread with null checks
+                        await Application.Current.Dispatcher.InvokeAsync(() =>
+                        {
+                            if (disposed) return;
+
+                            JobsCount = jobCountTask.Result;
+                            ConfigsCount = configCountTask.Result;
+                            HitsCount = (int)Math.Min(hitCountTask.Result, int.MaxValue);
+                            GuestsCount = (int)guestCountTask.Result;
+                            ProxiesCount = (int)proxyCountTask.Result;
+
+                            var wordlistResult = wordlistTask.Result;
+                            WordlistsCount = wordlistResult.count;
+                            wordlistLines = wordlistResult.lines;
+                            OnPropertyChanged(nameof(WordlistLines));
+
+                            PluginsCount = pluginCountTask.Result;
+                        });
+                    }
+
+                    lastStatisticsUpdate = DateTime.UtcNow;
+                }, cts.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                System.Diagnostics.Debug.WriteLine("LoadCollectionStatistics timed out - using cached values");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"LoadCollectionStatistics error: {ex.Message}");
+
+                // If any repository call fails, set counts to 0
+                await Application.Current.Dispatcher.InvokeAsync(() =>
+                {
+                    if (disposed) return;
+
+                    JobsCount = 0;
+                    ConfigsCount = 0;
+                    HitsCount = 0;
+                    ProxiesCount = 0;
+                    WordlistsCount = 0;
+                    wordlistLines = 0;
+                    OnPropertyChanged(nameof(WordlistLines));
+                    GuestsCount = 0;
+                    PluginsCount = 0;
+                });
+            }
+        }
+
+        private void UpdateCurrentTime()
+        {
+            CurrentTime = DateTime.UtcNow.ToString("ddd, MMM dd, yyyy h:mm tt");
+        }
+
+        private async Task<long> CountProxiesAsync(System.Threading.CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var proxyGroups = await Task.Run(() => proxyRepo.GetAll().Include(g => g.Proxies).ToListAsync(cancellationToken), cancellationToken);
                 return proxyGroups.Sum(group => group.Proxies?.Count ?? 0);
             }
             catch
@@ -358,12 +502,12 @@ namespace OpenBullet2.Native.Views.Pages
                 return 0;
             }
         }
-        
-        private async Task<(int count, long lines)> CountWordlistsAsync()
+
+        private async Task<(int count, long lines)> CountWordlistsAsync(System.Threading.CancellationToken cancellationToken = default)
         {
             try
             {
-                var wordlists = await Task.Run(() => wordlistRepo.GetAll().ToListAsync());
+                var wordlists = await Task.Run(() => wordlistRepo.GetAll().ToListAsync(cancellationToken), cancellationToken);
                 var count = wordlists.Count;
                 var totalLines = wordlists.Sum(w => w.Total);
                 return (count, totalLines);
@@ -373,88 +517,78 @@ namespace OpenBullet2.Native.Views.Pages
                 return (0, 0);
             }
         }
-        
-        private int CountPlugins()
+
+        private static int CountPlugins()
         {
-            try
-            {
-                var pluginsDir = Path.Combine(Directory.GetCurrentDirectory(), "Plugins");
-                return Directory.Exists(pluginsDir) ? Directory.GetFiles(pluginsDir, "*.dll").Length : 0;
-            }
-            catch
-            {
-                return 0;
-            }
+            var pluginDir = Path.Combine(Directory.GetCurrentDirectory(), "Plugins");
+            return Directory.Exists(pluginDir)
+                ? Directory.GetFiles(pluginDir, "*.dll").Length
+                : 0;
         }
 
         private void UpdateApplicationUptime()
         {
-            var uptime = DateTime.Now - applicationStartTime;
-            ApplicationUptime = $"{uptime.Days:D2}d {uptime.Hours:D2}h {uptime.Minutes:D2}m {uptime.Seconds:D2}s";
+            ApplicationUptime = (DateTime.UtcNow - applicationStartTime).ToString(@"hh\:mm\:ss");
         }
 
         private void UpdateMemoryUsage()
         {
             try
             {
-                using var process = Process.GetCurrentProcess();
-                // Use PrivateMemorySize64 for more accurate memory usage (matches Task Manager better)
-                var memoryBytes = process.PrivateMemorySize64;
-                MemoryUsage = FormatBytes(memoryBytes);
+                var (total, available, percent) = MemoryManager.GetSystemMemoryInfo();
+                MemoryUsage = $"{percent:F1}% ({MemoryManager.FormatMemorySize(total - available)} / {MemoryManager.FormatMemorySize(total)})";
             }
             catch
             {
                 MemoryUsage = "N/A";
             }
         }
-        
-        private void UpdateCurrentTime()
-        {
-            CurrentTime = DateTime.Now.ToString("ddd, MMM dd, yyyy h:mm tt");
-        }
-        
-        private DateTime lastCpuTime = DateTime.UtcNow;
-        private TimeSpan lastTotalProcessorTime = TimeSpan.Zero;
-        private bool firstCpuMeasurement = true;
-        private readonly int processorCount = Environment.ProcessorCount;
-        
-        private void UpdateCpuUsage()
+
+
+
+        private async Task<double> CalculateCpuUsage()
         {
             try
             {
-                using var process = Process.GetCurrentProcess();
-                var currentTime = DateTime.UtcNow;
-                var currentTotalProcessorTime = process.TotalProcessorTime;
-
-                if (firstCpuMeasurement)
+                // Use cached value for low-spec mode to reduce overhead
+                if (isLowSpecMode)
                 {
-                    lastCpuTime = currentTime;
-                    lastTotalProcessorTime = currentTotalProcessorTime;
-                    firstCpuMeasurement = false;
-                    CpuUsage = "0.00%";
-                    return;
+                    return await Task.Run(() =>
+                    {
+                        // Simplified CPU calculation for low-spec systems
+                        var process = System.Diagnostics.Process.GetCurrentProcess();
+                        var startTime = DateTime.UtcNow;
+                        var startCpuUsage = process.TotalProcessorTime;
+
+                        // Reduced delay for more responsive measurements
+                        System.Threading.Thread.Sleep(100);
+
+                        var endTime = DateTime.UtcNow;
+                        var endCpuUsage = process.TotalProcessorTime;
+
+                        var cpuUsedMs = (endCpuUsage - startCpuUsage).TotalMilliseconds;
+                        var totalMsPassed = (endTime - startTime).TotalMilliseconds;
+
+                        if (totalMsPassed <= 0)
+                            return 0.0;
+
+                        var cpuUsageTotal = cpuUsedMs / (Environment.ProcessorCount * totalMsPassed);
+
+                        return Math.Min(cpuUsageTotal * 100.0, 100.0);
+                    }).ConfigureAwait(false);
                 }
-
-                var timeDiff = currentTime - lastCpuTime;
-                var processorTimeDiff = currentTotalProcessorTime - lastTotalProcessorTime;
-
-                if (timeDiff.TotalMilliseconds > 100) // Minimum interval to avoid division by very small numbers
+                else
                 {
-                    // Calculate CPU usage per core (matches Task Manager calculation)
-                    var cpuPercent = (processorTimeDiff.TotalMilliseconds / timeDiff.TotalMilliseconds / processorCount) * 100;
-                    CpuUsage = $"{Math.Min(cpuPercent, 100.0):F2}%";
-                    
-                    lastCpuTime = currentTime;
-                    lastTotalProcessorTime = currentTotalProcessorTime;
+                    return await Task.Run(() => MemoryManager.GetSystemCpuUsage()).ConfigureAwait(false);
                 }
-                // If time diff is too small, keep previous value to avoid noise
             }
-            catch
+            catch (Exception ex)
             {
-                CpuUsage = "N/A";
+                System.Diagnostics.Debug.WriteLine($"Error calculating CPU usage: {ex.Message}");
+                return 0.0;
             }
         }
-        
+
         private void UpdateThreadCount()
         {
             try
@@ -491,19 +625,127 @@ namespace OpenBullet2.Native.Views.Pages
             }
             return $"{size:F1} {sizes[order]}";
         }
-        
+
+        private async void OnSystemMetricsTimerTick(object sender, EventArgs e)
+        {
+            try
+            {
+                updateCounter++;
+
+                // Always update time and uptime (lightweight)
+                UpdateCurrentTime();
+                UpdateApplicationUptime();
+
+                // Throttle heavy operations for low-spec mode
+                bool shouldUpdateHeavyMetrics = !isLowSpecMode || (updateCounter % 2 == 0);
+
+                if (shouldUpdateHeavyMetrics)
+                {
+                    UpdateMemoryUsage();
+                    UpdateThreadCount();
+
+                    // CPU calculation is expensive, do it less frequently
+                    if (updateCounter % 3 == 0)
+                    {
+                        _ = Task.Run(async () =>
+                        {
+                            try
+                            {
+                                var cpuUsage = await CalculateCpuUsage().ConfigureAwait(false);
+                                Application.Current?.Dispatcher.BeginInvoke(() =>
+                                {
+                                    CpuUsage = $"{cpuUsage:F2}%";
+                                }, DispatcherPriority.Background);
+                            }
+                            catch (Exception ex)
+                            {
+                                System.Diagnostics.Debug.WriteLine($"CPU calculation error: {ex.Message}");
+                            }
+                        });
+                    }
+                }
+
+                // Memory pressure check (less frequent for low-spec)
+                if (updateCounter % (isLowSpecMode ? 6 : 4) == 0)
+                {
+                    if (MemoryManager.IsMemoryPressureHigh())
+                    {
+                        _ = Task.Run(() => MemoryManager.TryCollectGarbage());
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"System metrics timer error: {ex.Message}");
+            }
+        }
+
+        private async void OnStatisticsTimerTick(object sender, EventArgs e)
+        {
+            try
+            {
+                // Run statistics update in background to avoid UI blocking
+                _ = Task.Run(async () => await LoadCollectionStatistics());
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Statistics timer error: {ex.Message}");
+            }
+        }
+
+        private void UpdatePerformanceIndicator()
+        {
+            try
+            {
+                // Parse CPU usage percentage
+                var cpuValue = 0.0;
+                if (double.TryParse(cpuUsage.Replace("%", ""), out cpuValue))
+                {
+                    // Parse memory usage
+                    var memoryPressure = MemoryManager.IsMemoryPressureHigh();
+                    var threadCount = ThreadCount;
+
+                    // Determine performance status
+                    if (cpuValue > 80 || memoryPressure || threadCount > 100)
+                    {
+                        PerformanceStatus = "High Load";
+                        PerformanceIndicatorColor = "Red";
+                    }
+                    else if (cpuValue > 50 || threadCount > 50)
+                    {
+                        PerformanceStatus = "Moderate";
+                        PerformanceIndicatorColor = "Orange";
+                    }
+                    else
+                    {
+                        PerformanceStatus = isLowSpecMode ? "Low-Spec" : "Normal";
+                        PerformanceIndicatorColor = isLowSpecMode ? "Yellow" : "LightGreen";
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error updating performance indicator: {ex.Message}");
+            }
+        }
+
         public void Dispose()
         {
             Dispose(true);
             GC.SuppressFinalize(this);
         }
-        
+
         protected virtual void Dispose(bool disposing)
         {
             if (!disposed && disposing)
             {
                 refreshTimer?.Stop();
-                // DispatcherTimer doesn't implement IDisposable, just stop it
+                statisticsTimer?.Stop();
+
+                // Clear event handlers to prevent memory leaks
+                refreshTimer.Tick -= OnSystemMetricsTimerTick;
+                statisticsTimer.Tick -= OnStatisticsTimerTick;
+
                 disposed = true;
             }
         }

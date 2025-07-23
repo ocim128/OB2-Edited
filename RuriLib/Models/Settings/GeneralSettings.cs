@@ -1,4 +1,4 @@
-﻿using RuriLib.Parallelization;
+using RuriLib.Parallelization;
 using System.Collections.Generic;
 
 namespace RuriLib.Models.Settings

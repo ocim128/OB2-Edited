@@ -1,4 +1,4 @@
-﻿using OpenBullet2.Native.ViewModels;
+using OpenBullet2.Native.ViewModels;
 using RuriLib.Models.Blocks.Settings;
 using RuriLib.Models.Blocks.Settings.Interpolated;
 using System;
@@ -151,7 +151,7 @@ namespace OpenBullet2.Native.Controls
         public ListOfStringsSettingViewerViewModel(BlockSetting setting)
         {
             Setting = setting;
-            
+
             if (Setting.InputMode == SettingInputMode.Fixed)
             {
                 var s = Setting.FixedSetting as ListOfStringsSetting;

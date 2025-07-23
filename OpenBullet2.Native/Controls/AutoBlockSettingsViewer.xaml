@@ -5,86 +5,135 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:OpenBullet2.Native.Controls"
              mc:Ignorable="d" 
-             d:DesignHeight="450" d:DesignWidth="800">
+             d:DesignHeight="300" d:DesignWidth="400">
 
     <UserControl.Resources>
-        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+        <ResourceDictionary>
+            <BooleanToVisibilityConverter x:Key="BoolToVis" />
+        </ResourceDictionary>
     </UserControl.Resources>
 
-    <StackPanel
-        Margin="5 0"
-        HorizontalAlignment="Stretch">
-        <TextBlock
-            Text="{Binding NameAndId}"
-            FontSize="12"
-            FontWeight="Bold"
-            Margin="5 0 0 0"
-            TextWrapping="Wrap" 
-            Foreground="#fec34d"/>
-        <TextBlock
-            Text="{Binding Block.Descriptor.Description}"
-            FontSize="12"
-            FontStyle="Italic"
-            Margin="5 5 0 0"
-            TextWrapping="Wrap" 
-            Foreground="#fec34d"/>
-        <TextBlock
-            Text="{Binding Block.Descriptor.ExtraInfo}"
-            FontSize="10" 
-            FontStyle="Italic"
-            Margin="5 5 0 0"
-            TextWrapping="Wrap" 
-            Foreground="#fec34d"/>
-        <DockPanel>
-            <Label 
-                DockPanel.Dock="Left"
-                Foreground="{DynamicResource ForegroundCustom}"
-                Content="Label:" />
-            <TextBox
-                Text="{Binding Label}"
-                DockPanel.Dock="Left" />
-        </DockPanel>
-        <CheckBox
-            Margin="5"
-            Content="Safe mode (catch exceptions to data.ERROR)"
-            IsChecked="{Binding SafeMode}" />
-        <DockPanel
-            Visibility="{Binding HasReturnValue, Converter={StaticResource ResourceKey=BoolToVis}}">
-            <Label 
-                DockPanel.Dock="Left"
-                Foreground="{DynamicResource ForegroundCustom}"
-                Content="{Binding ReturnValueType}" />
-            <TextBox
-                Text="{Binding OutputVariable}"
-                DockPanel.Dock="Left" />
-        </DockPanel>
-        <CheckBox
-            Margin="5 5 0 0"
-            Content="Is Capture"
-            Visibility="{Binding HasReturnValue, Converter={StaticResource ResourceKey=BoolToVis}}"
-            IsChecked="{Binding IsCapture}"/>
-        <Label 
-            Content="Settings:"
-            Margin="0 5"
-            Foreground="{DynamicResource ForegroundCustom}" />
-        <StackPanel 
-            x:Name="settingsPanel"
-            HorizontalAlignment="Stretch" />
-        <Label 
-            Visibility="{Binding HasActions, Converter={StaticResource ResourceKey=BoolToVis}}"
-            Content="Actions:"
-            Margin="0 5"
-            Foreground="{DynamicResource ForegroundCustom}" />
-        <WrapPanel
-            x:Name="actionsPanel"
-            HorizontalAlignment="Stretch" />
-        <Label 
-            Visibility="{Binding HasImages, Converter={StaticResource ResourceKey=BoolToVis}}"
-            Content="Images:"
-            Margin="0 5"
-            Foreground="{DynamicResource ForegroundCustom}" />
-        <StackPanel
-            x:Name="imagesPanel"
-            HorizontalAlignment="Stretch" />
-    </StackPanel>
+    <Border Padding="10" Background="#AA000000" CornerRadius="8" BorderBrush="#40FFFFFF" BorderThickness="1">
+        <Border.Effect>
+            <DropShadowEffect Color="Black" Direction="270" ShadowDepth="2" Opacity="0.3" BlurRadius="8"/>
+        </Border.Effect>
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- Header Section -->
+            <StackPanel Grid.Row="0" Margin="0 0 0 8">
+                <TextBlock
+                    Text="{Binding NameAndId}"
+                    FontSize="13"
+                    FontWeight="SemiBold"
+                    Foreground="#fec34d"
+                    TextWrapping="Wrap"/>
+                <TextBlock
+                    Text="{Binding Block.Descriptor.Description}"
+                    FontSize="11"
+                    FontStyle="Italic"
+                    Margin="0 2 0 0"
+                    Foreground="#888"
+                    TextWrapping="Wrap"/>
+                <TextBlock
+                    Text="{Binding Block.Descriptor.ExtraInfo}"
+                    FontSize="9"
+                    FontStyle="Italic"
+                    Margin="0 1 0 0"
+                    Foreground="#666"
+                    TextWrapping="Wrap"/>
+            </StackPanel>
+
+            <!-- Basic Settings -->
+            <Grid Grid.Row="1" Margin="0 0 0 8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="Label:" 
+                          Foreground="#ccc" FontSize="11" 
+                          VerticalAlignment="Center" Margin="0 0 4 0"/>
+                <TextBox Grid.Column="1" Text="{Binding Label}" 
+                        Style="{StaticResource MatchingTextBox}"/>
+            </Grid>
+
+            <!-- Safe Mode -->
+            <CheckBox Grid.Row="2" Margin="0 0 0 6"
+                     Content="Safe mode"
+                     IsChecked="{Binding SafeMode}"
+                     Style="{StaticResource SquareCheckBox}"
+                     FontSize="11"/>
+
+            <!-- Return Value -->
+            <Grid Grid.Row="3" Margin="0 0 0 6"
+                  Visibility="{Binding HasReturnValue, Converter={StaticResource ResourceKey=BoolToVis}}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="{Binding ReturnValueType}" 
+                          Foreground="#ccc" FontSize="11" 
+                          VerticalAlignment="Center" Margin="0 0 4 0"/>
+                <TextBox Grid.Column="1" Text="{Binding OutputVariable}" 
+                        Style="{StaticResource MatchingTextBox}"/>
+            </Grid>
+
+            <!-- Is Capture -->
+            <CheckBox Grid.Row="4" Margin="0 0 0 6"
+                     Content="Capture"
+                     Visibility="{Binding HasReturnValue, Converter={StaticResource ResourceKey=BoolToVis}}"
+                     IsChecked="{Binding IsCapture}"
+                     Style="{StaticResource SquareCheckBox}"
+                     FontSize="11"/>
+
+            <!-- Settings Panel -->
+            <Border Grid.Row="5" 
+                    BorderThickness="0 1 0 0" 
+                    BorderBrush="#333" 
+                    Margin="0 4 0 0"
+                    Visibility="{Binding HasSettings, Converter={StaticResource ResourceKey=BoolToVis}}">
+                <StackPanel Margin="0 4 0 0">
+                    <TextBlock Text="Settings" 
+                              Foreground="#ccc" FontSize="11" 
+                              Margin="0 0 0 4"/>
+                    <StackPanel x:Name="settingsPanel"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Actions Panel -->
+            <Border Grid.Row="5" 
+                    BorderThickness="0 1 0 0" 
+                    BorderBrush="#333" 
+                    Margin="0 4 0 0"
+                    Visibility="{Binding HasActions, Converter={StaticResource ResourceKey=BoolToVis}}">
+                <StackPanel Margin="0 4 0 0">
+                    <TextBlock Text="Actions" 
+                              Foreground="#ccc" FontSize="11" 
+                              Margin="0 0 0 4"/>
+                    <WrapPanel x:Name="actionsPanel"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Images Panel -->
+            <Border Grid.Row="5" 
+                    BorderThickness="0 1 0 0" 
+                    BorderBrush="#333" 
+                    Margin="0 4 0 0"
+                    Visibility="{Binding HasImages, Converter={StaticResource ResourceKey=BoolToVis}}">
+                <StackPanel Margin="0 4 0 0">
+                    <TextBlock Text="Images" 
+                              Foreground="#ccc" FontSize="11" 
+                              Margin="0 0 0 4"/>
+                    <StackPanel x:Name="imagesPanel"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Border>
 </UserControl>

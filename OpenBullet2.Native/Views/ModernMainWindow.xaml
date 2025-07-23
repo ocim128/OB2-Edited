@@ -11,13 +11,18 @@
         Title="OpenBullet 2 - Modern UI" Width="1200" Height="800"
         Background="{StaticResource Modern.BackgroundMain}"
         BorderThickness="0"
-        GlowBrush="Black"
+        GlowBrush="Transparent"
         ResizeMode="CanResizeWithGrip"
         WindowTitleBrush="{StaticResource Modern.BackgroundSecondary}"
         WindowTransitionsEnabled="False"
         WindowStartupLocation="CenterScreen"
         TitleCharacterCasing="Normal"
-        Icon="/Images/logohq_square_padded.png">
+        Icon="/Images/logohq_square_padded.png"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        RenderOptions.ClearTypeHint="Enabled"
+        TextOptions.TextFormattingMode="Display"
+        TextOptions.TextRenderingMode="ClearType">
 
     <Window.Resources>
         <ResourceDictionary>
@@ -36,9 +41,11 @@
 
         <!-- Modern Sidebar Navigation -->
         <Border Grid.Column="0" 
-                Style="{StaticResource ModernCard}"
-                CornerRadius="0,12,12,0"
-                Margin="0,0,8,0">
+                Style="{StaticResource ModernCardLite}"
+                CornerRadius="0,8,8,0"
+                Margin="0,0,8,0"
+                UseLayoutRounding="True"
+                SnapsToDevicePixels="True">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="auto" />
@@ -63,7 +70,10 @@
 
                 <!-- Navigation Menu -->
                 <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"
-                             HorizontalScrollBarVisibility="Disabled">
+                             HorizontalScrollBarVisibility="Disabled"
+                             Style="{StaticResource ModernScrollViewer}"
+                             UseLayoutRounding="True"
+                             SnapsToDevicePixels="True">
                     <StackPanel Margin="12,0,12,0">
                         
                         <!-- Primary Navigation -->
@@ -72,7 +82,7 @@
                                   Margin="8,0,0,8" />
                         
                         <Button x:Name="navHome" Style="{StaticResource ModernNavButton}" 
-                               Click="OpenHomePage" Margin="0,0,0,4">
+                               Click="HandleNavigation" Margin="0,0,0,4">
                             <StackPanel Orientation="Horizontal">
                                 <iconPacks:PackIconMaterial Kind="Home" Width="16" Height="16" />
                                 <TextBlock Text="Home" Margin="12,0,0,0" />
@@ -80,7 +90,7 @@
                         </Button>
 
                         <Button x:Name="navJobs" Style="{StaticResource ModernNavButton}" 
-                               Click="OpenJobsPage" Margin="0,0,0,4">
+                               Click="HandleNavigation" Margin="0,0,0,4">
                             <StackPanel Orientation="Horizontal">
                                 <iconPacks:PackIconMaterial Kind="Play" Width="16" Height="16" />
                                 <TextBlock Text="Jobs" Margin="12,0,0,0" />
@@ -88,7 +98,7 @@
                         </Button>
 
                         <Button x:Name="navMonitor" Style="{StaticResource ModernNavButton}" 
-                               Click="OpenMonitorPage" Margin="0,0,0,4">
+                               Click="HandleNavigation" Margin="0,0,0,4">
                             <StackPanel Orientation="Horizontal">
                                 <iconPacks:PackIconMaterial Kind="MonitorDashboard" Width="16" Height="16" />
                                 <TextBlock Text="Monitor" Margin="12,0,0,0" />
@@ -101,7 +111,7 @@
                                   Margin="8,24,0,8" />
 
                         <Button x:Name="navProxies" Style="{StaticResource ModernNavButton}" 
-                               Click="OpenProxiesPage" Margin="0,0,0,4">
+                               Click="HandleNavigation" Margin="0,0,0,4">
                             <StackPanel Orientation="Horizontal">
                                 <iconPacks:PackIconMaterial Kind="Lan" Width="16" Height="16" />
                                 <TextBlock Text="Proxies" Margin="12,0,0,0" />
@@ -109,7 +119,7 @@
                         </Button>
 
                         <Button x:Name="navWordlists" Style="{StaticResource ModernNavButton}" 
-                               Click="OpenWordlistsPage" Margin="0,0,0,4">
+                               Click="HandleNavigation" Margin="0,0,0,4">
                             <StackPanel Orientation="Horizontal">
                                 <iconPacks:PackIconMaterial Kind="FileDocument" Width="16" Height="16" />
                                 <TextBlock Text="Wordlists" Margin="12,0,0,0" />
@@ -117,7 +127,7 @@
                         </Button>
 
                         <Button x:Name="navConfigs" Style="{StaticResource ModernNavButton}" 
-                               Click="OpenConfigsPage" Margin="0,0,0,4"
+                               Click="HandleNavigation" Margin="0,0,0,4"
                                MouseEnter="ConfigsMenuOptionMouseEnter"
                                MouseLeave="ConfigsMenuOptionMouseLeave">
                             <StackPanel Orientation="Horizontal">
@@ -135,7 +145,7 @@
                                   Margin="8,24,0,8" />
 
                         <Button x:Name="navHits" Style="{StaticResource ModernNavButton}" 
-                               Click="OpenHitsPage" Margin="0,0,0,4">
+                               Click="HandleNavigation" Margin="0,0,0,4">
                             <StackPanel Orientation="Horizontal">
                                 <iconPacks:PackIconMaterial Kind="Target" Width="16" Height="16" />
                                 <TextBlock Text="Hits" Margin="12,0,0,0" />
@@ -148,7 +158,7 @@
                                   Margin="8,24,0,8" />
 
                         <Button x:Name="navPlugins" Style="{StaticResource ModernNavButton}" 
-                               Click="OpenPluginsPage" Margin="0,0,0,4">
+                               Click="HandleNavigation" Margin="0,0,0,4">
                             <StackPanel Orientation="Horizontal">
                                 <iconPacks:PackIconMaterial Kind="Puzzle" Width="16" Height="16" />
                                 <TextBlock Text="Plugins" Margin="12,0,0,0" />
@@ -161,7 +171,7 @@
                                   Margin="8,24,0,8" />
 
                         <Button x:Name="navOBSettings" Style="{StaticResource ModernNavButton}" 
-                               Click="OpenOBSettingsPage" Margin="0,0,0,4">
+                               Click="HandleNavigation" Margin="0,0,0,4">
                             <StackPanel Orientation="Horizontal">
                                 <iconPacks:PackIconMaterial Kind="Settings" Width="16" Height="16" />
                                 <TextBlock Text="OB Settings" Margin="12,0,0,0" />
@@ -169,7 +179,7 @@
                         </Button>
 
                         <Button x:Name="navRLSettings" Style="{StaticResource ModernNavButton}" 
-                               Click="OpenRLSettingsPage" Margin="0,0,0,4">
+                               Click="HandleNavigation" Margin="0,0,0,4">
                             <StackPanel Orientation="Horizontal">
                                 <iconPacks:PackIconMaterial Kind="SettingsHelper" Width="16" Height="16" />
                                 <TextBlock Text="RL Settings" Margin="12,0,0,0" />
@@ -177,7 +187,7 @@
                         </Button>
 
                         <Button x:Name="navAbout" Style="{StaticResource ModernNavButton}" 
-                               Click="OpenAboutPage" Margin="0,0,0,24">
+                               Click="HandleNavigation" Margin="0,0,0,24">
                             <StackPanel Orientation="Horizontal">
                                 <iconPacks:PackIconMaterial Kind="Information" Width="16" Height="16" />
                                 <TextBlock Text="About" Margin="12,0,0,0" />
@@ -244,15 +254,15 @@
                               VerticalAlignment="Center" />
 
                     <!-- Quick Actions -->
-                    <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="0,0,0,0">
                         <Button Style="{StaticResource ModernButton}" 
                                ToolTip="New Config (Ctrl+N)"
-                               Margin="0,0,8,0">
+                               Margin="0,0,4,0">
                             <iconPacks:PackIconMaterial Kind="Plus" Width="16" Height="16" />
                         </Button>
                         <Button Style="{StaticResource ModernButton}" 
                                ToolTip="Open Config (Ctrl+O)"
-                               Margin="0,0,8,0">
+                               Margin="0,0,4,0">
                             <iconPacks:PackIconMaterial Kind="FolderOpen" Width="16" Height="16" />
                         </Button>
                         <Button Style="{StaticResource ModernButton}" 
@@ -266,10 +276,14 @@
             <!-- Content Frame -->
             <Border Grid.Row="1" 
                    Background="{StaticResource Modern.BackgroundMain}"
-                   Padding="20">
+                   Padding="20"
+                   UseLayoutRounding="True"
+                   SnapsToDevicePixels="True">
                 <Frame x:Name="mainFrame" 
                       NavigationUIVisibility="Hidden"
-                      Background="Transparent" />
+                      Background="Transparent"
+                      UseLayoutRounding="True"
+                      SnapsToDevicePixels="True" />
             </Border>
 
             <!-- Loading Indicator -->
@@ -300,50 +314,50 @@
                MouseEnter="ConfigSubmenuMouseEnter"
                MouseLeave="ConfigSubmenuMouseLeave">
             <StackPanel>
-                <Button Style="{StaticResource ModernNavButton}" 
-                       Click="OpenMetadataPage" Margin="0,0,0,2">
+                <Button x:Name="menuOptionMetadata" Style="{StaticResource ModernNavButton}" 
+                       Click="HandleNavigation" Margin="0,0,0,2">
                     <StackPanel Orientation="Horizontal">
                         <iconPacks:PackIconMaterial Kind="TagText" Width="14" Height="14" />
                         <TextBlock Text="Metadata" Margin="8,0,0,0" FontSize="12" />
                     </StackPanel>
                 </Button>
-                <Button Style="{StaticResource ModernNavButton}" 
-                       Click="OpenReadmePage" Margin="0,0,0,2">
+                <Button x:Name="menuOptionReadme" Style="{StaticResource ModernNavButton}" 
+                       Click="HandleNavigation" Margin="0,0,0,2">
                     <StackPanel Orientation="Horizontal">
                         <iconPacks:PackIconMaterial Kind="FileDocumentEdit" Width="14" Height="14" />
                         <TextBlock Text="Readme" Margin="8,0,0,0" FontSize="12" />
                     </StackPanel>
                 </Button>
-                <Button Style="{StaticResource ModernNavButton}" 
-                       Click="OpenStackerPage" Margin="0,0,0,2">
+                <Button x:Name="menuOptionStacker" Style="{StaticResource ModernNavButton}" 
+                       Click="HandleNavigation" Margin="0,0,0,2">
                     <StackPanel Orientation="Horizontal">
                         <iconPacks:PackIconMaterial Kind="ViewModule" Width="14" Height="14" />
                         <TextBlock Text="Stacker" Margin="8,0,0,0" FontSize="12" />
                     </StackPanel>
                 </Button>
-                <Button Style="{StaticResource ModernNavButton}" 
-                       Click="OpenLoliCodePage" Margin="0,0,0,2">
+                <Button x:Name="menuOptionLoliCode" Style="{StaticResource ModernNavButton}" 
+                       Click="HandleNavigation" Margin="0,0,0,2">
                     <StackPanel Orientation="Horizontal">
                         <iconPacks:PackIconMaterial Kind="CodeBraces" Width="14" Height="14" />
                         <TextBlock Text="LoliCode" Margin="8,0,0,0" FontSize="12" />
                     </StackPanel>
                 </Button>
-                <Button Style="{StaticResource ModernNavButton}" 
-                       Click="OpenConfigSettingsPage" Margin="0,0,0,2">
+                <Button x:Name="menuOptionConfigSettings" Style="{StaticResource ModernNavButton}" 
+                       Click="HandleNavigation" Margin="0,0,0,2">
                     <StackPanel Orientation="Horizontal">
                         <iconPacks:PackIconMaterial Kind="Tune" Width="14" Height="14" />
                         <TextBlock Text="Settings" Margin="8,0,0,0" FontSize="12" />
                     </StackPanel>
                 </Button>
-                <Button Style="{StaticResource ModernNavButton}" 
-                       Click="OpenCSharpCodePage" Margin="0,0,0,2">
+                <Button x:Name="menuOptionCSharpCode" Style="{StaticResource ModernNavButton}" 
+                       Click="HandleNavigation" Margin="0,0,0,2">
                     <StackPanel Orientation="Horizontal">
                         <iconPacks:PackIconMaterial Kind="LanguageCsharp" Width="14" Height="14" />
                         <TextBlock Text="C# Code" Margin="8,0,0,0" FontSize="12" />
                     </StackPanel>
                 </Button>
-                <Button Style="{StaticResource ModernNavButton}" 
-                       Click="OpenLoliScriptPage">
+                <Button x:Name="menuOptionLoliScript" Style="{StaticResource ModernNavButton}" 
+                       Click="HandleNavigation">
                     <StackPanel Orientation="Horizontal">
                         <iconPacks:PackIconMaterial Kind="Script" Width="14" Height="14" />
                         <TextBlock Text="LoliScript" Margin="8,0,0,0" FontSize="12" />
@@ -353,4 +367,4 @@
         </Border>
     </Grid>
 
-</mah:MetroWindow> 
+</mah:MetroWindow>

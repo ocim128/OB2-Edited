@@ -9,11 +9,14 @@
 
             /* Hide scrollbars */
             &::-webkit-scrollbar {
-                display: none;  /* Safari and Chrome */
+                display: none;
+                /* Safari and Chrome */
             }
-            
-            -ms-overflow-style: none;  /* IE and Edge */
-            scrollbar-width: none;  /* Firefox */
+
+            -ms-overflow-style: none;
+            /* IE and Edge */
+            scrollbar-width: none;
+            /* Firefox */
 
             -webkit-mask-image: linear-gradient(to bottom, transparent 0, var(--bg-primary) var(--top-mask-size, 0), var(--bg-primary) calc(100% - var(--bottom-mask-size, 0)), transparent 100%);
             mask-image: linear-gradient(to bottom, transparent 0, var(--bg-primary) var(--top-mask-size, 0), var(--bg-primary) calc(100% - var(--bottom-mask-size, 0)), transparent 100%);
@@ -23,7 +26,7 @@
             &.is-top-overflowing {
                 --top-mask-size: 48px !important;
             }
-            
+
             &.is-bottom-overflowing {
                 --bottom-mask-size: 48px !important;
             }
@@ -41,23 +44,24 @@
                 opacity: 0.9;
 
                 /* Disable text selection */
-                -webkit-user-select: none; /* Safari */
-                -ms-user-select: none; /* IE 10 and IE 11 */
-                user-select: none; /* Standard syntax */
+                -webkit-user-select: none;
+                /* Safari */
+                -ms-user-select: none;
+                /* IE 10 and IE 11 */
+                user-select: none;
+                /* Standard syntax */
 
                 transition: font-weight 0.1s ease-in-out;
                 transition: border 0.1s ease-in-out;
 
                 &.disabled {
-                    background-image: repeating-linear-gradient(
-                        45deg,
-                        #444,
-                        #444 20px,
-                        #666 20px,
-                        #666 40px
-                    );
+                    background-image: repeating-linear-gradient(45deg,
+                            #444,
+                            #444 20px,
+                            #666 20px,
+                            #666 40px);
                     border: 3px solid #444 !important;
-                    
+
                     span {
                         color: #bbb !important;
                     }

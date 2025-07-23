@@ -1,4 +1,4 @@
-﻿using OpenBullet2.Native.Helpers;
+using OpenBullet2.Native.Helpers;
 using OpenBullet2.Native.ViewModels;
 using RuriLib.Models.Blocks;
 using RuriLib.Models.Blocks.Settings;
@@ -54,7 +54,7 @@ namespace OpenBullet2.Native.Controls
                     {
                         Alert.Exception(ex);
                     }
-                    
+
                     CreateSettings();
                     CreateImages();
                     vm.UpdateViewModel();
@@ -69,6 +69,17 @@ namespace OpenBullet2.Native.Controls
         private void CreateSettings()
         {
             settingsPanel.Children.Clear();
+
+            // Special handling for CreateMultiple block - use custom UI
+            if (vm.Block.Descriptor.Id == "CreateMultiple")
+            {
+                var createMultipleViewer = new CreateMultipleConstantViewer
+                {
+                    BlockVM = vm.BlockVM
+                };
+                settingsPanel.Children.Add(createMultipleViewer);
+                return;
+            }
 
             foreach (var setting in vm.Block.Settings)
             {
@@ -146,7 +157,7 @@ namespace OpenBullet2.Native.Controls
 
         public AutoBlockSettingsViewerViewModel(BlockViewModel block) : base(block)
         {
-            
+
         }
     }
 

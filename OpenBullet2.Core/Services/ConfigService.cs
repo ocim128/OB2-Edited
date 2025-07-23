@@ -35,27 +35,27 @@ public class ConfigService
     /// </summary>
     public event EventHandler OnRemotesLoaded;
 
-    private Config selectedConfig = null;
-    private readonly IConfigRepository configRepo;
-    private readonly OpenBulletSettingsService openBulletSettingsService;
+    private Config _selectedConfig = null;
+    private readonly IConfigRepository _configRepo;
+    private readonly OpenBulletSettingsService _openBulletSettingsService;
 
     /// <summary>
     /// The currently selected config.
     /// </summary>
     public Config SelectedConfig
     {
-        get => selectedConfig;
+        get => _selectedConfig;
         set
         {
-            selectedConfig = value;
-            OnConfigSelected?.Invoke(this, selectedConfig);
+            _selectedConfig = value;
+            OnConfigSelected?.Invoke(this, _selectedConfig);
         }
     }
 
     public ConfigService(IConfigRepository configRepo, OpenBulletSettingsService openBulletSettingsService)
     {
-        this.configRepo = configRepo;
-        this.openBulletSettingsService = openBulletSettingsService;
+        this._configRepo = configRepo;
+        this._openBulletSettingsService = openBulletSettingsService;
     }
 
     /// <summary>
@@ -64,7 +64,7 @@ public class ConfigService
     public async Task ReloadConfigsAsync()
     {
         // Load from the main repository
-        Configs = (await configRepo.GetAllAsync()).ToList();
+        Configs = (await _configRepo.GetAllAsync()).ToList();
         SelectedConfig = null;
 
         // Load from remotes (fire and forget)
@@ -75,7 +75,7 @@ public class ConfigService
     {
         List<Config> remoteConfigs = new();
 
-        var func = new Func<RemoteConfigsEndpoint, Task>(async endpoint => 
+        var func = new Func<RemoteConfigsEndpoint, Task>(async endpoint =>
         {
             try
             {
@@ -136,7 +136,7 @@ public class ConfigService
             }
         });
 
-        var tasks = openBulletSettingsService.Settings.RemoteSettings.ConfigsEndpoints
+        var tasks = _openBulletSettingsService.Settings.RemoteSettings.ConfigsEndpoints
             .Select(endpoint => func.Invoke(endpoint));
 
         await Task.WhenAll(tasks).ConfigureAwait(false);

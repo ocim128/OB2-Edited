@@ -20,12 +20,7 @@ public class FloatVariable : Variable
 
     public override bool AsBool()
     {
-        if (_value == 0)
-        {
-            return false;
-        }
-
-        return _value == 1 ? true : throw new InvalidCastException();
+        return _value != 0;
     }
 
     public override byte[] AsByteArray() => BitConverter.GetBytes(_value);

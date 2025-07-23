@@ -12,7 +12,7 @@
     <Page.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
         
-        <!-- Consistent Button Style -->
+        <!-- Simplified Button Style -->
         <Style x:Key="ConsistentButton" TargetType="Button">
             <Setter Property="FontFamily" Value="Segoe UI"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
@@ -23,22 +23,19 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="border" 
-                                Background="{TemplateBinding Background}" 
-                                CornerRadius="6" 
+                        <Border x:Name="border"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="4"
                                 Padding="{TemplateBinding Padding}">
-                            <Border.Effect>
-                                <DropShadowEffect BlurRadius="8" Direction="270" Opacity="0.3" ShadowDepth="2"/>
-                            </Border.Effect>
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="6"/>
+                                    <ColumnDefinition Width="4"/>
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 <ContentPresenter Grid.Column="0" Content="{TemplateBinding Tag}"
                                                   VerticalAlignment="Center" HorizontalAlignment="Center"/>
-                                <TextBlock Grid.Column="2" Text="{TemplateBinding Content}" 
+                                <TextBlock Grid.Column="2" Text="{TemplateBinding Content}"
                                           VerticalAlignment="Center" HorizontalAlignment="Center"
                                           FontFamily="{TemplateBinding FontFamily}"
                                           FontWeight="{TemplateBinding FontWeight}"
@@ -118,23 +115,18 @@
             </DockPanel>
         </Grid>
 
-        <GridSplitter 
+        <GridSplitter
             ResizeDirection="Columns"
             ResizeBehavior="PreviousAndNext"
             Grid.Column="1"
-            Width="6"
+            Width="4"
             VerticalAlignment="Stretch"
             Background="#FF4A5568"
-            Margin="2,8">
+            Margin="1,8">
             <GridSplitter.Template>
                 <ControlTemplate TargetType="GridSplitter">
-                    <Border Background="#FF374151" 
-                            CornerRadius="3"
-                            BorderBrush="#FF6B7280" 
-                            BorderThickness="1">
-                        <Border.Effect>
-                            <DropShadowEffect Color="#000000" Direction="270" ShadowDepth="1" Opacity="0.2" BlurRadius="3"/>
-                        </Border.Effect>
+                    <Border Background="#FF374151"
+                            CornerRadius="2">
                         <Rectangle Fill="Transparent" />
                     </Border>
                 </ControlTemplate>

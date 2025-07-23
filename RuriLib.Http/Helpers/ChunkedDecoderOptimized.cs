@@ -7,11 +7,9 @@ namespace RuriLib.Http.Helpers
 {
     internal class ChunkedDecoderOptimized : IDisposable
     {
-        private long templength;
+        private long _templength;
         private static byte[] CRLF_Bytes = { 13, 10 };
-        // private long remaningchunklength;
-        private bool Isnewchunk = true;
-        // private AutoResetEvent manualResetEvent = new AutoResetEvent(true);
+        private bool _isnewchunk = true;
 
         public Stream DecodedStream { get; private set; }
 
@@ -26,27 +24,27 @@ namespace RuriLib.Http.Helpers
 
         private void ParseNewChunk(ref ReadOnlySequence<byte> buff)
         {
-            if (Isnewchunk)
+            if (_isnewchunk)
             {
-                templength = GetChunkLength(ref buff);
-                Isnewchunk = false;
+                _templength = GetChunkLength(ref buff);
+                _isnewchunk = false;
             }
-            if (templength == 0 && buff.Length >= 2)
+            if (_templength == 0 && buff.Length >= 2)
             {
                 Finished = true;
                 buff = buff.Slice(2);//skip last crlf
                 return;
             }
-            else if (templength == -1)
+            else if (_templength == -1)
             {
-                Isnewchunk = true;
+                _isnewchunk = true;
                 return;
             }
-            if (buff.Length > templength + 2)
-            {              
-                var chunk = buff.Slice(buff.Start, templength);
+            if (buff.Length > _templength + 2)
+            {
+                var chunk = buff.Slice(buff.Start, _templength);
                 WritetoStream(chunk);
-                Isnewchunk = true;
+                _isnewchunk = true;
                 buff = buff.Slice(chunk.End);
                 buff = buff.Slice(2); //skip CRLF
 
@@ -74,7 +72,6 @@ namespace RuriLib.Http.Helpers
                 }
                 else
                 {
-                    //  Console.WriteLine($"error payload: {Encoding.ASCII.GetString(buff.FirstSpan)}");
                     return -1;
                 }
             }
@@ -93,7 +90,6 @@ namespace RuriLib.Http.Helpers
                 }
                 else
                 {
-                    // Console.WriteLine($"error payload: {Encoding.ASCII.GetString(buff.FirstSpan)}");
                     return -1;
                 }
             }

@@ -1,4 +1,4 @@
-﻿using OpenBullet2.Native.Services;
+using OpenBullet2.Native.Services;
 using OpenBullet2.Native.ViewModels;
 using System.Net.Http;
 using System.Windows.Controls;
@@ -39,14 +39,15 @@ namespace OpenBullet2.Native.Views.Dialogs
 
             private async void FetchChangelog()
             {
-                var updateService = SP.GetService<UpdateService>();
+                // Get current version from assembly
+                var currentVersion = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "0.2.2";
 
                 using var client = new HttpClient();
                 client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:84.0) Gecko/20100101 Firefox/84.0");
 
                 try
                 {
-                    var response = await client.GetAsync($"https://raw.githubusercontent.com/openbullet/OpenBullet2/master/Changelog/{updateService.CurrentVersion}.md");
+                    var response = await client.GetAsync($"https://raw.githubusercontent.com/openbullet/OpenBullet2/master/Changelog/{currentVersion}.md");
                     Text = await response.Content.ReadAsStringAsync();
                 }
                 catch

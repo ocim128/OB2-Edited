@@ -1,4 +1,4 @@
-﻿<Page x:Class="OpenBullet2.Native.Views.Dialogs.BotLogDialog"
+<Page x:Class="OpenBullet2.Native.Views.Dialogs.BotLogDialog"
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
@@ -35,7 +35,7 @@
                 <ColumnDefinition Width="auto" />
                 <ColumnDefinition Width="auto" />
             </Grid.ColumnDefinitions>
-            <TextBox Grid.Column="0" Text="{Binding SearchString}"/>
+            <TextBox Grid.Column="0" Text="{Binding SearchString}" Style="{StaticResource MatchingTextBox}"/>
             <Button Style="{StaticResource StyledButton}" Click="Search" Grid.Column="1" Margin="5 0 0 0" >
                 <StackPanel Orientation="Horizontal">
                     <iconPacks:PackIconMaterialDesign Kind="Search" />

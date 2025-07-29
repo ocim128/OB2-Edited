@@ -405,12 +405,10 @@ namespace OpenBullet2.Native.Services
         {
             try
             {
-                // Simple way to show notification using MessageBox for now
-                // In a real implementation, you might want to use Windows Toast notifications
                 Application.Current.Dispatcher.BeginInvoke(new Action(() =>
                 {
-                    // Show a brief tooltip-style notification
-                    var notification = new NotificationWindow(title, message);
+                    // Use the shared notification window with App.xaml styles
+                    var notification = new SharedNotificationWindow(title, message);
                     notification.Show();
                 }));
             }
@@ -437,10 +435,10 @@ namespace OpenBullet2.Native.Services
         }
     }
 
-    // Modern notification window with improved styling
-    public partial class NotificationWindow : Window
+    // Shared notification window using App.xaml styles
+    public partial class SharedNotificationWindow : Window
     {
-        public NotificationWindow(string title, string message)
+        public SharedNotificationWindow(string title, string message)
         {
             InitializeComponent(title, message);
         }
@@ -459,42 +457,21 @@ namespace OpenBullet2.Native.Services
             Left = SystemParameters.PrimaryScreenWidth - Width - 30;
             Top = SystemParameters.PrimaryScreenHeight - Height - 50;
 
-            // Main border with modern styling
-            var mainBorder = new Border
-            {
-                Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(240, 33, 37, 43)),
-                BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(100, 120, 130, 140)),
-                BorderThickness = new Thickness(1),
-                CornerRadius = new CornerRadius(8),
-                Effect = new System.Windows.Media.Effects.DropShadowEffect
-                {
-                    Color = System.Windows.Media.Colors.Black,
-                    Direction = 315,
-                    ShadowDepth = 3,
-                    BlurRadius = 10,
-                    Opacity = 0.3
-                }
-            };
+            // Use the shared ModernNotificationWindow style from App.xaml
+            var mainBorder = new Border();
+            mainBorder.SetResourceReference(StyleProperty, "ModernNotificationWindow");
 
             var grid = new Grid();
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(50) });
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
-            // Icon based on title
-            var iconPath = GetIconPath(title);
-            var iconGeometry = System.Windows.Media.Geometry.Parse(iconPath);
-            var iconPath2 = new System.Windows.Shapes.Path
-            {
-                Data = iconGeometry,
-                Fill = GetIconColor(title),
-                Width = 24,
-                Height = 24,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(5)
-            };
-            Grid.SetColumn(iconPath2, 0);
-            grid.Children.Add(iconPath2);
+            // Icon using shared style
+            var iconPath = new System.Windows.Shapes.Path();
+            iconPath.SetResourceReference(StyleProperty, "NotificationIconStyle");
+            iconPath.Data = System.Windows.Media.Geometry.Parse(GetIconPath(title));
+            iconPath.Fill = GetIconColor(title);
+            Grid.SetColumn(iconPath, 0);
+            grid.Children.Add(iconPath);
 
             var textPanel = new StackPanel
             {
@@ -503,24 +480,13 @@ namespace OpenBullet2.Native.Services
             };
             Grid.SetColumn(textPanel, 1);
 
-            var titleBlock = new TextBlock
-            {
-                Text = title,
-                Foreground = System.Windows.Media.Brushes.White,
-                FontWeight = FontWeights.SemiBold,
-                FontSize = 13,
-                FontFamily = new System.Windows.Media.FontFamily("Segoe UI")
-            };
+            // Title using shared style
+            var titleBlock = new TextBlock { Text = title };
+            titleBlock.SetResourceReference(StyleProperty, "NotificationTitleStyle");
 
-            var messageBlock = new TextBlock
-            {
-                Text = message,
-                Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(180, 190, 200)),
-                FontSize = 11,
-                TextWrapping = TextWrapping.Wrap,
-                Margin = new Thickness(0, 3, 0, 0),
-                FontFamily = new System.Windows.Media.FontFamily("Segoe UI")
-            };
+            // Message using shared style
+            var messageBlock = new TextBlock { Text = message };
+            messageBlock.SetResourceReference(StyleProperty, "NotificationMessageStyle");
 
             textPanel.Children.Add(titleBlock);
             textPanel.Children.Add(messageBlock);

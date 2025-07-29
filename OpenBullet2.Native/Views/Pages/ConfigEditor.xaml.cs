@@ -1,4 +1,4 @@
-﻿using OpenBullet2.Core.Repositories;
+using OpenBullet2.Core.Repositories;
 using OpenBullet2.Core.Services;
 using OpenBullet2.Native.Helpers;
 using OpenBullet2.Native.ViewModels;
@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Threading;
+using OpenBullet2.Native.Infrastructure.DependencyInjection;
 
 namespace OpenBullet2.Native.Views.Pages
 {
@@ -29,10 +30,10 @@ namespace OpenBullet2.Native.Views.Pages
 
         public ConfigEditor()
         {
-            mainWindow = SP.GetService<MainWindow>();
+            mainWindow = ServiceLocator.GetService<MainWindow>();
             vm = new ConfigEditorViewModel();
             DataContext = vm;
-            obSettingsService = SP.GetService<OpenBulletSettingsService>();
+            obSettingsService = ServiceLocator.GetService<OpenBulletSettingsService>();
 
             InitializeComponent();
 
@@ -161,8 +162,8 @@ namespace OpenBullet2.Native.Views.Pages
 
         public ConfigEditorViewModel()
         {
-            configRepo = SP.GetService<IConfigRepository>();
-            configService = SP.GetService<ConfigService>();
+            configRepo = ServiceLocator.GetService<IConfigRepository>();
+            configService = ServiceLocator.GetService<ConfigService>();
         }
 
         public async Task Save()

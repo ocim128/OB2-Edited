@@ -1,4 +1,4 @@
-﻿using OpenBullet2.Native.Helpers;
+using OpenBullet2.Native.Helpers;
 using OpenBullet2.Native.Services;
 using OpenBullet2.Native.ViewModels;
 using RuriLib.Functions.Captchas;
@@ -6,6 +6,7 @@ using System;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using OpenBullet2.Native.Infrastructure.DependencyInjection;
 
 namespace OpenBullet2.Native.Views.Pages;
 
@@ -18,7 +19,7 @@ public partial class RLSettings : Page
 
     public RLSettings()
     {
-        vm = SP.GetService<ViewModelsService>().RLSettings;
+        vm = ServiceLocator.GetService<ViewModelsService>().RLSettings;
         vm.CaptchaServiceChanged += UpdateCaptchaTabControl;
         DataContext = vm;
 

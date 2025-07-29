@@ -1,8 +1,9 @@
-﻿using RuriLib.Services;
+using RuriLib.Services;
 using OpenBullet2.Native.Services;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
+using OpenBullet2.Native.Infrastructure.DependencyInjection;
 
 namespace OpenBullet2.Native.ViewModels
 {
@@ -24,8 +25,8 @@ namespace OpenBullet2.Native.ViewModels
 
         public PluginsViewModel()
         {
-            pluginRepo = SP.GetService<PluginRepository>();
-            hotkeyService = SP.GetService<HotkeyService>();
+            pluginRepo = ServiceLocator.GetService<PluginRepository>();
+            hotkeyService = ServiceLocator.GetService<HotkeyService>();
             
             RefreshList();
         }

@@ -1,4 +1,4 @@
-﻿using MahApps.Metro.IconPacks;
+using MahApps.Metro.IconPacks;
 using OpenBullet2.Native.ViewModels;
 using RuriLib.Models.Data;
 using RuriLib.Models.Data.Rules;
@@ -9,6 +9,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows.Controls;
 using System.Windows.Media;
+using OpenBullet2.Native.Infrastructure.DependencyInjection;
 
 namespace OpenBullet2.Native.Views.Dialogs
 {
@@ -69,7 +70,7 @@ namespace OpenBullet2.Native.Views.Dialogs
         {
             WordlistType = wordlistType;
 
-            var env = SP.GetService<RuriLibSettingsService>().Environment;
+            var env = ServiceLocator.GetService<RuriLibSettingsService>().Environment;
             var wt = env.WordlistTypes.First(w => w.Name == wordlistType);
             var dataLine = new DataLine(testData, wt);
             var slices =dataLine.GetVariables().Select(v => new SliceViewModel(v.Name, v.AsString()));

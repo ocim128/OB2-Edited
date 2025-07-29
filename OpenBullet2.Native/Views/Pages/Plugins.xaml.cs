@@ -1,8 +1,9 @@
-﻿using Microsoft.Win32;
+using Microsoft.Win32;
 using OpenBullet2.Native.Services;
 using OpenBullet2.Native.ViewModels;
 using System.Windows;
 using System.Windows.Controls;
+using OpenBullet2.Native.Infrastructure.DependencyInjection;
 
 namespace OpenBullet2.Native.Views.Pages
 {
@@ -15,7 +16,7 @@ namespace OpenBullet2.Native.Views.Pages
 
         public Plugins()
         {
-            vm = SP.GetService<ViewModelsService>().Plugins;
+            vm = ServiceLocator.GetService<ViewModelsService>().Plugins;
             DataContext = vm;
 
             InitializeComponent();

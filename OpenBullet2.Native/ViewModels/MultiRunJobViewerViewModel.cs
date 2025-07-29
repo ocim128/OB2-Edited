@@ -1,9 +1,10 @@
-﻿using OpenBullet2.Core.Entities;
+using OpenBullet2.Core.Entities;
 using OpenBullet2.Core.Models.Hits;
 using OpenBullet2.Core.Models.Proxies.Sources;
 using OpenBullet2.Core.Repositories;
 using OpenBullet2.Core.Services;
 using OpenBullet2.Native.Helpers;
+using OpenBullet2.Native.Infrastructure.DependencyInjection;
 using OpenBullet2.Native.Utils;
 using RuriLib.Extensions;
 using RuriLib.Models.Bots;
@@ -178,7 +179,7 @@ public class MultiRunJobViewerViewModel : ViewModelBase, IDisposable
 
     public MultiRunJobViewerViewModel(MultiRunJobViewModel jobVM)
     {
-        obSettingsService = SP.GetService<OpenBulletSettingsService>();
+        obSettingsService = ServiceLocator.GetService<OpenBulletSettingsService>();
         Job = jobVM;
 
         #region Setup
@@ -188,7 +189,7 @@ public class MultiRunJobViewerViewModel : ViewModelBase, IDisposable
             ConfigNameAndAuthor = $"{MultiRunJob.Config.Metadata.Name} by {MultiRunJob.Config.Metadata.Author}";
         }
 
-        var proxyGroupRepo = SP.GetService<IProxyGroupRepository>();
+        var proxyGroupRepo = ServiceLocator.GetService<IProxyGroupRepository>();
         proxyGroups = [.. proxyGroupRepo.GetAll()];
 
         var sb = new StringBuilder();

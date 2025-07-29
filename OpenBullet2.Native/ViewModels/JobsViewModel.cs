@@ -13,6 +13,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Media;
+using OpenBullet2.Native.Infrastructure.DependencyInjection;
 
 namespace OpenBullet2.Native.ViewModels;
 
@@ -48,9 +49,9 @@ public class JobsViewModel : ViewModelBase
 
     public JobsViewModel()
     {
-        jobRepo = SP.GetService<IJobRepository>();
-        jobManager = SP.GetService<JobManagerService>();
-        jobFactory = SP.GetService<JobFactoryService>();
+        jobRepo = ServiceLocator.GetService<IJobRepository>();
+        jobManager = ServiceLocator.GetService<JobManagerService>();
+        jobFactory = ServiceLocator.GetService<JobFactoryService>();
 
         CreateCollection();
         _timer = new Timer(new TimerCallback(_ => RefreshJobs()), null, 2000, 2000);

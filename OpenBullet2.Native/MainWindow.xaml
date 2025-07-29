@@ -37,54 +37,7 @@
         SizeChanged="OnWindowSizeChanged"
         Loaded="OnWindowLoaded">
 
-    <!-- Enhanced Window Commands in Title Bar -->
-    <mah:MetroWindow.RightWindowCommands>
-        <mah:WindowCommands>
-            <Button x:Name="screenshotButton" 
-                    Click="TakeScreenshot" 
-                    ToolTipService.ToolTip="📸 Take Screenshot"
-                    Content="Screenshot"
-                    FontSize="9"
-                    FontWeight="Medium"
-                    FontFamily="Segoe UI"
-                    Background="#FF3A82F7"
-                    Foreground="White"
-                    BorderThickness="0"
-                    Margin="0,0,8,0"
-                    Padding="6,3"
-                    Cursor="Hand">
-                <Button.Style>
-                    <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-                        <Setter Property="Template">
-                            <Setter.Value>
-                                <ControlTemplate TargetType="Button">
-                                    <Border x:Name="border" 
-                                            Background="{TemplateBinding Background}"
-                                            CornerRadius="4"
-                                            BorderThickness="1"
-                                            BorderBrush="#FF5A9DF9"
-                                            Padding="{TemplateBinding Padding}">
-                                        <ContentPresenter HorizontalAlignment="Center" 
-                                                          VerticalAlignment="Center"/>
-                                    </Border>
-                                    <ControlTemplate.Triggers>
-                                        <Trigger Property="IsMouseOver" Value="True">
-                                            <Setter TargetName="border" Property="Background" Value="#FF5A9DF9"/>
-                                            <Setter TargetName="border" Property="BorderBrush" Value="#FF7DB8FA"/>
-                                        </Trigger>
-                                        <Trigger Property="IsPressed" Value="True">
-                                            <Setter TargetName="border" Property="Background" Value="#FF2563EB"/>
-                                            <Setter TargetName="border" Property="BorderBrush" Value="#FF1D4ED8"/>
-                                        </Trigger>
-                                    </ControlTemplate.Triggers>
-                                </ControlTemplate>
-                            </Setter.Value>
-                        </Setter>
-                    </Style>
-                </Button.Style>
-            </Button>
-        </mah:WindowCommands>
-    </mah:MetroWindow.RightWindowCommands>
+
 
     <!-- Simplified Title Bar -->
     <mah:MetroWindow.TitleTemplate>

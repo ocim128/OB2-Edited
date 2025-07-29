@@ -1,4 +1,4 @@
-﻿using Microsoft.Scripting.Utils;
+using Microsoft.Scripting.Utils;
 using OpenBullet2.Core.Models.Settings;
 using OpenBullet2.Core.Repositories;
 using RuriLib.Models.Configs;
@@ -64,7 +64,14 @@ public class ConfigService
     public async Task ReloadConfigsAsync()
     {
         // Load from the main repository
-        Configs = (await _configRepo.GetAllAsync()).ToList();
+        var newConfigs = (await _configRepo.GetAllAsync()).ToList();
+        
+        lock (Configs)
+        {
+            Configs.Clear();
+            Configs.AddRange(newConfigs);
+        }
+        
         SelectedConfig = null;
 
         // Load from remotes (fire and forget)

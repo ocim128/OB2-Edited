@@ -1,4 +1,4 @@
-﻿using Microsoft.Win32;
+using Microsoft.Win32;
 using OpenBullet2.Core.Entities;
 using OpenBullet2.Native.DTOs;
 using OpenBullet2.Native.Extensions;
@@ -17,6 +17,7 @@ using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Input;
 using System.Threading.Tasks;
+using OpenBullet2.Native.Infrastructure.DependencyInjection;
 
 namespace OpenBullet2.Native.Views.Pages;
 
@@ -34,7 +35,7 @@ public partial class Proxies : Page
 
     public Proxies()
     {
-        vm = SP.GetService<ViewModelsService>().Proxies;
+        vm = ServiceLocator.GetService<ViewModelsService>().Proxies;
         DataContext = vm;
         _ = vm.InitializeAsync();
 

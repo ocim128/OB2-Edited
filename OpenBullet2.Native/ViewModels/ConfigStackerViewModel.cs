@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using OpenBullet2.Native.Infrastructure.DependencyInjection;
 
 namespace OpenBullet2.Native.ViewModels;
 
@@ -33,7 +34,7 @@ public class ConfigStackerViewModel : ViewModelBase
 
     public ConfigStackerViewModel()
     {
-        configService = SP.GetService<ConfigService>();
+        configService = ServiceLocator.GetService<ConfigService>();
     }
 
     public void CreateBlock(BlockDescriptor descriptor)

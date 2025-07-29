@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using OpenBullet2.Core.Entities;
 using OpenBullet2.Core.Repositories;
 using System;
@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Data;
+using OpenBullet2.Native.Infrastructure.DependencyInjection;
 
 namespace OpenBullet2.Native.ViewModels;
 
@@ -43,7 +44,7 @@ public class WordlistsViewModel : ViewModelBase
 
     public WordlistsViewModel()
     {
-        wordlistRepo = SP.GetService<IWordlistRepository>();
+        wordlistRepo = ServiceLocator.GetService<IWordlistRepository>();
         WordlistsCollection = [];
     }
 

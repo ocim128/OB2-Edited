@@ -1,4 +1,4 @@
-﻿using OpenBullet2.Core.Entities;
+using OpenBullet2.Core.Entities;
 using OpenBullet2.Core.Models.Jobs;
 using OpenBullet2.Core.Models.Settings;
 using OpenBullet2.Core.Repositories;
@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using OpenBullet2.Native.Infrastructure.DependencyInjection;
 
 namespace OpenBullet2.Native.Views.Dialogs
 {
@@ -135,9 +136,9 @@ namespace OpenBullet2.Native.Views.Dialogs
         public ProxyCheckJobOptionsViewModel(ProxyCheckJobOptions options)
         {
             Options = options ?? JobOptionsFactory.CreateNew(JobType.ProxyCheck) as ProxyCheckJobOptions;
-            proxyGroupRepo = SP.GetService<IProxyGroupRepository>();
-            jobFactory = SP.GetService<JobFactoryService>();
-            obSettingsService = SP.GetService<OpenBulletSettingsService>();
+            proxyGroupRepo = ServiceLocator.GetService<IProxyGroupRepository>();
+            jobFactory = ServiceLocator.GetService<JobFactoryService>();
+            obSettingsService = ServiceLocator.GetService<OpenBulletSettingsService>();
 
             proxyGroups = proxyGroupRepo.GetAll().ToList();
 

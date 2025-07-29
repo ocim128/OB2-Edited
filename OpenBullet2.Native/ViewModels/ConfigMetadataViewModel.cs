@@ -1,4 +1,4 @@
-﻿using OpenBullet2.Core.Helpers;
+using OpenBullet2.Core.Helpers;
 using OpenBullet2.Core.Services;
 using OpenBullet2.Native.Utils;
 using RuriLib.Models.Configs;
@@ -7,6 +7,7 @@ using System.IO;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Windows.Media.Imaging;
+using OpenBullet2.Native.Infrastructure.DependencyInjection;
 
 namespace OpenBullet2.Native.ViewModels
 {
@@ -49,7 +50,7 @@ namespace OpenBullet2.Native.ViewModels
 
         public ConfigMetadataViewModel()
         {
-            configService = SP.GetService<ConfigService>();
+            configService = ServiceLocator.GetService<ConfigService>();
         }
 
         public void SetIconFromFile(string fileName)

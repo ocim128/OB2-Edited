@@ -1,6 +1,7 @@
-﻿using OpenBullet2.Core.Models.Settings;
+using OpenBullet2.Core.Models.Settings;
 using OpenBullet2.Core.Services;
 using OpenBullet2.Native.Helpers;
+using OpenBullet2.Native.Infrastructure.DependencyInjection;
 using System;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -18,7 +19,7 @@ namespace OpenBullet2.Native.ViewModels
 
         public OBSettingsViewModel()
         {
-            service = SP.GetService<OpenBulletSettingsService>();
+            service = ServiceLocator.GetService<OpenBulletSettingsService>();
             CreateCollections();
         }
 
@@ -450,7 +451,7 @@ namespace OpenBullet2.Native.ViewModels
             RefreshTheme();
         }
 
-        private void RefreshTheme() => SP.GetService<MainWindow>().SetTheme(Customization);
+        private void RefreshTheme() => ServiceLocator.GetService<MainWindow>().SetTheme(Customization);
 
         public void AddProxyCheckTarget() => ProxyCheckTargetsCollection.Add(new ProxyCheckTarget());
         public void RemoveProxyCheckTarget(ProxyCheckTarget target) => ProxyCheckTargetsCollection.Remove(target);

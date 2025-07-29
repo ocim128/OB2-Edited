@@ -52,7 +52,7 @@
 
     <Grid Margin="12">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="240" MinWidth="180" MaxWidth="320" />
+            <ColumnDefinition Width="200" MinWidth="180" MaxWidth="320" />
             <ColumnDefinition Width="auto" />
             <ColumnDefinition Width="*" MinWidth="250" />
         </Grid.ColumnDefinitions>

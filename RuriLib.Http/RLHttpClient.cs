@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Buffers;
 using System.IO;
 using System.IO.Pipelines;
@@ -33,6 +33,9 @@ public class RLHttpClient(ProxyClient proxyClient = null) : IDisposable
     private TcpClient tcpClient;
     private Stream connectionCommonStream;
     private NetworkStream connectionNetworkStream;
+    private string lastConnectedHost;
+    private int lastConnectedPort;
+    private bool lastConnectionWasSecure;
 
     #region Properties
     /// <summary>
@@ -224,26 +227,24 @@ public class RLHttpClient(ProxyClient proxyClient = null) : IDisposable
 
     private async Task CreateConnection(HttpRequest request, CancellationToken cancellationToken)
     {
-        // Dispose of any previous connection (if we're coming from a redirect)
-        tcpClient?.Close();
-
-        if (connectionCommonStream is not null)
+        var uri = request.Uri;
+        var isSecure = uri.Scheme.Equals("https", StringComparison.OrdinalIgnoreCase);
+        
+        // Check if we can reuse the existing connection
+        if (CanReuseConnection(uri.Host, uri.Port, isSecure))
         {
-            await connectionCommonStream.DisposeAsync().ConfigureAwait(false);
+            return;
         }
 
-        if (connectionNetworkStream is not null)
-        {
-            await connectionNetworkStream.DisposeAsync().ConfigureAwait(false);
-        }
+        // Dispose of any previous connection
+        await DisposeConnectionAsync().ConfigureAwait(false);
 
         // Get the stream from the proxies TcpClient
-        var uri = request.Uri;
         tcpClient = await ProxyClient.ConnectAsync(uri.Host, uri.Port, null, cancellationToken);
         connectionNetworkStream = tcpClient.GetStream();
 
         // If https, set up a TLS stream
-        if (uri.Scheme.Equals("https", StringComparison.OrdinalIgnoreCase))
+        if (isSecure)
         {
             try
             {
@@ -284,6 +285,49 @@ public class RLHttpClient(ProxyClient proxyClient = null) : IDisposable
         {
             connectionCommonStream = connectionNetworkStream;
         }
+        
+        // Store connection details for reuse
+        lastConnectedHost = uri.Host;
+        lastConnectedPort = uri.Port;
+        lastConnectionWasSecure = isSecure;
+    }
+
+    private bool CanReuseConnection(string host, int port, bool isSecure)
+    {
+        // Check if we have an existing connection
+        if (tcpClient == null || connectionCommonStream == null)
+            return false;
+
+        // Check if the connection is still alive
+        if (!tcpClient.Connected)
+            return false;
+
+        // Check if the host, port, and security match
+        return string.Equals(lastConnectedHost, host, StringComparison.OrdinalIgnoreCase) &&
+               lastConnectedPort == port &&
+               lastConnectionWasSecure == isSecure;
+    }
+
+    private async Task DisposeConnectionAsync()
+    {
+        tcpClient?.Close();
+
+        if (connectionCommonStream is not null)
+        {
+            await connectionCommonStream.DisposeAsync().ConfigureAwait(false);
+        }
+
+        if (connectionNetworkStream is not null)
+        {
+            await connectionNetworkStream.DisposeAsync().ConfigureAwait(false);
+        }
+
+        tcpClient = null;
+        connectionCommonStream = null;
+        connectionNetworkStream = null;
+        lastConnectedHost = null;
+        lastConnectedPort = 0;
+        lastConnectionWasSecure = false;
     }
 
     /// <inheritdoc/>

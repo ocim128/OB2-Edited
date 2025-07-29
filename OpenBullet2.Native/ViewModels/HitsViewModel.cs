@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using OpenBullet2.Core.Entities;
 using OpenBullet2.Core.Repositories;
 using OpenBullet2.Core.Services;
@@ -8,6 +8,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Data;
+using OpenBullet2.Native.Infrastructure.DependencyInjection;
 
 namespace OpenBullet2.Native.ViewModels
 {
@@ -78,8 +79,8 @@ namespace OpenBullet2.Native.ViewModels
 
         public HitsViewModel()
         {
-            obSettingsService = SP.GetService<OpenBulletSettingsService>();
-            hitRepo = SP.GetService<IHitRepository>();
+            obSettingsService = ServiceLocator.GetService<OpenBulletSettingsService>();
+            hitRepo = ServiceLocator.GetService<IHitRepository>();
             HitsCollection = new ObservableCollection<HitEntity>();
         }
 

@@ -5,6 +5,7 @@ using OpenBullet2.Native.Utils;
 using RuriLib.Functions.Files;
 using RuriLib.Models.Configs;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
@@ -13,6 +14,7 @@ using System.Windows;
 using System.Windows.Data;
 using System.Windows.Media.Imaging;
 using RuriLib.Helpers;
+using OpenBullet2.Native.Infrastructure.DependencyInjection;
 
 namespace OpenBullet2.Native.ViewModels
 {
@@ -105,9 +107,9 @@ namespace OpenBullet2.Native.ViewModels
 
         public ConfigsViewModel()
         {
-            configService = SP.GetService<ConfigService>();
+            configService = ServiceLocator.GetService<ConfigService>();
             configService.OnRemotesLoaded += (s, e) => CreateCollection();
-            configRepo = SP.GetService<IConfigRepository>();
+            configRepo = ServiceLocator.GetService<IConfigRepository>();
             CreateCollection();
         }
 
@@ -193,7 +195,13 @@ namespace OpenBullet2.Native.ViewModels
         public void CreateCollection()
         {
             // Order configs by LastModified descending so the most recently edited ones appear first
-            var viewModels = configService.Configs
+            List<Config> configsCopy;
+            lock (configService.Configs)
+            {
+                configsCopy = configService.Configs.ToList();
+            }
+            
+            var viewModels = configsCopy
                 .OrderByDescending(c => c.Metadata.LastModified)
                 .Select(c => new ConfigViewModel(c));
 

@@ -7,216 +7,285 @@
       xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
       xmlns:controls="clr-namespace:OpenBullet2.Native.Controls"
       mc:Ignorable="d" 
-      d:DesignHeight="650" d:DesignWidth="800"
-      Title="MultiRunJobViewer"
+      d:DesignHeight="720" d:DesignWidth="1200"
+      Title="MultiRun Job Viewer"
       TextOptions.TextFormattingMode="Ideal"
-      TextOptions.TextRenderingMode="Auto"
-      RenderOptions.BitmapScalingMode="LowQuality"
-      SnapsToDevicePixels="False">
+      TextOptions.TextRenderingMode="ClearType"
+      RenderOptions.BitmapScalingMode="HighQuality"
+      SnapsToDevicePixels="True"
+      UseLayoutRounding="True">
 
     <Page.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
-        
-        <Style x:Key="ContextMenuStyle" TargetType="ContextMenu">
-            <Setter Property="Background" Value="#FF1A1A1A"/>
-            <Setter Property="Foreground" Value="#E2E8F0"/>
-            <Setter Property="BorderBrush" Value="Transparent"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Padding" Value="4,2"/>
-            <Setter Property="HasDropShadow" Value="True"/>
+
+        <!-- GridView Column Header Gripper Style -->
+        <Style x:Key="GridViewColumnHeaderGripper" TargetType="Thumb">
+            <Setter Property="Width" Value="0" />
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Thumb}">
+                        <Border Background="Transparent" />
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
-        
-        <Style x:Key="MenuItemIconStyle" TargetType="iconPacks:PackIconMaterial">
-            <Setter Property="Width" Value="16"/>
-            <Setter Property="Height" Value="16"/>
+
+        <!-- Simplified ScrollBar Style -->
+        <Style x:Key="ModernScrollBar" TargetType="{x:Type ScrollBar}">
+            <Setter Property="Background" Value="#FF2A2A2A"/>
+            <Setter Property="Width" Value="8"/>
         </Style>
-        
-        <ContextMenu x:Key="hitsContextMenu" Style="{StaticResource ContextMenuStyle}">
+
+        <!-- Premium Dark Context Menu -->
+        <ContextMenu x:Key="hitsContextMenu" 
+                     Background="#FF1A1A1A" 
+                     Foreground="#E2E8F0" 
+                     BorderBrush="Transparent"
+                     BorderThickness="0"
+                     Padding="4,2"
+                     HasDropShadow="True">
+            
+            <!-- Copy Actions Group -->
             <MenuItem Header="Copy Selected Data" Click="CopySelectedHits" InputGestureText="Ctrl+C">
                 <MenuItem.Icon>
-                    <iconPacks:PackIconMaterial Kind="ContentCopy" Foreground="#3B82F6" Style="{StaticResource MenuItemIconStyle}"/>
+                    <iconPacks:PackIconMaterial Kind="ContentCopy" Width="16" Height="16" Foreground="#3B82F6"/>
                 </MenuItem.Icon>
             </MenuItem>
             <MenuItem Header="Copy Selected Proxy" Click="CopySelectedProxies" InputGestureText="Ctrl+Shift+C">
                 <MenuItem.Icon>
-                    <iconPacks:PackIconMaterial Kind="Server" Foreground="#3B82F6" Style="{StaticResource MenuItemIconStyle}"/>
+                    <iconPacks:PackIconMaterial Kind="Server" Width="16" Height="16" Foreground="#3B82F6"/>
                 </MenuItem.Icon>
             </MenuItem>
             <MenuItem Header="Copy Selected Data with Capture" Click="CopySelectedHitsCapture" InputGestureText="Ctrl+Alt+C">
                 <MenuItem.Icon>
-                    <iconPacks:PackIconMaterial Kind="DatabaseExport" Foreground="#3B82F6" Style="{StaticResource MenuItemIconStyle}"/>
+                    <iconPacks:PackIconMaterial Kind="DatabaseExport" Width="16" Height="16" Foreground="#3B82F6"/>
                 </MenuItem.Icon>
             </MenuItem>
+            
             <Separator/>
+            
+            <!-- Analysis Actions -->
             <MenuItem Header="Send To Debugger" Click="SendToDebugger" InputGestureText="F12">
                 <MenuItem.Icon>
-                    <iconPacks:PackIconMaterial Kind="Bug" Foreground="#10B981" Style="{StaticResource MenuItemIconStyle}"/>
+                    <iconPacks:PackIconMaterial Kind="Bug" Width="16" Height="16" Foreground="#10B981"/>
                 </MenuItem.Icon>
             </MenuItem>
             <MenuItem Header="Show Bot Log" Click="ShowBotLog" InputGestureText="Ctrl+L">
                 <MenuItem.Icon>
-                    <iconPacks:PackIconMaterial Kind="FileDocument" Foreground="#F59E0B" Style="{StaticResource MenuItemIconStyle}"/>
+                    <iconPacks:PackIconMaterial Kind="FileDocument" Width="16" Height="16" Foreground="#F59E0B"/>
                 </MenuItem.Icon>
             </MenuItem>
+            
             <Separator/>
+            
+            <!-- Selection Actions -->
             <MenuItem Header="Select All" Click="SelectAll" InputGestureText="Ctrl+A">
                 <MenuItem.Icon>
-                    <iconPacks:PackIconMaterial Kind="SelectAll" Foreground="#94A3B8" Style="{StaticResource MenuItemIconStyle}"/>
+                    <iconPacks:PackIconMaterial Kind="SelectAll" Width="16" Height="16" Foreground="#94A3B8"/>
                 </MenuItem.Icon>
             </MenuItem>
         </ContextMenu>
 
-        <ContextMenu x:Key="botsContextMenu" Style="{StaticResource ContextMenuStyle}">
+        <!-- Premium Dark Bot Context Menu -->
+        <ContextMenu x:Key="botsContextMenu" 
+                     Background="#FF1A1A1A" 
+                     Foreground="#E2E8F0" 
+                     BorderBrush="Transparent"
+                     BorderThickness="0"
+                     Padding="4,2"
+                     HasDropShadow="True">
+            
+            <!-- Bot Actions -->
             <MenuItem Header="Copy Bot Data" Click="CopySelectedBotData">
                 <MenuItem.Icon>
-                    <iconPacks:PackIconMaterial Kind="Robot" Foreground="#3B82F6" Style="{StaticResource MenuItemIconStyle}"/>
+                    <iconPacks:PackIconMaterial Kind="Robot" Width="16" Height="16" Foreground="#3B82F6"/>
                 </MenuItem.Icon>
             </MenuItem>
             <MenuItem Header="Copy Bot Proxy" Click="CopySelectedBotProxy">
                 <MenuItem.Icon>
-                    <iconPacks:PackIconMaterial Kind="Server" Foreground="#3B82F6" Style="{StaticResource MenuItemIconStyle}"/>
+                    <iconPacks:PackIconMaterial Kind="Server" Width="16" Height="16" Foreground="#3B82F6"/>
                 </MenuItem.Icon>
             </MenuItem>
             <MenuItem Header="Copy Bot Info" Click="CopySelectedBotInfo">
                 <MenuItem.Icon>
-                    <iconPacks:PackIconMaterial Kind="Information" Foreground="#3B82F6" Style="{StaticResource MenuItemIconStyle}"/>
+                    <iconPacks:PackIconMaterial Kind="Information" Width="16" Height="16" Foreground="#3B82F6"/>
                 </MenuItem.Icon>
             </MenuItem>
+            
             <Separator/>
+            
+            <!-- Selection Actions -->
             <MenuItem Header="Select All Bots" Click="SelectAllBots">
                 <MenuItem.Icon>
-                    <iconPacks:PackIconMaterial Kind="SelectAll" Foreground="#94A3B8" Style="{StaticResource MenuItemIconStyle}"/>
+                    <iconPacks:PackIconMaterial Kind="SelectAll" Width="16" Height="16" Foreground="#94A3B8"/>
                 </MenuItem.Icon>
             </MenuItem>
         </ContextMenu>
     </Page.Resources>
 
-    <Grid Margin="6">
+    <Grid Margin="16">
         <Grid.RowDefinitions>
-            <RowDefinition Height="auto" />
-            <RowDefinition Height="auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
-            <RowDefinition Height="auto" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
+        
+        <Grid.Background>
+            <SolidColorBrush Color="#FF1A1A1A"/>
+        </Grid.Background>
 
-        <!-- Compact Header Section -->
-        <Border Grid.Row="0" Background="#FF2A2A2A" CornerRadius="8" Padding="8,6" Margin="0,0,0,6">
+        <!-- Header Section -->
+        <Border Grid.Row="0" Background="#FF252525" CornerRadius="8" Padding="16,12" Margin="0,0,0,8">
             <Grid>
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="auto" />
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="auto" />
-            </Grid.ColumnDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
             
-                <!-- Left: Config Icon & Basic Info -->
-                <StackPanel Grid.Column="0" Orientation="Horizontal">
-                <Image 
-                    Source="{Binding ConfigIcon}"
-                        Width="40"
-                        Height="40"
-                        VerticalAlignment="Center"
-                        Margin="0,0,15,0"/>
+                <!-- Left: Enhanced Config Info -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Border Background="#FF1E1E1E" CornerRadius="8" Padding="8" Margin="0,0,20,0">
+                        <Image Source="{Binding ConfigIcon}"
+                               Width="48" Height="48"
+                               VerticalAlignment="Center"/>
+                    </Border>
+                    
                     <StackPanel VerticalAlignment="Center">
-                        <StackPanel>
+                        <!-- Config Name & Author -->
+                        <StackPanel Margin="0,0,0,8">
                             <TextBlock Text="{Binding ConfigName}" 
-                                       FontSize="14" 
-                                       FontWeight="SemiBold" 
-                                       Foreground="White" 
-                                       Margin="0,0,0,2"/>
+                                       FontSize="16" 
+                                       FontWeight="Bold" 
+                                       Foreground="#FFFFFF" 
+                                       Margin="0,0,0,4"/>
                             <TextBlock Text="{Binding ConfigAuthor}" 
-                                       FontSize="9" 
-                                       FontWeight="Normal" 
-                                       Foreground="#FFB0B0B0" 
-                                       Margin="0,0,0,2"/>
-                </StackPanel>
+                                       FontSize="11" 
+                                       FontWeight="Medium" 
+                                       Foreground="#FF9CA3AF" 
+                                       Margin="0,0,0,0"/>
+                        </StackPanel>
+                        
+                        <!-- Bot & Skip Controls -->
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="Bots: " FontSize="11" Foreground="#FFB0B0B0"/>
-                            <TextBlock Text="{Binding Job.Bots}" FontSize="11" FontWeight="SemiBold" Foreground="White"/>
-                            <Border Background="Transparent" 
-                                    Padding="4" 
-                                    Cursor="Hand" 
-                                    MouseDown="ChangeBots"
-                                    ToolTip="Edit number of bots">
-                            <iconPacks:PackIconMaterial
-                                Kind="Pencil"
-                                Foreground="#FF1E90FF"
-                                    Height="12"
-                                    Width="12" />
+                            <!-- Bots Section -->
+                            <Border Background="#FF1E1E1E" CornerRadius="6" Padding="8,4" Margin="0,0,12,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="Bots:" FontSize="11" FontWeight="Medium" Foreground="#FF9CA3AF" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding Job.Bots}" FontSize="12" FontWeight="Bold" Foreground="#FF3B82F6" VerticalAlignment="Center" Margin="6,0,6,0"/>
+                                    <Button Background="Transparent" BorderThickness="0" Padding="4" Cursor="Hand" 
+                                            Click="ChangeBots" ToolTip="Edit number of bots">
+                                        <iconPacks:PackIconMaterial Kind="Pencil" Foreground="#FF3B82F6" Height="12" Width="12"/>
+                                    </Button>
+                                </StackPanel>
                             </Border>
-                            <TextBlock Text="Skip: " FontSize="11" Foreground="#FFB0B0B0" Margin="15,0,0,0"/>
-                            <TextBlock Text="{Binding Job.Skip}" FontSize="11" FontWeight="SemiBold" Foreground="White"/>
-                            <Border Background="Transparent" 
-                                    Padding="4" 
-                                    Cursor="Hand" 
-                                    MouseDown="ResetSkip"
-                                    ToolTip="Reset Skip to 0"
-                                    Visibility="{Binding CanChangeOptions, Converter={StaticResource ResourceKey=BoolToVis}}">
-                                <iconPacks:PackIconMaterial
-                                    Kind="Refresh"
-                                    Foreground="#FFFF6B35"
-                                    Height="12"
-                                    Width="12" />
+                            
+                            <!-- Skip Section -->
+                            <Border Background="#FF1E1E1E" CornerRadius="6" Padding="8,4">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="Skip:" FontSize="11" FontWeight="Medium" Foreground="#FF9CA3AF" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding Job.Skip}" FontSize="12" FontWeight="Bold" Foreground="#FFEF4444" VerticalAlignment="Center" Margin="6,0,6,0"/>
+                                    <Button Background="Transparent" BorderThickness="0" Padding="4" Cursor="Hand" 
+                                            Click="ResetSkip" ToolTip="Reset Skip to 0"
+                                            Visibility="{Binding CanChangeOptions, Converter={StaticResource BoolToVis}}">
+                                        <iconPacks:PackIconMaterial Kind="Refresh" Foreground="#FFEF4444" Height="12" Width="12"/>
+                                    </Button>
+                                </StackPanel>
                             </Border>
-                </StackPanel>
-            </StackPanel>
+                        </StackPanel>
+                    </StackPanel>
                 </StackPanel>
 
-                <!-- Center: Compact Info Grid -->
-                <Grid Grid.Column="1" Margin="20,0">
+                <!-- Center: Enhanced Info Cards -->
+                <Grid Grid.Column="1" Margin="24,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="auto"/>
-                        <RowDefinition Height="auto"/>
-                        <RowDefinition Height="auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
-                    <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,10,3">
-                        <TextBlock Text="Data Pool" FontSize="10" Foreground="#FFB0B0B0"/>
-                        <TextBlock Text="{Binding DataPoolInfo}" FontSize="11" Foreground="White" TextTrimming="CharacterEllipsis"/>
-                </StackPanel>
-                    <StackPanel Grid.Row="0" Grid.Column="1" Margin="0,0,0,3">
-                        <TextBlock Text="Proxy Mode" FontSize="10" Foreground="#FFB0B0B0"/>
-                        <TextBlock Text="{Binding Job.ProxyMode}" FontSize="11" Foreground="White"/>
-                </StackPanel>
+                    <!-- Data Pool Card -->
+                    <Border Grid.Row="0" Grid.Column="0" Background="#FF1E1E1E" CornerRadius="8" Padding="12,8" Margin="0,0,8,8">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                <iconPacks:PackIconMaterial Kind="Database" Width="14" Height="14" Foreground="#FF10B981" VerticalAlignment="Center"/>
+                                <TextBlock Text="Data Pool" FontSize="11" FontWeight="SemiBold" Foreground="#FF10B981" VerticalAlignment="Center" Margin="6,0,0,0"/>
+                            </StackPanel>
+                            <TextBlock Text="{Binding DataPoolInfo}" FontSize="12" Foreground="#FFFFFF" TextTrimming="CharacterEllipsis" FontWeight="Medium"/>
+                        </StackPanel>
+                    </Border>
+                    
+                    <!-- Proxy Mode Card -->
+                    <Border Grid.Row="0" Grid.Column="1" Background="#FF1E1E1E" CornerRadius="8" Padding="12,8" Margin="8,0,0,8">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                <iconPacks:PackIconMaterial Kind="Server" Width="14" Height="14" Foreground="#FF8B5CF6" VerticalAlignment="Center"/>
+                                <TextBlock Text="Proxy Mode" FontSize="11" FontWeight="SemiBold" Foreground="#FF8B5CF6" VerticalAlignment="Center" Margin="6,0,0,0"/>
+                            </StackPanel>
+                            <TextBlock Text="{Binding Job.ProxyMode}" FontSize="12" Foreground="#FFFFFF" FontWeight="Medium"/>
+                        </StackPanel>
+                    </Border>
 
-                    <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,10,3">
-                        <TextBlock Text="Proxy Sources" FontSize="10" Foreground="#FFB0B0B0"/>
-                        <TextBlock Text="{Binding ProxySourcesInfo}" FontSize="11" Foreground="White" TextTrimming="CharacterEllipsis"/>
-                </StackPanel>
-                    <StackPanel Grid.Row="1" Grid.Column="1" Margin="0,0,0,3">
-                        <TextBlock Text="Hit Outputs" FontSize="10" Foreground="#FFB0B0B0"/>
-                        <TextBlock Text="{Binding HitOutputsInfo}" FontSize="11" Foreground="White" TextTrimming="CharacterEllipsis"/>
-                </StackPanel>
+                    <!-- Proxy Sources Card -->
+                    <Border Grid.Row="1" Grid.Column="0" Background="#FF1E1E1E" CornerRadius="8" Padding="12,8" Margin="0,0,8,8">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                <iconPacks:PackIconMaterial Kind="CloudDownload" Width="14" Height="14" Foreground="#FFF59E0B" VerticalAlignment="Center"/>
+                                <TextBlock Text="Proxy Sources" FontSize="11" FontWeight="SemiBold" Foreground="#FFF59E0B" VerticalAlignment="Center" Margin="6,0,0,0"/>
+                            </StackPanel>
+                            <TextBlock Text="{Binding ProxySourcesInfo}" FontSize="12" Foreground="#FFFFFF" TextTrimming="CharacterEllipsis" FontWeight="Medium"/>
+                        </StackPanel>
+                    </Border>
+                    
+                    <!-- Hit Outputs Card -->
+                    <Border Grid.Row="1" Grid.Column="1" Background="#FF1E1E1E" CornerRadius="8" Padding="12,8" Margin="8,0,0,8">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                <iconPacks:PackIconMaterial Kind="Export" Width="14" Height="14" Foreground="#FFEF4444" VerticalAlignment="Center"/>
+                                <TextBlock Text="Hit Outputs" FontSize="11" FontWeight="SemiBold" Foreground="#FFEF4444" VerticalAlignment="Center" Margin="6,0,0,0"/>
+                            </StackPanel>
+                            <TextBlock Text="{Binding HitOutputsInfo}" FontSize="12" Foreground="#FFFFFF" TextTrimming="CharacterEllipsis" FontWeight="Medium"/>
+                        </StackPanel>
+                    </Border>
 
-                    <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,0"
-                    Visibility="{Binding HasCustomInputs, Converter={StaticResource ResourceKey=BoolToVis}}">
-                        <TextBlock Text="Custom Inputs" FontSize="10" Foreground="#FFB0B0B0"/>
-                        <TextBlock Text="{Binding CustomInputsInfo}" FontSize="11" Foreground="White" TextTrimming="CharacterEllipsis"/>
-                </StackPanel>
+                    <!-- Custom Inputs Card -->
+                    <Border Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Background="#FF1E1E1E" CornerRadius="8" Padding="12,8" Margin="0,0,0,0"
+                            Visibility="{Binding HasCustomInputs, Converter={StaticResource BoolToVis}}">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                <iconPacks:PackIconMaterial Kind="Cog" Width="14" Height="14" Foreground="#FF06B6D4" VerticalAlignment="Center"/>
+                                <TextBlock Text="Custom Inputs" FontSize="11" FontWeight="SemiBold" Foreground="#FF06B6D4" VerticalAlignment="Center" Margin="6,0,0,0"/>
+                            </StackPanel>
+                            <TextBlock Text="{Binding CustomInputsInfo}" FontSize="12" Foreground="#FFFFFF" TextTrimming="CharacterEllipsis" FontWeight="Medium"/>
+                        </StackPanel>
+                    </Border>
                 </Grid>
 
                 <!-- Right: Control Buttons -->
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
                     <!-- Status Labels -->
                     <TextBlock Text="{Binding RemainingWaitString}"
-                              Visibility="{Binding IsWaiting, Converter={StaticResource ResourceKey=BoolToVis}}" 
+                              Visibility="{Binding IsWaiting, Converter={StaticResource BoolToVis}}" 
                               FontSize="11" Foreground="#FFCCCCCC" VerticalAlignment="Center" Margin="0,0,10,0"/>
                     <TextBlock Text="Starting..."
-                              Visibility="{Binding IsStarting, Converter={StaticResource ResourceKey=BoolToVis}}" 
+                              Visibility="{Binding IsStarting, Converter={StaticResource BoolToVis}}" 
                               FontSize="11" Foreground="#FF1E90FF" VerticalAlignment="Center" Margin="0,0,10,0"/>
                     <TextBlock Text="Stopping..."
-                              Visibility="{Binding IsStopping, Converter={StaticResource ResourceKey=BoolToVis}}" 
+                              Visibility="{Binding IsStopping, Converter={StaticResource BoolToVis}}" 
                               FontSize="11" Foreground="#FFFF6B35" VerticalAlignment="Center" Margin="0,0,10,0"/>
                     <TextBlock Text="Pausing..."
-                              Visibility="{Binding IsPausing, Converter={StaticResource ResourceKey=BoolToVis}}" 
+                              Visibility="{Binding IsPausing, Converter={StaticResource BoolToVis}}" 
                               FontSize="11" Foreground="#FFFF6B35" VerticalAlignment="Center" Margin="0,0,10,0"/>
                     
                     <!-- Compact Control Buttons with Tab-like Styling -->
                 <Button Click="Start"
-                    Visibility="{Binding CanStart, Converter={StaticResource ResourceKey=BoolToVis}}"
+                    Visibility="{Binding CanStart, Converter={StaticResource BoolToVis}}"
                         Background="#FF28A745" 
                         Foreground="White"
                         BorderThickness="0"
@@ -232,7 +301,7 @@
                     </StackPanel>
                 </Button>
                 <Button Click="Resume"
-                    Visibility="{Binding CanResume, Converter={StaticResource ResourceKey=BoolToVis}}"
+                    Visibility="{Binding CanResume, Converter={StaticResource BoolToVis}}"
                         Background="#FF28A745" 
                         Foreground="White"
                         BorderThickness="0"
@@ -248,7 +317,7 @@
                     </StackPanel>
                 </Button>
                 <Button Click="Pause"
-                    Visibility="{Binding CanPause, Converter={StaticResource ResourceKey=BoolToVis}}"
+                    Visibility="{Binding CanPause, Converter={StaticResource BoolToVis}}"
                         Background="#FFFF9800" 
                         Foreground="White"
                         BorderThickness="0"
@@ -264,7 +333,7 @@
                     </StackPanel>
                 </Button>
                 <Button Click="SkipWait"
-                    Visibility="{Binding CanSkipWait, Converter={StaticResource ResourceKey=BoolToVis}}"
+                    Visibility="{Binding CanSkipWait, Converter={StaticResource BoolToVis}}"
                         Background="#FF1E90FF" 
                         Foreground="White"
                         BorderThickness="0"
@@ -280,7 +349,7 @@
                     </StackPanel>
                 </Button>
                 <Button Click="Stop"
-                    Visibility="{Binding CanStop, Converter={StaticResource ResourceKey=BoolToVis}}"
+                    Visibility="{Binding CanStop, Converter={StaticResource BoolToVis}}"
                         Background="#FFDC2626" 
                         Foreground="White"
                         BorderThickness="0"
@@ -296,7 +365,7 @@
                     </StackPanel>
                 </Button>
                 <Button Click="Abort"
-                    Visibility="{Binding CanAbort, Converter={StaticResource ResourceKey=BoolToVis}}"
+                    Visibility="{Binding CanAbort, Converter={StaticResource BoolToVis}}"
                         Background="#FFDC2626" 
                         Foreground="White"
                         BorderThickness="0"
@@ -312,7 +381,7 @@
                     </StackPanel>
                 </Button>
                 <Button Click="ChangeOptions"
-                    Visibility="{Binding CanChangeOptions, Converter={StaticResource ResourceKey=BoolToVis}}"
+                    Visibility="{Binding CanChangeOptions, Converter={StaticResource BoolToVis}}"
                         Background="#FF1E90FF" 
                         Foreground="White"
                         BorderThickness="0"
@@ -331,92 +400,148 @@
         </Grid>
         </Border>
 
-        <!-- Modern Progress Section -->
-        <Border Grid.Row="1" Background="#FF2A2A2A" CornerRadius="6" Padding="8,4" Margin="0,0,0,6">
+        <!-- Enhanced Progress Section -->
+        <Border Grid.Row="1" Background="#FF1E1E1E" CornerRadius="8" Padding="16,12" Margin="0,0,0,12">
             <Grid>
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="auto"/>
-                    <RowDefinition Height="auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
                 
-                <!-- Progress Info -->
-                <TextBlock Grid.Row="0" 
-                          Text="{Binding Job.ProgressString}"
-                          FontWeight="SemiBold" 
-                          FontSize="12"
-                          Foreground="White"
-                HorizontalAlignment="Center"
-                          Margin="0,0,0,4" />
+                <!-- Progress Header -->
+                <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,8">
+                    <iconPacks:PackIconMaterial Kind="ChartLine" Width="16" Height="16" Foreground="#FF10B981" VerticalAlignment="Center"/>
+                    <TextBlock Text="Progress" FontSize="14" FontWeight="SemiBold" Foreground="#FF10B981" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                </StackPanel>
                 
-                <!-- Progress Bar -->
-                <ProgressBar Grid.Row="1" 
-                            Minimum="0"
-                            Maximum="100"
-                            Height="8"
-                            Background="#FF404040"
-                            Foreground="#FF1E90FF"
-                            BorderThickness="0"
-                            Value="{Binding Progress, Mode=OneWay}" />
+                <!-- Progress Info -->
+                <TextBlock Grid.Row="1" 
+                          Text="{Binding Job.ProgressString}"
+                          FontWeight="Medium" 
+                          FontSize="13"
+                          Foreground="#FFFFFF"
+                          HorizontalAlignment="Center"
+                          Margin="0,0,0,8" />
+                
+                <!-- Enhanced Progress Bar -->
+                 <Border Grid.Row="2" Background="#FF2A2A2A" CornerRadius="6" Height="12">
+                     <ProgressBar Minimum="0" Maximum="100" Value="{Binding Progress, Mode=OneWay}" 
+                                 Background="Transparent" Foreground="#FF10B981" BorderThickness="0" 
+                                 Height="12"/>
+                 </Border>
             </Grid>
         </Border>
 
         <Grid Grid.Row="2">
             <Grid.RowDefinitions>
                 <RowDefinition Height="auto"/>
-                <RowDefinition Height="2*" MinHeight="80"/>
+                <RowDefinition Height="3*" MinHeight="120"/>
                 <RowDefinition Height="auto"/>
                 <RowDefinition Height="auto"/>
-                <RowDefinition Height="3*" MinHeight="100"/>
+                <RowDefinition Height="4*" MinHeight="150"/>
             </Grid.RowDefinitions>
 
-            <!-- Bots Section Header -->
-            <Border Grid.Row="0" Background="#FF2A2A2A" CornerRadius="6" Padding="6,4" Margin="0,0,0,0">
-                <StackPanel Orientation="Horizontal">
-                    <iconPacks:PackIconMaterial Kind="Robot" Width="16" Height="16" Foreground="#FF1E90FF" VerticalAlignment="Center"/>
-                    <TextBlock Text="Bots Activity" FontSize="13" FontWeight="SemiBold" 
-                               Foreground="#FF1E90FF" VerticalAlignment="Center" Margin="8,0,0,0"/>
-                    <TextBlock Text="{Binding BotsCollection.Count}" FontSize="11" 
-                               Foreground="#FFCCCCCC" VerticalAlignment="Center" Margin="8,0,0,0"/>
-                    <TextBlock Text="active bots" FontSize="11" 
-                               Foreground="#FFCCCCCC" VerticalAlignment="Center" Margin="4,0,0,0"/>
-                </StackPanel>
+            <!-- Enhanced Bots Section Header -->
+            <Border Grid.Row="0" Background="#FF1E1E1E" CornerRadius="8" Padding="16,12" Margin="0,0,0,8">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <StackPanel Grid.Column="0" Orientation="Horizontal">
+                        <iconPacks:PackIconMaterial Kind="Robot" Width="18" Height="18" Foreground="#FF3B82F6" VerticalAlignment="Center"/>
+                        <TextBlock Text="Bots Activity" FontSize="14" FontWeight="SemiBold" 
+                                   Foreground="#FF3B82F6" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                    </StackPanel>
+                    
+                    <StackPanel Grid.Column="1" Orientation="Horizontal">
+                        <Border Background="#FF374151" CornerRadius="12" Padding="8,4">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{Binding BotsCollection.Count}" FontSize="12" FontWeight="SemiBold"
+                                           Foreground="#FFFFFF" VerticalAlignment="Center"/>
+                                <TextBlock Text="active" FontSize="11" 
+                                           Foreground="#FFD1D5DB" VerticalAlignment="Center" Margin="4,0,0,0"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </Grid>
             </Border>
 
-            <!-- Bots List View -->
-            <ListView
-                x:Name="botsListView"
-                Grid.Row="1"
-                Foreground="{DynamicResource ForegroundMain}"
-                Background="#FF1A1A1A"
-                ItemsSource="{Binding BotsCollection}"
-                SelectionMode="Extended"
-                BorderThickness="1"
-                BorderBrush="#FF404040"
-                Margin="0,0,0,4"
-                ContextMenu="{StaticResource botsContextMenu}">
+            <!-- Enhanced Bots List View -->
+            <Border Grid.Row="1" Background="#FF1E1E1E" CornerRadius="8" Margin="0,0,0,8">
+                <ListView
+                    x:Name="botsListView"
+                    Foreground="#FFFFFF"
+                    Background="Transparent"
+                    ItemsSource="{Binding BotsCollection}"
+                    SelectionMode="Extended"
+                    BorderThickness="0"
+                    Margin="8"
+                    ContextMenu="{StaticResource botsContextMenu}">
+                <!-- Align Headers to the Left -->
                 <ListView.Resources>
                     <Style TargetType="{x:Type GridViewColumnHeader}">
                         <Setter Property="HorizontalContentAlignment" Value="Left" />
-                        <Setter Property="Background" Value="#FF333333"/>
-                        <Setter Property="Foreground" Value="#FFB0B0B0"/>
-                        <Setter Property="FontSize" Value="11"/>
+                        <Setter Property="Background" Value="#FF2A2A2A"/>
+                        <Setter Property="Foreground" Value="#FF3B82F6"/>
+                        <Setter Property="FontSize" Value="12"/>
                         <Setter Property="FontWeight" Value="SemiBold"/>
-                        <Setter Property="Padding" Value="8,4"/>
+                        <Setter Property="Padding" Value="12,8"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="{x:Type GridViewColumnHeader}">
+                                    <Grid>
+                                        <Border BorderThickness="0,0,0,2" BorderBrush="#FF3B82F6" Background="#FF2A2A2A" CornerRadius="4,4,0,0">
+                                            <TextBlock x:Name="ContentHeader" Text="{TemplateBinding Content}" 
+                                                       Padding="12,8" Width="{TemplateBinding Width}" TextAlignment="Left" 
+                                                       Foreground="#FF3B82F6" FontWeight="SemiBold"/>
+                                        </Border>
+                                        <Thumb x:Name="PART_HeaderGripper"
+                                         HorizontalAlignment="Right"
+                                         Margin="0,0,-9,0"
+                                         Style="{StaticResource GridViewColumnHeaderGripper}" />
+                                    </Grid>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                        <Setter Property="OverridesDefaultStyle" Value="True" />
                     </Style>
+
                     <Style TargetType="{x:Type ListViewItem}">
                         <Setter Property="Background" Value="Transparent"/>
-                        <Setter Property="BorderBrush" Value="Transparent"/>
-                        <Setter Property="BorderThickness" Value="0"/>
+                        <Setter Property="Padding" Value="8,6"/>
+                        <Setter Property="Margin" Value="0,1"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="{x:Type ListViewItem}">
+                                    <Border x:Name="Bd" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" 
+                                            Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}" 
+                                            SnapsToDevicePixels="true" CornerRadius="4" Margin="{TemplateBinding Margin}">
+                                        <GridViewRowPresenter 
+                                            HorizontalAlignment="Left" 
+                                            SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"
+                                            VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                                    </Border>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
                         <Style.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#FF2A2A2A" />
+                                <Setter Property="Background" Value="#FF374151" />
                             </Trigger>
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter Property="Background" Value="#FF2A2A2A" />
+                                <Setter Property="Background" Value="#FF1E40AF" />
                             </Trigger>
                         </Style.Triggers>
                     </Style>
                 </ListView.Resources>
+
+                <!-- Show Headers by overriding the default style -->
+                <ListView.Style>
+                    <Style TargetType="{x:Type ListView}" />
+                </ListView.Style>
 
                 <ListView.View>
                     <GridView>
@@ -426,7 +551,8 @@
                         <GridViewColumn Width="400" Header="Info" DisplayMemberBinding="{Binding Info}" />
                     </GridView>
                 </ListView.View>
-            </ListView>
+                </ListView>
+            </Border>
 
             <!-- Resizer Splitter -->
             <GridSplitter Grid.Row="2" 
@@ -437,87 +563,123 @@
                          ResizeBehavior="PreviousAndNext"
                          Margin="0,4"/>
 
-            <!-- Hits Section with Tabs -->
-            <Border Grid.Row="3" Background="#FF2A2A2A" CornerRadius="6" Padding="12,8" Margin="0,0,0,0">
+            <!-- Enhanced Results & Hits Section Header -->
+            <Border Grid.Row="3" Background="#FF1E1E1E" CornerRadius="8" Padding="16,12" Margin="0,0,0,8">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="auto"/>
+                        <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     
                     <StackPanel Grid.Column="0" Orientation="Horizontal">
-                        <iconPacks:PackIconMaterial Kind="Target" Width="16" Height="16" Foreground="#FF28A745" VerticalAlignment="Center"/>
-                        <TextBlock Text="Results &amp; Hits" FontSize="13" FontWeight="SemiBold" 
-                                   Foreground="#FF28A745" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                        <iconPacks:PackIconMaterial Kind="Target" Width="18" Height="18" Foreground="#FF10B981" VerticalAlignment="Center"/>
+                        <TextBlock Text="Results &amp; Hits" FontSize="14" FontWeight="SemiBold" 
+                                   Foreground="#FF10B981" VerticalAlignment="Center" Margin="10,0,0,0"/>
                     </StackPanel>
                     
-                    <!-- Result Type Tabs -->
-                    <StackPanel Grid.Column="1" Orientation="Horizontal">
-                        <Button x:Name="HitsTabButton" Content="Hits" 
-                                Click="ShowHitsTab" 
-                                Background="#FF28A745" 
-                                Foreground="White"
-                                BorderThickness="0"
-                                Padding="10,4"
-                                Margin="1,0"
-                                FontSize="9"
-                                FontWeight="SemiBold"/>
-                        <Button x:Name="CustomTabButton" Content="Custom" 
-                                Click="ShowCustomTab" 
-                                Background="#FF404040" 
-                                Foreground="#FFCCCCCC"
-                                BorderThickness="0"
-                                Padding="10,4"
-                                Margin="1,0"
-                                FontSize="9"
-                                FontWeight="SemiBold"/>
-                        <Button x:Name="ToCheckTabButton" Content="ToCheck" 
-                                Click="ShowToCheckTab" 
-                                Background="#FF404040" 
-                                Foreground="#FFCCCCCC"
-                                BorderThickness="0"
-                                Padding="10,4"
-                                Margin="1,0"
-                                FontSize="9"
-                                FontWeight="SemiBold"/>
+                    <!-- Enhanced Result Type Tabs -->
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="8,0,0,0">
+                        <Button x:Name="HitsTabButton" Click="ShowHitsTab" 
+                                Background="#FF10B981" Foreground="White" BorderThickness="0"
+                                Padding="16,6" Margin="0,0,4,0" FontSize="11" FontWeight="SemiBold">
+                            <StackPanel Orientation="Horizontal">
+                                <iconPacks:PackIconMaterial Kind="CheckCircle" Width="14" Height="14" VerticalAlignment="Center"/>
+                                <TextBlock Text="Hits" VerticalAlignment="Center" Margin="6,0,0,0"/>
+                            </StackPanel>
+                        </Button>
+                        <Button x:Name="CustomTabButton" Click="ShowCustomTab" 
+                                Background="#FF374151" Foreground="#FFD1D5DB" BorderThickness="0"
+                                Padding="16,6" Margin="0,0,4,0" FontSize="11" FontWeight="SemiBold">
+                            <StackPanel Orientation="Horizontal">
+                                <iconPacks:PackIconMaterial Kind="Cog" Width="14" Height="14" VerticalAlignment="Center"/>
+                                <TextBlock Text="Custom" VerticalAlignment="Center" Margin="6,0,0,0"/>
+                            </StackPanel>
+                        </Button>
+                        <Button x:Name="ToCheckTabButton" Click="ShowToCheckTab" 
+                                Background="#FF374151" Foreground="#FFD1D5DB" BorderThickness="0"
+                                Padding="16,6" Margin="0,0,0,0" FontSize="11" FontWeight="SemiBold">
+                            <StackPanel Orientation="Horizontal">
+                                <iconPacks:PackIconMaterial Kind="ClockOutline" Width="14" Height="14" VerticalAlignment="Center"/>
+                                <TextBlock Text="ToCheck" VerticalAlignment="Center" Margin="6,0,0,0"/>
+                            </StackPanel>
+                        </Button>
                     </StackPanel>
                 </Grid>
             </Border>
 
-            <!-- Results List View with Filtered Content -->
+            <!-- Enhanced Results List View -->
+            <Border Grid.Row="4" Background="#FF1E1E1E" CornerRadius="8" Margin="0,0,0,8">
                 <ListView
-                x:Name="resultsListView"
-                Grid.Row="4"
-                Foreground="{DynamicResource ForegroundMain}"
-                Background="#FF1A1A1A"
-                ItemsSource="{Binding HitsCollection}"
-                SelectionMode="Extended"
-                BorderThickness="1"
-                BorderBrush="#FF404040"
-                ContextMenu="{StaticResource hitsContextMenu}">
+                    x:Name="resultsListView"
+                    Foreground="#FFFFFF"
+                    Background="Transparent"
+                    ItemsSource="{Binding HitsCollection}"
+                    SelectionMode="Extended"
+                    BorderThickness="0"
+                    Margin="8"
+                    ContextMenu="{StaticResource hitsContextMenu}">
+                    <!-- Align Headers to the Left -->
                     <ListView.Resources>
                         <Style TargetType="{x:Type GridViewColumnHeader}">
                             <Setter Property="HorizontalContentAlignment" Value="Left" />
-                            <Setter Property="Background" Value="#FF333333"/>
-                            <Setter Property="Foreground" Value="#FFB0B0B0"/>
-                            <Setter Property="FontSize" Value="11"/>
+                            <Setter Property="Background" Value="#FF2A2A2A"/>
+                            <Setter Property="Foreground" Value="#FF10B981"/>
+                            <Setter Property="FontSize" Value="12"/>
                             <Setter Property="FontWeight" Value="SemiBold"/>
-                            <Setter Property="Padding" Value="8,4"/>
+                            <Setter Property="Padding" Value="12,8"/>
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="{x:Type GridViewColumnHeader}">
+                                        <Grid>
+                                            <Border BorderThickness="0,0,0,2" BorderBrush="#FF10B981" Background="#FF2A2A2A" CornerRadius="4,4,0,0">
+                                                <TextBlock x:Name="ContentHeader" Text="{TemplateBinding Content}" 
+                                                           Padding="12,8" Width="{TemplateBinding Width}" TextAlignment="Left" 
+                                                           Foreground="#FF10B981" FontWeight="SemiBold"/>
+                                            </Border>
+                                            <Thumb x:Name="PART_HeaderGripper"
+                                                   HorizontalAlignment="Right"
+                                                   Margin="0,0,-9,0"
+                                                   Style="{StaticResource GridViewColumnHeaderGripper}" />
+                                        </Grid>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                            <Setter Property="OverridesDefaultStyle" Value="True" />
                         </Style>
+
                         <Style TargetType="{x:Type ListViewItem}">
                             <Setter Property="Background" Value="Transparent"/>
-                            <Setter Property="BorderBrush" Value="Transparent"/>
-                            <Setter Property="BorderThickness" Value="0"/>
+                            <Setter Property="Padding" Value="8,6"/>
+                            <Setter Property="Margin" Value="0,1"/>
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="{x:Type ListViewItem}">
+                                        <Border x:Name="Bd" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" 
+                                                Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}" 
+                                                SnapsToDevicePixels="true" CornerRadius="4" Margin="{TemplateBinding Margin}">
+                                            <GridViewRowPresenter 
+                                                HorizontalAlignment="Left" 
+                                                SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"
+                                                VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                                        </Border>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
                             <Style.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter Property="Background" Value="#FF2A2A2A" />
+                                    <Setter Property="Background" Value="#FF374151" />
                                 </Trigger>
                                 <Trigger Property="IsSelected" Value="True">
-                                    <Setter Property="Background" Value="#FF2A2A2A" />
+                                    <Setter Property="Background" Value="#FF065F46" />
                                 </Trigger>
                             </Style.Triggers>
                         </Style>
                     </ListView.Resources>
+
+                    <!-- Show Headers by overriding the default style -->
+                    <ListView.Style>
+                        <Style TargetType="{x:Type ListView}" />
+                    </ListView.Style>
 
                     <ListView.View>
                         <GridView>
@@ -528,64 +690,100 @@
                         </GridView>
                     </ListView.View>
                 </ListView>
+            </Border>
         </Grid>
 
-        <!-- Compact Statistics Footer -->
-        <Border Grid.Row="3" Background="#FF2A2A2A" CornerRadius="6" Padding="12,8" Margin="0,5,0,0">
+        <!-- Enhanced Statistics Footer -->
+        <Border Grid.Row="3" Background="#FF1F2937" CornerRadius="8" Padding="16,12" Margin="0,4,0,0">
             <Grid>
-            <Grid.ColumnDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="2*"/>
+                    <ColumnDefinition Width="3*"/>
                     <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
+                </Grid.ColumnDefinitions>
 
-                <!-- Performance & Testing Stats with Time (Reorganized) -->
-                <StackPanel Grid.Column="0" Orientation="Horizontal">
-                    <TextBlock Text="CPM: " FontWeight="Bold" FontSize="11" Foreground="#FFB0B0B0" VerticalAlignment="Center"
-                               TextOptions.TextFormattingMode="Display" TextOptions.TextRenderingMode="ClearType" 
-                               TextOptions.TextHintingMode="Fixed" UseLayoutRounding="True" SnapsToDevicePixels="True"/>
-                    <TextBlock Text="{Binding Job.CPM}" FontWeight="Bold" FontSize="12" Foreground="#FF1E90FF" VerticalAlignment="Center" Margin="0,0,20,0"
-                               TextOptions.TextFormattingMode="Display" TextOptions.TextRenderingMode="ClearType" 
-                               TextOptions.TextHintingMode="Fixed" UseLayoutRounding="True" SnapsToDevicePixels="True"/>
-                    <TextBlock Text="Elapsed: " FontWeight="Bold" FontSize="11" Foreground="#FFB0B0B0" VerticalAlignment="Center"
-                               TextOptions.TextFormattingMode="Display" TextOptions.TextRenderingMode="ClearType" 
-                               TextOptions.TextHintingMode="Fixed" UseLayoutRounding="True" SnapsToDevicePixels="True"/>
-                    <TextBlock Text="{Binding Job.ElapsedString}" FontWeight="Bold" FontSize="11" Foreground="#FFFF9800" VerticalAlignment="Center" Margin="0,0,20,0"
-                               TextOptions.TextFormattingMode="Display" TextOptions.TextRenderingMode="ClearType" 
-                               TextOptions.TextHintingMode="Fixed" UseLayoutRounding="True" SnapsToDevicePixels="True"/>
-                    <TextBlock Text="Remaining: " FontWeight="Bold" FontSize="11" Foreground="#FFB0B0B0" VerticalAlignment="Center"
-                               TextOptions.TextFormattingMode="Display" TextOptions.TextRenderingMode="ClearType" 
-                               TextOptions.TextHintingMode="Fixed" UseLayoutRounding="True" SnapsToDevicePixels="True"/>
-                    <TextBlock Text="{Binding Job.RemainingString}" FontWeight="Bold" FontSize="11" Foreground="#FF4CAF50" VerticalAlignment="Center" Margin="0,0,20,0"
-                               TextOptions.TextFormattingMode="Display" TextOptions.TextRenderingMode="ClearType" 
-                               TextOptions.TextHintingMode="Fixed" UseLayoutRounding="True" SnapsToDevicePixels="True"/>
-
+                <!-- Performance Metrics -->
+                <StackPanel Grid.Column="0">
+                    <TextBlock Text="Performance" FontSize="13" FontWeight="SemiBold" Foreground="#FF10B981" Margin="0,0,0,8"/>
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="CPM:" FontSize="11" Foreground="#FFD1D5DB" VerticalAlignment="Center" Margin="0,0,8,4"/>
+                        <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Job.CPM}" FontSize="12" FontWeight="SemiBold" Foreground="#FF3B82F6" VerticalAlignment="Center" Margin="0,0,0,4"/>
+                        
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Elapsed:" FontSize="11" Foreground="#FFD1D5DB" VerticalAlignment="Center" Margin="0,0,8,4"/>
+                        <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Job.ElapsedString}" FontSize="11" Foreground="#FFFBBF24" VerticalAlignment="Center" Margin="0,0,0,4"/>
+                        
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Remaining:" FontSize="11" Foreground="#FFD1D5DB" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Job.RemainingString}" FontSize="11" Foreground="#FF10B981" VerticalAlignment="Center"/>
+                    </Grid>
                 </StackPanel>
 
-                <!-- Results Stats -->
-                <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center">
-                    <TextBlock Text="Hits: " FontWeight="Bold" FontSize="10" Foreground="#FFB0B0B0" VerticalAlignment="Center"/>
-                    <TextBlock Text="{Binding Job.DataHits}" FontWeight="Bold" FontSize="11" Foreground="{DynamicResource ForegroundGood}" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                    <TextBlock Text="Custom: " FontWeight="Bold" FontSize="10" Foreground="#FFB0B0B0" VerticalAlignment="Center"/>
-                    <TextBlock Text="{Binding Job.DataCustom}" FontWeight="Bold" FontSize="11" Foreground="{DynamicResource ForegroundCustom}" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                    <TextBlock Text="ToCheck: " FontWeight="Bold" FontSize="10" Foreground="#FFB0B0B0" VerticalAlignment="Center"/>
-                    <TextBlock Text="{Binding Job.DataToCheck}" FontWeight="Bold" FontSize="11" Foreground="{DynamicResource ForegroundToCheck}" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                    <TextBlock Text="Retried: " FontWeight="Bold" FontSize="10" Foreground="#FFB0B0B0" VerticalAlignment="Center"/>
-                    <TextBlock Text="{Binding Job.DataRetried}" FontWeight="Bold" FontSize="11" Foreground="{DynamicResource ForegroundRetry}" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                    <TextBlock Text="Banned: " FontWeight="Bold" FontSize="10" Foreground="#FFB0B0B0" VerticalAlignment="Center"/>
-                    <TextBlock Text="{Binding Job.DataBanned}" FontWeight="Bold" FontSize="11" Foreground="{DynamicResource ForegroundBanned}" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                    <TextBlock Text="Fail: " FontWeight="Bold" FontSize="10" Foreground="#FFB0B0B0" VerticalAlignment="Center"/>
-                    <TextBlock Text="{Binding Job.DataFails}" FontWeight="Bold" FontSize="11" Foreground="#FFFF6347" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                    <TextBlock Text="Error: " FontWeight="Bold" FontSize="10" Foreground="#FFB0B0B0" VerticalAlignment="Center"/>
-                    <TextBlock Text="{Binding Job.DataErrors}" FontWeight="Bold" FontSize="11" Foreground="{DynamicResource ForegroundBad}" VerticalAlignment="Center"/>
-            </StackPanel>
-
-                <!-- Progress Stats -->
-                <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right">
-                    <TextBlock Text="Progress: " FontWeight="Bold" FontSize="11" Foreground="#FFB0B0B0" VerticalAlignment="Center"/>
-                    <TextBlock Text="{Binding Job.ProgressString}" FontWeight="Bold" FontSize="12" Foreground="#FF1E90FF" VerticalAlignment="Center"/>
+                <!-- Results Statistics -->
+                <StackPanel Grid.Column="1" Margin="24,0">
+                    <TextBlock Text="Results Overview" FontSize="13" FontWeight="SemiBold" Foreground="#FF10B981" Margin="0,0,0,8"/>
+                    <WrapPanel Orientation="Horizontal">
+                        <Border Background="#FF065F46" CornerRadius="6" Padding="8,4" Margin="0,0,8,4">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Hits:" FontSize="10" Foreground="#FFD1D5DB" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                <TextBlock Text="{Binding Job.DataHits}" FontSize="11" FontWeight="SemiBold" Foreground="#FF10B981" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Background="#FF7C3AED" CornerRadius="6" Padding="8,4" Margin="0,0,8,4">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Custom:" FontSize="10" Foreground="#FFD1D5DB" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                <TextBlock Text="{Binding Job.DataCustom}" FontSize="11" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Background="#FFFBBF24" CornerRadius="6" Padding="8,4" Margin="0,0,8,4">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="ToCheck:" FontSize="10" Foreground="#FF1F2937" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                <TextBlock Text="{Binding Job.DataToCheck}" FontSize="11" FontWeight="SemiBold" Foreground="#FF1F2937" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Background="#FF3B82F6" CornerRadius="6" Padding="8,4" Margin="0,0,8,4">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Retried:" FontSize="10" Foreground="#FFD1D5DB" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                <TextBlock Text="{Binding Job.DataRetried}" FontSize="11" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Background="#FFEF4444" CornerRadius="6" Padding="8,4" Margin="0,0,8,4">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Banned:" FontSize="10" Foreground="#FFD1D5DB" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                <TextBlock Text="{Binding Job.DataBanned}" FontSize="11" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Background="#FFDC2626" CornerRadius="6" Padding="8,4" Margin="0,0,8,4">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Fail:" FontSize="10" Foreground="#FFD1D5DB" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                <TextBlock Text="{Binding Job.DataFails}" FontSize="11" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Background="#FF991B1B" CornerRadius="6" Padding="8,4" Margin="0,0,0,4">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Error:" FontSize="10" Foreground="#FFD1D5DB" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                <TextBlock Text="{Binding Job.DataErrors}" FontSize="11" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+                    </WrapPanel>
                 </StackPanel>
-        </Grid>
+
+                <!-- Progress Summary -->
+                <StackPanel Grid.Column="2" HorizontalAlignment="Right">
+                    <TextBlock Text="Progress" FontSize="13" FontWeight="SemiBold" Foreground="#FF10B981" Margin="0,0,0,8" HorizontalAlignment="Right"/>
+                    <Border Background="#FF374151" CornerRadius="8" Padding="12,8">
+                        <TextBlock Text="{Binding Job.ProgressString}" FontSize="14" FontWeight="Bold" Foreground="#FF3B82F6" HorizontalAlignment="Center"/>
+                    </Border>
+                </StackPanel>
+            </Grid>
         </Border>
     </Grid>
 </Page>

@@ -21,7 +21,17 @@ namespace RuriLib.Blocks.Functions.Constants
             string variableName4 = "",
             string value4 = "",
             string variableName5 = "",
-            string value5 = "")
+            string value5 = "",
+            string variableName6 = "",
+            string value6 = "",
+            string variableName7 = "",
+            string value7 = "",
+            string variableName8 = "",
+            string value8 = "",
+            string variableName9 = "",
+            string value9 = "",
+            string variableName10 = "",
+            string value10 = "")
         {
             data.Logger.LogHeader();
 
@@ -39,6 +49,16 @@ namespace RuriLib.Blocks.Functions.Constants
                 variablesToCreate.Add((variableName4, value4));
             if (!string.IsNullOrWhiteSpace(variableName5))
                 variablesToCreate.Add((variableName5, value5));
+            if (!string.IsNullOrWhiteSpace(variableName6))
+                variablesToCreate.Add((variableName6, value6));
+            if (!string.IsNullOrWhiteSpace(variableName7))
+                variablesToCreate.Add((variableName7, value7));
+            if (!string.IsNullOrWhiteSpace(variableName8))
+                variablesToCreate.Add((variableName8, value8));
+            if (!string.IsNullOrWhiteSpace(variableName9))
+                variablesToCreate.Add((variableName9, value9));
+            if (!string.IsNullOrWhiteSpace(variableName10))
+                variablesToCreate.Add((variableName10, value10));
 
             // Process each variable
             foreach (var (name, val) in variablesToCreate)

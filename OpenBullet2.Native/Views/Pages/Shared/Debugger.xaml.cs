@@ -9,6 +9,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Threading;
+using OpenBullet2.Native.Infrastructure.DependencyInjection;
 
 namespace OpenBullet2.Native.Views.Pages.Shared
 {
@@ -46,7 +47,7 @@ namespace OpenBullet2.Native.Views.Pages.Shared
         /// </summary>
         public Debugger()
         {
-            _viewModel = SP.GetService<ViewModelsService>().Debugger;
+            _viewModel = ServiceLocator.GetService<ViewModelsService>().Debugger;
             DataContext = _viewModel;
 
             _viewModel.NewLogEntry += OnNewLogEntry;

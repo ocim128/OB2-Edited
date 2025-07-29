@@ -1,4 +1,4 @@
-﻿using OpenBullet2.Core.Services;
+using OpenBullet2.Core.Services;
 using RuriLib.Models.Configs;
 using RuriLib.Models.Configs.Settings;
 using RuriLib.Models.Data.Resources.Options;
@@ -9,6 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using OpenBullet2.Native.Infrastructure.DependencyInjection;
 
 namespace OpenBullet2.Native.ViewModels
 {
@@ -23,49 +24,21 @@ namespace OpenBullet2.Native.ViewModels
         private InputSettings Input => Config.Settings.InputSettings;
         private BrowserSettings Puppeteer => Config.Settings.BrowserSettings;
 
-        public int SuggestedBots
-        {
-            get => General.SuggestedBots;
-            set
-            {
-                General.SuggestedBots = value;
-                OnPropertyChanged();
-            }
-        }
+        // Direct binding to model properties - reduces wrapper overhead
+        public GeneralSettings GeneralSettings => General;
+        public ProxySettings ProxySettings => Proxy;
+        public DataSettings DataSettings => Data;
+        public InputSettings InputSettings => Input;
+        public BrowserSettings BrowserSettings => Puppeteer;
 
-        public int MaximumCPM
-        {
-            get => General.MaximumCPM;
-            set
-            {
-                General.MaximumCPM = value;
-                OnPropertyChanged();
-            }
-        }
-
-        public bool SaveEmptyCaptures
-        {
-            get => General.SaveEmptyCaptures;
-            set
-            {
-                General.SaveEmptyCaptures = value;
-                OnPropertyChanged();
-            }
-        }
-
-        public bool ReportLastCaptchaOnRetry
-        {
-            get => General.ReportLastCaptchaOnRetry;
-            set
-            {
-                General.ReportLastCaptchaOnRetry = value;
-                OnPropertyChanged();
-            }
-        }
-
-        public IEnumerable<string> AllStatuses => rlSettingsService.GetStatuses();
-        public IEnumerable<string> ProxyTypes => Enum.GetNames(typeof(ProxyType));
-        public IEnumerable<string> WordlistTypes => rlSettingsService.Environment.WordlistTypes.Select(w => w.Name);
+        // Lazy-loaded collections for better performance
+        private IEnumerable<string> _allStatuses;
+        private IEnumerable<string> _proxyTypes;
+        private IEnumerable<string> _wordlistTypes;
+        
+        public IEnumerable<string> AllStatuses => _allStatuses ??= rlSettingsService.GetStatuses();
+        public IEnumerable<string> ProxyTypes => _proxyTypes ??= Enum.GetNames(typeof(ProxyType));
+        public IEnumerable<string> WordlistTypes => _wordlistTypes ??= rlSettingsService.Environment.WordlistTypes.Select(w => w.Name);
 
         private ObservableCollection<string> continueStatuses;
         public ObservableCollection<string> ContinueStatuses
@@ -79,35 +52,7 @@ namespace OpenBullet2.Native.ViewModels
             }
         }
 
-        public bool UseProxies
-        {
-            get => Proxy.UseProxies;
-            set
-            {
-                Proxy.UseProxies = value;
-                OnPropertyChanged();
-            }
-        }
-
-        public int MaxUsesPerProxy
-        {
-            get => Proxy.MaxUsesPerProxy;
-            set
-            {
-                Proxy.MaxUsesPerProxy = value;
-                OnPropertyChanged();
-            }
-        }
-
-        public int BanLoopEvasion
-        {
-            get => Proxy.BanLoopEvasion;
-            set
-            {
-                Proxy.BanLoopEvasion = value;
-                OnPropertyChanged();
-            }
-        }
+        // Removed redundant proxy property wrappers - use direct binding
 
         private ObservableCollection<string> proxyBanStatuses;
         public ObservableCollection<string> ProxyBanStatuses
@@ -146,17 +91,10 @@ namespace OpenBullet2.Native.ViewModels
             }
         }
 
-        public bool UrlEncodeDataAfterSlicing
-        {
-            get => Data.UrlEncodeDataAfterSlicing;
-            set
-            {
-                Data.UrlEncodeDataAfterSlicing = value;
-                OnPropertyChanged();
-            }
-        }
+        // Removed redundant data property wrapper - use direct binding
 
-        public IEnumerable<StringRule> StringRules => Enum.GetValues(typeof(StringRule)).Cast<StringRule>();
+        private IEnumerable<StringRule> _stringRules;
+        public IEnumerable<StringRule> StringRules => _stringRules ??= Enum.GetValues(typeof(StringRule)).Cast<StringRule>();
 
         private ObservableCollection<DataRule> dataRulesCollection;
         public ObservableCollection<DataRule> DataRulesCollection
@@ -225,56 +163,7 @@ namespace OpenBullet2.Native.ViewModels
             }
         }
 
-        public bool Headless
-        {
-            get => Puppeteer.Headless;
-            set
-            {
-                Puppeteer.Headless = value;
-                OnPropertyChanged();
-            }
-        }
-
-        public bool IgnoreHttpsErrors
-        {
-            get => Puppeteer.IgnoreHttpsErrors;
-            set
-            {
-                Puppeteer.IgnoreHttpsErrors = value;
-                OnPropertyChanged();
-            }
-        }
-
-        public bool LoadOnlyDocumentAndScript
-        {
-            get => Puppeteer.LoadOnlyDocumentAndScript;
-            set
-            {
-                Puppeteer.LoadOnlyDocumentAndScript = value;
-                OnPropertyChanged();
-            }
-        }
-
-        public bool DismissDialogs
-        {
-            get => Puppeteer.DismissDialogs;
-            set
-            {
-                Puppeteer.DismissDialogs = value;
-                OnPropertyChanged();
-            }
-        }
-
-        public string CommandLineArgs
-        {
-            get => Puppeteer.CommandLineArgs;
-            set
-            {
-                Puppeteer.CommandLineArgs = value;
-                OnPropertyChanged();
-            }
-        }
-
+        // Removed redundant browser property wrappers - use direct binding
         public List<string> BlockedUrls
         {
             get => Puppeteer.BlockedUrls;
@@ -287,14 +176,17 @@ namespace OpenBullet2.Native.ViewModels
 
         public ConfigSettingsViewModel()
         {
-            configService = SP.GetService<ConfigService>();
-            rlSettingsService = SP.GetService<RuriLibSettingsService>();
-            TestWordlistTypeForRules = WordlistTypes.First();
+            configService = ServiceLocator.GetService<ConfigService>();
+            rlSettingsService = ServiceLocator.GetService<RuriLibSettingsService>();
+            // Defer initialization until needed
         }
 
         public override void UpdateViewModel()
         {
             CreateCollections();
+            // Initialize test wordlist type only when needed
+            if (string.IsNullOrEmpty(TestWordlistTypeForRules) && WordlistTypes.Any())
+                TestWordlistTypeForRules = WordlistTypes.First();
             base.UpdateViewModel();
         }
 
@@ -351,15 +243,30 @@ namespace OpenBullet2.Native.ViewModels
 
         private void CreateCollections()
         {
-            ContinueStatuses = new ObservableCollection<string>(General.ContinueStatuses);
-            ProxyBanStatuses = new ObservableCollection<string>(Proxy.BanProxyStatuses);
-            AllowedProxyTypes = new ObservableCollection<string>(Proxy.AllowedProxyTypes.Select(t => t.ToString()));
-            AllowedWordlistTypes = new ObservableCollection<string>(Data.AllowedWordlistTypes);
-            QuitBrowserStatuses = new ObservableCollection<string>(Puppeteer.QuitBrowserStatuses);
+            // Only create collections if they don't exist or if data has changed
+            if (continueStatuses == null || !continueStatuses.SequenceEqual(General.ContinueStatuses))
+                ContinueStatuses = new ObservableCollection<string>(General.ContinueStatuses);
+            
+            if (proxyBanStatuses == null || !proxyBanStatuses.SequenceEqual(Proxy.BanProxyStatuses))
+                ProxyBanStatuses = new ObservableCollection<string>(Proxy.BanProxyStatuses);
+            
+            if (allowedProxyTypes == null || !allowedProxyTypes.SequenceEqual(Proxy.AllowedProxyTypes.Select(t => t.ToString())))
+                AllowedProxyTypes = new ObservableCollection<string>(Proxy.AllowedProxyTypes.Select(t => t.ToString()));
+            
+            if (allowedWordlistTypes == null || !allowedWordlistTypes.SequenceEqual(Data.AllowedWordlistTypes))
+                AllowedWordlistTypes = new ObservableCollection<string>(Data.AllowedWordlistTypes);
+            
+            if (quitBrowserStatuses == null || !quitBrowserStatuses.SequenceEqual(Puppeteer.QuitBrowserStatuses))
+                QuitBrowserStatuses = new ObservableCollection<string>(Puppeteer.QuitBrowserStatuses);
 
-            CustomInputsCollection = new ObservableCollection<CustomInput>(Input.CustomInputs);
-            ResourcesCollection = new ObservableCollection<ConfigResourceOptions>(Data.Resources);
-            DataRulesCollection = new ObservableCollection<DataRule>(Data.DataRules);
+            if (customInputsCollection == null || customInputsCollection.Count != Input.CustomInputs.Count)
+                CustomInputsCollection = new ObservableCollection<CustomInput>(Input.CustomInputs);
+            
+            if (resourcesCollection == null || resourcesCollection.Count != Data.Resources.Count)
+                ResourcesCollection = new ObservableCollection<ConfigResourceOptions>(Data.Resources);
+            
+            if (dataRulesCollection == null || dataRulesCollection.Count != Data.DataRules.Count)
+                DataRulesCollection = new ObservableCollection<DataRule>(Data.DataRules);
         }
     }
 }

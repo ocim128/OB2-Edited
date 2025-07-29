@@ -1,7 +1,8 @@
-﻿using OpenBullet2.Core.Services;
+using OpenBullet2.Core.Services;
 using OpenBullet2.Native.Views.Pages;
 using System.Windows;
 using System.Windows.Controls;
+using OpenBullet2.Native.Infrastructure.DependencyInjection;
 
 namespace OpenBullet2.Native.Views.Dialogs
 {
@@ -17,7 +18,7 @@ namespace OpenBullet2.Native.Views.Dialogs
             this.caller = caller;
 
             InitializeComponent();
-            bots.Maximum = SP.GetService<JobFactoryService>().BotLimit;
+            bots.Maximum = ServiceLocator.GetService<JobFactoryService>().BotLimit;
             bots.Value = oldValue;
         }
 

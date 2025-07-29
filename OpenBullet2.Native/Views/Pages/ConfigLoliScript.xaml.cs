@@ -1,4 +1,4 @@
-﻿using ICSharpCode.AvalonEdit.Highlighting;
+using ICSharpCode.AvalonEdit.Highlighting;
 using ICSharpCode.AvalonEdit.Highlighting.Xshd;
 using OpenBullet2.Core.Repositories;
 using OpenBullet2.Core.Services;
@@ -10,6 +10,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Xml;
+using OpenBullet2.Native.Infrastructure.DependencyInjection;
 
 namespace OpenBullet2.Native.Views.Pages
 {
@@ -24,8 +25,8 @@ namespace OpenBullet2.Native.Views.Pages
         public ConfigLoliScript()
         {
             InitializeComponent();
-            configService = SP.GetService<ConfigService>();
-            configRepo = SP.GetService<IConfigRepository>();
+            configService = ServiceLocator.GetService<ConfigService>();
+            configRepo = ServiceLocator.GetService<IConfigRepository>();
 
             HighlightSyntax();
         }
@@ -45,7 +46,7 @@ namespace OpenBullet2.Native.Views.Pages
             {
                 // On fail, prompt it to the user and go back to the configs page
                 Alert.Exception(ex);
-                SP.GetService<MainWindow>().NavigateTo(MainWindowPage.Configs);
+                ServiceLocator.GetService<MainWindow>().NavigateTo(MainWindowPage.Configs);
             }
         }
 

@@ -1,4 +1,4 @@
-﻿using OpenBullet2.Core.Entities;
+using OpenBullet2.Core.Entities;
 using OpenBullet2.Native.Helpers;
 using OpenBullet2.Native.Views.Pages;
 using RuriLib.Models.Environment;
@@ -10,6 +10,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Forms;
 using System.Windows.Input;
+using OpenBullet2.Native.Infrastructure.DependencyInjection;
 
 namespace OpenBullet2.Native.Views.Dialogs
 {
@@ -26,7 +27,7 @@ namespace OpenBullet2.Native.Views.Dialogs
             this.caller = caller;
             InitializeComponent();
 
-            env = SP.GetService<RuriLibSettingsService>().Environment;
+            env = ServiceLocator.GetService<RuriLibSettingsService>().Environment;
 
             typeCombobox.ItemsSource = env.WordlistTypes.Select(t => t.Name);
             typeCombobox.SelectedIndex = 0;

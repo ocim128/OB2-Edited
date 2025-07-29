@@ -1,4 +1,4 @@
-﻿using OpenBullet2.Core.Entities;
+using OpenBullet2.Core.Entities;
 using OpenBullet2.Native.Helpers;
 using OpenBullet2.Native.Services;
 using OpenBullet2.Native.ViewModels;
@@ -15,6 +15,7 @@ using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Threading.Tasks;
 using Microsoft.Win32;
+using OpenBullet2.Native.Infrastructure.DependencyInjection;
 
 namespace OpenBullet2.Native.Views.Pages
 {
@@ -32,12 +33,12 @@ namespace OpenBullet2.Native.Views.Pages
 
         public Wordlists()
         {
-            vm = SP.GetService<ViewModelsService>().Wordlists;
+            vm = ServiceLocator.GetService<ViewModelsService>().Wordlists;
             DataContext = vm;
             _ = vm.InitializeAsync();
 
             InitializeComponent();
-            env = SP.GetService<RuriLibSettingsService>().Environment;
+            env = ServiceLocator.GetService<RuriLibSettingsService>().Environment;
         }
 
         public async Task Refresh()

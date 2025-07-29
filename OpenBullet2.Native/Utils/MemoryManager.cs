@@ -201,5 +201,42 @@ namespace OpenBullet2.Native.Utils
                 return (0, 0, 0f);
             }
         }
+
+        /// <summary>
+        /// Gets application-specific memory information
+        /// </summary>
+        private static DateTime _lastAppMemoryTime = DateTime.MinValue;
+        private static (long workingSet, long managedMemory, float systemPercent) _lastAppMemoryInfo;
+        private static readonly TimeSpan _appMemoryUpdateInterval = TimeSpan.FromSeconds(2);
+
+        public static (long workingSetBytes, long managedMemoryBytes, float systemUsagePercent) GetApplicationMemoryInfo()
+        {
+            try
+            {
+                var now = DateTime.UtcNow;
+                if (now - _lastAppMemoryTime < _appMemoryUpdateInterval)
+                {
+                    return _lastAppMemoryInfo;
+                }
+
+                var process = Process.GetCurrentProcess();
+                var workingSet = process.WorkingSet64;
+                var managedMemory = GC.GetTotalMemory(false);
+                
+                // Calculate what percentage of system memory this application is using
+                var computerInfo = new Microsoft.VisualBasic.Devices.ComputerInfo();
+                var totalSystemMemory = (long)computerInfo.TotalPhysicalMemory;
+                var systemUsagePercent = (float)(100.0 * workingSet / totalSystemMemory);
+
+                _lastAppMemoryInfo = (workingSet, managedMemory, systemUsagePercent);
+                _lastAppMemoryTime = now;
+
+                return _lastAppMemoryInfo;
+            }
+            catch
+            {
+                return (0, 0, 0f);
+            }
+        }
     }
 }

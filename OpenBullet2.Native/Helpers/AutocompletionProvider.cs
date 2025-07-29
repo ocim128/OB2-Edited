@@ -1,8 +1,9 @@
-﻿using OpenBullet2.Core.Services;
+using OpenBullet2.Core.Services;
 using RuriLib;
 using RuriLib.Helpers.Blocks;
 using RuriLib.Models.Blocks;
 using System.Collections.Generic;
+using OpenBullet2.Native.Infrastructure.DependencyInjection;
 
 namespace OpenBullet2.Native.Helpers
 {
@@ -20,7 +21,7 @@ namespace OpenBullet2.Native.Helpers
             }
 
             // Custom snippets
-            foreach (var snippet in SP.GetService<OpenBulletSettingsService>().Settings.GeneralSettings.CustomSnippets)
+            foreach (var snippet in ServiceLocator.GetService<OpenBulletSettingsService>().Settings.GeneralSettings.CustomSnippets)
             {
                 if (!string.IsNullOrEmpty(snippet.Name))
                 {

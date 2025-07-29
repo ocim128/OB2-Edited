@@ -36,7 +36,7 @@ namespace OpenBullet2.Native.Views
             var pageName = button?.Name switch
             {
                 "navHome" => "Home",
-                "navJobs" => "Jobs", 
+                "navJobs" => "Jobs",
                 "navMonitor" => "Monitor",
                 "navProxies" => "Proxies",
                 "navWordlists" => "Wordlists",

@@ -1,4 +1,4 @@
-﻿using OpenBullet2.Core.Entities;
+using OpenBullet2.Core.Entities;
 using OpenBullet2.Core.Repositories;
 using OpenBullet2.Native.Helpers;
 using OpenBullet2.Native.Services;
@@ -14,6 +14,7 @@ using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Documents;
 using System.Windows.Input;
+using OpenBullet2.Native.Infrastructure.DependencyInjection;
 
 namespace OpenBullet2.Native.Views.Dialogs
 {
@@ -170,10 +171,10 @@ namespace OpenBullet2.Native.Views.Dialogs
 
         public SelectWordlistDialogViewModel()
         {
-            wordlistRepo = SP.GetService<IWordlistRepository>();
+            wordlistRepo = ServiceLocator.GetService<IWordlistRepository>();
             CreateCollection();
 
-            wordlistsViewModel = SP.GetService<ViewModelsService>().Wordlists;
+            wordlistsViewModel = ServiceLocator.GetService<ViewModelsService>().Wordlists;
 
             if (wordlistsViewModel is not null)
             {

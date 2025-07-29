@@ -1,4 +1,4 @@
-﻿using RuriLib.Functions.Captchas;
+using RuriLib.Functions.Captchas;
 using RuriLib.Models.Settings;
 using RuriLib.Parallelization;
 using RuriLib.Services;
@@ -6,12 +6,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using OpenBullet2.Native.Infrastructure.DependencyInjection;
 
 namespace OpenBullet2.Native.ViewModels;
 
 public class RLSettingsViewModel : ViewModelBase
 {
-    private readonly RuriLibSettingsService _service = SP.GetService<RuriLibSettingsService>();
+    private readonly RuriLibSettingsService _service = ServiceLocator.GetService<RuriLibSettingsService>();
     private GeneralSettings General => _service.RuriLibSettings.GeneralSettings;
     private ProxySettings Proxy => _service.RuriLibSettings.ProxySettings;
     private CaptchaSettings Captcha => _service.RuriLibSettings.CaptchaSettings;

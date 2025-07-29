@@ -3,6 +3,7 @@ using OpenBullet2.Core.Services;
 using OpenBullet2.Native.Services;
 using OpenBullet2.Native.ViewModels;
 using OpenBullet2.Native.Helpers;
+using OpenBullet2.Native.Infrastructure.DependencyInjection;
 using OpenBullet2.Native.Utils;
 using System;
 using System.Collections.Generic;
@@ -16,6 +17,7 @@ using System.Windows.Controls;
 using System.Windows.Threading;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using static OpenBullet2.Native.MainWindow;
 
 namespace OpenBullet2.Native.Views.Pages
 {
@@ -36,6 +38,20 @@ namespace OpenBullet2.Native.Views.Pages
             // Cleanup when page is unloaded
             Unloaded += (s, e) => vm?.Dispose();
         }
+
+        private void ConfigsShortcut_Click(object sender, RoutedEventArgs e)
+        {
+            var mainWindow = Application.Current.MainWindow as MainWindow;
+            mainWindow?.NavigateTo(MainWindowPage.Configs);
+        }
+
+        private void JobsShortcut_Click(object sender, RoutedEventArgs e)
+        {
+            var mainWindow = Application.Current.MainWindow as MainWindow;
+            mainWindow?.NavigateTo(MainWindowPage.Jobs);
+        }
+
+
     }
 
     public class HomeViewModel : ViewModelBase, IDisposable
@@ -66,19 +82,7 @@ namespace OpenBullet2.Native.Views.Pages
 
 
 
-        private string announcement = "Welcome to OpenBullet 2!";
-        public string Announcement
-        {
-            get => announcement;
-            set
-            {
-                announcement = value;
-                OnPropertyChanged();
-                OnPropertyChanged(nameof(HasAnnouncement));
-            }
-        }
 
-        public bool HasAnnouncement => !string.IsNullOrWhiteSpace(announcement);
 
         // Collection Statistics
         private int jobsCount;
@@ -180,16 +184,7 @@ namespace OpenBullet2.Native.Views.Pages
         public static string WorkingDirectoryShort => Path.GetFileName(Directory.GetCurrentDirectory()) ?? "Unknown";
         public static string BuildDate => File.GetCreationTime(System.Reflection.Assembly.GetExecutingAssembly().Location).ToString("yyyy-MM-dd HH:mm");
 
-        private string currentTime = DateTime.UtcNow.ToString("ddd, MMM dd, yyyy h:mm tt");
-        public string CurrentTime
-        {
-            get => currentTime;
-            set
-            {
-                currentTime = value;
-                OnPropertyChanged();
-            }
-        }
+
 
         private string applicationUptime = "00:00:00";
         public string ApplicationUptime
@@ -213,6 +208,17 @@ namespace OpenBullet2.Native.Views.Pages
             }
         }
 
+        private float memoryUsagePercent = 0f;
+        public float MemoryUsagePercent
+        {
+            get => memoryUsagePercent;
+            set
+            {
+                memoryUsagePercent = value;
+                OnPropertyChanged();
+            }
+        }
+
         private string cpuUsage = "0.00%";
         public string CpuUsage
         {
@@ -221,31 +227,10 @@ namespace OpenBullet2.Native.Views.Pages
             {
                 cpuUsage = value;
                 OnPropertyChanged();
-                UpdatePerformanceIndicator();
             }
         }
 
-        private string performanceStatus = "Normal";
-        public string PerformanceStatus
-        {
-            get => performanceStatus;
-            set
-            {
-                performanceStatus = value;
-                OnPropertyChanged();
-            }
-        }
 
-        private string performanceIndicatorColor = "LightGreen";
-        public string PerformanceIndicatorColor
-        {
-            get => performanceIndicatorColor;
-            set
-            {
-                performanceIndicatorColor = value;
-                OnPropertyChanged();
-            }
-        }
 
         private int threadCount = 0;
         public int ThreadCount
@@ -262,15 +247,15 @@ namespace OpenBullet2.Native.Views.Pages
         {
             try
             {
-                jobRepo = SP.GetService<IJobRepository>();
-                configRepo = SP.GetService<IConfigRepository>();
-                hitRepo = SP.GetService<IHitRepository>();
-                proxyRepo = SP.GetService<IProxyGroupRepository>();
-                wordlistRepo = SP.GetService<IWordlistRepository>();
-                guestRepo = SP.GetService<IGuestRepository>();
+                jobRepo = ServiceLocator.GetService<IJobRepository>();
+                configRepo = ServiceLocator.GetService<IConfigRepository>();
+                hitRepo = ServiceLocator.GetService<IHitRepository>();
+                proxyRepo = ServiceLocator.GetService<IProxyGroupRepository>();
+                wordlistRepo = ServiceLocator.GetService<IWordlistRepository>();
+                guestRepo = ServiceLocator.GetService<IGuestRepository>();
 
                 // Get performance settings from configuration
-                var config = SP.GetService<IConfiguration>();
+                var config = ServiceLocator.GetService<IConfiguration>();
                 var performanceSection = config.GetSection("Performance");
                 var statisticsInterval = performanceSection.GetValue<int>("StatisticsUpdateInterval", 45);
                 var systemMetricsInterval = performanceSection.GetValue<int>("SystemMetricsUpdateInterval", 8);
@@ -310,7 +295,6 @@ namespace OpenBullet2.Native.Views.Pages
                 statisticsTimer.Start();
 
                 // Initial updates with staggered execution
-                UpdateCurrentTime();
                 UpdateApplicationUptime();
 
                 // Delay heavy operations to avoid startup lag
@@ -356,7 +340,7 @@ namespace OpenBullet2.Native.Views.Pages
                 }
 
                 // Get timeout setting from configuration
-                var config = SP.GetService<IConfiguration>();
+                var config = ServiceLocator.GetService<IConfiguration>();
                 var timeoutSeconds = config?.GetSection("Performance")?.GetValue<int>("DatabaseQueryTimeout", 10) ?? 10;
                 var timeout = TimeSpan.FromSeconds(isLowSpecMode ? 15 : timeoutSeconds);
 
@@ -485,10 +469,7 @@ namespace OpenBullet2.Native.Views.Pages
             }
         }
 
-        private void UpdateCurrentTime()
-        {
-            CurrentTime = DateTime.UtcNow.ToString("ddd, MMM dd, yyyy h:mm tt");
-        }
+
 
         private async Task<long> CountProxiesAsync(System.Threading.CancellationToken cancellationToken = default)
         {
@@ -535,12 +516,14 @@ namespace OpenBullet2.Native.Views.Pages
         {
             try
             {
-                var (total, available, percent) = MemoryManager.GetSystemMemoryInfo();
-                MemoryUsage = $"{percent:F1}% ({MemoryManager.FormatMemorySize(total - available)} / {MemoryManager.FormatMemorySize(total)})";
+                var (workingSet, managedMemory, systemPercent) = MemoryManager.GetApplicationMemoryInfo();
+                MemoryUsage = $"{MemoryManager.FormatMemorySize(workingSet)}";
+                MemoryUsagePercent = systemPercent;
             }
             catch
             {
                 MemoryUsage = "N/A";
+                MemoryUsagePercent = 0f;
             }
         }
 
@@ -632,8 +615,7 @@ namespace OpenBullet2.Native.Views.Pages
             {
                 updateCounter++;
 
-                // Always update time and uptime (lightweight)
-                UpdateCurrentTime();
+                // Always update uptime (lightweight)
                 UpdateApplicationUptime();
 
                 // Throttle heavy operations for low-spec mode
@@ -693,41 +675,7 @@ namespace OpenBullet2.Native.Views.Pages
             }
         }
 
-        private void UpdatePerformanceIndicator()
-        {
-            try
-            {
-                // Parse CPU usage percentage
-                var cpuValue = 0.0;
-                if (double.TryParse(cpuUsage.Replace("%", ""), out cpuValue))
-                {
-                    // Parse memory usage
-                    var memoryPressure = MemoryManager.IsMemoryPressureHigh();
-                    var threadCount = ThreadCount;
 
-                    // Determine performance status
-                    if (cpuValue > 80 || memoryPressure || threadCount > 100)
-                    {
-                        PerformanceStatus = "High Load";
-                        PerformanceIndicatorColor = "Red";
-                    }
-                    else if (cpuValue > 50 || threadCount > 50)
-                    {
-                        PerformanceStatus = "Moderate";
-                        PerformanceIndicatorColor = "Orange";
-                    }
-                    else
-                    {
-                        PerformanceStatus = isLowSpecMode ? "Low-Spec" : "Normal";
-                        PerformanceIndicatorColor = isLowSpecMode ? "Yellow" : "LightGreen";
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error updating performance indicator: {ex.Message}");
-            }
-        }
 
         public void Dispose()
         {

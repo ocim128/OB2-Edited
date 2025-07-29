@@ -3,8 +3,9 @@ using OpenBullet2.Core.Models.Settings;
 using OpenBullet2.Core.Repositories;
 using OpenBullet2.Core.Services;
 using OpenBullet2.Native.Helpers;
+using OpenBullet2.Native.Infrastructure.DependencyInjection;
 using OpenBullet2.Native.Services;
-using OpenBullet2.Native.Utils;
+
 using OpenBullet2.Native.ViewModels;
 using OpenBullet2.Native.Views.Pages;
 using RuriLib.Models.Configs;
@@ -106,17 +107,17 @@ public partial class MainWindow : MetroWindow
             menuOptionWordlists
         ];
 
-        // Defer page initialization to improve startup time
-        // configsPage will be created on-demand when first accessed
+        // Lazy initialization - pages created only when needed
+        // This reduces initial memory usage and improves startup time
 
         Title = "OpenBullet 2 - 0.3.3 [akunlama MOD]";
 
         // Initialize HotkeyService
-        var hotkeyService = SP.GetService<HotkeyService>();
+        var hotkeyService = ServiceLocator.GetService<HotkeyService>();
         hotkeyService.Initialize(this);
 
         // Set the theme
-        var obSettingsService = SP.GetService<OpenBulletSettingsService>();
+        var obSettingsService = ServiceLocator.GetService<OpenBulletSettingsService>();
         var customization = obSettingsService.Settings.CustomizationSettings;
         SetTheme(customization);
     }
@@ -166,8 +167,8 @@ public partial class MainWindow : MetroWindow
             return;
         }
 
-        // Simulate async loading to show the indicator for other pages
-        await HandleOtherPageNavigation(page);
+        // Handle page navigation
+        HandleOtherPageNavigation(page);
 
         vm.IsLoading = false;
     }
@@ -188,82 +189,85 @@ public partial class MainWindow : MetroWindow
         }
     }
 
-    private async Task HandleOtherPageNavigation(MainWindowPage page)
+    private void HandleOtherPageNavigation(MainWindowPage page)
     {
-        await Task.Run(() =>
+        // Optimized page creation with immediate navigation
+        switch (page)
         {
-            Application.Current.Dispatcher.Invoke(() =>
-            {
-                switch (page)
+            case MainWindowPage.Home:
+                try
                 {
-                    case MainWindowPage.Home:
-                        homePage = new Home();
-                        ChangePage(homePage, menuOptionHome);
-                        break;
-                    case MainWindowPage.Monitor:
-                        if (monitorPage == null) monitorPage = new();
-                        ChangePage(monitorPage, menuOptionMonitor);
-                        break;
-                    case MainWindowPage.Proxies:
-                        if (proxiesPage == null) proxiesPage = new Proxies();
-                        proxiesPage.UpdateViewModel();
-                        ChangePage(proxiesPage, menuOptionProxies);
-                        break;
-                    case MainWindowPage.Wordlists:
-                        if (wordlistsPage == null) wordlistsPage = new Wordlists();
-                        ChangePage(wordlistsPage, menuOptionWordlists);
-                        break;
-                    case MainWindowPage.Configs:
-                        if (configsPage == null) configsPage = new Configs();
-                        configsPage.UpdateViewModel();
-                        ChangePage(configsPage, menuOptionConfigs);
-                        break;
-                    case MainWindowPage.Hits:
-                        if (hitsPage == null) hitsPage = new Hits();
-                        hitsPage.UpdateViewModel();
-                        ChangePage(hitsPage, menuOptionHits);
-                        break;
-                    case MainWindowPage.Plugins:
-                        if (pluginsPage == null) pluginsPage = new Plugins();
-                        ChangePage(pluginsPage, menuOptionPlugins);
-                        break;
-                    case MainWindowPage.OBSettings:
-                        if (obSettingsPage == null) obSettingsPage = new OBSettings();
-                        ChangePage(obSettingsPage, menuOptionSettings);
-                        break;
-                    case MainWindowPage.RLSettings:
-                        if (rlSettingsPage == null) rlSettingsPage = new RLSettings();
-                        ChangePage(rlSettingsPage, menuOptionRLSettings);
-                        break;
-                    case MainWindowPage.About:
-                        NavigateToAboutPage();
-                        break;
-                    case MainWindowPage.ConfigMetadata:
-                        NavigateToConfigMetadataPage();
-                        break;
-                    case MainWindowPage.ConfigReadme:
-                        NavigateToConfigReadmePage();
-                        break;
-                    case MainWindowPage.ConfigStacker:
-                        NavigateToConfigStackerPage();
-                        break;
-                    case MainWindowPage.ConfigLoliCode:
-                        NavigateToConfigLoliCodePage();
-                        break;
-                    case MainWindowPage.ConfigSettings:
-                        NavigateToConfigSettingsPage();
-                        break;
-                    case MainWindowPage.ConfigCSharpCode:
-                        NavigateToConfigCSharpCodePage();
-                        break;
-                    case MainWindowPage.ConfigLoliScript:
-                        NavigateToConfigLoliScriptPage();
-                        break;
-                    default:
-                        break;
+                    homePage ??= new Home();
+                    ChangePage(homePage, menuOptionHome);
                 }
-            });
-        });
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Home page creation error: {ex.Message}");
+                    Alert.Exception(ex);
+                }
+                break;
+            case MainWindowPage.Monitor:
+                monitorPage ??= new();
+                ChangePage(monitorPage, menuOptionMonitor);
+                break;
+            case MainWindowPage.Proxies:
+                proxiesPage ??= new Proxies();
+                proxiesPage?.UpdateViewModel();
+                ChangePage(proxiesPage, menuOptionProxies);
+                break;
+            case MainWindowPage.Wordlists:
+                wordlistsPage ??= new Wordlists();
+                ChangePage(wordlistsPage, menuOptionWordlists);
+                break;
+            case MainWindowPage.Configs:
+                configsPage ??= new Configs();
+                configsPage?.UpdateViewModel();
+                ChangePage(configsPage, menuOptionConfigs);
+                break;
+            case MainWindowPage.Hits:
+                hitsPage ??= new Hits();
+                hitsPage?.UpdateViewModel();
+                ChangePage(hitsPage, menuOptionHits);
+                break;
+            case MainWindowPage.Plugins:
+                pluginsPage ??= new Plugins();
+                ChangePage(pluginsPage, menuOptionPlugins);
+                break;
+            case MainWindowPage.OBSettings:
+                obSettingsPage ??= new OBSettings();
+                ChangePage(obSettingsPage, menuOptionSettings);
+                break;
+            case MainWindowPage.RLSettings:
+                rlSettingsPage ??= new RLSettings();
+                ChangePage(rlSettingsPage, menuOptionRLSettings);
+                break;
+            case MainWindowPage.About:
+                NavigateToAboutPage();
+                break;
+            case MainWindowPage.ConfigMetadata:
+                NavigateToConfigMetadataPage();
+                break;
+            case MainWindowPage.ConfigReadme:
+                NavigateToConfigReadmePage();
+                break;
+            case MainWindowPage.ConfigStacker:
+                NavigateToConfigStackerPage();
+                break;
+            case MainWindowPage.ConfigLoliCode:
+                NavigateToConfigLoliCodePage();
+                break;
+            case MainWindowPage.ConfigSettings:
+                NavigateToConfigSettingsPage();
+                break;
+            case MainWindowPage.ConfigCSharpCode:
+                NavigateToConfigCSharpCodePage();
+                break;
+            case MainWindowPage.ConfigLoliScript:
+                NavigateToConfigLoliScriptPage();
+                break;
+            default:
+                break;
+        }
     }
     private void NavigateToAboutPage()
     {
@@ -437,8 +441,8 @@ public partial class MainWindow : MetroWindow
             else
             {
                 // Fallback to using ConfigService directly
-                var configService = SP.GetService<ConfigService>();
-                var configRepo = SP.GetService<IConfigRepository>();
+                var configService = ServiceLocator.GetService<ConfigService>();
+                var configRepo = ServiceLocator.GetService<IConfigRepository>();
                 if (configService.SelectedConfig != null)
                 {
                     _ = Task.Run(async () =>
@@ -511,44 +515,7 @@ public partial class MainWindow : MetroWindow
 
     private void OnNavigateToRLSettingsExecuted(object sender, ExecutedRoutedEventArgs e) => NavigateTo(MainWindowPage.RLSettings);
 
-    private void TakeScreenshot(object sender, RoutedEventArgs e)
-    {
-        try
-        {
-            // Add visual feedback with smaller, more subtle indication
-            var originalContent = screenshotButton.Content;
-            screenshotButton.Content = new TextBlock
-            {
-                Text = "📸 Saved",
-                FontSize = 8,
-                FontWeight = FontWeights.Medium,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center
-            };
-            screenshotButton.IsEnabled = false;
 
-            // Take window-only screenshot (captures only OpenBullet2 window content)
-            Screenshot.Take(this);
-
-            // Reset button after a short delay
-            _ = Task.Run(async () =>
-            {
-                await Task.Delay(1500);
-                Application.Current.Dispatcher.Invoke(() =>
-                {
-                    screenshotButton.Content = originalContent;
-                    screenshotButton.IsEnabled = true;
-                });
-            });
-        }
-        catch (Exception ex)
-        {
-            Alert.Exception(ex);
-            // Reset button immediately on error
-            screenshotButton.Content = "Screenshot";
-            screenshotButton.IsEnabled = true;
-        }
-    }
 
     private void MinimizeWindow(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
 
@@ -668,8 +635,8 @@ public class MainWindowViewModel : ViewModelBase
 
     public MainWindowViewModel()
     {
-        jobManagerService = SP.GetService<JobManagerService>();
-        configService = SP.GetService<ConfigService>();
+        jobManagerService = ServiceLocator.GetService<JobManagerService>();
+        configService = ServiceLocator.GetService<ConfigService>();
         configService.OnConfigSelected += (_, config) =>
         {
             OnPropertyChanged(nameof(IsConfigSelected));
@@ -679,7 +646,7 @@ public class MainWindowViewModel : ViewModelBase
 
     public void OnWindowClosing(object sender, CancelEventArgs e)
     {
-        var obSettingsService = SP.GetService<OpenBulletSettingsService>();
+        var obSettingsService = ServiceLocator.GetService<OpenBulletSettingsService>();
 
         // Check if the config was saved
         if (obSettingsService.Settings.GeneralSettings.WarnConfigNotSaved && Config?.HasUnsavedChanges() == true)

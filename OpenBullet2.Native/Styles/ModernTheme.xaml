@@ -20,6 +20,7 @@
     <SolidColorBrush x:Key="Modern.ForegroundSecondary" Color="#CBD5E1" />
     <SolidColorBrush x:Key="Modern.ForegroundMuted" Color="#94A3B8" />
     <SolidColorBrush x:Key="Modern.ForegroundInput" Color="#F8FAFC" />
+    <SolidColorBrush x:Key="Modern.TextSecondary" Color="#94A3B8" />
     
     <!-- Semantic Colors -->
     <SolidColorBrush x:Key="Modern.Success" Color="#10B981" />
@@ -29,6 +30,7 @@
     
     <!-- Border Colors -->
     <SolidColorBrush x:Key="Modern.BorderMain" Color="#475569" />
+    <SolidColorBrush x:Key="Modern.BorderSecondary" Color="#334155" />
     <SolidColorBrush x:Key="Modern.BorderInput" Color="#475569" />
     <SolidColorBrush x:Key="Modern.BorderFocus" Color="#3B82F6" />
     <SolidColorBrush x:Key="Modern.BorderHover" Color="#64748B" />
@@ -61,6 +63,9 @@
             </Trigger>
         </Style.Triggers>
     </Style>
+
+    <!-- Modern Button Style Alias -->
+    <Style x:Key="ModernButtonStyle" TargetType="{x:Type Button}" BasedOn="{StaticResource ModernButton}" />
 
     <!-- Modern Primary Button -->
     <Style x:Key="ModernPrimaryButton" TargetType="{x:Type Button}" BasedOn="{StaticResource ModernButton}">

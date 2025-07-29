@@ -17,13 +17,20 @@
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
         <converters:LessThanConverter x:Key="LessThanConverter" />
         
-        <!-- Optimized responsive style -->
+        <!-- Optimized responsive style with caching -->
         <Style x:Key="ResponsiveHideStyle" TargetType="FrameworkElement">
             <Style.Triggers>
                 <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=Page}, Path=ActualWidth, Converter={StaticResource LessThanConverter}, ConverterParameter=600}" Value="True">
                     <Setter Property="Visibility" Value="Collapsed" />
                 </DataTrigger>
             </Style.Triggers>
+        </Style>
+        
+        <!-- Performance optimized button style -->
+        <Style x:Key="OptimizedTabButton" TargetType="Button" BasedOn="{StaticResource ReadableTabButton}">
+            <Setter Property="RenderOptions.BitmapScalingMode" Value="HighQuality" />
+            <Setter Property="UseLayoutRounding" Value="True" />
+            <Setter Property="SnapsToDevicePixels" Value="True" />
         </Style>
     </Page.Resources>
     <Grid Margin="16,12,16,16">
@@ -195,7 +202,9 @@
                 CornerRadius="8"
                 Padding="0"
                 MinHeight="180">
-            <TabControl x:Name="tabControl" Background="Transparent" BorderThickness="0">
+            <TabControl x:Name="tabControl" Background="Transparent" BorderThickness="0"
+                        RenderOptions.BitmapScalingMode="HighQuality" UseLayoutRounding="True"
+                        VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling">
                 <!-- Log Tab -->
                 <TabItem>
                     <TabItem.Header>
@@ -207,7 +216,7 @@
                                 x:Name="LogTabButton">
                             <Button.Style>
                                 <Style TargetType="Button"
-                                       BasedOn="{StaticResource ReadableTabButton}">
+                                       BasedOn="{StaticResource OptimizedTabButton}">
                                     <Setter Property="Background"
                                             Value="#2563EB" />
                                     <Setter Property="Foreground"
@@ -238,10 +247,13 @@
                             <RowDefinition Height="12" />
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
-                        <!-- Simplified Log Content -->
-                        <Border Grid.Row="0" Background="#1A1A1A" BorderBrush="#404040" BorderThickness="1" CornerRadius="8" Padding="8">
+                        <!-- Optimized Log Content with virtualization -->
+                        <Border Grid.Row="0" Background="#1A1A1A" BorderBrush="#404040" BorderThickness="1" CornerRadius="8" Padding="8"
+                                RenderOptions.BitmapScalingMode="HighQuality" UseLayoutRounding="True">
                             <WindowsFormsHost>
-                                <wf:RichTextBox x:Name="logRTB" Dock="Fill" ForeColor="Gainsboro" ReadOnly="True" ScrollBars="Vertical" BorderStyle="None" DetectUrls="False" />
+                                <wf:RichTextBox x:Name="logRTB" Dock="Fill" ForeColor="Gainsboro" ReadOnly="True" 
+                                               ScrollBars="Vertical" BorderStyle="None" DetectUrls="False"
+                                               MaxLength="1000000" />
                             </WindowsFormsHost>
                         </Border>
                         <!-- Search Controls - Enhanced UI with Better Styling -->
@@ -269,9 +281,9 @@
                                     <ColumnDefinition Width="8" />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
-                                <!-- Optimized Search Input -->
+                                <!-- Optimized Search Input with performance enhancements -->
                         <TextBox Grid.Column="0"
-                                 Text="{Binding SearchString}"
+                                 Text="{Binding SearchString, UpdateSourceTrigger=PropertyChanged}"
                                  Height="34"
                                  Background="#2D3748"
                                  Foreground="#E2E8F0"
@@ -280,7 +292,9 @@
                                  Padding="10,8"
                                  FontSize="12"
                                  ToolTip="Search logs (Ctrl+F)"
-                                 x:Name="searchTextBox" />
+                                 x:Name="searchTextBox"
+                                 RenderOptions.ClearTypeHint="Enabled"
+                                 UseLayoutRounding="True" />
                                 <!-- Simplified Search Button -->
                 <Button Grid.Column="2"
                         Click="Search"
@@ -378,7 +392,7 @@
                                 x:Name="VariablesTabButton">
                             <Button.Style>
                                 <Style TargetType="Button"
-                                       BasedOn="{StaticResource ReadableTabButton}">
+                                       BasedOn="{StaticResource OptimizedTabButton}">
                                     <Setter Property="Background"
                                             Value="#7C3AED" />
                                     <Setter Property="Foreground"
@@ -405,29 +419,33 @@
                         </Button>
                     </TabItem.Header>
                     <Grid Margin="16">
-                        <!-- Variables Content with Enhanced Visual Design -->
+                        <!-- Optimized Variables Content with performance enhancements -->
                         <Border Background="#1A1A1A"
                                 BorderBrush="#404040"
                                 BorderThickness="1"
                                 CornerRadius="8"
-                                Padding="1">
+                                Padding="1"
+                                RenderOptions.BitmapScalingMode="HighQuality"
+                                UseLayoutRounding="True">
                             <Border Background="#161616"
                                     CornerRadius="7"
                                     Padding="8">
                                 <Grid>
-                                    <!-- Variable Count Indicator -->
+                                    <!-- Optimized Variable Count Indicator -->
                                     <Border HorizontalAlignment="Right"
                                             VerticalAlignment="Top"
                                             Background="#30000000"
                                             CornerRadius="12"
                                             Padding="8,4"
                                             Margin="0,8,8,0"
-                                            Panel.ZIndex="10">
-                                        <TextBlock Text="{Binding Variables.Count, StringFormat='Variables: {0}'}"
+                                            Panel.ZIndex="10"
+                                            RenderOptions.ClearTypeHint="Enabled">
+                                        <TextBlock Text="{Binding Variables.Count, StringFormat='Variables: {0}', Mode=OneWay}"
                                                    Foreground="#A78BFA"
                                                    FontFamily="Segoe UI"
                                                    FontSize="10"
-                                                   FontWeight="Medium" />
+                                                   FontWeight="Medium"
+                                                   RenderOptions.ClearTypeHint="Enabled" />
                                     </Border>
                                     <WindowsFormsHost>
                                         <wf:RichTextBox x:Name="variablesRTB"
@@ -436,7 +454,8 @@
                                                         ReadOnly="True"
                                                         ScrollBars="Vertical"
                                                         BorderStyle="None"
-                                                        DetectUrls="False" />
+                                                        DetectUrls="False"
+                                                        MaxLength="500000" />
                                     </WindowsFormsHost>
                                 </Grid>
                             </Border>
@@ -453,7 +472,7 @@
                                 x:Name="HtmlTabButton">
                             <Button.Style>
                                 <Style TargetType="Button"
-                                       BasedOn="{StaticResource ReadableTabButton}">
+                                       BasedOn="{StaticResource OptimizedTabButton}">
                                     <Setter Property="Background"
                                             Value="#DC2626" />
                                     <Setter Property="Foreground"
@@ -480,32 +499,38 @@
                         </Button>
                     </TabItem.Header>
                     <Grid Margin="16">
-                        <!-- HTML Content with Enhanced Visual Design -->
+                        <!-- Optimized HTML Content with performance enhancements -->
                         <Border Background="#1A1A1A"
                                 BorderBrush="#404040"
                                 BorderThickness="1"
                                 CornerRadius="8"
-                                Padding="1">
+                                Padding="1"
+                                RenderOptions.BitmapScalingMode="HighQuality"
+                                UseLayoutRounding="True">
                             <Border Background="#161616"
                                     CornerRadius="7"
                                     Padding="2">
                                 <Grid>
-                                    <!-- HTML Status Indicator -->
+                                    <!-- Optimized HTML Status Indicator -->
                                     <Border HorizontalAlignment="Right"
                                             VerticalAlignment="Top"
                                             Background="#30000000"
                                             CornerRadius="12"
                                             Padding="8,4"
                                             Margin="0,8,8,0"
-                                            Panel.ZIndex="10">
+                                            Panel.ZIndex="10"
+                                            RenderOptions.ClearTypeHint="Enabled">
                                         <TextBlock Text="HTML Preview"
                                                    Foreground="#F87171"
                                                    FontFamily="Segoe UI"
                                                    FontSize="10"
-                                                   FontWeight="Medium" />
+                                                   FontWeight="Medium"
+                                                   RenderOptions.ClearTypeHint="Enabled" />
                                     </Border>
                                     <uc:HTMLViewer x:Name="htmlViewer"
-                                                   VerticalAlignment="Stretch" />
+                                                   VerticalAlignment="Stretch"
+                                                   RenderOptions.BitmapScalingMode="HighQuality"
+                                                   UseLayoutRounding="True" />
                                 </Grid>
                             </Border>
                         </Border>

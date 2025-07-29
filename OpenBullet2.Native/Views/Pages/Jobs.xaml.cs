@@ -10,6 +10,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Threading.Tasks;
+using OpenBullet2.Native.Infrastructure.DependencyInjection;
 
 namespace OpenBullet2.Native.Views.Pages
 {
@@ -24,11 +25,11 @@ namespace OpenBullet2.Native.Views.Pages
 
         public Jobs()
         {
-            mainWindow = SP.GetService<MainWindow>() ?? throw new InvalidOperationException("MainWindow service is null");
-            jobRepo = SP.GetService<IJobRepository>() ?? throw new InvalidOperationException("JobRepository service is null");
-            var viewModelsService = SP.GetService<ViewModelsService>() ?? throw new InvalidOperationException("ViewModelsService is null");
+            mainWindow = ServiceLocator.GetService<MainWindow>() ?? throw new InvalidOperationException("MainWindow service is null");
+            jobRepo = ServiceLocator.GetService<IJobRepository>() ?? throw new InvalidOperationException("JobRepository service is null");
+            var viewModelsService = ServiceLocator.GetService<ViewModelsService>() ?? throw new InvalidOperationException("ViewModelsService is null");
             vm = viewModelsService.Jobs ?? throw new InvalidOperationException("Jobs ViewModel is null");
-            
+
             DataContext = vm;
             InitializeComponent();
         }
@@ -126,7 +127,7 @@ namespace OpenBullet2.Native.Views.Pages
             try
             {
                 JobViewModel jobVM = null;
-                
+
                 if (sender is Grid grid && grid.Tag is JobViewModel gridJobVM)
                 {
                     jobVM = gridJobVM;
@@ -135,7 +136,7 @@ namespace OpenBullet2.Native.Views.Pages
                 {
                     jobVM = panelJobVM;
                 }
-                
+
                 if (jobVM != null)
                 {
                     mainWindow.DisplayJob(jobVM);

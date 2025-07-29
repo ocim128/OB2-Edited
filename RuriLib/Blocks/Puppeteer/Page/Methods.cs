@@ -5,7 +5,6 @@ using RuriLib.Models.Bots;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace RuriLib.Blocks.Puppeteer.Page
@@ -27,9 +26,7 @@ namespace RuriLib.Blocks.Puppeteer.Page
                 WaitUntil = [loadedEvent]
             };
             var response = await page.GoToAsync(url, options);
-            data.ADDRESS = response.Url;
-            data.SOURCE = await response.TextAsync();
-            data.RAWSOURCE = await response.BufferAsync();
+            await UpdateResponseData(data, response);
             SwitchToMainFramePrivate(data);
 
             data.Logger.Log($"Navigated to {url}", LogColors.DarkSalmon);
@@ -40,21 +37,10 @@ namespace RuriLib.Blocks.Puppeteer.Page
             WaitUntilNavigation loadedEvent = WaitUntilNavigation.Load, int timeout = 30000)
         {
             data.Logger.LogHeader();
-
             var page = GetPage(data);
-            var options = new NavigationOptions
-            {
-                Timeout = timeout,
-                WaitUntil = new WaitUntilNavigation[] { loadedEvent }
-            };
-
-            await page.WaitForNavigationAsync(options);
-            data.ADDRESS = page.Url;
-            data.SOURCE = await page.GetContentAsync();
-            data.RAWSOURCE = Encoding.UTF8.GetBytes(data.SOURCE);
-            SwitchToMainFramePrivate(data);
-
-            data.Logger.Log($"Waited for navigation to complete", LogColors.DarkSalmon);
+            await page.WaitForNavigationAsync(new NavigationOptions { Timeout = timeout, WaitUntil = [loadedEvent] });
+            await UpdatePageData(data, page);
+            data.Logger.Log("Waited for navigation to complete", LogColors.DarkSalmon);
         }
 
         [Block("Clears cookies in the page stored for a specific website", name = "Clear Cookies")]
@@ -88,7 +74,7 @@ namespace RuriLib.Blocks.Puppeteer.Page
             await page.Keyboard.PressAsync(key);
             data.Logger.Log($"Pressed and released {key}", LogColors.DarkSalmon);
 
-            // Full list of keys: https://github.com/puppeteer/puppeteer/blob/v1.14.0/lib/USKeyboardLayout.js
+
         }
 
         [Block("Presses a key in the browser page without releasing it", name = "Key Down in Page",
@@ -101,7 +87,7 @@ namespace RuriLib.Blocks.Puppeteer.Page
             await page.Keyboard.DownAsync(key);
             data.Logger.Log($"Pressed (and holding down) {key}", LogColors.DarkSalmon);
 
-            // Full list of keys: https://github.com/puppeteer/puppeteer/blob/v1.14.0/lib/USKeyboardLayout.js
+
         }
 
         [Block("Releases a key that was previously pressed in the browser page", name = "Key Up in Page",
@@ -114,23 +100,15 @@ namespace RuriLib.Blocks.Puppeteer.Page
             await page.Keyboard.UpAsync(key);
             data.Logger.Log($"Released {key}", LogColors.DarkSalmon);
 
-            // Full list of keys: https://github.com/puppeteer/puppeteer/blob/v1.14.0/lib/USKeyboardLayout.js
+
         }
 
         [Block("Takes a screenshot of the entire browser page and saves it to an output file", name = "Screenshot Page")]
         public static async Task PuppeteerScreenshotPage(BotData data, string file, bool fullPage = false, bool omitBackground = false)
         {
             data.Logger.LogHeader();
-            
-            var page = GetPage(data);
-            var options = new ScreenshotOptions
-            {
-                FullPage = fullPage,
-                OmitBackground = omitBackground,
-                Type = omitBackground ? ScreenshotType.Png : ScreenshotType.Jpeg,
-                Quality = omitBackground ? null : 100
-            };
-            await page.ScreenshotAsync(file, options);
+            var options = CreateScreenshotOptions(fullPage, omitBackground);
+            await GetPage(data).ScreenshotAsync(file, options);
             data.Logger.Log($"Took a screenshot of the {(fullPage ? "full" : "visible")} page and saved it to {file}", LogColors.DarkSalmon);
         }
 
@@ -138,16 +116,8 @@ namespace RuriLib.Blocks.Puppeteer.Page
         public static async Task<string> PuppeteerScreenshotPageBase64(BotData data, bool fullPage = false, bool omitBackground = false)
         {
             data.Logger.LogHeader();
-            
-            var page = GetPage(data);
-            var options = new ScreenshotOptions
-            {
-                FullPage = fullPage,
-                OmitBackground = omitBackground,
-                Type = omitBackground ? ScreenshotType.Png : ScreenshotType.Jpeg,
-                Quality = omitBackground ? null : 100
-            };
-            var base64 = await page.ScreenshotBase64Async(options);
+            var options = CreateScreenshotOptions(fullPage, omitBackground);
+            var base64 = await GetPage(data).ScreenshotBase64Async(options);
             data.Logger.Log($"Took a screenshot of the {(fullPage ? "full" : "visible")} page as base64", LogColors.DarkSalmon);
             return base64;
         }
@@ -317,5 +287,29 @@ namespace RuriLib.Blocks.Puppeteer.Page
 
         private static void SwitchToMainFramePrivate(BotData data)
             => data.SetObject("puppeteerFrame", GetPage(data).MainFrame);
+
+        private static ScreenshotOptions CreateScreenshotOptions(bool fullPage, bool omitBackground)
+            => new()
+            {
+                FullPage = fullPage,
+                OmitBackground = omitBackground,
+                Type = omitBackground ? ScreenshotType.Png : ScreenshotType.Jpeg,
+                Quality = omitBackground ? null : 100
+            };
+
+        private static async Task UpdateResponseData(BotData data, IResponse response)
+        {
+            data.ADDRESS = response.Url;
+            data.SOURCE = await response.TextAsync();
+            data.RAWSOURCE = await response.BufferAsync();
+        }
+
+        private static async Task UpdatePageData(BotData data, IPage page)
+        {
+            data.ADDRESS = page.Url;
+            data.SOURCE = await page.GetContentAsync();
+            data.RAWSOURCE = System.Text.Encoding.UTF8.GetBytes(data.SOURCE);
+            SwitchToMainFramePrivate(data);
+        }
     }
 }

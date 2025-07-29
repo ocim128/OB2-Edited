@@ -1,4 +1,4 @@
-﻿<Page x:Class="OpenBullet2.Native.Views.Dialogs.SelectConfigDialog"
+<Page x:Class="OpenBullet2.Native.Views.Dialogs.SelectConfigDialog"
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
@@ -26,7 +26,7 @@
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="auto" />
             </Grid.ColumnDefinitions>
-            <TextBox x:Name="filterTextbox" HorizontalAlignment="Stretch" Grid.Column="0" Text="{Binding SearchString}" Margin="0 5 5 5" KeyDown="UpdateSearch"/>
+            <TextBox x:Name="filterTextbox" HorizontalAlignment="Stretch" Grid.Column="0" Text="{Binding SearchString}" Margin="0 5 5 5" KeyDown="UpdateSearch" Style="{StaticResource MatchingTextBox}"/>
             <Button Style="{StaticResource StyledButton}" x:Name="searchButton" Grid.Column="1" Click="Search" Margin="0 5 5 5" >
                 <StackPanel Orientation="Horizontal">
                     <iconPacks:PackIconMaterialDesign Kind="Search" />

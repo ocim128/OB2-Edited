@@ -1,4 +1,4 @@
-﻿using OpenBullet2.Core.Services;
+using OpenBullet2.Core.Services;
 using OpenBullet2.Native.Extensions;
 using OpenBullet2.Native.Helpers;
 using OpenBullet2.Native.Services;
@@ -15,6 +15,7 @@ using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Threading.Tasks;
+using OpenBullet2.Native.Infrastructure.DependencyInjection;
 
 namespace OpenBullet2.Native.Views.Pages
 {
@@ -25,77 +26,184 @@ namespace OpenBullet2.Native.Views.Pages
     {
         private readonly MainWindow mainWindow;
         private MultiRunJobViewerViewModel vm;
+        private GridViewColumnHeader listViewSortCol;
+        private SortAdorner listViewSortAdorner;
 
-        private IEnumerable<HitViewModel> GetSelectedHits() => resultsListView.SelectedItems.Cast<HitViewModel>();
-        private IEnumerable<BotViewModel> GetSelectedBots() => botsListView.SelectedItems.Cast<BotViewModel>();
+        private IEnumerable<HitViewModel> GetSelectedHits() => resultsListView.SelectedItems.Cast<HitViewModel>().ToList();
+        private IEnumerable<BotViewModel> GetSelectedBots() => botsListView.SelectedItems.Cast<BotViewModel>().ToList();
 
         public MultiRunJobViewer()
         {
-            mainWindow = SP.GetService<MainWindow>();
+            mainWindow = ServiceLocator.GetService<MainWindow>();
             InitializeComponent();
         }
 
         public void BindViewModel(MultiRunJobViewModel jobVM)
         {
-            CleanupViewModel();
+            if (vm is not null)
+            {
+                vm.Dispose();
+
+                try
+                {
+                    vm.NewMessage -= OnResultMessage;
+                }
+                catch
+                {
+                    // The event might not have been subscribed, so we can ignore this exception.
+                }
+            }
+
             vm = new MultiRunJobViewerViewModel(jobVM);
             vm.NewMessage += OnResultMessage;
             DataContext = vm;
+
+            // Set the initial active tab to Hits
             SetActiveTab("Hits");
         }
 
-        private void CleanupViewModel()
+        private async void Start(object sender, RoutedEventArgs e)
         {
-            if (vm is null) return;
-
-            vm.Dispose();
-            try { vm.NewMessage -= OnResultMessage; } catch { /* Ignore if not subscribed */ }
+            try
+            {
+                await vm.StartAsync();
+            }
+            catch (Exception ex)
+            {
+                Alert.Exception(ex);
+            }
         }
 
-        private async void Start(object sender, RoutedEventArgs e) => await ExecuteSafely(() => vm.StartAsync());
-        private async void Stop(object sender, RoutedEventArgs e) => await ExecuteSafely(() => vm.StopAsync());
-        private async void Pause(object sender, RoutedEventArgs e) => await ExecuteSafely(() => vm.PauseAsync());
-        private async void Resume(object sender, RoutedEventArgs e) => await ExecuteSafely(() => vm.ResumeAsync());
-        private async void Abort(object sender, RoutedEventArgs e) => await ExecuteSafely(() => vm.AbortAsync());
-        private void SkipWait(object sender, RoutedEventArgs e) => ExecuteSafely(() => vm.SkipWait());
+        private async void Stop(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                await vm.StopAsync();
+            }
+            catch (Exception ex)
+            {
+                Alert.Exception(ex);
+            }
+        }
+
+        private async void Pause(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                await vm.PauseAsync();
+            }
+            catch (Exception ex)
+            {
+                Alert.Exception(ex);
+            }
+        }
+
+        private async void Resume(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                await vm.ResumeAsync();
+            }
+            catch (Exception ex)
+            {
+                Alert.Exception(ex);
+            }
+        }
+
+        private async void Abort(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                await vm.AbortAsync();
+            }
+            catch (Exception ex)
+            {
+                Alert.Exception(ex);
+            }
+        }
+
+        private void SkipWait(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                vm.SkipWait();
+            }
+            catch (Exception ex)
+            {
+                Alert.Exception(ex);
+            }
+        }
+
         private void ChangeOptions(object sender, RoutedEventArgs e) => mainWindow.EditJob(vm.Job);
 
-        private void ChangeBots(object sender, MouseButtonEventArgs e)
+        private void ChangeBots(object sender, RoutedEventArgs e)
             => new MainDialog(new ChangeBotsDialog(this, vm.Job.Bots), "Change bots").ShowDialog();
 
-        public async Task ChangeBots(int newValue) => await ExecuteSafely(() => vm.ChangeBotsAsync(newValue));
-
-        private void ResetSkip(object sender, MouseButtonEventArgs e)
+        public async Task ChangeBots(int newValue)
         {
-            var dialog = new ConfirmationDialog(
-                "Reset Skip Confirmation",
-                "Are you sure you want to reset the skip count to 0?\n\nThis will restart the job from the beginning of the data pool.");
-
-            dialog.ShowDialog(Application.Current.MainWindow);
-            if (dialog.Result) ExecuteSafely(() => vm.ResetSkip());
+            try
+            {
+                await vm.ChangeBotsAsync(newValue);
+            }
+            catch (Exception ex)
+            {
+                Alert.Exception(ex);
+            }
         }
 
-        private void CopySelectedHits(object sender, RoutedEventArgs e) => GetSelectedHits().CopyToClipboard(h => h.Data);
-        private void CopySelectedProxies(object sender, RoutedEventArgs e) => GetSelectedHits().CopyToClipboard(h => h.Proxy);
-        private void CopySelectedHitsCapture(object sender, RoutedEventArgs e) => GetSelectedHits().CopyToClipboard(h => $"{h.Data} | {h.Capture}");
-        private void SelectAll(object sender, RoutedEventArgs e) => resultsListView.SelectAll();
+        private void ResetSkip(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var dialog = new ConfirmationDialog(
+                    "Reset Skip Confirmation",
+                    "Are you sure you want to reset the skip count to 0?\n\nThis will restart the job from the beginning of the data pool.");
+
+                dialog.ShowDialog(Application.Current.MainWindow);
+
+                if (dialog.Result)
+                {
+                    vm.ResetSkip();
+                }
+            }
+            catch (Exception ex)
+            {
+                Alert.Exception(ex);
+            }
+        }
+
+        private void CopySelectedHits(object sender, RoutedEventArgs e)
+            => GetSelectedHits().CopyToClipboard(h => h.Data);
+
+        private void CopySelectedProxies(object sender, RoutedEventArgs e)
+            => GetSelectedHits().CopyToClipboard(h => h.Proxy);
+
+        private void CopySelectedHitsCapture(object sender, RoutedEventArgs e)
+            => GetSelectedHits().CopyToClipboard(h => $"{h.Data} | {h.Capture}");
 
         private void SendToDebugger(object sender, RoutedEventArgs e)
         {
             var hitVM = GetSelectedHits().FirstOrDefault();
-            if (hitVM is null) return;
 
-            var debugger = SP.GetService<ViewModelsService>().Debugger;
-            debugger.TestData = hitVM.Data;
+            if (hitVM is not null)
+            {
+                var debugger = ServiceLocator.GetService<ViewModelsService>().Debugger;
+                debugger.TestData = hitVM.Data;
 
-            if (hitVM.Hit.Proxy is null) return;
-            debugger.TestProxy = hitVM.Hit.Proxy.ToString();
-            debugger.ProxyType = hitVM.Hit.Proxy.Type;
+                if (hitVM.Hit.Proxy is not null)
+                {
+                    debugger.TestProxy = hitVM.Hit.Proxy.ToString();
+                    debugger.ProxyType = hitVM.Hit.Proxy.Type;
+                }
+            }
         }
+
+        private void SelectAll(object sender, RoutedEventArgs e) => resultsListView.SelectAll();
 
         private void ShowBotLog(object sender, RoutedEventArgs e)
         {
             var hitVM = GetSelectedHits().FirstOrDefault();
+
             if (hitVM is null) return;
 
             if (hitVM.Hit.Config.Mode == ConfigMode.DLL)
@@ -109,84 +217,97 @@ namespace OpenBullet2.Native.Views.Pages
 
         private void ColumnHeaderClicked(object sender, RoutedEventArgs e)
         {
-            if (sender is not GridViewColumnHeader column || column.Tag?.ToString() is not string sortBy) return;
+            var column = sender as GridViewColumnHeader;
+            var sortBy = column.Tag.ToString();
 
-            botsListView.Items.SortDescriptions.Clear();
-            botsListView.Items.SortDescriptions.Add(new SortDescription(sortBy, ListSortDirection.Ascending));
+            if (listViewSortCol != null)
+            {
+                AdornerLayer.GetAdornerLayer(listViewSortCol).Remove(listViewSortAdorner);
+                botsListView.Items.SortDescriptions.Clear();
+            }
+
+            var newDir = ListSortDirection.Ascending;
+
+            if (listViewSortCol == column && listViewSortAdorner.Direction == newDir)
+            {
+                newDir = ListSortDirection.Descending;
+            }
+
+            listViewSortCol = column;
+            listViewSortAdorner = new SortAdorner(listViewSortCol, newDir);
+            AdornerLayer.GetAdornerLayer(listViewSortCol).Add(listViewSortAdorner);
+            botsListView.Items.SortDescriptions.Add(new SortDescription(sortBy, newDir));
         }
 
-        private void OnResultMessage(object sender, string message, Color color) { /* Handled via context menu */ }
-
-        private void ShowHitsTab(object sender, RoutedEventArgs e) => SetFilterTab("Hits", ViewModels.HitsFilter.Hits);
-        private void ShowCustomTab(object sender, RoutedEventArgs e) => SetFilterTab("Custom", ViewModels.HitsFilter.Custom);
-        private void ShowToCheckTab(object sender, RoutedEventArgs e) => SetFilterTab("ToCheck", ViewModels.HitsFilter.ToCheck);
-
-        private void SetFilterTab(string tabName, ViewModels.HitsFilter filter)
+        private void LVIRightClick(object sender, MouseButtonEventArgs e)
         {
-            SetActiveTab(tabName);
-            vm.HitsFilter = filter;
+            // This method is intentionally empty. The logic for right-click context menu is handled in XAML.
+        }
+
+        private void OnResultMessage(object sender, string message, Color color)
+        {
+            // Log messages are now handled via right-click menu 
+            // on hits list, no longer displayed in main view
+        }
+
+        // Tab functionality for filtering hits by type
+        private void ShowHitsTab(object sender, RoutedEventArgs e)
+        {
+            SetActiveTab("Hits");
+            vm.HitsFilter = ViewModels.HitsFilter.Hits;
+        }
+
+        private void ShowCustomTab(object sender, RoutedEventArgs e)
+        {
+            SetActiveTab("Custom");
+            vm.HitsFilter = ViewModels.HitsFilter.Custom;
+        }
+
+        private void ShowToCheckTab(object sender, RoutedEventArgs e)
+        {
+            SetActiveTab("ToCheck");
+            vm.HitsFilter = ViewModels.HitsFilter.ToCheck;
         }
 
         private void SetActiveTab(string activeTab)
         {
-            ResetTabStyles();
-            SetTabStyle(activeTab);
-        }
+            // Reset all tabs to inactive state
+            HitsTabButton.Background = new SolidColorBrush(Color.FromRgb(0x40, 0x40, 0x40));
+            HitsTabButton.Foreground = new SolidColorBrush(Color.FromRgb(0xCC, 0xCC, 0xCC));
+            CustomTabButton.Background = new SolidColorBrush(Color.FromRgb(0x40, 0x40, 0x40));
+            CustomTabButton.Foreground = new SolidColorBrush(Color.FromRgb(0xCC, 0xCC, 0xCC));
+            ToCheckTabButton.Background = new SolidColorBrush(Color.FromRgb(0x40, 0x40, 0x40));
+            ToCheckTabButton.Foreground = new SolidColorBrush(Color.FromRgb(0xCC, 0xCC, 0xCC));
 
-        private void ResetTabStyles()
-        {
-            var inactiveColor = new SolidColorBrush(Color.FromRgb(0x40, 0x40, 0x40));
-            var inactiveForeground = new SolidColorBrush(Color.FromRgb(0xCC, 0xCC, 0xCC));
-
-            HitsTabButton.Background = inactiveColor;
-            HitsTabButton.Foreground = inactiveForeground;
-            CustomTabButton.Background = inactiveColor;
-            CustomTabButton.Foreground = inactiveForeground;
-            ToCheckTabButton.Background = inactiveColor;
-            ToCheckTabButton.Foreground = inactiveForeground;
-        }
-
-        private void SetTabStyle(string activeTab)
-        {
-            var tabStyles = new Dictionary<string, (Color color, System.Windows.Media.Brush foreground)>
+            // Set the active tab
+            switch (activeTab)
             {
-                ["Hits"] = (Color.FromRgb(0x28, 0xA7, 0x45), System.Windows.Media.Brushes.White),
-                ["Custom"] = (Color.FromRgb(0x6F, 0x42, 0xC1), System.Windows.Media.Brushes.White),
-                ["ToCheck"] = (Color.FromRgb(0xFF, 0xC1, 0x07), System.Windows.Media.Brushes.White)
-            };
-
-            if (tabStyles.TryGetValue(activeTab, out var style))
-            {
-                var button = activeTab switch
-                {
-                    "Hits" => HitsTabButton,
-                    "Custom" => CustomTabButton,
-                    "ToCheck" => ToCheckTabButton,
-                    _ => null
-                };
-
-                if (button != null)
-                {
-                    button.Background = new SolidColorBrush(style.color);
-                    button.Foreground = style.foreground;
-                }
+                case "Hits":
+                    HitsTabButton.Background = new SolidColorBrush(Color.FromRgb(0x28, 0xA7, 0x45));
+                    HitsTabButton.Foreground = Brushes.White;
+                    break;
+                case "Custom":
+                    CustomTabButton.Background = new SolidColorBrush(Color.FromRgb(0x6F, 0x42, 0xC1));
+                    CustomTabButton.Foreground = Brushes.White;
+                    break;
+                case "ToCheck":
+                    ToCheckTabButton.Background = new SolidColorBrush(Color.FromRgb(0xFF, 0xC1, 0x07));
+                    ToCheckTabButton.Foreground = Brushes.White;
+                    break;
             }
         }
 
-        private void CopySelectedBotData(object sender, RoutedEventArgs e) => GetSelectedBots().CopyToClipboard(b => b.Data);
-        private void CopySelectedBotProxy(object sender, RoutedEventArgs e) => GetSelectedBots().CopyToClipboard(b => b.Proxy);
-        private void CopySelectedBotInfo(object sender, RoutedEventArgs e) => GetSelectedBots().CopyToClipboard(b => b.Info ?? "");
+        // Bot context menu methods
+        private void CopySelectedBotData(object sender, RoutedEventArgs e)
+            => GetSelectedBots().CopyToClipboard(b => b.Data);
+
+        private void CopySelectedBotProxy(object sender, RoutedEventArgs e)
+            => GetSelectedBots().CopyToClipboard(b => b.Proxy);
+
+        private void CopySelectedBotInfo(object sender, RoutedEventArgs e)
+            => GetSelectedBots().CopyToClipboard(b => b.Info ?? "");
+
         private void SelectAllBots(object sender, RoutedEventArgs e) => botsListView.SelectAll();
-
-        private async Task ExecuteSafely(Func<Task> action)
-        {
-            try { await action(); } catch (Exception ex) { Alert.Exception(ex); }
-        }
-
-        private void ExecuteSafely(Action action)
-        {
-            try { action(); } catch (Exception ex) { Alert.Exception(ex); }
-        }
 
     }
 }

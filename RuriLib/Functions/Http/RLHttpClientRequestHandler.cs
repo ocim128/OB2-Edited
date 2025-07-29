@@ -17,17 +17,77 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+
 using RuriLib.Functions.Conversion;
 
 namespace RuriLib.Functions.Http
 {
     internal class RLHttpClientRequestHandler : HttpRequestHandler
     {
+        // Connection pool to reuse RLHttpClient instances and reduce CPU overhead
+        private static readonly Dictionary<string, RLHttpClient> _clientPool = new();
+        private static readonly object _poolLock = new();
+        private static readonly Timer _cleanupTimer = new(CleanupExpiredClients, null, TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(5));
+        private static readonly Dictionary<string, DateTime> _clientLastUsed = new();
+        private const int ClientTimeoutMinutes = 10;
+        
+        private static RLHttpClient GetOrCreateClient(BotData data, HttpOptions clientOptions)
+        {
+            var key = GenerateClientKey(data, clientOptions);
+            
+            lock (_poolLock)
+            {
+                if (_clientPool.TryGetValue(key, out var existingClient))
+                {
+                    _clientLastUsed[key] = DateTime.UtcNow;
+                    return existingClient;
+                }
+                
+                var newClient = HttpFactory.GetRLHttpClient(data.UseProxy ? data.Proxy : null, clientOptions);
+                _clientPool[key] = newClient;
+                _clientLastUsed[key] = DateTime.UtcNow;
+                return newClient;
+            }
+        }
+        
+        private static string GenerateClientKey(BotData data, HttpOptions clientOptions)
+        {
+            var proxy = data.UseProxy ? data.Proxy : null;
+            var proxyKey = proxy != null ? $"{proxy.Type}:{proxy.Host}:{proxy.Port}" : "noproxy";
+            return $"{proxyKey}:{clientOptions.SecurityProtocol}:{clientOptions.UseCustomCipherSuites}";
+        }
+        
+        private static void CleanupExpiredClients(object state)
+        {
+            lock (_poolLock)
+            {
+                var expiredKeys = new List<string>();
+                var cutoff = DateTime.UtcNow.AddMinutes(-ClientTimeoutMinutes);
+                
+                foreach (var kvp in _clientLastUsed)
+                {
+                    if (kvp.Value < cutoff)
+                    {
+                        expiredKeys.Add(kvp.Key);
+                    }
+                }
+                
+                foreach (var key in expiredKeys)
+                {
+                    if (_clientPool.TryGetValue(key, out var client))
+                    {
+                        client.Dispose();
+                        _clientPool.Remove(key);
+                    }
+                    _clientLastUsed.Remove(key);
+                }
+            }
+        }
         public async override Task HttpRequestStandard(BotData data, StandardHttpRequestOptions options)
         {
             var clientOptions = GetClientOptions(data, options);
             
-            using var client = HttpFactory.GetRLHttpClient(data.UseProxy ? data.Proxy : null, clientOptions);
+            var client = GetOrCreateClient(data, clientOptions);
 
             foreach (var cookie in options.CustomCookies)
                 data.COOKIES[cookie.Key] = cookie.Value;
@@ -115,7 +175,7 @@ namespace RuriLib.Functions.Http
         public async override Task HttpRequestRaw(BotData data, RawHttpRequestOptions options)
         {
             var clientOptions = GetClientOptions(data, options);
-            using var client = HttpFactory.GetRLHttpClient(data.UseProxy ? data.Proxy : null, clientOptions);
+            var client = GetOrCreateClient(data, clientOptions);
 
             foreach (var cookie in options.CustomCookies)
                 data.COOKIES[cookie.Key] = cookie.Value;
@@ -155,7 +215,7 @@ namespace RuriLib.Functions.Http
         public async override Task HttpRequestBasicAuth(BotData data, BasicAuthHttpRequestOptions options)
         {
             var clientOptions = GetClientOptions(data, options);
-            using var client = HttpFactory.GetRLHttpClient(data.UseProxy ? data.Proxy : null, clientOptions);
+            var client = GetOrCreateClient(data, clientOptions);
 
             foreach (var cookie in options.CustomCookies)
                 data.COOKIES[cookie.Key] = cookie.Value;
@@ -196,7 +256,7 @@ namespace RuriLib.Functions.Http
         public async override Task HttpRequestMultipart(BotData data, MultipartHttpRequestOptions options)
         {
                 var clientOptions = GetClientOptions(data, options);
-                using var client = HttpFactory.GetRLHttpClient(data.UseProxy ? data.Proxy : null, clientOptions);
+                var client = GetOrCreateClient(data, clientOptions);
 
                 foreach (var cookie in options.CustomCookies)
                     data.COOKIES[cookie.Key] = cookie.Value;

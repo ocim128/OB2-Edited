@@ -1,4 +1,4 @@
-﻿using OpenBullet2.Core.Services;
+using OpenBullet2.Core.Services;
 using RuriLib.Logging;
 using RuriLib.Models.Debugger;
 using RuriLib.Models.Proxies;
@@ -10,6 +10,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using OpenBullet2.Native.Infrastructure.DependencyInjection;
 
 namespace OpenBullet2.Native.ViewModels;
 
@@ -190,12 +191,12 @@ public class DebuggerViewModel : ViewModelBase
 
     public DebuggerViewModel()
     {
-        rlSettingsService = SP.GetService<RuriLibSettingsService>();
-        obSettingsService = SP.GetService<OpenBulletSettingsService>();
-        configService = SP.GetService<ConfigService>();
-        randomUAProvider = SP.GetService<IRandomUAProvider>();
-        rngProvider = SP.GetService<IRNGProvider>();
-        pluginRepo = SP.GetService<PluginRepository>();
+        rlSettingsService = ServiceLocator.GetService<RuriLibSettingsService>();
+        obSettingsService = ServiceLocator.GetService<OpenBulletSettingsService>();
+        configService = ServiceLocator.GetService<ConfigService>();
+        randomUAProvider = ServiceLocator.GetService<IRandomUAProvider>();
+        rngProvider = ServiceLocator.GetService<IRNGProvider>();
+        pluginRepo = ServiceLocator.GetService<PluginRepository>();
 
         WordlistType = WordlistTypes.First();
     }

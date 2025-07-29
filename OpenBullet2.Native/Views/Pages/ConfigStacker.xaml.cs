@@ -18,6 +18,7 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls; // Make sure this is included for TextBox and TextChangedEventArgs
 using System.Windows.Input;
+using OpenBullet2.Native.Infrastructure.DependencyInjection;
 
 namespace OpenBullet2.Native.Views.Pages
 {
@@ -37,8 +38,8 @@ namespace OpenBullet2.Native.Views.Pages
 
         public ConfigStacker()
         {
-            configService = SP.GetService<ConfigService>();
-            vm = SP.GetService<ViewModelsService>().ConfigStacker;
+            configService = ServiceLocator.GetService<ConfigService>();
+            vm = ServiceLocator.GetService<ViewModelsService>().ConfigStacker;
             vm.SelectionChanged += SelectionChanged;
             DataContext = vm;
 
@@ -59,7 +60,7 @@ namespace OpenBullet2.Native.Views.Pages
             {
                 // On fail, prompt it to the user and go back to the configs page
                 Alert.Exception(ex);
-                SP.GetService<MainWindow>().NavigateTo(MainWindowPage.Configs);
+                ServiceLocator.GetService<MainWindow>().NavigateTo(MainWindowPage.Configs);
             }
 
             vm.SelectBlock(null, false);
@@ -908,7 +909,7 @@ namespace OpenBullet2.Native.Views.Pages
             {
                 Application.Current.Dispatcher.BeginInvoke(new Action(() =>
                 {
-                    var notification = new NotificationWindow(title, message);
+                    var notification = new SharedNotificationWindow(title, message);
 
                     // Prevent the notification from stealing focus
                     notification.ShowActivated = false;

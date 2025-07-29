@@ -7,6 +7,7 @@ using OpenBullet2.Core.Repositories;
 using OpenBullet2.Core.Services;
 using OpenBullet2.Logging;
 using OpenBullet2.Native.Helpers;
+using OpenBullet2.Native.Infrastructure.DependencyInjection;
 using OpenBullet2.Native.Services;
 using DebuggerPage = OpenBullet2.Native.Views.Pages.Shared.Debugger;
 using RuriLib.Logging;
@@ -76,82 +77,53 @@ public partial class App : Application
         serviceCollection.AddTransient(_ => _config);
         ConfigureServices(serviceCollection);
         _serviceProvider = serviceCollection.BuildServiceProvider();
-        SP.Init(_serviceProvider);
+        ServiceLocator.Initialize(_serviceProvider);
 
         Trace("ServiceProvider built");
 
-        // Optimized startup - minimal critical initialization only
+        // Apply critical optimizations immediately for faster startup
         ThreadPool.SetMinThreads(Environment.ProcessorCount, Environment.ProcessorCount);
-        
-        // Batch all non-critical optimizations into single background task
-        Task.Run(() =>
-        {
-            // Network optimizations
-            ServicePointManager.DefaultConnectionLimit = Environment.ProcessorCount * 4;
-            ServicePointManager.Expect100Continue = false;
-            ServicePointManager.UseNagleAlgorithm = false;
-            
-            // ThreadPool optimization
-            ThreadPool.SetMaxThreads(Environment.ProcessorCount * 4, Environment.ProcessorCount * 2);
-            
-            // GC optimization
-            ApplyGarbageCollectionOptimizations();
-        });
 
-        Trace($"ThreadPool minimal configuration applied, full optimization deferred");
-
-        // Defer database migration to improve startup time
-        Task.Run(() =>
+        // Defer heavy operations to background with priority-based loading
+        _ = Task.Run(async () =>
         {
             try
             {
-                Trace("Starting database migration");
+                // Priority 1: Essential network optimizations
+                ServicePointManager.DefaultConnectionLimit = Environment.ProcessorCount * 4;
+                ServicePointManager.Expect100Continue = false;
+                ServicePointManager.UseNagleAlgorithm = false;
+
+                // Priority 2: Database migration (critical for app functionality)
                 using var scope = _serviceProvider.CreateScope();
-                var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-                context.Database.Migrate();
+                var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                await dbContext.Database.MigrateAsync();
                 Trace("Database migration completed");
-            }
-            catch (Exception ex)
-            {
-                Trace($"Database migration failed: {ex}");
-                Dispatcher.BeginInvoke(() => Alert.Error("Database Error", $"Failed to migrate database: {ex.Message}"));
-            }
-        });
 
-        // Load config asynchronously with priority
-        Task.Run(async () =>
-        {
-            try
-            {
-                Trace("Loading configuration asynchronously");
-                var configService = _serviceProvider.GetService<ConfigService>();
+                // Priority 3: Load configurations (needed for UI)
+                var configService = _serviceProvider.GetRequiredService<ConfigService>();
                 await configService.ReloadConfigsAsync();
                 Trace("Configuration loaded successfully");
+
+                // Priority 4: Initialize services with delay to avoid resource contention
+                await Task.Delay(100); // Small delay to let UI render
+
+                // Background optimizations (lower priority)
+                ThreadPool.SetMaxThreads(Environment.ProcessorCount * 4, Environment.ProcessorCount * 2);
+
+                // Initialize remaining services
+                AutocompletionProvider.Init();
+                _ = _serviceProvider.GetService<JobMonitorService>();
+                Trace("Deferred initialization completed");
             }
             catch (Exception ex)
             {
-                Trace($"Config loading failed: {ex.Message}");
+                Trace($"Startup optimization error: {ex.Message}");
+                Dispatcher.BeginInvoke(() => Alert.Error("Startup Error", $"Some background initialization failed: {ex.Message}"));
             }
         });
 
-        // Defer non-critical initialization to improve startup time
-        _ = Task.Run(() =>
-        {
-            try
-            {
-                // Initialize autocompletion provider in background
-                AutocompletionProvider.Init();
-                Trace("AutocompletionProvider.Init complete (deferred)");
-                
-                // Start job monitor service in background
-                _ = _serviceProvider.GetService<JobMonitorService>();
-                Trace("JobMonitorService retrieved (deferred)");
-            }
-            catch (Exception ex)
-            {
-                Trace($"Deferred initialization failed: {ex}");
-            }
-        });
+        Trace($"Priority-based startup optimization initiated");
 
         Trace("App constructor END");
     }
@@ -258,7 +230,7 @@ public partial class App : Application
         {
             var reducedAnimations = _config.GetSection("Performance").GetValue("ReducedAnimations", true);
             var frameRate = reducedAnimations ? 20 : 30;
-            
+
             // Set animation frame rate based on performance mode
             Timeline.DesiredFrameRateProperty.OverrideMetadata(
                 typeof(Timeline),
@@ -279,23 +251,7 @@ public partial class App : Application
         }
     }
 
-    private void ApplyGarbageCollectionOptimizations()
-    {
-        try
-        {
-            // Configure GC for low-latency scenarios without aggressive collection
-            System.Runtime.GCSettings.LatencyMode = System.Runtime.GCLatencyMode.Interactive;
-            
-            // Single optimized collection to clean up startup overhead
-            GC.Collect(1, GCCollectionMode.Optimized, false);
-
-            Debug.WriteLine("Garbage collection optimizations applied for low-spec systems");
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"Could not apply GC optimizations: {ex.Message}");
-        }
-    }
+    // Removed unused ApplyGarbageCollectionOptimizations method for optimization
 
     private static void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
     {
@@ -327,22 +283,7 @@ public partial class App : Application
     protected override void OnExit(ExitEventArgs e)
     {
         // Dispose service provider on exit
-        if (_serviceProvider is IDisposable disposable)
-        {
-            try
-            {
-                disposable.Dispose();
-            }
-            catch (ObjectDisposedException)
-            {
-                // Service provider already disposed, ignore
-                Trace("Service provider already disposed");
-            }
-            catch (Exception ex)
-            {
-                Trace($"Error disposing service provider: {ex}");
-            }
-        }
+        (_serviceProvider as IDisposable)?.Dispose();
         base.OnExit(e);
     }
 
@@ -350,38 +291,11 @@ public partial class App : Application
     {
         try
         {
-            var appDirectory = AppDomain.CurrentDomain.BaseDirectory;
-            var crashLogPath = Path.Combine(appDirectory, "crash.log");
-
-            // Ensure directory exists
-            Directory.CreateDirectory(Path.GetDirectoryName(crashLogPath));
-
-            // Use proper file handling with retry logic for file locks
-            var maxRetries = 3;
-            var retryDelay = TimeSpan.FromMilliseconds(100);
-
-            for (int attempt = 1; attempt <= maxRetries; attempt++)
-            {
-                try
-                {
-                    File.WriteAllText(crashLogPath,
-                        $"Unhandled exception thrown on {DateTime.Now}\r\n{ex}\r\n\r\nStack Trace:\r\n{ex.StackTrace}");
-                    break;
-                }
-                catch (IOException) when (attempt < maxRetries)
-                {
-                    Thread.Sleep(retryDelay);
-                }
-            }
-
-            // Also write to a timestamped file to avoid overwriting
-            var timestampedPath = Path.Combine(appDirectory, $"crash-{DateTime.Now:yyyyMMdd-HHmmss}.log");
-            File.WriteAllText(timestampedPath,
-                $"Unhandled exception thrown on {DateTime.Now}\r\n{ex}\r\n\r\nStack Trace:\r\n{ex.StackTrace}");
+            var crashLogPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "crash.log");
+            File.WriteAllText(crashLogPath, $"Unhandled exception thrown on {DateTime.Now}\r\n{ex}");
         }
         catch (Exception logEx)
         {
-            // Last resort: try to write to Windows Event Log or show in message box
             Debug.WriteLine($"Failed to write crash log: {logEx.Message}");
         }
 

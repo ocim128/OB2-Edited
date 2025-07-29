@@ -1,4 +1,4 @@
-﻿using OpenBullet2.Core.Services;
+using OpenBullet2.Core.Services;
 using OpenBullet2.Native.Helpers;
 using OpenBullet2.Native.ViewModels;
 using OpenBullet2.Native.Views.Dialogs;
@@ -7,6 +7,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using OpenBullet2.Native.Infrastructure.DependencyInjection;
 
 namespace OpenBullet2.Native.Views.Pages
 {
@@ -20,7 +21,7 @@ namespace OpenBullet2.Native.Views.Pages
 
         public ProxyCheckJobViewer()
         {
-            obSettingsService = SP.GetService<OpenBulletSettingsService>();
+            obSettingsService = ServiceLocator.GetService<OpenBulletSettingsService>();
             InitializeComponent();
         }
 

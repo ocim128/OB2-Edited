@@ -1,14 +1,16 @@
-﻿using OpenBullet2.Core.Extensions;
+using OpenBullet2.Core.Extensions;
 using OpenBullet2.Native.Views.Dialogs;
+using OpenBullet2.Native.Services;
 using System;
 using System.Windows;
+using OpenBullet2.Native.Infrastructure.DependencyInjection;
 
 namespace OpenBullet2.Native.Helpers
 {
     public static class Alert
     {
         public static void Info(string title, string message) => ShowAlert(AlertType.Info, title, message);
-        public static void Success(string title, string message) => ShowAlert(AlertType.Success, title, message);
+        public static void Success(string title, string message) => ShowModernNotification(title, message);
         public static void Warning(string title, string message) => ShowAlert(AlertType.Warning, title, message);
         public static void Error(string title, string message) => ShowAlert(AlertType.Error, title, message);
         
@@ -39,11 +41,29 @@ namespace OpenBullet2.Native.Helpers
         private static void ShowAlert(AlertType type, string title, string message)
             => Application.Current.Dispatcher.Invoke(() => new MainDialog(new AlertDialog(type, title, message), title).ShowDialog());
 
+        private static void ShowModernNotification(string title, string message)
+        {
+            try
+            {
+                Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    // Use the shared notification window with App.xaml styles
+                    var notification = new SharedNotificationWindow(title, message);
+                    notification.Show();
+                }));
+            }
+            catch (Exception ex)
+            {
+                // Fallback to traditional dialog if notification fails
+                ShowAlert(AlertType.Success, title, message);
+            }
+        }
+
         public static void Exception(Exception ex)  => Error("Error", "An unexpected error occurred: " + ex.Message);
 
         public static bool Confirm(string title, string message, string settingName)
         {
-            var obSettingsService = SP.GetService<OpenBullet2.Core.Services.OpenBulletSettingsService>();
+            var obSettingsService = ServiceLocator.GetService<OpenBullet2.Core.Services.OpenBulletSettingsService>();
 
             // If the user checked 'don't ask again' for this specific setting
             if (obSettingsService.Settings.GeneralSettings.GetProperty(settingName) is bool b && !b)

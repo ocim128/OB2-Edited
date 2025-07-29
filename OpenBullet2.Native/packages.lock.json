@@ -27,12 +27,6 @@
           "ControlzEx": "[4.4.0, 6.0.0)"
         }
       },
-      "MahApps.Metro.IconPacks.BootstrapIcons": {
-        "type": "Direct",
-        "requested": "[4.8.0, )",
-        "resolved": "4.8.0",
-        "contentHash": "Hr4BZ/Ew4/eOJRORqQemTvVr56Tl0pXiOD22OdCsqCk5wTsmxLHIIlSP9+ei8alCnaLcDf9HnaoHuYVYWq1GKQ=="
-      },
       "MahApps.Metro.IconPacks.BoxIcons": {
         "type": "Direct",
         "requested": "[4.8.0, )",
@@ -98,12 +92,6 @@
         "requested": "[4.8.0, )",
         "resolved": "4.8.0",
         "contentHash": "Op8g7RyZ1KM6ffuTVQ5ns8QAHGuRPhWjIuNsEWcYDYL7TrdpF2vBK2bdAjDCiRpB2km5HlEp2ayN7FaB8cpLnA=="
-      },
-      "MahApps.Metro.IconPacks.SimpleIcons": {
-        "type": "Direct",
-        "requested": "[4.8.0, )",
-        "resolved": "4.8.0",
-        "contentHash": "p+w5Dv+suP6arREz/LD21CxEjlRSGWu7TXKVCDbH9yD2OCURao1RaRj7wGsqxOg0jDGsfSvQsB5QKvW/bWmeOQ=="
       },
       "MahApps.Metro.IconPacks.Unicons": {
         "type": "Direct",

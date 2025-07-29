@@ -1,4 +1,4 @@
-﻿using Microsoft.Win32;
+using Microsoft.Win32;
 using Newtonsoft.Json;
 using OpenBullet2.Core.Entities;
 using OpenBullet2.Core.Models.Data;
@@ -6,6 +6,7 @@ using OpenBullet2.Core.Models.Jobs;
 using OpenBullet2.Core.Services;
 using OpenBullet2.Native.Extensions;
 using OpenBullet2.Native.Helpers;
+using OpenBullet2.Native.Infrastructure.DependencyInjection;
 using OpenBullet2.Native.Services;
 using OpenBullet2.Native.ViewModels;
 using RuriLib.Extensions;
@@ -50,16 +51,16 @@ namespace OpenBullet2.Native.Views.Pages
 
         public Hits()
         {
-            vm = SP.GetService<ViewModelsService>().Hits;
+            vm = ServiceLocator.GetService<ViewModelsService>().Hits;
             DataContext = vm;
             _ = vm.InitializeAsync();
 
             InitializeComponent();
-            window = SP.GetService<MainWindow>();
-            configService = SP.GetService<ConfigService>();
-            rlSettingsService = SP.GetService<RuriLibSettingsService>();
-            obSettingsService = SP.GetService<OpenBulletSettingsService>();
-            var env = SP.GetService<RuriLibSettingsService>().Environment;
+            window = ServiceLocator.GetService<MainWindow>();
+            configService = ServiceLocator.GetService<ConfigService>();
+            rlSettingsService = ServiceLocator.GetService<RuriLibSettingsService>();
+            obSettingsService = ServiceLocator.GetService<OpenBulletSettingsService>();
+            var env = ServiceLocator.GetService<RuriLibSettingsService>().Environment;
 
             // HACK: Hardcoded stuff
             var menu = (ContextMenu)Resources["ItemContextMenu"];
@@ -210,7 +211,7 @@ namespace OpenBullet2.Native.Views.Pages
             // Create the job entity and add it to the database
             await Application.Current.Dispatcher.InvokeAsync(async () =>
             {
-                var jobs = SP.GetService<ViewModelsService>().Jobs;
+                var jobs = ServiceLocator.GetService<ViewModelsService>().Jobs;
                 var jobVM = await jobs.CreateJobAsync(jobOptions);
                 window.DisplayJob(jobVM);
             });

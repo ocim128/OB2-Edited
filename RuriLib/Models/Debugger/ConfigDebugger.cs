@@ -62,6 +62,13 @@ public partial class ConfigDebugger : IDisposable
     private Browser _lastPuppeteerBrowser;
     private OpenQA.Selenium.WebDriver _lastSeleniumBrowser;
 
+    // Performance optimization: Cache frequently used objects
+    private readonly object _statusLock = new();
+    private readonly StringBuilder _logBuilder = new(1024); // Reusable StringBuilder
+    private Script _cachedScript;
+    private Script _cachedStartupScript;
+    private bool _scriptsBuilt;
+
     public ConfigDebugger(Config config, DebuggerOptions options = null, BotLogger logger = null)
     {
         Config = config;
@@ -72,16 +79,8 @@ public partial class ConfigDebugger : IDisposable
 
     public async Task Run()
     {
-        // Build the C# script if in Stack or LoliCode mode
-        if (Config.Mode is ConfigMode.Stack or ConfigMode.LoliCode)
-        {
-            Config.CSharpScript = Config.Mode == ConfigMode.Stack
-                ? Stack2CSharpTranspiler.Transpile(Config.Stack, Config.Settings, Options.StepByStep)
-                : Loli2CSharpTranspiler.Transpile(Config.LoliCodeScript, Config.Settings, Options.StepByStep);
-
-            // Stacker is not currently available for the startup phase
-            Config.StartupCSharpScript = Loli2CSharpTranspiler.Transpile(Config.StartupLoliCodeScript, Config.Settings, Options.StepByStep);
-        }
+        // Performance: Build scripts only once and cache them
+        await BuildScriptsIfNeeded().ConfigureAwait(false);
 
         if (Options.UseProxy && !Options.TestProxy.Contains(':'))
         {
@@ -109,7 +108,7 @@ public partial class ConfigDebugger : IDisposable
         }
 
         Options.Variables.Clear();
-        Status = ConfigDebuggerStatus.Running;
+        ChangeStatus(ConfigDebuggerStatus.Running);
         _cts = new CancellationTokenSource();
         var sw = Stopwatch.StartNew();
 
@@ -160,33 +159,22 @@ public partial class ConfigDebugger : IDisposable
         _data.AsyncLocker = new();
         dynamic globals = new ExpandoObject();
 
-        // Lazy initialization - only build scripts when needed
-        Script script = null;
-        Script startupScript = null;
-        
-        if (Config.Mode != ConfigMode.Legacy)
-        {
-            var scriptBuilder = new ScriptBuilder();
-            script = scriptBuilder.Build(Config.CSharpScript, Config.Settings.ScriptSettings, PluginRepo);
-            
-            if (!string.IsNullOrWhiteSpace(Config.StartupCSharpScript))
-            {
-                startupScript = scriptBuilder.Build(Config.StartupCSharpScript, Config.Settings.ScriptSettings, PluginRepo);
-            }
-        }
+        // Use cached scripts for better performance
+        var script = _cachedScript;
+        var startupScript = _cachedStartupScript;
 
-        // Optimized slice logging with single enumeration
+        // Optimized slice logging with single enumeration and reusable StringBuilder
         var variables = dataLine.GetVariables().ToList();
-        var logBuilder = new StringBuilder(256); // Pre-allocate capacity
-        logBuilder.AppendLine($"Sliced {dataLine.Data} into:");
-        
+        _logBuilder.Clear();
+        _logBuilder.AppendLine($"Sliced {dataLine.Data} into:");
+
         var urlEncode = _data.ConfigSettings.DataSettings.UrlEncodeDataAfterSlicing;
         foreach (var slice in variables)
         {
             var sliceValue = urlEncode ? Uri.EscapeDataString(slice.AsString()) : slice.AsString();
-            logBuilder.AppendLine($"{slice.Name}: {sliceValue}");
+            _logBuilder.AppendLine($"{slice.Name}: {sliceValue}");
         }
-        Logger.Log(logBuilder.ToString());
+        Logger.Log(_logBuilder.ToString());
 
         // Initialize resources with capacity hint
         var resources = new Dictionary<string, ConfigResource>(Config.Settings.DataSettings.Resources.Count);
@@ -235,7 +223,7 @@ public partial class ConfigDebugger : IDisposable
             var pco = (PythonCompilerOptions)pyengine.GetCompilerOptions();
             pco.Module &= ~ModuleOptions.Optimized;
             _data.SetObject("ironPyEngine", pyengine);
-            
+
             var slices = new List<Variable>(variables.Count);
             foreach (var slice in variables)
             {
@@ -254,10 +242,13 @@ public partial class ConfigDebugger : IDisposable
         try
         {
             sw.Start();
-            StatusChanged?.Invoke(this, ConfigDebuggerStatus.Running);
+            ChangeStatus(ConfigDebuggerStatus.Running);
 
             if (Config.Mode != ConfigMode.Legacy)
             {
+                // Build scripts if needed (cached for performance)
+                await BuildScriptsIfNeeded();
+
                 // If the startup script is not empty, execute it
                 if (!string.IsNullOrWhiteSpace(Config.StartupCSharpScript))
                 {
@@ -274,11 +265,11 @@ public partial class ConfigDebugger : IDisposable
 
                     Logger.Log("Executing startup script...");
                     var startupGlobals = new ScriptGlobals(startupData, globals);
-                    _ = await startupScript.RunAsync(startupGlobals, null, _cts.Token).ConfigureAwait(false);
+                    _ = await _cachedStartupScript.RunAsync(startupGlobals, null, _cts.Token).ConfigureAwait(false);
                     Logger.Log("Executing main script...");
                 }
 
-                var state = await script.RunAsync(scriptGlobals, null, _cts.Token).ConfigureAwait(false);
+                var state = await _cachedScript.RunAsync(scriptGlobals, null, _cts.Token).ConfigureAwait(false);
 
                 // Optimized variable processing with early filtering
                 var markedForCapture = _data.MarkedForCapture;
@@ -286,12 +277,12 @@ public partial class ConfigDebugger : IDisposable
                 {
                     // Early exit for temporary variables
                     if (scriptVar.Name.StartsWith("tmp_")) continue;
-                    
+
                     try
                     {
                         var actualType = scriptVar.Type;
                         VariableType? vType;
-                        
+
                         try
                         {
                             vType = DescriptorsRepository.ToVariableType(actualType);
@@ -301,7 +292,7 @@ public partial class ConfigDebugger : IDisposable
                             actualType = scriptVar.Value.GetType();
                             vType = DescriptorsRepository.ToVariableType(actualType);
                         }
-                        
+
                         if (vType.HasValue)
                         {
                             var variable = DescriptorsRepository.ToVariable(scriptVar.Name, actualType, scriptVar.Value);
@@ -415,7 +406,7 @@ public partial class ConfigDebugger : IDisposable
                 }
             }
 
-            Status = ConfigDebuggerStatus.Idle;
+            ChangeStatus(ConfigDebuggerStatus.Idle);
             throw;
         }
         finally
@@ -447,8 +438,7 @@ public partial class ConfigDebugger : IDisposable
 
             _data.AsyncLocker.Dispose();
 
-            Status = ConfigDebuggerStatus.Idle;
-            StatusChanged?.Invoke(this, ConfigDebuggerStatus.Idle);
+            ChangeStatus(ConfigDebuggerStatus.Idle);
         }
 
         if (_stepper is not null)
@@ -464,6 +454,54 @@ public partial class ConfigDebugger : IDisposable
     }
 
     /// <summary>
+    /// Builds and caches scripts if not already built for performance optimization.
+    /// </summary>
+    private async Task BuildScriptsIfNeeded()
+    {
+        if (_scriptsBuilt) return;
+
+        await Task.Run(() =>
+        {
+            // Build the C# script if in Stack or LoliCode mode
+            if (Config.Mode is ConfigMode.Stack or ConfigMode.LoliCode)
+            {
+                Config.CSharpScript = Config.Mode == ConfigMode.Stack
+                    ? Stack2CSharpTranspiler.Transpile(Config.Stack, Config.Settings, Options.StepByStep)
+                    : Loli2CSharpTranspiler.Transpile(Config.LoliCodeScript, Config.Settings, Options.StepByStep);
+
+                // Stacker is not currently available for the startup phase
+                Config.StartupCSharpScript = Loli2CSharpTranspiler.Transpile(Config.StartupLoliCodeScript, Config.Settings, Options.StepByStep);
+            }
+
+            if (Config.Mode != ConfigMode.Legacy)
+            {
+                var scriptBuilder = new ScriptBuilder();
+                _cachedScript = scriptBuilder.Build(Config.CSharpScript, Config.Settings.ScriptSettings, PluginRepo);
+
+                if (!string.IsNullOrWhiteSpace(Config.StartupCSharpScript))
+                {
+                    _cachedStartupScript = scriptBuilder.Build(Config.StartupCSharpScript, Config.Settings.ScriptSettings, PluginRepo);
+                }
+            }
+
+            _scriptsBuilt = true;
+        }).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Thread-safe status change with performance optimization.
+    /// </summary>
+    private void ChangeStatus(ConfigDebuggerStatus newStatus)
+    {
+        lock (_statusLock)
+        {
+            if (Status == newStatus) return; // Avoid unnecessary events
+            Status = newStatus;
+        }
+        StatusChanged?.Invoke(this, newStatus);
+    }
+
+    /// <summary>
     /// Tries to take a step. Returns true if a step was taken.
     /// </summary>
     public bool TryTakeStep()
@@ -473,7 +511,7 @@ public partial class ConfigDebugger : IDisposable
             return false;
         }
 
-        StatusChanged?.Invoke(this, ConfigDebuggerStatus.Running);
+        ChangeStatus(ConfigDebuggerStatus.Running);
         return _stepper.TryTakeStep();
     }
 
@@ -485,8 +523,7 @@ public partial class ConfigDebugger : IDisposable
     private void OnNewEntry(object sender, BotLoggerEntry entry) => NewLogEntry?.Invoke(this, entry);
     private void OnWaitingForStep(object sender, EventArgs e)
     {
-        Status = ConfigDebuggerStatus.WaitingForStep;
-        StatusChanged?.Invoke(this, ConfigDebuggerStatus.WaitingForStep);
+        ChangeStatus(ConfigDebuggerStatus.WaitingForStep);
     }
 
     public void Dispose()
@@ -548,7 +585,7 @@ public partial class ConfigDebugger : IDisposable
         {
             return message[errorIndex..];
         }
-        
+
         var colonIndex = message.LastIndexOf(':');
         return colonIndex >= 0 ? message[(colonIndex + 1)..].Trim() : message;
     }
@@ -574,7 +611,7 @@ public partial class ConfigDebugger : IDisposable
         Logger.Log($"📝 Generated C# code around error (line {csharpLineNumber + 1}):", LogColors.Gray);
         var start = Math.Max(0, csharpLineNumber - 2);
         var end = Math.Min(lines.Length - 1, csharpLineNumber + 2);
-        
+
         for (var i = start; i <= end; i++)
         {
             var marker = i == csharpLineNumber ? ">>> " : "    ";

@@ -1,4 +1,4 @@
-﻿using OpenBullet2.Native.Services;
+using OpenBullet2.Native.Services;
 using OpenBullet2.Native.ViewModels;
 using OpenBullet2.Native.Views.Dialogs;
 using RuriLib.Models.Configs.Settings;
@@ -8,6 +8,7 @@ using System;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using OpenBullet2.Native.Infrastructure.DependencyInjection;
 
 namespace OpenBullet2.Native.Views.Pages
 {
@@ -20,7 +21,7 @@ namespace OpenBullet2.Native.Views.Pages
 
         public ConfigSettings()
         {
-            vm = SP.GetService<ViewModelsService>().ConfigSettings;
+            vm = ServiceLocator.GetService<ViewModelsService>().ConfigSettings;
             DataContext = vm;
 
             InitializeComponent();

@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Win32;
 using OpenBullet2.Core.Entities;
 using OpenBullet2.Core.Models.Data;
@@ -24,6 +24,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media.Imaging;
 using MahApps.Metro.Controls;
+using OpenBullet2.Native.Infrastructure.DependencyInjection;
 
 namespace OpenBullet2.Native.Views.Dialogs
 {
@@ -42,7 +43,7 @@ namespace OpenBullet2.Native.Views.Dialogs
             DataContext = vm;
 
             vm.StartConditionModeChanged += mode => startConditionTabControl.SelectedIndex = (int)mode;
-            
+
             InitializeComponent();
 
             startConditionTabControl.SelectedIndex = (int)vm.StartConditionMode;
@@ -385,12 +386,12 @@ namespace OpenBullet2.Native.Views.Dialogs
         public MultiRunJobOptionsViewModel(MultiRunJobOptions options)
         {
             Options = options ?? JobOptionsFactory.CreateNew(JobType.MultiRun) as MultiRunJobOptions;
-            recordRepo = SP.GetService<IRecordRepository>();
-            wordlistRepo = SP.GetService<IWordlistRepository>();
-            rlSettingsService = SP.GetService<RuriLibSettingsService>();
-            configService = SP.GetService<ConfigService>();
-            jobFactory = SP.GetService<JobFactoryService>();
-            proxyGroupRepo = SP.GetService<IProxyGroupRepository>();
+            recordRepo = ServiceLocator.GetService<IRecordRepository>();
+            wordlistRepo = ServiceLocator.GetService<IWordlistRepository>();
+            rlSettingsService = ServiceLocator.GetService<RuriLibSettingsService>();
+            configService = ServiceLocator.GetService<ConfigService>();
+            jobFactory = ServiceLocator.GetService<JobFactoryService>();
+            proxyGroupRepo = ServiceLocator.GetService<IProxyGroupRepository>();
 
             SetConfigData();
 
@@ -634,7 +635,7 @@ namespace OpenBullet2.Native.Views.Dialogs
 
         public WordlistDataPoolOptionsViewModel(WordlistDataPoolOptions options) : base(options)
         {
-            wordlistRepo = SP.GetService<IWordlistRepository>();
+            wordlistRepo = ServiceLocator.GetService<IWordlistRepository>();
 
             if (options.WordlistId != -1)
             {

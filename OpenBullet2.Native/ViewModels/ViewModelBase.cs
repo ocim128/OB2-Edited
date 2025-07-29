@@ -1,4 +1,4 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 using System.Runtime.CompilerServices;
 
 namespace OpenBullet2.Native.ViewModels
@@ -15,7 +15,7 @@ namespace OpenBullet2.Native.ViewModels
         /// Raises a PropertyChanged event.
         /// </summary>
         /// <param name="propertyName">The name of the property. If null, the name of the calling property will be used.</param>
-        protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null) 
+        protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
             => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 
         /// <summary>

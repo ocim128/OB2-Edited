@@ -1,4 +1,4 @@
-﻿using OpenBullet2.Core.Services;
+using OpenBullet2.Core.Services;
 using OpenBullet2.Native.DTOs;
 using OpenBullet2.Native.Helpers;
 using OpenBullet2.Native.Views.Pages;
@@ -6,6 +6,7 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using OpenBullet2.Native.Infrastructure.DependencyInjection;
 
 namespace OpenBullet2.Native.Views.Dialogs
 {
@@ -21,13 +22,13 @@ namespace OpenBullet2.Native.Views.Dialogs
             InitializeComponent();
             this.caller = caller;
 
-            var settings = SP.GetService<OpenBulletSettingsService>().Settings;
+            var settings = ServiceLocator.GetService<OpenBulletSettingsService>().Settings;
             authorTextbox.Text = settings.GeneralSettings.DefaultAuthor;
             nameTextbox.Focus();
 
             categoryCombobox.Items.Add("Default");
 
-            var categories = SP.GetService<ConfigService>().Configs
+            var categories = ServiceLocator.GetService<ConfigService>().Configs
                 .Select(c => c.Metadata.Category)
                 .Where(category => category != "Default")
                 .Distinct();

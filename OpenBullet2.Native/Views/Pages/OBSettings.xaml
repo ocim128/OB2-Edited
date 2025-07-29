@@ -57,11 +57,11 @@
 
                             <!-- Config Edit Navigation -->
                             <TextBlock Grid.Row="0" Grid.Column="0" Text="On config edit, navigate to:" Style="{StaticResource BodyTextStyle}" Margin="0,8,16,8" VerticalAlignment="Center"/>
-                            <ComboBox Grid.Row="0" Grid.Column="1" x:Name="configSectionOnLoadCombobox" SelectedValue="{Binding Path=ConfigSectionOnLoad}" Width="200" HorizontalAlignment="Left" Margin="0,8"/>
+                            <ComboBox Grid.Row="0" Grid.Column="1" x:Name="configSectionOnLoadCombobox" SelectedValue="{Binding Path=ConfigSectionOnLoad}" Width="200" HorizontalAlignment="Left" Margin="0,8" Style="{StaticResource CleanComboBox}"/>
 
                             <!-- Default Author -->
                             <TextBlock Grid.Row="1" Grid.Column="0" Text="Default author for new configs:" Style="{StaticResource BodyTextStyle}" Margin="0,8,16,8" VerticalAlignment="Center"/>
-                            <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding DefaultAuthor}" Width="300" HorizontalAlignment="Left" Margin="0,8" Background="#80404040" Foreground="White" BorderBrush="#FF1E90FF" BorderThickness="1" Padding="8"/>
+                            <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding DefaultAuthor}" Width="300" HorizontalAlignment="Left" Margin="0,8" Style="{StaticResource MatchingTextBox}"/>
 
                             <!-- Log Buffer Size -->
                             <TextBlock Grid.Row="2" Grid.Column="0" Text="Job log buffer size:" Style="{StaticResource BodyTextStyle}" Margin="0,8,16,8" VerticalAlignment="Center"/>
@@ -124,9 +124,9 @@
                                         <ColumnDefinition Width="auto" />
                                     </Grid.ColumnDefinitions>
                                     <Label Grid.Column="0" VerticalAlignment="Center" Content="Url" />
-                                    <TextBox Grid.Column="1" Text="{Binding Url}" Height="30" Margin="5 0" />
+                                    <TextBox Grid.Column="1" Text="{Binding Url}" Height="30" Margin="5 0" Style="{StaticResource MatchingTextBox}" />
                                     <Label Grid.Column="2" VerticalAlignment="Center" Content="Success Key" />
-                                    <TextBox Grid.Column="3" Text="{Binding SuccessKey}" Height="30" Margin="5 0" />
+                                    <TextBox Grid.Column="3" Text="{Binding SuccessKey}" Height="30" Margin="5 0" Style="{StaticResource MatchingTextBox}" />
                                     <Button x:Name="removeProxyCheckTargetButton" Tag="{Binding}" Grid.Column="4" 
                                             Click="RemoveProxyCheckTarget" Margin="0 0 5 0" Style="{StaticResource StyledDangerButton}" >
                                         <StackPanel Orientation="Horizontal">
@@ -173,7 +173,7 @@
                                         <ColumnDefinition Width="auto" />
                                     </Grid.ColumnDefinitions>
                                     <Label Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Content="Name" />
-                                    <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding Name}" Height="30" Margin="5 5" />
+                                    <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding Name}" Height="30" Margin="5 5" Style="{StaticResource MatchingTextBox}" />
                                     <Button Tag="{Binding}" Grid.Row="0" Grid.Column="2" 
                                             Click="RemoveCustomSnippet" Margin="0 5 5 5" Style="{StaticResource StyledDangerButton}" >
                                         <StackPanel Orientation="Horizontal">
@@ -181,8 +181,8 @@
                                         </StackPanel>
                                     </Button>
                                     <Label Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" Content="Description" />
-                                    <TextBox Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Text="{Binding Description}" Height="30" Margin="5 0" />
-                                    <TextBox Grid.Row="2" Grid.ColumnSpan="3" Grid.Column="0" FontFamily="Consolas" VerticalContentAlignment="Top" AcceptsReturn="True" Text="{Binding Body}" Margin="5" />
+                                    <TextBox Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Text="{Binding Description}" Height="30" Margin="5 0" Style="{StaticResource MatchingTextBox}" />
+                                    <TextBox Grid.Row="2" Grid.ColumnSpan="3" Grid.Column="0" VerticalContentAlignment="Top" AcceptsReturn="True" Text="{Binding Body}" Margin="5" Style="{StaticResource MatchingTextBox}" />
                                 </Grid>
                             </Border>
                         </DataTemplate>
@@ -231,9 +231,9 @@
                                         <ColumnDefinition Width="auto" />
                                     </Grid.ColumnDefinitions>
                                     <Label Grid.Column="0" VerticalAlignment="Center" Content="Url" />
-                                    <TextBox Grid.Column="1" Text="{Binding Url}" Height="30" Margin="5 0" />
+                                    <TextBox Grid.Column="1" Text="{Binding Url}" Height="30" Margin="5 0" Style="{StaticResource MatchingTextBox}" />
                                     <Label Grid.Column="2" VerticalAlignment="Center" Content="Success Key" />
-                                    <TextBox Grid.Column="3" Text="{Binding ApiKey}" Height="30" Margin="5 0" />
+                                    <TextBox Grid.Column="3" Text="{Binding ApiKey}" Height="30" Margin="5 0" Style="{StaticResource MatchingTextBox}" />
                                     <Button x:Name="removeRemoteConfigsEndpointButton" Tag="{Binding}" Grid.Column="4" 
                                             Click="RemoveRemoteConfigsEndpoint" Margin="0 0 5 0" Style="{StaticResource StyledDangerButton}" >
                                         <StackPanel Orientation="Horizontal">
@@ -384,7 +384,7 @@
                         <ColumnDefinition Width="auto" />
                     </Grid.ColumnDefinitions>
                     <Label Grid.Column="0" Content="Background image" />
-                    <TextBox Grid.Column="1" Text="{Binding BackgroundImagePath, Mode=OneWay}" IsReadOnly="True" />
+                    <TextBox Grid.Column="1" Text="{Binding BackgroundImagePath, Mode=OneWay}" IsReadOnly="True" Style="{StaticResource MatchingTextBox}" />
                     <Label Grid.Column="2" Content="Opacity" />
                     <mah:NumericUpDown
                         Grid.Column="3"

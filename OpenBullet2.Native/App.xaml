@@ -23,6 +23,7 @@
             <SolidColorBrush x:Key="ForegroundMenuSelected" Color="#3B82F6"/>
             <SolidColorBrush x:Key="Headers" Color="#F8FAFC" />
 
+            <!-- BoolToTextWrappingConverter -->
             <converters:BoolToTextWrappingConverter x:Key="BoolToWrap" />
 
             <!-- Border Colors -->
@@ -230,18 +231,7 @@
                         </Setter>
                     </Style>
                     
-                    <!-- CONSISTENT SPACING -->
-                    <Style x:Key="StandardSpacing" TargetType="FrameworkElement">
-                        <Setter Property="Margin" Value="16"/>
-                    </Style>
-                    
-                    <Style x:Key="CompactSpacing" TargetType="FrameworkElement">
-                        <Setter Property="Margin" Value="12"/>
-                    </Style>
-                    
-                    <Style x:Key="TightSpacing" TargetType="FrameworkElement">
-                        <Setter Property="Margin" Value="8"/>
-                    </Style>
+                    <!-- Removed unused spacing styles for optimization -->
 
                     <Style TargetType="{x:Type TextBox}" BasedOn="{StaticResource MahApps.Styles.TextBox}">
                         <Setter Property="Background" Value="{DynamicResource BackgroundInput}"/>
@@ -257,6 +247,60 @@
                                 <Setter Property="Foreground" Value="{DynamicResource ForegroundInput}"/>
                             </Style>
                         </Style.Resources>
+                    </Style>
+                    
+                    <!-- Sleek Rounded TextBox Style for Variable Input -->
+                    <Style x:Key="MatchingTextBox" TargetType="TextBox">
+                        <Setter Property="Background" Value="#2D3748" />
+                        <Setter Property="Foreground" Value="#E2E8F0" />
+                        <Setter Property="BorderBrush" Value="#4A5568" />
+                        <Setter Property="BorderThickness" Value="1" />
+                        <Setter Property="Padding" Value="8,4" />
+                        <Setter Property="FontSize" Value="12" />
+                        <Setter Property="FontFamily" Value="Segoe UI" />
+                        <Setter Property="MinHeight" Value="20" />
+                        <Setter Property="Height" Value="Auto" />
+                        <Setter Property="MaxHeight" Value="200" />
+                        <Setter Property="TextWrapping" Value="Wrap" />
+                        <Setter Property="AcceptsReturn" Value="True" />
+                        <Setter Property="VerticalContentAlignment" Value="Top" />
+                        <Setter Property="SelectionBrush" Value="#3B82F6" />
+                        <Setter Property="CaretBrush" Value="#E2E8F0" />
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="TextBox">
+                                    <Border x:Name="border" 
+                                            Background="{TemplateBinding Background}" 
+                                            BorderBrush="{TemplateBinding BorderBrush}" 
+                                            BorderThickness="{TemplateBinding BorderThickness}" 
+                                            CornerRadius="8"
+                                            SnapsToDevicePixels="True">
+                                        <Border.Effect>
+                                            <DropShadowEffect Color="#000000" Direction="270" ShadowDepth="1" Opacity="0.2" BlurRadius="3"/>
+                                        </Border.Effect>
+                                        <ScrollViewer x:Name="PART_ContentHost" 
+                                                      Focusable="False" 
+                                                      HorizontalScrollBarVisibility="Hidden" 
+                                                      VerticalScrollBarVisibility="Auto"
+                                                      Margin="{TemplateBinding Padding}"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="border" Property="BorderBrush" Value="#60A5FA"/>
+                                            <Setter TargetName="border" Property="Background" Value="#374151"/>
+                                        </Trigger>
+                                        <Trigger Property="IsFocused" Value="True">
+                                            <Setter TargetName="border" Property="BorderBrush" Value="#3B82F6"/>
+                                            <Setter TargetName="border" Property="Background" Value="#374151"/>
+                                            <Setter TargetName="border" Property="BorderThickness" Value="2"/>
+                                        </Trigger>
+                                        <Trigger Property="IsEnabled" Value="False">
+                                            <Setter TargetName="border" Property="Opacity" Value="0.6"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
                     </Style>
                     <Style TargetType="{x:Type CheckBox}" BasedOn="{StaticResource MahApps.Styles.CheckBox}">
                         <Setter Property="Background" Value="{DynamicResource BackgroundInput}"/>
@@ -283,7 +327,6 @@
                     <Style TargetType="{x:Type iconPacks:PackIconEntypo}" BasedOn="{StaticResource GlobalIconStyle}"/>
                     <Style TargetType="{x:Type iconPacks:PackIconFontAwesome}" BasedOn="{StaticResource GlobalIconStyle}"/>
                     <Style TargetType="{x:Type iconPacks:PackIconOcticons}" BasedOn="{StaticResource GlobalIconStyle}"/>
-                    <Style TargetType="{x:Type iconPacks:PackIconBootstrapIcons}" BasedOn="{StaticResource GlobalIconStyle}"/>
 
                     <!-- OTHERS -->
                     <Style TargetType="{x:Type mah:NumericUpDown}" BasedOn="{StaticResource {x:Type mah:NumericUpDown}}">
@@ -367,7 +410,6 @@
                             <Style TargetType="{x:Type iconPacks:PackIconFontAwesome}" BasedOn="{StaticResource ButtonIconStyle}"/>
                             <Style TargetType="{x:Type iconPacks:PackIconEntypo}" BasedOn="{StaticResource ButtonIconStyle}"/>
                             <Style TargetType="{x:Type iconPacks:PackIconOcticons}" BasedOn="{StaticResource ButtonIconStyle}"/>
-                            <Style TargetType="{x:Type iconPacks:PackIconBootstrapIcons}" BasedOn="{StaticResource ButtonIconStyle}"/>
                         </Style.Resources>
                     </Style>
 
@@ -516,6 +558,59 @@
                         </Style.Triggers>
                     </Style>
 
+                    <!-- Modern Notification Window Style (Ctrl+Alt+Q Plugin Style) -->
+                    <Style x:Key="ModernNotificationWindow" TargetType="Border">
+                        <Setter Property="Width" Value="320"/>
+                        <Setter Property="Height" Value="90"/>
+                        <Setter Property="Background">
+                            <Setter.Value>
+                                <SolidColorBrush Color="#F021252B" Opacity="0.94"/>
+                            </Setter.Value>
+                        </Setter>
+                        <Setter Property="BorderBrush">
+                            <Setter.Value>
+                                <SolidColorBrush Color="#6478828C" Opacity="0.39"/>
+                            </Setter.Value>
+                        </Setter>
+                        <Setter Property="BorderThickness" Value="1"/>
+                        <Setter Property="CornerRadius" Value="8"/>
+                        <Setter Property="Effect">
+                            <Setter.Value>
+                                <DropShadowEffect Color="Black" Direction="315" ShadowDepth="3" BlurRadius="10" Opacity="0.3"/>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+
+                    <!-- Notification Icon Style -->
+                    <Style x:Key="NotificationIconStyle" TargetType="Path">
+                        <Setter Property="Width" Value="24"/>
+                        <Setter Property="Height" Value="24"/>
+                        <Setter Property="HorizontalAlignment" Value="Center"/>
+                        <Setter Property="VerticalAlignment" Value="Center"/>
+                        <Setter Property="Margin" Value="5"/>
+                    </Style>
+
+                    <!-- Notification Title Style -->
+                    <Style x:Key="NotificationTitleStyle" TargetType="TextBlock">
+                        <Setter Property="Foreground" Value="White"/>
+                        <Setter Property="FontWeight" Value="SemiBold"/>
+                        <Setter Property="FontSize" Value="13"/>
+                        <Setter Property="FontFamily" Value="Segoe UI"/>
+                    </Style>
+
+                    <!-- Notification Message Style -->
+                    <Style x:Key="NotificationMessageStyle" TargetType="TextBlock">
+                        <Setter Property="Foreground">
+                            <Setter.Value>
+                                <SolidColorBrush Color="#B4BEC8"/>
+                            </Setter.Value>
+                        </Setter>
+                        <Setter Property="FontSize" Value="11"/>
+                        <Setter Property="TextWrapping" Value="Wrap"/>
+                        <Setter Property="Margin" Value="0,3,0,0"/>
+                        <Setter Property="FontFamily" Value="Segoe UI"/>
+                    </Style>
+
                     <!-- Consistent Button Style for Mode Switches -->
                     <Style x:Key="ConsistentModeButton" TargetType="Button">
                         <Setter Property="Background" Value="{DynamicResource BackgroundSecondary}"/>
@@ -550,6 +645,112 @@
                                         </Trigger>
                                     </ControlTemplate.Triggers>
                                 </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+
+                    <!-- Clean ComboBox Style -->
+                    <Style x:Key="CleanComboBox" TargetType="ComboBox">
+                        <Setter Property="Background" Value="#0F172A" />
+                        <Setter Property="Foreground" Value="#E2E8F0" />
+                        <Setter Property="BorderBrush" Value="#4A5568" />
+                        <Setter Property="BorderThickness" Value="1" />
+                        <Setter Property="FontSize" Value="12" />
+                        <Setter Property="MinHeight" Value="34" />
+                        <Setter Property="Padding" Value="10,6" />
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ComboBox">
+                                    <Grid>
+                                        <Border x:Name="Border"
+                                                Background="{TemplateBinding Background}"
+                                                BorderBrush="{TemplateBinding BorderBrush}"
+                                                BorderThickness="{TemplateBinding BorderThickness}"
+                                                CornerRadius="6" />
+                                        <ToggleButton x:Name="ToggleButton"
+                                                      Focusable="false"
+                                                      IsChecked="{Binding Path=IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                                      ClickMode="Press"
+                                                      Background="Transparent"
+                                                      BorderThickness="0"
+                                                      HorizontalAlignment="Stretch"
+                                                      VerticalAlignment="Stretch">
+                                            <ToggleButton.Template>
+                                                <ControlTemplate TargetType="ToggleButton">
+                                                    <Grid Background="Transparent">
+                                                        <Path x:Name="Arrow"
+                                                              Fill="#9CA3AF"
+                                                              HorizontalAlignment="Right"
+                                                              VerticalAlignment="Center"
+                                                              Margin="0,0,8,0"
+                                                              Data="M 0 0 L 3 3 L 6 0 Z" />
+                                                    </Grid>
+                                                </ControlTemplate>
+                                            </ToggleButton.Template>
+                                        </ToggleButton>
+                                        <ContentPresenter x:Name="ContentSite"
+                                                          IsHitTestVisible="False"
+                                                          Content="{TemplateBinding SelectionBoxItem}"
+                                                          ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                                          Margin="{TemplateBinding Padding}"
+                                                          VerticalAlignment="Center"
+                                                          HorizontalAlignment="Left"
+                                                          TextElement.Foreground="{TemplateBinding Foreground}" />
+                                        <TextBox x:Name="PART_EditableTextBox"
+                                                 Style="{x:Null}"
+                                                 Background="Transparent"
+                                                 Foreground="{TemplateBinding Foreground}"
+                                                 BorderThickness="0"
+                                                 Margin="{TemplateBinding Padding}"
+                                                 VerticalAlignment="Center"
+                                                 HorizontalAlignment="Stretch"
+                                                 FontSize="{TemplateBinding FontSize}"
+                                                 Focusable="True"
+                                                 Visibility="Hidden" />
+                                        <Popup x:Name="Popup"
+                               Placement="Bottom"
+                               IsOpen="{TemplateBinding IsDropDownOpen}"
+                               AllowsTransparency="True"
+                               Focusable="False"
+                               PopupAnimation="None">
+                                            <Grid x:Name="DropDown"
+                                                  MinWidth="{TemplateBinding ActualWidth}"
+                                                  MaxHeight="200">
+                                                <Border x:Name="DropDownBorder"
+                                                        Background="#0F172A"
+                                                        BorderThickness="1"
+                                                        BorderBrush="#4A5568"
+                                                        CornerRadius="6" />
+                                                <ScrollViewer Margin="4">
+                                                    <StackPanel IsItemsHost="True" />
+                                                </ScrollViewer>
+                                            </Grid>
+                                        </Popup>
+                                    </Grid>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsKeyboardFocused" Value="true">
+                                            <Setter TargetName="Border" Property="BorderBrush" Value="#3B82F6" />
+                                        </Trigger>
+                                        <Trigger Property="IsEditable" Value="true">
+                                            <Setter TargetName="PART_EditableTextBox" Property="Visibility" Value="Visible" />
+                                            <Setter TargetName="ContentSite" Property="Visibility" Value="Hidden" />
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                        <Setter Property="ItemContainerStyle">
+                            <Setter.Value>
+                                <Style TargetType="ComboBoxItem">
+                                    <Setter Property="Foreground" Value="#E2E8F0" />
+                                    <Setter Property="Padding" Value="10,6" />
+                                    <Setter Property="Background" Value="Transparent" />
+                                    <Style.Triggers>
+                                        <Trigger Property="IsHighlighted" Value="True">
+                                            <Setter Property="Background" Value="#1E293B" />
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
                             </Setter.Value>
                         </Setter>
                     </Style>

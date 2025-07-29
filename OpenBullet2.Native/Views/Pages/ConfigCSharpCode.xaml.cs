@@ -1,4 +1,4 @@
-﻿using ICSharpCode.AvalonEdit;
+using ICSharpCode.AvalonEdit;
 using ICSharpCode.AvalonEdit.Highlighting;
 using ICSharpCode.AvalonEdit.Highlighting.Xshd;
 using ICSharpCode.AvalonEdit.Search;
@@ -13,6 +13,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Xml;
+using OpenBullet2.Native.Infrastructure.DependencyInjection;
 
 namespace OpenBullet2.Native.Views.Pages
 {
@@ -31,7 +32,7 @@ namespace OpenBullet2.Native.Views.Pages
             DataContext = vm;
 
             InitializeComponent();
-            configService = SP.GetService<ConfigService>();
+            configService = ServiceLocator.GetService<ConfigService>();
 
             HighlightSyntax(editor);
             HighlightSyntax(startupEditor);
@@ -67,7 +68,7 @@ namespace OpenBullet2.Native.Views.Pages
             {
                 // On fail, prompt it to the user and go back to the configs page
                 Alert.Exception(ex);
-                SP.GetService<MainWindow>().NavigateTo(MainWindowPage.Configs);
+                ServiceLocator.GetService<MainWindow>().NavigateTo(MainWindowPage.Configs);
             }
         }
 
@@ -94,8 +95,8 @@ namespace OpenBullet2.Native.Views.Pages
 
         public ConfigCSharpCodeViewModel()
         {
-            configService = SP.GetService<ConfigService>();
-            obSettingsService = SP.GetService<OpenBulletSettingsService>();
+            configService = ServiceLocator.GetService<ConfigService>();
+            obSettingsService = ServiceLocator.GetService<OpenBulletSettingsService>();
         }
 
         public bool WordWrap => obSettingsService.Settings.CustomizationSettings.WordWrap;

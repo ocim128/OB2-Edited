@@ -1,5 +1,6 @@
-﻿using OpenBullet2.Core.Services;
+using OpenBullet2.Core.Services;
 using RuriLib.Models.Configs;
+using OpenBullet2.Native.Infrastructure.DependencyInjection;
 
 namespace OpenBullet2.Native.ViewModels
 {
@@ -20,7 +21,7 @@ namespace OpenBullet2.Native.ViewModels
 
         public ConfigReadmeViewModel()
         {
-            configService = SP.GetService<ConfigService>();
+            configService = ServiceLocator.GetService<ConfigService>();
         }
     }
 }

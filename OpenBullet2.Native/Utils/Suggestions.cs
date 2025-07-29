@@ -1,4 +1,4 @@
-﻿using OpenBullet2.Core.Services;
+using OpenBullet2.Core.Services;
 using OpenBullet2.Native.Services;
 using RuriLib.Models.Blocks;
 using RuriLib.Models.Blocks.Custom;
@@ -7,6 +7,7 @@ using RuriLib.Services;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using OpenBullet2.Native.Infrastructure.DependencyInjection;
 
 namespace OpenBullet2.Native.Utils
 {
@@ -14,9 +15,9 @@ namespace OpenBullet2.Native.Utils
     {
         public static IEnumerable<string> GetInputVariableSuggestions(BlockSetting setting)
         {
-            var debuggerVM = SP.GetService<ViewModelsService>().Debugger;
-            var rlSettings = SP.GetService<RuriLibSettingsService>();
-            var configService = SP.GetService<ConfigService>();
+            var debuggerVM = ServiceLocator.GetService<ViewModelsService>().Debugger;
+            var rlSettings = ServiceLocator.GetService<RuriLibSettingsService>();
+            var configService = ServiceLocator.GetService<ConfigService>();
 
             var suggestions = new List<string> {
             "data.SOURCE", "data.ERROR", "data.ADDRESS",

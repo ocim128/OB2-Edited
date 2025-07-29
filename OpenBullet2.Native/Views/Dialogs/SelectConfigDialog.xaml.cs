@@ -1,4 +1,4 @@
-﻿using OpenBullet2.Core.Services;
+using OpenBullet2.Core.Services;
 using OpenBullet2.Native.Helpers;
 using OpenBullet2.Native.Services;
 using OpenBullet2.Native.ViewModels;
@@ -12,6 +12,7 @@ using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Documents;
 using System.Windows.Input;
+using OpenBullet2.Native.Infrastructure.DependencyInjection;
 
 namespace OpenBullet2.Native.Views.Dialogs
 {
@@ -41,7 +42,7 @@ namespace OpenBullet2.Native.Views.Dialogs
         public SelectConfigDialog(object caller)
         {
             this.caller = caller;
-            volatileSettings = SP.GetService<VolatileSettingsService>();
+            volatileSettings = ServiceLocator.GetService<VolatileSettingsService>();
 
             vm = new SelectConfigDialogViewModel();
             DataContext = vm;
@@ -171,10 +172,10 @@ namespace OpenBullet2.Native.Views.Dialogs
 
         public SelectConfigDialogViewModel()
         {
-            configService = SP.GetService<ConfigService>();
+            configService = ServiceLocator.GetService<ConfigService>();
             CreateCollection();
 
-            configsViewModel = SP.GetService<ViewModelsService>().Configs;
+            configsViewModel = ServiceLocator.GetService<ViewModelsService>().Configs;
 
             if (configsViewModel is not null)
             {

@@ -1,4 +1,4 @@
-﻿using OpenBullet2.Core.Models.Settings;
+using OpenBullet2.Core.Models.Settings;
 using OpenBullet2.Core.Services;
 using OpenBullet2.Native.DTOs;
 using OpenBullet2.Native.Helpers;
@@ -20,6 +20,7 @@ using System.Threading.Tasks;
 using System.Windows.Media;
 using Microsoft.Win32;
 using RuriLib.Helpers;
+using OpenBullet2.Native.Infrastructure.DependencyInjection;
 
 namespace OpenBullet2.Native.Views.Pages
 {
@@ -53,10 +54,10 @@ namespace OpenBullet2.Native.Views.Pages
 
         public Configs()
         {
-            obSettingsService = SP.GetService<OpenBulletSettingsService>();
-            configService = SP.GetService<ConfigService>();
-            volatileSettings = SP.GetService<VolatileSettingsService>();
-            vm = SP.GetService<ViewModelsService>().Configs;
+            obSettingsService = ServiceLocator.GetService<OpenBulletSettingsService>();
+            configService = ServiceLocator.GetService<ConfigService>();
+            volatileSettings = ServiceLocator.GetService<VolatileSettingsService>();
+            vm = ServiceLocator.GetService<ViewModelsService>().Configs;
             DataContext = vm;
 
             InitializeComponent();
@@ -182,7 +183,7 @@ namespace OpenBullet2.Native.Views.Pages
                 _ => GetModeSpecificPage(section, mode)
             };
 
-            SP.GetService<MainWindow>().NavigateTo(page);
+            ServiceLocator.GetService<MainWindow>().NavigateTo(page);
         }
 
         private MainWindowPage GetModeSpecificPage(ConfigSection section, ConfigMode mode)
@@ -236,7 +237,7 @@ namespace OpenBullet2.Native.Views.Pages
                 return;
 
             vm.SelectedConfig = HoveredItem;
-            SP.GetService<ViewModelsService>().Debugger.ClearLog();
+            ServiceLocator.GetService<ViewModelsService>().Debugger.ClearLog();
             NavigateToConfigSection();
         }
 

@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using OpenBullet2.Core.Entities;
 using OpenBullet2.Core.Helpers;
 using OpenBullet2.Core.Repositories;
@@ -11,6 +11,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
+using OpenBullet2.Native.Infrastructure.DependencyInjection;
 
 namespace OpenBullet2.Native.ViewModels;
 
@@ -63,9 +64,9 @@ public class ProxiesViewModel : ViewModelBase
 
     public ProxiesViewModel()
     {
-        proxyGroupRepo = SP.GetService<IProxyGroupRepository>();
-        proxyRepo = SP.GetService<IProxyRepository>();
-        jobManager = SP.GetService<JobManagerService>();
+        proxyGroupRepo = ServiceLocator.GetService<IProxyGroupRepository>();
+        proxyRepo = ServiceLocator.GetService<IProxyRepository>();
+        jobManager = ServiceLocator.GetService<JobManagerService>();
         ProxyGroupsCollection =
         [
             allGroup

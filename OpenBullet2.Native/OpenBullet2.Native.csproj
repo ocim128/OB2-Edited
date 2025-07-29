@@ -7,9 +7,7 @@
         <UseWindowsForms>true</UseWindowsForms>
         <ApplicationIcon>logo.ico</ApplicationIcon>
         <DebugType>portable</DebugType>
-        <GenerateDocumentationFile>false</GenerateDocumentationFile>
         <!-- Memory-Efficient Build Settings -->
-        <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
         <DisableImplicitNuGetFallbackFolder>true</DisableImplicitNuGetFallbackFolder>
         <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
         <WarningLevel>0</WarningLevel>
@@ -17,10 +15,15 @@
         <!-- Balanced Performance Settings - Low Memory Impact -->
         <UseSharedCompilation>true</UseSharedCompilation>
         <BuildInParallel>true</BuildInParallel>
-        <!-- <MaxCpuCount>1</MaxCpuCount> -->
         <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
         <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
         <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
+        <!-- Fast Build Optimizations -->
+        <UseIncrementalCompilation>true</UseIncrementalCompilation>
+        <CheckForOverflowUnderflow>false</CheckForOverflowUnderflow>
+        <Deterministic>false</Deterministic>
+        <UseRidGraph>false</UseRidGraph>
+        <GenerateResourceUsePreserializedResources>true</GenerateResourceUsePreserializedResources>
         <!-- Runtime Optimizations - Memory Conservative -->
         <TieredCompilation>true</TieredCompilation>
         <TieredPGO>true</TieredPGO>
@@ -28,12 +31,20 @@
         <!-- Memory and Binary Size Optimizations -->
         <DebugSymbols>false</DebugSymbols>
         <Optimize>true</Optimize>
-        <EnableCompressionInSingleFile>false</EnableCompressionInSingleFile>
+        <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
         <IncludeAllContentForSelfExtract>false</IncludeAllContentForSelfExtract>
         <!-- Skip unnecessary analysis -->
         <EnableNETAnalyzers>false</EnableNETAnalyzers>
         <AnalysisLevel>none</AnalysisLevel>
         <RunAnalyzersDuringBuild>false</RunAnalyzersDuringBuild>
+        <!-- Additional Build Optimizations -->
+        <GenerateDocumentationFile>false</GenerateDocumentationFile>
+        <GenerateSerializationAssemblies>Off</GenerateSerializationAssemblies>
+        <!-- XAML Build Optimizations -->
+        <XamlDebuggingInformation>false</XamlDebuggingInformation>
+        <SkipMarkupCompilation>false</SkipMarkupCompilation>
+        <UseWPF>true</UseWPF>
+        <GenerateTemporaryTargetAssembly>false</GenerateTemporaryTargetAssembly>
         <!-- Garbage Collection Settings for Lower Memory -->
         <ServerGarbageCollection>false</ServerGarbageCollection>
         <ConcurrentGarbageCollection>true</ConcurrentGarbageCollection>
@@ -49,7 +60,7 @@
         <Optimize>true</Optimize>
         <DefineConstants>TRACE</DefineConstants>
         <PublishTrimmed>false</PublishTrimmed>
-        <PublishSingleFile>false</PublishSingleFile>
+        <PublishSingleFile>true</PublishSingleFile>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Configuration)' == 'testing'">
         <DebugType>none</DebugType>
@@ -112,7 +123,7 @@
                           Version="8.1.866-beta" />
         <PackageReference Include="MahApps.Metro"
                           Version="2.4.10" />
-        <!-- Essential Icon Packs Only - Memory Optimized -->
+        <!-- Essential Icon Packs Only - Reduced to actually used ones -->
         <PackageReference Include="MahApps.Metro.IconPacks.Material"
                           Version="4.8.0" />
         <PackageReference Include="MahApps.Metro.IconPacks.MaterialDesign"
@@ -127,11 +138,9 @@
                           Version="4.8.0" />
         <PackageReference Include="MahApps.Metro.IconPacks.Octicons"
                           Version="4.8.0" />
-        <PackageReference Include="MahApps.Metro.IconPacks.BootstrapIcons"
+        <PackageReference Include="MahApps.Metro.IconPacks.BoxIcons"
                           Version="4.8.0" />
         <PackageReference Include="MahApps.Metro.IconPacks.RadixIcons"
-                          Version="4.8.0" />
-        <PackageReference Include="MahApps.Metro.IconPacks.BoxIcons"
                           Version="4.8.0" />
         <PackageReference Include="MahApps.Metro.IconPacks.ForkAwesome"
                           Version="4.8.0" />
@@ -139,9 +148,9 @@
                           Version="4.8.0" />
         <PackageReference Include="MahApps.Metro.IconPacks.Microns"
                           Version="4.8.0" />
-        <PackageReference Include="MahApps.Metro.IconPacks.SimpleIcons"
-                          Version="4.8.0" />
-        <!-- Conditionally load other icon packs on demand -->
+        <!-- Removed unused icon packs to reduce build size:
+             - BootstrapIcons (only used in About.xaml - can be replaced)
+             - SimpleIcons (only used in About.xaml - can be replaced) -->
         <PackageReference Include="MahApps.Metro.SimpleChildWindow"
                           Version="2.2.1" />
         <PackageReference Include="Markdig"

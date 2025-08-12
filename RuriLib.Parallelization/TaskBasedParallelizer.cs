@@ -231,6 +231,10 @@ namespace RuriLib.Parallelization
 
             if (ShouldApplyCPMLimit())
             {
+                // Apply a short cooperative delay to truly throttle when CPM is limited.
+                // We cannot 'await' here because this method is synchronous, so we schedule
+                // the delay on the side and release the slot immediately.
+                _ = Task.Delay(CPMLimitDelayMs, softCTS.Token);
                 semaphore.Release();
                 return true;
             }
@@ -240,7 +244,10 @@ namespace RuriLib.Parallelization
 
         private bool ShouldApplyCPMLimit()
         {
-            if (++cpmCheckCounter < 50) return false;
+            // Check CPM only every N iterations to reduce overhead
+            // Make the sampling frequency loosely proportional to DOP
+            int checkInterval = Math.Clamp(degreeOfParallelism, 20, 100);
+            if (++cpmCheckCounter < checkInterval) return false;
 
             cpmCheckCounter = 0;
             return IsCPMLimited();
@@ -299,36 +306,59 @@ namespace RuriLib.Parallelization
                 return;
             }
 
+            // Ensure semaphore slot is always released, even if the continuation isn't scheduled due to sync completion
             _ = taskFunction.Invoke(item)
-                .ContinueWith(_ => semaphore?.Release())
+                .ContinueWith(t =>
+                {
+                    // Observe exception to avoid UnobservedTaskException surfacing
+                    var _ = t.Exception;
+                    semaphore?.Release();
+                }, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default)
                 .ConfigureAwait(false);
         }
 
         private async Task WaitForCompletion()
         {
-            while (Progress < 1 && !hardCTS.IsCancellationRequested)
+            // Wait until all scheduled work has been processed or we were hard-canceled
+            var delay = 50;
+            while (!hardCTS.IsCancellationRequested)
             {
-                await Task.Delay(100).ConfigureAwait(false);
+                // If no items left to process and all permits are free, we are done
+                if (queue.IsEmpty && semaphore?.CurrentCount == degreeOfParallelism)
+                {
+                    break;
+                }
+                await Task.Delay(delay).ConfigureAwait(false);
+                delay = Math.Min(delay * 2, 250);
             }
         }
 
         private async Task HandleCancellation()
         {
+            // Drain running tasks gracefully after cancellation to avoid slot leak
+            var delay = 50;
             while (semaphore?.CurrentCount < degreeOfParallelism && !hardCTS.IsCancellationRequested)
             {
-                await Task.Delay(100).ConfigureAwait(false);
+                await Task.Delay(delay).ConfigureAwait(false);
+                delay = Math.Min(delay * 2, 250);
             }
         }
 
         private void Cleanup()
         {
-            OnCompleted();
+            try
+            {
+                OnCompleted();
+            }
+            catch { /* swallow event handler errors */ }
+
             Status = ParallelizerStatus.Idle;
-            hardCTS?.Dispose();
-            softCTS?.Dispose();
-            semaphore?.Dispose();
+
+            try { hardCTS?.Dispose(); } catch { }
+            try { softCTS?.Dispose(); } catch { }
+            try { semaphore?.Dispose(); } catch { }
             semaphore = null;
-            stopwatch?.Stop();
+            try { stopwatch?.Stop(); } catch { }
         }
 
 

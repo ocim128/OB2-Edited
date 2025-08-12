@@ -153,7 +153,7 @@
         </Grid>
         </Border>
 
-        <!-- Modern Configs List View -->
+        <!-- Modern Configs List View (single-scroll: rely on ListView's own scrolling) -->
         <Border Grid.Row="2" Style="{StaticResource ModernCardLite}" Margin="0,0,0,16">
             <ListView x:Name="configsListView"
                       Foreground="{DynamicResource ForegroundMain}"
@@ -171,6 +171,7 @@
                       MouseMove="configsListView_MouseMove"
                       ScrollViewer.HorizontalScrollBarVisibility="Auto"
                       ScrollViewer.VerticalScrollBarVisibility="Auto"
+                      ScrollViewer.CanContentScroll="True"
                       UseLayoutRounding="True"
                       SnapsToDevicePixels="True"
                       Padding="0">
@@ -366,17 +367,21 @@
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
 
-                <TextBlock Grid.Row="0" 
-                          Text="Configuration Information" 
-                          FontWeight="SemiBold" 
-                          Foreground="#FF1E90FF" 
-                          FontSize="9" 
+                <TextBlock Grid.Row="0"
+                          Text="Configuration Information"
+                          FontWeight="SemiBold"
+                          Foreground="#FF1E90FF"
+                          FontSize="9"
                           Margin="0,0,0,2"/>
-                <ScrollViewer Grid.Row="1" 
-                              VerticalScrollBarVisibility="Auto" 
-                              HorizontalScrollBarVisibility="Auto">
-                    <uc:MarkdownViewer 
-                        MarkdownText="{Binding HoveredConfig.Readme}" 
+                <!-- Single-scroll inside the info pane -->
+                <ScrollViewer Grid.Row="1"
+                              VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Auto"
+                              Padding="0,0,8,0"
+                              UseLayoutRounding="True"
+                              SnapsToDevicePixels="True">
+                    <uc:MarkdownViewer
+                        MarkdownText="{Binding HoveredConfig.Readme}"
                         FontSize="8"
                         Background="Transparent"/>
                 </ScrollViewer>

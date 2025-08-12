@@ -116,7 +116,7 @@ namespace OpenBullet2.Native.ViewModels
         public async Task ImportConfigFromFileAsync(string path)
         {
             var config = await ConfigPacker.UnpackAsync(File.OpenRead(path));
-            configService.Configs.Add(config);
+            configService.AddConfig(config);
             ConfigsCollection.Add(new ConfigViewModel(config));
         }
 
@@ -144,7 +144,7 @@ namespace OpenBullet2.Native.ViewModels
 
             // Add it to the service
             configService.SelectedConfig = newConfig;
-            configService.Configs.Add(newConfig);
+            configService.AddConfig(newConfig);
         }
 
         public void Delete(ConfigViewModel vm)

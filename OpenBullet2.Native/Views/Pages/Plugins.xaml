@@ -106,39 +106,60 @@
             </Border>
         </StackPanel>
         
-        <!-- Plugin Management List -->
-        <ScrollViewer VerticalScrollBarVisibility="Auto" Grid.Row="2">
-            <StackPanel>
-                <TextBlock Text="Installed Plugins" FontSize="16" FontWeight="SemiBold" 
-                          Foreground="{StaticResource ForegroundMain}" Margin="0,0,0,8"
-                          Visibility="{Binding PluginsCollection.Count, Converter={StaticResource BoolToVis}}"/>
-                
-                <ItemsControl x:Name="pluginsControl" ItemsSource="{Binding PluginsCollection}">
+        <!-- Plugin Management List with single-scroll pattern (no outer ScrollViewer) -->
+        <Grid Grid.Row="2"
+              UseLayoutRounding="True"
+              SnapsToDevicePixels="True">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <TextBlock Grid.Row="0"
+                       Text="Installed Plugins"
+                       FontSize="16"
+                       FontWeight="SemiBold"
+                       Foreground="{StaticResource ForegroundMain}"
+                       Margin="0,0,0,8"
+                       Visibility="{Binding PluginsCollection.Count, Converter={StaticResource BoolToVis}}"/>
+
+            <!-- Make the content itself the only scrollable area if it exceeds the available space -->
+            <ScrollViewer Grid.Row="1"
+                          VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled"
+                          Padding="0,0,8,0"
+                          UseLayoutRounding="True"
+                          SnapsToDevicePixels="True">
+                <ItemsControl x:Name="pluginsControl"
+                              ItemsSource="{Binding PluginsCollection}">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
-                            <StackPanel Orientation="Vertical" Margin="0"/>
+                            <VirtualizingStackPanel Orientation="Vertical"
+                                                    VirtualizingPanel.IsVirtualizing="True"
+                                                    VirtualizingPanel.VirtualizationMode="Recycling"
+                                                    VirtualizingPanel.ScrollUnit="Pixel"/>
                         </ItemsPanelTemplate>
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Border Background="{StaticResource BackgroundSecondary}" 
-                                   BorderThickness="1" BorderBrush="#475569" 
-                                   CornerRadius="6" Padding="12" Margin="0,0,0,6">
+                            <Border Background="{StaticResource BackgroundSecondary}"
+                                    BorderThickness="1" BorderBrush="#475569"
+                                    CornerRadius="6" Padding="12" Margin="0,0,0,6">
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="auto" />
                                     </Grid.ColumnDefinitions>
                                     
-                                    <TextBlock Grid.Column="0" VerticalAlignment="Center" 
-                                              Text="{Binding Name}" FontSize="14"
-                                              Foreground="{StaticResource ForegroundMain}"/>
+                                    <TextBlock Grid.Column="0" VerticalAlignment="Center"
+                                               Text="{Binding Name}" FontSize="14"
+                                               Foreground="{StaticResource ForegroundMain}"/>
 
-                                    <Button x:Name="removePluginButton" Tag="{Binding}" 
-                                           Grid.Column="1" Click="RemovePlugin" 
-                                           Style="{StaticResource StyledButton}" 
-                                           Background="{StaticResource DangerButton}"
-                                           Padding="8,4" MinHeight="28">
+                                    <Button x:Name="removePluginButton" Tag="{Binding}"
+                                            Grid.Column="1" Click="RemovePlugin"
+                                            Style="{StaticResource StyledButton}"
+                                            Background="{StaticResource DangerButton}"
+                                            Padding="8,4" MinHeight="28">
                                         <StackPanel Orientation="Horizontal">
                                             <iconPacks:PackIconMaterial Kind="Close" Width="14" Height="14"/>
                                             <TextBlock VerticalAlignment="Center" Margin="4,0,0,0" FontSize="12">Remove</TextBlock>
@@ -149,7 +170,7 @@
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
-            </StackPanel>
-        </ScrollViewer>
+            </ScrollViewer>
+        </Grid>
     </Grid>
 </Page>

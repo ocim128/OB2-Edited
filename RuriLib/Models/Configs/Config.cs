@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json;
+using Newtonsoft.Json;
 using RuriLib.Functions.Conversion;
 using RuriLib.Functions.Crypto;
 using RuriLib.Helpers.Transpilers;
@@ -59,10 +59,7 @@ namespace RuriLib.Models.Configs
         /// </summary>
         public string StartupLoliCodeScript { get; set; } = "";
 
-        /// <summary>
-        /// The LoliScript code of legacy configs.
-        /// </summary>
-        public string LoliScript { get; set; } = "";
+
 
         /// <summary>
         /// The C# script that gets executed once, before anything else.
@@ -82,7 +79,6 @@ namespace RuriLib.Models.Configs
         // Hashes used to check if the config was saved
         private string stackerHash;
         private string loliCodeHash;
-        private string loliScriptHash;
         private string cSharpHash;
         private string dllHash;
 
@@ -126,7 +122,7 @@ namespace RuriLib.Models.Configs
                     ConfigMode.DLL => true,
                     ConfigMode.Stack => Stack.Any(IsDangerousBlock),
                     ConfigMode.LoliCode => Loli2StackTranspiler.Transpile(LoliCodeScript).Any(IsDangerousBlock),
-                    ConfigMode.Legacy => false,
+    
                     _ => throw new NotImplementedException($"The provided ConfigMode {Mode} is not supported when checking for C# code."),
                 };
             }
@@ -153,7 +149,6 @@ namespace RuriLib.Models.Configs
         {
             stackerHash = GetHash(JsonConvert.SerializeObject(Stack) + JsonConvert.SerializeObject(Settings));
             loliCodeHash = GetHash(LoliCodeScript + JsonConvert.SerializeObject(Settings));
-            loliScriptHash = GetHash(LoliScript + JsonConvert.SerializeObject(Settings));
             cSharpHash = GetHash(CSharpScript + JsonConvert.SerializeObject(Settings));
             dllHash = GetHash(JsonConvert.SerializeObject(Settings));
         }
@@ -168,7 +163,7 @@ namespace RuriLib.Models.Configs
                 ConfigMode.LoliCode => GetHash(LoliCodeScript + JsonConvert.SerializeObject(Settings)) != loliCodeHash,
                 ConfigMode.CSharp => GetHash(CSharpScript + JsonConvert.SerializeObject(Settings)) != cSharpHash,
                 ConfigMode.DLL => GetHash(JsonConvert.SerializeObject(Settings)) != dllHash,
-                ConfigMode.Legacy => GetHash(LoliScript + JsonConvert.SerializeObject(Settings)) != loliScriptHash,
+
                 _ => throw new NotImplementedException($"The provided ConfigMode {Mode} is not supported when checking for unsaved changes.")
             };
 

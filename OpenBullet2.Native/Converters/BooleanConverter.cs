@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Windows;
@@ -41,6 +41,42 @@ public sealed class BoolToTextWrappingConverter : BooleanConverter<TextWrapping>
         base(TextWrapping.Wrap, TextWrapping.NoWrap)
     {
     }
+}
+
+public sealed class BoolToColorConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        if (value is bool boolValue && parameter is string parameterString)
+        {
+            var colors = parameterString.Split('|');
+            if (colors.Length == 2)
+            {
+                return boolValue ? colors[0] : colors[1];
+            }
+        }
+        return "#6B7280"; // Default color
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotImplementedException();
+}
+
+public sealed class BoolToIconConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        if (value is bool boolValue && parameter is string parameterString)
+        {
+            var icons = parameterString.Split('|');
+            if (icons.Length == 2)
+            {
+                return boolValue ? icons[0] : icons[1];
+            }
+        }
+        return "Help"; // Default icon
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotImplementedException();
 }
 
 public sealed class LessThanConverter : IValueConverter

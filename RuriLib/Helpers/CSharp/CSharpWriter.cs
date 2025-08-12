@@ -30,8 +30,8 @@ namespace RuriLib.Helpers.CSharp
             if (setting.InputMode == SettingInputMode.Variable)
             {
                 // Check if this is a built-in property access (data.*, globals.*, input.*)
-                if (setting.InputVariableName.StartsWith("data.") || 
-                    setting.InputVariableName.StartsWith("globals.") || 
+                if (setting.InputVariableName.StartsWith("data.") ||
+                    setting.InputVariableName.StartsWith("globals.") ||
                     setting.InputVariableName.StartsWith("input."))
                 {
                     // For input.* properties, return direct access since they're already the correct type from ExpandoObject
@@ -64,7 +64,7 @@ namespace RuriLib.Helpers.CSharp
                     InterpolatedDictionaryOfStringsSetting x => SerializeDictionary(x.Value, true),
                     _ => throw new NotImplementedException()
                 };
-                
+
             }
 
             return setting.FixedSetting switch
@@ -83,14 +83,33 @@ namespace RuriLib.Helpers.CSharp
 
         /// <summary>
         /// Converts a <paramref name="value"/> to a C# primitive.
+        /// Adds fast paths for common primitives to avoid CodeDom overhead.
         /// </summary>
         public static string ToPrimitive(object value)
         {
-            using var writer = new StringWriter();
-            using var provider = CodeDomProvider.CreateProvider("CSharp");
-
-            provider.GenerateCodeFromExpression(new CodePrimitiveExpression(value), writer, codeGenOptions);
-            return writer.ToString();
+            if (value is null) return "null";
+            switch (value)
+            {
+                case string s:
+                    return SerializeString(s);
+                case bool b:
+                    return b ? "true" : "false";
+                case int i:
+                    return i.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                case float f:
+                    return f.ToString("R", System.Globalization.CultureInfo.InvariantCulture) + "F";
+                case double d:
+                    return d.ToString("R", System.Globalization.CultureInfo.InvariantCulture);
+                case byte by:
+                    return by.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                default:
+                    {
+                        using var writer = new StringWriter();
+                        using var provider = CodeDomProvider.CreateProvider("CSharp");
+                        provider.GenerateCodeFromExpression(new CodePrimitiveExpression(value), writer, codeGenOptions);
+                        return writer.ToString();
+                    }
+            }
         }
 
         /// <summary>

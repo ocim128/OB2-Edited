@@ -228,15 +228,15 @@
             </Grid>
         </Border>
 
-        <!-- Modern Job List Container -->
-        <ScrollViewer 
+        <!-- Modern Job List Container with single-scroll pattern -->
+        <ScrollViewer
             Grid.Row="2"
             HorizontalScrollBarVisibility="Disabled"
             VerticalScrollBarVisibility="Auto"
             Padding="0,0,8,0"
             UseLayoutRounding="True"
             SnapsToDevicePixels="True">
-            <ItemsControl 
+            <ItemsControl
             ItemsSource="{Binding JobsCollection}"
             VirtualizingPanel.IsVirtualizing="True"
             VirtualizingPanel.VirtualizationMode="Recycling"
@@ -249,13 +249,15 @@
                 <ItemsControl.Resources>
                     <DataTemplate DataType="{x:Type vms:MultiRunJobViewModel}">
                         <!-- Modern MultiRun Job Row -->
-                        <Border Background="#FF1F2937" 
+                        <Border Background="#FF1F2937"
                                 BorderBrush="#FF374151"
-                                BorderThickness="1" 
-                                Padding="20,16" 
+                                BorderThickness="1"
+                                Padding="20,16"
                                 Margin="0,0,0,12"
                                 CornerRadius="12"
-                                x:Name="JobRowBorder">
+                                x:Name="JobRowBorder"
+                                SnapsToDevicePixels="True"
+                                UseLayoutRounding="True">
                             <Border.Effect>
                                 <DropShadowEffect Color="Black" BlurRadius="6" ShadowDepth="2" Opacity="0.1"/>
                             </Border.Effect>
@@ -274,7 +276,9 @@
                                     </Style.Triggers>
                                 </Style>
                             </Border.Style>
-                            <Grid Cursor="Hand" Tag="{Binding}" MouseDown="ViewJob">
+                            <Grid Cursor="Hand" Tag="{Binding}" MouseDown="ViewJob"
+                                  SnapsToDevicePixels="True"
+                                  UseLayoutRounding="True">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="90"/>
                                     <ColumnDefinition Width="*" MinWidth="200"/>
@@ -430,13 +434,15 @@
                     </DataTemplate>
                     <DataTemplate DataType="{x:Type vms:ProxyCheckJobViewModel}">
                         <!-- Modern Proxy Check Job Row -->
-                        <Border Background="#FF1F2937" 
+                        <Border Background="#FF1F2937"
                                 BorderBrush="#FF374151"
-                                BorderThickness="1" 
-                                Padding="20,16" 
+                                BorderThickness="1"
+                                Padding="20,16"
                                 Margin="0,0,0,12"
                                 CornerRadius="12"
-                                x:Name="JobRowBorder">
+                                x:Name="JobRowBorder"
+                                SnapsToDevicePixels="True"
+                                UseLayoutRounding="True">
                             <Border.Effect>
                                 <DropShadowEffect Color="Black" BlurRadius="6" ShadowDepth="2" Opacity="0.1"/>
                             </Border.Effect>
@@ -455,7 +461,9 @@
                                     </Style.Triggers>
                                 </Style>
                             </Border.Style>
-                            <Grid Cursor="Hand" Tag="{Binding}" MouseDown="ViewJob">
+                            <Grid Cursor="Hand" Tag="{Binding}" MouseDown="ViewJob"
+                                  SnapsToDevicePixels="True"
+                                  UseLayoutRounding="True">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="90"/>
                                     <ColumnDefinition Width="*" MinWidth="200"/>

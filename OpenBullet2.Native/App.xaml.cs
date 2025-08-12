@@ -26,6 +26,7 @@ using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Globalization;
 using System.Text;
+using OpenBullet2.Native.Infrastructure.Diagnostics;
 
 namespace OpenBullet2.Native;
 
@@ -41,6 +42,7 @@ public partial class App : Application
     public App()
     {
         Trace("App constructor START");
+        // Legacy handlers kept for backward compatibility; centralized handler is initialized in OnStartup.
         Dispatcher.UnhandledException += OnDispatcherUnhandledException;
         TaskScheduler.UnobservedTaskException += OnTaskException;
 
@@ -97,16 +99,16 @@ public partial class App : Application
                 // Priority 2: Database migration (critical for app functionality)
                 using var scope = _serviceProvider.CreateScope();
                 var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-                await dbContext.Database.MigrateAsync();
+                await dbContext.Database.MigrateAsync().ConfigureAwait(false);
                 Trace("Database migration completed");
 
                 // Priority 3: Load configurations (needed for UI)
                 var configService = _serviceProvider.GetRequiredService<ConfigService>();
-                await configService.ReloadConfigsAsync();
+                await configService.ReloadConfigsAsync().ConfigureAwait(false);
                 Trace("Configuration loaded successfully");
 
                 // Priority 4: Initialize services with delay to avoid resource contention
-                await Task.Delay(100); // Small delay to let UI render
+                await Task.Delay(100).ConfigureAwait(false); // Small delay to let UI render
 
                 // Background optimizations (lower priority)
                 ThreadPool.SetMaxThreads(Environment.ProcessorCount * 4, Environment.ProcessorCount * 2);
@@ -119,7 +121,7 @@ public partial class App : Application
             catch (Exception ex)
             {
                 Trace($"Startup optimization error: {ex.Message}");
-                Dispatcher.BeginInvoke(() => Alert.Error("Startup Error", $"Some background initialization failed: {ex.Message}"));
+                _ = Dispatcher.BeginInvoke(() => Alert.Error("Startup Error", $"Some background initialization failed: {ex.Message}"));
             }
         });
 
@@ -196,6 +198,24 @@ public partial class App : Application
         // Call base implementation first
         base.OnStartup(e);
 
+        // Initialize centralized exception handling with rolling logs under UserData/Logs/Crashes
+        try
+        {
+            var appDirectory = AppDomain.CurrentDomain.BaseDirectory;
+            var userDataPath = System.IO.Path.Combine(appDirectory, "UserData");
+            var logsRoot = System.IO.Path.Combine(userDataPath, "Logs");
+            System.IO.Directory.CreateDirectory(logsRoot);
+
+            // Keep a single static instance for app lifetime by stashing into App.Resources
+            var geh = new GlobalExceptionHandler(logsRoot);
+            geh.Initialize();
+            Resources["GlobalExceptionHandler"] = geh;
+        }
+        catch (Exception gehEx)
+        {
+            Debug.WriteLine($"GlobalExceptionHandler init failed: {gehEx.Message}");
+        }
+
         // Allow multiple instances without confirmation
         // Note: Mutex is no longer used for instance control
 
@@ -203,15 +223,46 @@ public partial class App : Application
         {
             Trace("Creating MainWindow");
             var mainWindow = _serviceProvider.GetService<MainWindow>();
-            mainWindow.NavigateTo(MainWindowPage.Home);
+
+            // Show window immediately to improve first-paint perception
             mainWindow.Show();
             Trace("MainWindow shown");
+
+            // Navigate to Home after first render to avoid blocking UI thread
+            mainWindow.Dispatcher.BeginInvoke(new Action(async () =>
+            {
+                try
+                {
+                    await mainWindow.NavigateTo(MainWindowPage.Home).ConfigureAwait(true);
+                }
+                catch (Exception navEx)
+                {
+                    Debug.WriteLine($"Initial navigation failed: {navEx.Message}");
+                }
+            }), DispatcherPriority.Background);
 
             // Ensure the application doesn't shut down immediately
             ShutdownMode = ShutdownMode.OnMainWindowClose;
 
             // Apply conservative GPU optimizations to reduce laptop heating
             ApplyConservativeGpuSettings();
+
+            // Set UI text rendering defaults for crisp typography
+            TextOptions.TextFormattingModeProperty.OverrideMetadata(
+                typeof(System.Windows.Controls.Control),
+                new FrameworkPropertyMetadata(TextFormattingMode.Display));
+
+            TextOptions.TextRenderingModeProperty.OverrideMetadata(
+                typeof(System.Windows.Controls.Control),
+                new FrameworkPropertyMetadata(TextRenderingMode.ClearType));
+
+            TextOptions.TextHintingModeProperty.OverrideMetadata(
+                typeof(System.Windows.Controls.Control),
+                new FrameworkPropertyMetadata(TextHintingMode.Fixed));
+
+            RenderOptions.ClearTypeHintProperty.OverrideMetadata(
+                typeof(System.Windows.Controls.Control),
+                new FrameworkPropertyMetadata(ClearTypeHint.Enabled));
         }
         catch (Exception ex)
         {
@@ -282,9 +333,24 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
-        // Dispose service provider on exit
-        (_serviceProvider as IDisposable)?.Dispose();
-        base.OnExit(e);
+        try
+        {
+            // Dispose centralized exception handler if present
+            if (Resources["GlobalExceptionHandler"] is IDisposable geh)
+            {
+                try { geh.Dispose(); } catch { }
+            }
+
+            (_serviceProvider as IDisposable)?.Dispose();
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"ServiceProvider dispose error: {ex.Message}");
+        }
+        finally
+        {
+            base.OnExit(e);
+        }
     }
 
     private static void ReportCrash(Exception ex)

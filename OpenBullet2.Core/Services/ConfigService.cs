@@ -23,7 +23,18 @@ public class ConfigService
     /// <summary>
     /// The list of available configs.
     /// </summary>
-    public List<Config> Configs { get; set; } = new();
+    public IEnumerable<Config> Configs
+    {
+        get
+        {
+            lock (_configsLock)
+            {
+                return _configs.ToList();
+            }
+        }
+    }
+    private readonly List<Config> _configs = new List<Config>();
+    private readonly object _configsLock = new object();
 
     /// <summary>
     /// Called when a new config is selected.
@@ -63,96 +74,147 @@ public class ConfigService
     /// </summary>
     public async Task ReloadConfigsAsync()
     {
-        // Load from the main repository
-        var newConfigs = (await _configRepo.GetAllAsync()).ToList();
-        
-        lock (Configs)
+        try
         {
-            Configs.Clear();
-            Configs.AddRange(newConfigs);
-        }
-        
-        SelectedConfig = null;
+            // Load from the main repository
+            var newConfigs = (await _configRepo.GetAllAsync()).ToList();
+            
+            lock (_configsLock)
+            {
+                _configs.Clear();
+                _configs.AddRange(newConfigs);
+            }
+            
+            SelectedConfig = null;
 
-        // Load from remotes (fire and forget)
-        LoadFromRemotes();
+            // Load from remotes (fire and forget)
+            _ = Task.Run(async () => await LoadFromRemotesAsync());
+        }
+        catch (Exception ex)
+        {
+            // Log the exception but don't let it bubble up to cause startup errors
+            Console.WriteLine($"Error reloading configs: {ex.Message}");
+        }
     }
 
-    private async void LoadFromRemotes()
+    /// <summary>
+    /// Adds a new config to the list.
+    /// </summary>
+    public void AddConfig(Config config)
     {
-        List<Config> remoteConfigs = new();
-
-        var func = new Func<RemoteConfigsEndpoint, Task>(async endpoint =>
+        lock (_configsLock)
         {
-            try
+            _configs.Add(config);
+        }
+    }
+
+    /// <summary>
+    /// Removes a config from the list.
+    /// </summary>
+    public bool RemoveConfig(Config config)
+    {
+        lock (_configsLock)
+        {
+            return _configs.Remove(config);
+        }
+    }
+
+    /// <summary>
+    /// Gets a copy of the configs list for modification purposes.
+    /// </summary>
+    public List<Config> GetConfigsList()
+    {
+        lock (_configsLock)
+        {
+            return _configs.ToList();
+        }
+    }
+
+    private async Task LoadFromRemotesAsync()
+    {
+        try
+        {
+            List<Config> remoteConfigs = new();
+
+            var func = new Func<RemoteConfigsEndpoint, Task>(async endpoint =>
             {
-                // Get the file
-                using HttpClient client = new();
-                client.DefaultRequestHeaders.Add("Api-Key", endpoint.ApiKey);
-                using var response = await client.GetAsync(endpoint.Url);
-
-                if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                try
                 {
-                    throw new UnauthorizedAccessException();
-                }
+                    // Get the file
+                    using HttpClient client = new();
+                    client.DefaultRequestHeaders.Add("Api-Key", endpoint.ApiKey);
+                    using var response = await client.GetAsync(endpoint.Url);
 
-                if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-                {
-                    throw new FileNotFoundException();
-                }
-
-                var fileStream = await response.Content.ReadAsStreamAsync();
-
-                // Unpack the archive in memory
-                using ZipArchive archive = new(fileStream, ZipArchiveMode.Read);
-                foreach (var entry in archive.Entries)
-                {
-                    if (!entry.Name.EndsWith(".opk"))
+                    if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
                     {
-                        continue;
+                        throw new UnauthorizedAccessException();
                     }
 
-                    try
+                    if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
                     {
-                        using var entryStream = entry.Open();
-                        var config = await ConfigPacker.UnpackAsync(entryStream);
+                        throw new FileNotFoundException();
+                    }
 
-                        // Calculate the hash of the metadata of the remote config to use as id.
-                        // This is done to have a consistent id through successive pulls of configs
-                        // from remotes, so that jobs can reference the id and retrieve the correct one
-                        config.Id = HexConverter.ToHexString(config.Metadata.GetUniqueHash());
-                        config.IsRemote = true;
+                    var fileStream = await response.Content.ReadAsStreamAsync();
 
-                        // If a config with the same hash is not already present (e.g. same exact config
-                        // from another source) add it to the list
-                        if (!remoteConfigs.Any(c => c.Id == config.Id))
+                    // Unpack the archive in memory
+                    using ZipArchive archive = new(fileStream, ZipArchiveMode.Read);
+                    foreach (var entry in archive.Entries)
+                    {
+                        if (!entry.Name.EndsWith(".opk"))
                         {
-                            remoteConfigs.Add(config);
+                            continue;
+                        }
+
+                        try
+                        {
+                            using var entryStream = entry.Open();
+                            var config = await ConfigPacker.UnpackAsync(entryStream);
+
+                            // Calculate the hash of the metadata of the remote config to use as id.
+                            // This is done to have a consistent id through successive pulls of configs
+                            // from remotes, so that jobs can reference the id and retrieve the correct one
+                            config.Id = HexConverter.ToHexString(config.Metadata.GetUniqueHash());
+                            config.IsRemote = true;
+
+                            // If a config with the same hash is not already present (e.g. same exact config
+                            // from another source) add it to the list
+                            lock (remoteConfigs)
+                            {
+                                if (!remoteConfigs.Any(c => c.Id == config.Id))
+                                {
+                                    remoteConfigs.Add(config);
+                                }
+                            }
+                        }
+                        catch
+                        {
+
                         }
                     }
-                    catch
-                    {
 
-                    }
                 }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[{endpoint.Url}] Failed to pull configs from endpoint: {ex.Message}");
+                }
+            });
 
-            }
-            catch (Exception ex)
+            var tasks = _openBulletSettingsService.Settings.RemoteSettings.ConfigsEndpoints
+                .Select(endpoint => func.Invoke(endpoint));
+
+            await Task.WhenAll(tasks).ConfigureAwait(false);
+
+            lock (_configsLock)
             {
-                Console.WriteLine($"[{endpoint.Url}] Failed to pull configs from endpoint: {ex.Message}");
+                _configs.AddRange(remoteConfigs);
             }
-        });
 
-        var tasks = _openBulletSettingsService.Settings.RemoteSettings.ConfigsEndpoints
-            .Select(endpoint => func.Invoke(endpoint));
-
-        await Task.WhenAll(tasks).ConfigureAwait(false);
-
-        lock (Configs)
-        {
-            Configs.AddRange(remoteConfigs);
+            OnRemotesLoaded?.Invoke(this, EventArgs.Empty);
         }
-
-        OnRemotesLoaded?.Invoke(this, EventArgs.Empty);
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading remote configs: {ex.Message}");
+        }
     }
 }

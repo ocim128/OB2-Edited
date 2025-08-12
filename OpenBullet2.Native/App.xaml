@@ -233,8 +233,10 @@
                     
                     <!-- Removed unused spacing styles for optimization -->
 
-                    <Style TargetType="{x:Type TextBox}" BasedOn="{StaticResource MahApps.Styles.TextBox}">
+                    <!-- Consolidated base TextBox styling -->
+                    <Style x:Key="BaseTextBox" TargetType="{x:Type TextBox}" BasedOn="{StaticResource MahApps.Styles.TextBox}">
                         <Setter Property="Background" Value="{DynamicResource BackgroundInput}"/>
+                        <Setter Property="Foreground" Value="{DynamicResource ForegroundInput}"/>
                         <Setter Property="FontFamily" Value="Consolas"/>
                         <Setter Property="VerticalContentAlignment" Value="Center"/>
                         <Setter Property="UseLayoutRounding" Value="False"/>
@@ -242,15 +244,13 @@
                         <Setter Property="TextOptions.TextFormattingMode" Value="Ideal"/>
                         <Setter Property="TextOptions.TextRenderingMode" Value="Auto"/>
                         <Setter Property="TextOptions.TextHintingMode" Value="Auto"/>
-                        <Style.Resources>
-                            <Style TargetType="{x:Type TextBlock}" BasedOn="{StaticResource BaseTextStyle}">
-                                <Setter Property="Foreground" Value="{DynamicResource ForegroundInput}"/>
-                            </Style>
-                        </Style.Resources>
                     </Style>
-                    
-                    <!-- Sleek Rounded TextBox Style for Variable Input -->
-                    <Style x:Key="MatchingTextBox" TargetType="TextBox">
+
+                    <!-- Implicit TextBox style uses base (applies app-wide) -->
+                    <Style TargetType="{x:Type TextBox}" BasedOn="{StaticResource BaseTextBox}"/>
+
+                    <!-- Consolidated rounded multiline TextBox variant -->
+                    <Style x:Key="MatchingTextBox" TargetType="TextBox" BasedOn="{StaticResource BaseTextBox}">
                         <Setter Property="Background" Value="#2D3748" />
                         <Setter Property="Foreground" Value="#E2E8F0" />
                         <Setter Property="BorderBrush" Value="#4A5568" />
@@ -269,18 +269,18 @@
                         <Setter Property="Template">
                             <Setter.Value>
                                 <ControlTemplate TargetType="TextBox">
-                                    <Border x:Name="border" 
-                                            Background="{TemplateBinding Background}" 
-                                            BorderBrush="{TemplateBinding BorderBrush}" 
-                                            BorderThickness="{TemplateBinding BorderThickness}" 
+                                    <Border x:Name="border"
+                                            Background="{TemplateBinding Background}"
+                                            BorderBrush="{TemplateBinding BorderBrush}"
+                                            BorderThickness="{TemplateBinding BorderThickness}"
                                             CornerRadius="8"
                                             SnapsToDevicePixels="True">
                                         <Border.Effect>
                                             <DropShadowEffect Color="#000000" Direction="270" ShadowDepth="1" Opacity="0.2" BlurRadius="3"/>
                                         </Border.Effect>
-                                        <ScrollViewer x:Name="PART_ContentHost" 
-                                                      Focusable="False" 
-                                                      HorizontalScrollBarVisibility="Hidden" 
+                                        <ScrollViewer x:Name="PART_ContentHost"
+                                                      Focusable="False"
+                                                      HorizontalScrollBarVisibility="Hidden"
                                                       VerticalScrollBarVisibility="Auto"
                                                       Margin="{TemplateBinding Padding}"/>
                                     </Border>
@@ -302,19 +302,18 @@
                             </Setter.Value>
                         </Setter>
                     </Style>
-                    <Style TargetType="{x:Type CheckBox}" BasedOn="{StaticResource MahApps.Styles.CheckBox}">
+                    <!-- Consolidated base controls -->
+                    <Style x:Key="BaseCheckBox" TargetType="{x:Type CheckBox}" BasedOn="{StaticResource MahApps.Styles.CheckBox}">
                         <Setter Property="Background" Value="{DynamicResource BackgroundInput}"/>
                     </Style>
-                    <Style TargetType="{x:Type ComboBox}" BasedOn="{StaticResource MahApps.Styles.ComboBox}">
+                    <Style TargetType="{x:Type CheckBox}" BasedOn="{StaticResource BaseCheckBox}"/>
+
+                    <Style x:Key="BaseComboBoxItem" TargetType="{x:Type ComboBoxItem}" BasedOn="{StaticResource MahApps.Styles.ComboBoxItem}">
                         <Setter Property="Foreground" Value="{DynamicResource ForegroundInput}"/>
                         <Setter Property="Background" Value="{DynamicResource BackgroundInput}"/>
                         <Setter Property="FontFamily" Value="Consolas"/>
                     </Style>
-                    <Style TargetType="{x:Type ComboBoxItem}" BasedOn="{StaticResource MahApps.Styles.ComboBoxItem}">
-                        <Setter Property="Foreground" Value="{DynamicResource ForegroundInput}"/>
-                        <Setter Property="Background" Value="{DynamicResource BackgroundInput}"/>
-                        <Setter Property="FontFamily" Value="Consolas"/>
-                    </Style>
+                    <Style TargetType="{x:Type ComboBoxItem}" BasedOn="{StaticResource BaseComboBoxItem}"/>
 
                     <!-- OPTIMIZED ICONS - Consolidated Style -->
                     <Style x:Key="GlobalIconStyle" TargetType="Control">
@@ -430,32 +429,41 @@
                         <Setter Property="Background" Value="{DynamicResource PrimaryButton}"/>
                     </Style>
 
-                    <!-- Base Perfect Button Style -->
-                    <Style x:Key="BasePerfectButton" TargetType="Button">
+                    <!-- Base Action Button Style (consolidated for Start/Stop variants) -->
+                    <Style x:Key="BaseActionButton" TargetType="Button">
                         <Setter Property="Foreground" Value="White"/>
                         <Setter Property="BorderThickness" Value="0"/>
                         <Setter Property="FontFamily" Value="Segoe UI"/>
                         <Setter Property="FontWeight" Value="SemiBold"/>
                         <Setter Property="FontSize" Value="12"/>
+                        <Setter Property="Padding" Value="10,6"/>
                         <Setter Property="Template">
                             <Setter.Value>
                                 <ControlTemplate TargetType="Button">
-                                    <Border x:Name="border" 
-                                            Background="{TemplateBinding Background}" 
-                                            CornerRadius="6" 
+                                    <Border x:Name="border"
+                                            Background="{TemplateBinding Background}"
+                                            CornerRadius="6"
                                             Padding="{TemplateBinding Padding}">
                                         <Border.Effect>
                                             <DropShadowEffect BlurRadius="8" Direction="270" Opacity="0.3" ShadowDepth="2"/>
                                         </Border.Effect>
                                         <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                     </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="border" Property="Opacity" Value="0.95"/>
+                                        </Trigger>
+                                        <Trigger Property="IsPressed" Value="True">
+                                            <Setter TargetName="border" Property="Opacity" Value="0.9"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
                                 </ControlTemplate>
                             </Setter.Value>
                         </Setter>
                     </Style>
 
-                    <!-- Perfect Start Button Style from Debugger -->
-                    <Style x:Key="PerfectStartButton" TargetType="Button" BasedOn="{StaticResource BasePerfectButton}">
+                    <!-- Start Button: uses BaseActionButton with Start gradient and content -->
+                    <Style x:Key="PerfectStartButton" TargetType="Button" BasedOn="{StaticResource BaseActionButton}">
                         <Setter Property="Background">
                             <Setter.Value>
                                 <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
@@ -472,13 +480,13 @@
                                         <ColumnDefinition Width="6"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-                                    <iconPacks:PackIconEntypo Grid.Column="0" Kind="ControllerPlay" Width="14" Height="14" 
+                                    <iconPacks:PackIconEntypo Grid.Column="0" Kind="ControllerPlay" Width="14" Height="14"
                                                               VerticalAlignment="Center" HorizontalAlignment="Center"
                                                               Foreground="White"/>
-                                    <TextBlock Grid.Column="2" Text="Start" 
-                                              VerticalAlignment="Center" HorizontalAlignment="Center"
-                                              FontFamily="Segoe UI" FontWeight="SemiBold" FontSize="12"
-                                              Foreground="White"/>
+                                    <TextBlock Grid.Column="2" Text="Start"
+                                               VerticalAlignment="Center" HorizontalAlignment="Center"
+                                               FontFamily="Segoe UI" FontWeight="SemiBold" FontSize="12"
+                                               Foreground="White"/>
                                 </Grid>
                             </Setter.Value>
                         </Setter>
@@ -506,8 +514,8 @@
                         </Style.Triggers>
                     </Style>
 
-                    <!-- Perfect Stop Button Style from Debugger -->
-                    <Style x:Key="PerfectStopButton" TargetType="Button" BasedOn="{StaticResource BasePerfectButton}">
+                    <!-- Stop Button: uses BaseActionButton with Stop gradient and content -->
+                    <Style x:Key="PerfectStopButton" TargetType="Button" BasedOn="{StaticResource BaseActionButton}">
                         <Setter Property="Background">
                             <Setter.Value>
                                 <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
@@ -524,13 +532,13 @@
                                         <ColumnDefinition Width="6"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-                                    <iconPacks:PackIconEntypo Grid.Column="0" Kind="ControllerStop" Width="14" Height="14" 
+                                    <iconPacks:PackIconEntypo Grid.Column="0" Kind="ControllerStop" Width="14" Height="14"
                                                               VerticalAlignment="Center" HorizontalAlignment="Center"
                                                               Foreground="White"/>
-                                    <TextBlock Grid.Column="2" Text="Stop" 
-                                              VerticalAlignment="Center" HorizontalAlignment="Center"
-                                              FontFamily="Segoe UI" FontWeight="SemiBold" FontSize="12"
-                                              Foreground="White"/>
+                                    <TextBlock Grid.Column="2" Text="Stop"
+                                               VerticalAlignment="Center" HorizontalAlignment="Center"
+                                               FontFamily="Segoe UI" FontWeight="SemiBold" FontSize="12"
+                                               Foreground="White"/>
                                 </Grid>
                             </Setter.Value>
                         </Setter>
@@ -649,8 +657,18 @@
                         </Setter>
                     </Style>
 
-                    <!-- Clean ComboBox Style -->
-                    <Style x:Key="CleanComboBox" TargetType="ComboBox">
+                    <!-- Consolidated base ComboBox styling -->
+                    <Style x:Key="BaseComboBox" TargetType="ComboBox" BasedOn="{StaticResource MahApps.Styles.ComboBox}">
+                        <Setter Property="Foreground" Value="{DynamicResource ForegroundInput}"/>
+                        <Setter Property="Background" Value="{DynamicResource BackgroundInput}"/>
+                        <Setter Property="FontFamily" Value="Consolas"/>
+                    </Style>
+
+                    <!-- Implicit ComboBox uses base -->
+                    <Style TargetType="{x:Type ComboBox}" BasedOn="{StaticResource BaseComboBox}"/>
+
+                    <!-- Clean ComboBox variant (kept custom template) -->
+                    <Style x:Key="CleanComboBox" TargetType="ComboBox" BasedOn="{StaticResource BaseComboBox}">
                         <Setter Property="Background" Value="#0F172A" />
                         <Setter Property="Foreground" Value="#E2E8F0" />
                         <Setter Property="BorderBrush" Value="#4A5568" />
@@ -708,11 +726,11 @@
                                                  Focusable="True"
                                                  Visibility="Hidden" />
                                         <Popup x:Name="Popup"
-                               Placement="Bottom"
-                               IsOpen="{TemplateBinding IsDropDownOpen}"
-                               AllowsTransparency="True"
-                               Focusable="False"
-                               PopupAnimation="None">
+                                               Placement="Bottom"
+                                               IsOpen="{TemplateBinding IsDropDownOpen}"
+                                               AllowsTransparency="True"
+                                               Focusable="False"
+                                               PopupAnimation="None">
                                             <Grid x:Name="DropDown"
                                                   MinWidth="{TemplateBinding ActualWidth}"
                                                   MaxHeight="200">

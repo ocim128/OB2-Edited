@@ -1,4 +1,4 @@
-﻿using RuriLib.Models.Configs;
+using RuriLib.Models.Configs;
 using RuriLib.Helpers;
 using System.Collections.Generic;
 using System.IO;
@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 using System;
 using RuriLib.Helpers.Transpilers;
 using RuriLib.Services;
-using RuriLib.Legacy.Configs;
 using System.Text;
 using OpenBullet2.Core.Exceptions;
 
@@ -32,23 +31,6 @@ public class DiskConfigRepository : IConfigRepository
     /// <inheritdoc/>
     public async Task<IEnumerable<Config>> GetAllAsync()
     {
-        // Try to convert legacy configs automatically before loading
-        foreach (var file in Directory.GetFiles(BaseFolder).Where(file => file.EndsWith(".loli")))
-        {
-            try
-            {
-                var id = Path.GetFileNameWithoutExtension(file);
-                var converted = ConfigConverter.Convert(File.ReadAllText(file), id);
-                await SaveAsync(converted);
-                File.Delete(file);
-                Console.WriteLine($"Converted legacy .loli config ({file}) to the new .opk format");
-            }
-            catch
-            {
-                Console.WriteLine($"Could not convert legacy .loli config ({file}) to the new .opk format");
-            }
-        }
-
         var tasks = Directory.GetFiles(BaseFolder).Where(file => file.EndsWith(".opk"))
             .Select(async file => 
             {
@@ -121,22 +103,11 @@ public class DiskConfigRepository : IConfigRepository
     {
         var extension = Path.GetExtension(fileName);
 
-        // If it's a .opk config
+        // Only .opk configs are supported
         if (extension == ".opk")
         {
             var config = await ConfigPacker.UnpackAsync(stream);
             await File.WriteAllBytesAsync(GetFileName(config), await ConfigPacker.PackAsync(config));
-        }
-        // Otherwise it's a .loli config
-        else if (extension == ".loli")
-        {
-            using var ms = new MemoryStream();
-            await stream.CopyToAsync(ms);
-            ms.Seek(0, SeekOrigin.Begin);
-            var content = Encoding.UTF8.GetString(ms.ToArray());
-            var id = Path.GetFileNameWithoutExtension(fileName);
-            var converted = ConfigConverter.Convert(content, id);
-            await SaveAsync(converted);
         }
         else
         {

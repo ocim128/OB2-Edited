@@ -185,7 +185,7 @@ namespace OpenBullet2.Native.Views.Dialogs
 
         private void CreateCollection()
         {
-            var viewModels = configService.Configs.Select(c => new ConfigViewModel(c));
+            var viewModels = configService.GetConfigsList().Select(c => new ConfigViewModel(c));
             ConfigsCollection = new ObservableCollection<ConfigViewModel>(viewModels);
             Application.Current.Dispatcher.Invoke(() => HookFilters());
         }

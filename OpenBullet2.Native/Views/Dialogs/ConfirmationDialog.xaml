@@ -7,8 +7,9 @@
             CornerRadius="8" 
             BorderBrush="#FF404040" 
             BorderThickness="1"
-            MinWidth="400"
-            MaxWidth="500">
+            MinWidth="500"
+            MaxWidth="700"
+            MinHeight="200">
         <Grid Margin="20">
         <Grid.RowDefinitions>
                 <RowDefinition Height="auto"/>
@@ -66,4 +67,4 @@
             </StackPanel>
     </Grid>
     </Border>
-</UserControl> 
+</UserControl>

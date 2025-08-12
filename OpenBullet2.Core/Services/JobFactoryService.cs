@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using OpenBullet2.Core.Models.Hits;
 using OpenBullet2.Core.Models.Jobs;
@@ -91,7 +91,7 @@ public class JobFactoryService
 
         var job = new MultiRunJob(_settingsService, _pluginRepo, _logger)
         {
-            Config = _configService.Configs.FirstOrDefault(c => c.Id == options.ConfigId) ??
+            Config = _configService.GetConfigsList().FirstOrDefault(c => c.Id == options.ConfigId) ??
                      new RuriLib.Models.Configs.Config { Id = "missing", Metadata = new RuriLib.Models.Configs.ConfigMetadata { Name = "Config Missing" } },
             CreationTime = DateTime.Now,
             ProxyMode = options.ProxyMode,

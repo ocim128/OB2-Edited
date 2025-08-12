@@ -16,6 +16,8 @@
     <Page.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
         <converters:LessThanConverter x:Key="LessThanConverter" />
+        <converters:BoolToColorConverter x:Key="BoolToColorConverter" />
+        <converters:BoolToIconConverter x:Key="BoolToIconConverter" />
         
         <!-- Optimized responsive style with caching -->
         <Style x:Key="ResponsiveHideStyle" TargetType="FrameworkElement">
@@ -37,8 +39,9 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="12" />
+            <!-- Give more space to results area by increasing its min height -->
             <RowDefinition Height="*"
-                           MinHeight="200" />
+                           MinHeight="320" />
         </Grid.RowDefinitions>
         <!-- Configuration Panel -->
         <Border Grid.Row="0"
@@ -139,7 +142,10 @@
                     <ScrollViewer HorizontalScrollBarVisibility="Auto"
                                   VerticalScrollBarVisibility="Disabled"
                                   Grid.ColumnSpan="11"
-                                  MaxHeight="40">
+                                  MaxHeight="40"
+                                  CanContentScroll="True"
+                                  VirtualizingStackPanel.IsVirtualizing="True"
+                                  VirtualizingStackPanel.VirtualizationMode="Recycling">
                         <StackPanel Orientation="Horizontal"
                                     Margin="0,0,0,0">
                             <!-- Square Step-by-Step Checkbox -->
@@ -201,10 +207,11 @@
                 Background="#C0303030"
                 CornerRadius="8"
                 Padding="0"
-                MinHeight="180">
+                MinHeight="320">
             <TabControl x:Name="tabControl" Background="Transparent" BorderThickness="0"
                         RenderOptions.BitmapScalingMode="HighQuality" UseLayoutRounding="True"
-                        VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling">
+                        VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling"
+                        SnapsToDevicePixels="True">
                 <!-- Log Tab -->
                 <TabItem>
                     <TabItem.Header>
@@ -243,17 +250,20 @@
                     <Grid Margin="16">
 
                         <Grid.RowDefinitions>
-                            <RowDefinition Height="*" />
+                            <!-- Allocate more space to the log content row -->
+                            <RowDefinition Height="3*" />
                             <RowDefinition Height="12" />
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
                         <!-- Optimized Log Content with virtualization -->
                         <Border Grid.Row="0" Background="#1A1A1A" BorderBrush="#404040" BorderThickness="1" CornerRadius="8" Padding="8"
-                                RenderOptions.BitmapScalingMode="HighQuality" UseLayoutRounding="True">
+                                RenderOptions.BitmapScalingMode="HighQuality" UseLayoutRounding="True"
+                                SnapsToDevicePixels="True">
+                            <!-- Remove outer ScrollViewer to avoid double scrollbars; rely on inner WinForms RichTextBox scrollbar -->
                             <WindowsFormsHost>
-                                <wf:RichTextBox x:Name="logRTB" Dock="Fill" ForeColor="Gainsboro" ReadOnly="True" 
-                                               ScrollBars="Vertical" BorderStyle="None" DetectUrls="False"
-                                               MaxLength="1000000" />
+                                <wf:RichTextBox x:Name="logRTB" Dock="Fill" ForeColor="Gainsboro" ReadOnly="True"
+                                                ScrollBars="Vertical" BorderStyle="None" DetectUrls="False"
+                                                MaxLength="1000000" />
                             </WindowsFormsHost>
                         </Border>
                         <!-- Search Controls - Enhanced UI with Better Styling -->
@@ -283,7 +293,7 @@
                                 </Grid.ColumnDefinitions>
                                 <!-- Optimized Search Input with performance enhancements -->
                         <TextBox Grid.Column="0"
-                                 Text="{Binding SearchString, UpdateSourceTrigger=PropertyChanged}"
+                                 Text="{Binding SearchString, UpdateSourceTrigger=PropertyChanged, Delay=200}"
                                  Height="34"
                                  Background="#2D3748"
                                  Foreground="#E2E8F0"
@@ -294,7 +304,8 @@
                                  ToolTip="Search logs (Ctrl+F)"
                                  x:Name="searchTextBox"
                                  RenderOptions.ClearTypeHint="Enabled"
-                                 UseLayoutRounding="True" />
+                                 UseLayoutRounding="True"
+                                 SpellCheck.IsEnabled="False"/>
                                 <!-- Simplified Search Button -->
                 <Button Grid.Column="2"
                         Click="Search"
@@ -332,8 +343,9 @@
                                                FontSize="11"
                                                FontWeight="Medium"
                                                VerticalAlignment="Center"
-                                               MinWidth="50"
-                                               TextAlignment="Center" />
+                                               MinWidth="80"
+                                               TextAlignment="Center"
+                                               TextTrimming="CharacterEllipsis"/>
                                 </Border>
                                 <!-- Next Button -->
                                 <Button Grid.Column="8"
@@ -363,6 +375,19 @@
                                         <iconPacks:PackIconMaterialDesign Kind="Close"
                                                                           Width="14"
                                                                           Height="14" />
+                                    </Button>
+                                    <!-- Stop Scroll Button -->
+                                    <Button Click="ToggleAutoScroll"
+                                            Style="{StaticResource ReadableTabButton}"
+                                            Width="34"
+                                            Height="34"
+                                            Margin="0,0,8,0"
+                                            Background="{Binding IsAutoScrollEnabled, Converter={StaticResource BoolToColorConverter}, ConverterParameter='#059669|#DC2626'}"
+                                            Foreground="#F8FAFC"
+                                            ToolTip="{Binding AutoScrollButtonText}">
+                                        <iconPacks:PackIconMaterial Kind="{Binding IsAutoScrollEnabled, Converter={StaticResource BoolToIconConverter}, ConverterParameter='Pause|Play'}"
+                                                                    Width="14"
+                                                                    Height="14" />
                                     </Button>
                                     <!-- Clear Log Button -->
                                     <Button Click="ClearLog"
@@ -447,6 +472,7 @@
                                                    FontWeight="Medium"
                                                    RenderOptions.ClearTypeHint="Enabled" />
                                     </Border>
+                                    <!-- Remove outer ScrollViewer to avoid double scrollbars; rely on inner WinForms RichTextBox scrollbar -->
                                     <WindowsFormsHost>
                                         <wf:RichTextBox x:Name="variablesRTB"
                                                         Dock="Fill"

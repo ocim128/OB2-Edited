@@ -161,7 +161,8 @@ namespace RuriLib.Helpers.Blocks
             if (variableParam != null)
             {
                 parameter.InputMode = SettingInputMode.Variable;
-                parameter.DefaultVariableName = variableParam.defaultVariableName;
+                // Updated to use the new immutable property name
+                parameter.DefaultVariableName = variableParam.DefaultVariableName;
             }
             else if (interpParam != null)
             {
@@ -247,7 +248,7 @@ namespace RuriLib.Helpers.Blocks
             var dict = new Dictionary<Type, Func<BlockParameter>>
             {
                 { typeof(string), () => new StringParameter
-                    { 
+                    {
                         DefaultValue = parameter.HasDefaultValue ? (string)parameter.DefaultValue : "",
                         MultiLine = parameter.GetCustomAttribute<Attributes.MultiLine>() != null
                     }
@@ -274,7 +275,7 @@ namespace RuriLib.Helpers.Blocks
             if (dict.ContainsKey(parameter.ParameterType))
             {
                 var blockParam = dict[parameter.ParameterType].Invoke();
-                
+
                 if (blockParamAttribute != null)
                 {
                     blockParam.AssignedName = blockParamAttribute.name;
@@ -314,7 +315,8 @@ namespace RuriLib.Helpers.Blocks
         public CategoryTreeNode AsTree()
         {
             // This is the root node, all assemblies are direct children of this node
-            var root = new CategoryTreeNode {
+            var root = new CategoryTreeNode
+            {
                 Name = "Root",
                 // Add all descriptors as children of the root node (we need the ToList() in order to have
                 // a new pointer to list and not operate on the same one Descriptors uses, since we will be removing items)

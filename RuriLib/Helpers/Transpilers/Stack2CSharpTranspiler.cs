@@ -4,6 +4,8 @@ using RuriLib.Helpers.CSharp;
 using RuriLib.Models.Blocks;
 using RuriLib.Models.Blocks.Custom;
 using RuriLib.Models.Blocks.Settings;
+using RuriLib.Models.Blocks.Settings.Interpolated;
+using RuriLib.Models.Blocks.Custom.Keycheck;
 using RuriLib.Models.Bots;
 using RuriLib.Models.Configs;
 using System.Collections.Generic;
@@ -61,12 +63,70 @@ namespace RuriLib.Helpers.Transpilers
                         {
                             detectedVariables.Add(auto.OutputVariable);
                         }
-                        
+
                         // Special handling for CreateMultiple blocks
                         if (auto.Descriptor.Id == "CreateMultiple")
                         {
                             var createMultipleVars = GetCreateMultipleVariables(auto);
                             detectedVariables.UnionWith(createMultipleVars);
+                        }
+                        break;
+
+                    case KeycheckBlockInstance keycheck:
+                        // Add variables from keycheck block settings
+                        foreach (var setting in keycheck.Settings.Values)
+                        {
+                            if (setting.InputMode == SettingInputMode.Variable && !string.IsNullOrEmpty(setting.InputVariableName))
+                            {
+                                var baseVar = VariableDetector.ExtractBaseVariableName(setting.InputVariableName);
+                                if (!string.IsNullOrEmpty(baseVar))
+                                {
+                                    detectedVariables.Add(baseVar);
+                                }
+                            }
+                            if (setting.InterpolatedSetting != null)
+                            {
+                                switch (setting.InterpolatedSetting)
+                                {
+                                    case InterpolatedStringSetting str:
+                                        detectedVariables.UnionWith(VariableDetector.DetectFromInterpolatedString(str.Value));
+                                        break;
+                                }
+                            }
+                        }
+                        // Add variables from keychain keys
+                        foreach (var keychain in keycheck.Keychains)
+                        {
+                            foreach (var key in keychain.Keys)
+                            {
+                                // Check left side of key
+                                if (key.Left.InputMode == SettingInputMode.Variable && !string.IsNullOrEmpty(key.Left.InputVariableName))
+                                {
+                                    var baseVar = VariableDetector.ExtractBaseVariableName(key.Left.InputVariableName);
+                                    if (!string.IsNullOrEmpty(baseVar))
+                                    {
+                                        detectedVariables.Add(baseVar);
+                                    }
+                                }
+                                // Check right side of key
+                                if (key.Right.InputMode == SettingInputMode.Variable && !string.IsNullOrEmpty(key.Right.InputVariableName))
+                                {
+                                    var baseVar = VariableDetector.ExtractBaseVariableName(key.Right.InputVariableName);
+                                    if (!string.IsNullOrEmpty(baseVar))
+                                    {
+                                        detectedVariables.Add(baseVar);
+                                    }
+                                }
+                                // Check interpolated settings
+                                if (key.Left.InterpolatedSetting is InterpolatedStringSetting leftStr)
+                                {
+                                    detectedVariables.UnionWith(VariableDetector.DetectFromInterpolatedString(leftStr.Value));
+                                }
+                                if (key.Right.InterpolatedSetting is InterpolatedStringSetting rightStr)
+                                {
+                                    detectedVariables.UnionWith(VariableDetector.DetectFromInterpolatedString(rightStr.Value));
+                                }
+                            }
                         }
                         break;
                 }
@@ -90,6 +150,53 @@ namespace RuriLib.Helpers.Transpilers
                     declaredVariables.Add(varName);
                 }
             }
+
+            // Declare jump counters for loop detection
+            var labels = new HashSet<string>();
+
+            // Detect labels from label definitions (#LABEL)
+            var labelDefs = new List<string>();
+            foreach (var block in blocks.OfType<LoliCodeBlockInstance>())
+            {
+                if (!string.IsNullOrEmpty(block.Script))
+                {
+                    var lines = block.Script.Split(new[] { '\r', '\n' }, System.StringSplitOptions.RemoveEmptyEntries);
+                    foreach (var line in lines)
+                    {
+                        var trimmedLine = line.Trim();
+                        if (trimmedLine.StartsWith("#"))
+                        {
+                            var labelMatch = System.Text.RegularExpressions.Regex.Match(trimmedLine, @"^#(\w+)$");
+                            if (labelMatch.Success)
+                            {
+                                labelDefs.Add(labelMatch.Groups[1].Value);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Detect labels from JUMP statements (JUMP #LABEL) - search anywhere in script
+            var labelJumps = new List<string>();
+            foreach (var block in blocks.OfType<LoliCodeBlockInstance>())
+            {
+                if (!string.IsNullOrEmpty(block.Script))
+                {
+                    var matches = System.Text.RegularExpressions.Regex.Matches(block.Script, @"JUMP\s+#(\w+)");
+                    foreach (System.Text.RegularExpressions.Match match in matches)
+                    {
+                        labelJumps.Add(match.Groups[1].Value);
+                    }
+                }
+            }
+
+            labels.UnionWith(labelDefs);
+            labels.UnionWith(labelJumps);
+
+            foreach (var label in labels)
+            {
+                writer.WriteLine($"int __jumpCount_{label} = 0;");
+            }
             writer.WriteLine();
 
             foreach (var block in validBlocks)
@@ -100,7 +207,7 @@ namespace RuriLib.Helpers.Transpilers
                 var snippet = block.ToCSharp(declaredVariables, settings);
                 var tree = CSharpSyntaxTree.ParseText(snippet);
                 writer.WriteLine(tree.GetRoot().NormalizeWhitespace().ToFullString());
-                
+
                 // Special handling for CreateMultiple blocks - assign variables from data object
                 if (block is AutoBlockInstance auto && auto.Descriptor.Id == "CreateMultiple")
                 {
@@ -110,7 +217,7 @@ namespace RuriLib.Helpers.Transpilers
                         writer.WriteLine($"{varName} = data.Objects.ContainsKey(\"{varName}\") ? data.Objects[\"{varName}\"] : RuriLib.Models.NullDynamic.Instance;");
                     }
                 }
-                
+
                 writer.WriteLine();
 
                 // If in step by step mode, and if not the last block, check if pause was requested
@@ -122,17 +229,17 @@ namespace RuriLib.Helpers.Transpilers
 
             return writer.ToString();
         }
-        
+
         /// <summary>
         /// Extracts variable names that will be created by a CreateMultiple block
         /// </summary>
         private static List<string> GetCreateMultipleVariables(AutoBlockInstance block)
         {
             var variables = new List<string>();
-            
+
             if (block.Descriptor.Id != "CreateMultiple")
                 return variables;
-                
+
             // Extract variable names from the block settings
             for (int i = 1; i <= 5; i++)
             {
@@ -146,7 +253,7 @@ namespace RuriLib.Helpers.Transpilers
                     }
                 }
             }
-            
+
             return variables;
         }
     }

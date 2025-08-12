@@ -189,6 +189,20 @@ public class DebuggerViewModel : ViewModelBase
         _ => "Unknown"
     };
 
+    private bool isAutoScrollEnabled = true;
+    public bool IsAutoScrollEnabled
+    {
+        get => isAutoScrollEnabled;
+        set
+        {
+            isAutoScrollEnabled = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(AutoScrollButtonText));
+        }
+    }
+
+    public string AutoScrollButtonText => IsAutoScrollEnabled ? "Stop Scroll" : "Start Scroll";
+
     public DebuggerViewModel()
     {
         rlSettingsService = ServiceLocator.GetService<RuriLibSettingsService>();
@@ -246,6 +260,11 @@ public class DebuggerViewModel : ViewModelBase
     public void TakeStep() => debugger?.TryTakeStep();
 
     public void Stop() => debugger?.Stop();
+
+    public void ToggleAutoScroll()
+    {
+        IsAutoScrollEnabled = !IsAutoScrollEnabled;
+    }
 
     public void ClearLog()
     {

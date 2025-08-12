@@ -16,7 +16,6 @@ public static class ExecutionHandlerFactory
         return mode switch
         {
             ConfigMode.DLL => new DllExecutionHandler(),
-            ConfigMode.Legacy => new LegacyExecutionHandler(),
             ConfigMode.CSharp or ConfigMode.Stack or ConfigMode.LoliCode => new ScriptExecutionHandler(),
             _ => throw new NotSupportedException($"Config mode {mode} is not supported")
         };

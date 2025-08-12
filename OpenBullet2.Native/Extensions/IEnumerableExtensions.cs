@@ -15,32 +15,62 @@ namespace OpenBullet2.Native.Extensions
             {
                 throw new ArgumentNullException(nameof(fileName), "The filename must not be empty");
             }
+            if (items is null) throw new ArgumentNullException(nameof(items));
+            if (mapping is null) throw new ArgumentNullException(nameof(mapping));
 
-            File.WriteAllLines(fileName, items.Select(i => mapping(i)));
+            // Avoid materializing the whole sequence to minimize RAM; write streaming
+            using var sw = new StreamWriter(fileName);
+            foreach (var item in items)
+            {
+                var line = mapping(item);
+                if (line is not null)
+                    sw.WriteLine(line);
+            }
         }
 
         public static void CopyToClipboard<T>(this IEnumerable<T> items, Func<T, string> mapping)
         {
-            // Need to run the loop a few times otherwise sometimes it throws and says CLIPBRD_E_CANT_OPEN
-            // https://stackoverflow.com/questions/68666/clipbrd-e-cant-open-error-when-setting-the-clipboard-from-net
-            for (var i = 0; i < 10; i++)
+            if (items is null) throw new ArgumentNullException(nameof(items));
+            if (mapping is null) throw new ArgumentNullException(nameof(mapping));
+
+            // Build the text with a pooled buffer to avoid multiple enumerations/allocations
+            // and then apply a bounded retry with exponential backoff on clipboard contention.
+            using var writer = new StringWriter();
+            using var e = items.GetEnumerator();
+            if (e.MoveNext())
+            {
+                var first = mapping(e.Current);
+                if (first is not null)
+                    writer.Write(first);
+                while (e.MoveNext())
+                {
+                    writer.Write(Environment.NewLine);
+                    var s = mapping(e.Current);
+                    if (s is not null)
+                        writer.Write(s);
+                }
+            }
+
+            var text = writer.ToString();
+
+            const int maxAttempts = 6;
+            var delayMs = 10;
+            for (var attempt = 0; attempt < maxAttempts; attempt++)
             {
                 try
                 {
-                    Clipboard.SetText(string.Join(Environment.NewLine, items.Select(i => mapping(i))));
+                    Clipboard.SetText(text);
                     return;
                 }
                 catch (COMException ex)
                 {
                     const uint CLIPBRD_E_CANT_OPEN = 0x800401D0;
-
                     if ((uint)ex.ErrorCode != CLIPBRD_E_CANT_OPEN)
-                    {
                         throw;
-                    }
+                    // backoff and retry
+                    System.Threading.Thread.Sleep(delayMs);
+                    delayMs = Math.Min(delayMs * 2, 200);
                 }
-
-                System.Threading.Thread.Sleep(10);
             }
         }
     }

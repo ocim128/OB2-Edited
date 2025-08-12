@@ -1,0 +1,8 @@
+{
+    "servers": {
+        "MahApps.Metro Docs": {
+            "type": "sse",
+            "url": "https://gitmcp.io/MahApps/MahApps.Metro"
+        }
+    }
+}

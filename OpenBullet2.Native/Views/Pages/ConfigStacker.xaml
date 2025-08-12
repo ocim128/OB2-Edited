@@ -15,7 +15,38 @@
 
     <Page.Resources>
         <converters:BoolToThicknessConverter x:Key="BoolToThick" />
-        
+
+        <!-- Debugger-like ScrollBar style (thin track, rounded thumb) -->
+        <Style x:Key="DebuggerScrollBar" TargetType="ScrollBar">
+            <Setter Property="Width" Value="10"/>
+            <Setter Property="Margin" Value="0,0,2,0"/>
+            <Setter Property="Background" Value="#303030"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ScrollBar">
+                        <Grid Background="{TemplateBinding Background}" SnapsToDevicePixels="True">
+                            <Track x:Name="PART_Track"
+                                   IsDirectionReversed="true"
+                                   SnapsToDevicePixels="True">
+                                <Track.Thumb>
+                                    <Thumb Background="#909090"
+                                           BorderBrush="#B0B0B0"
+                                           BorderThickness="0"
+                                           SnapsToDevicePixels="True">
+                                        <Thumb.Template>
+                                            <ControlTemplate TargetType="Thumb">
+                                                <Border CornerRadius="6" Background="{TemplateBinding Background}"/>
+                                            </ControlTemplate>
+                                        </Thumb.Template>
+                                    </Thumb>
+                                </Track.Thumb>
+                            </Track>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- Consistent Block Toolbar Button Style -->
         <Style x:Key="ConsistentBlockButton" TargetType="Button">
             <Setter Property="FontFamily" Value="Segoe UI"/>
@@ -25,14 +56,14 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="border" 
-                                Background="{TemplateBinding Background}" 
-                                CornerRadius="6" 
+                        <Border x:Name="border"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="6"
                                 Padding="{TemplateBinding Padding}">
                             <Border.Effect>
                                 <DropShadowEffect BlurRadius="6" Direction="270" Opacity="0.3" ShadowDepth="1"/>
                             </Border.Effect>
-                            <ContentPresenter HorizontalAlignment="Center" 
+                            <ContentPresenter HorizontalAlignment="Center"
                                               VerticalAlignment="Center"
                                               Content="{TemplateBinding Content}"/>
                         </Border>
@@ -105,10 +136,10 @@
             </WrapPanel>
         </Border>
         
-        <!-- Modern Block List Sidebar -->
+        <!-- Modern Block List Sidebar (single-scroll inside the sidebar area only) -->
         <Border Grid.Row="1" Grid.Column="0" Background="#C0353535" CornerRadius="8" Padding="8" Margin="0,0,4,0">
-            <Grid>
-            <Grid.RowDefinitions>
+            <Grid UseLayoutRounding="True" SnapsToDevicePixels="True">
+                <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
@@ -116,9 +147,9 @@
                 <!-- Modern Search Box -->
                 <Border Grid.Row="0" Background="#A0404040" CornerRadius="6" Padding="8" Margin="0,0,0,8">
                     <TextBox x:Name="SearchTextBox"
-                     TextChanged="SearchTextBox_TextChanged"
-                     VerticalAlignment="Center"
-                     ToolTip="Search blocks by name or label"
+                             TextChanged="SearchTextBox_TextChanged"
+                             VerticalAlignment="Center"
+                             ToolTip="Search blocks by name or label"
                              Background="Transparent"
                              BorderThickness="0"
                              Foreground="White"
@@ -127,45 +158,55 @@
                              mah:TextBoxHelper.UseFloatingWatermark="False"/>
                 </Border>
 
-                <!-- Compact Block List with Proper Spacing -->
-                <ScrollViewer Grid.Row="1" 
+                <!-- Single scroll area for the block list with Debugger-like scrollbar -->
+                <ScrollViewer Grid.Row="1"
                               HorizontalScrollBarVisibility="Disabled"
                               VerticalScrollBarVisibility="Auto"
                               Background="Transparent"
-                              Padding="0,0,8,0">
-                    <ItemsControl x:Name="BlocksItemsControl" Margin="0,0,0,4" ItemsSource="{Binding Stack}">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                                <StackPanel />
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
+                              Padding="0,0,8,0"
+                              UseLayoutRounding="True"
+                              SnapsToDevicePixels="True">
+                    <ScrollViewer.Resources>
+                        <Style TargetType="ScrollBar" BasedOn="{StaticResource DebuggerScrollBar}"/>
+                    </ScrollViewer.Resources>
+                    <ItemsControl x:Name="BlocksItemsControl"
+                                  Margin="0,0,0,4"
+                                  ItemsSource="{Binding Stack}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <VirtualizingStackPanel Orientation="Vertical"
+                                                        VirtualizingPanel.IsVirtualizing="True"
+                                                        VirtualizingPanel.VirtualizationMode="Recycling"
+                                                        VirtualizingPanel.ScrollUnit="Pixel"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
                                 <Button Style="{StaticResource MahApps.Styles.Button}"
                                         BorderBrush="{Binding Selected, Converter={StaticResource ResourceKey=BoolToThick}, ConverterParameter='#FF1E90FF;Transparent'}"
-                                BorderThickness="{Binding Selected, Converter={StaticResource ResourceKey=BoolToThick}}"
-                                Background="{Binding BackgroundColor}"
+                                        BorderThickness="{Binding Selected, Converter={StaticResource ResourceKey=BoolToThick}}"
+                                        Background="{Binding BackgroundColor}"
                                         HorizontalAlignment="Stretch"
                                         Height="36"
                                         Margin="0,1"
                                         mah:ControlsHelper.CornerRadius="6"
-                                Tag="{Binding}"
-                                Click="SelectBlock">
+                                        Tag="{Binding}"
+                                        Click="SelectBlock">
                                     <TextBlock MouseDown="SelectBlock"
                                                FontSize="10"
                                                FontWeight="SemiBold"
-                                    HorizontalAlignment="Center"
-                                    TextAlignment="Center"
-                                    Foreground="{Binding ForegroundColor}"
-                                    Text="{Binding Label}"
-                                    Tag="{Binding}"
+                                               HorizontalAlignment="Center"
+                                               TextAlignment="Center"
+                                               Foreground="{Binding ForegroundColor}"
+                                               Text="{Binding Label}"
+                                               Tag="{Binding}"
                                                TextWrapping="Wrap"
                                                Padding="6,4" />
-                            </Button>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </ScrollViewer>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
             </Grid>
         </Border>
         
@@ -189,12 +230,19 @@
                    Grid.Column="2" 
                    Grid.Row="0"/>
 
-        <!-- Simple Block Information Content Area -->
+        <!-- Simple Block Information Content Area (single-scroll for info pane only, Debugger-like scrollbar) -->
         <ScrollViewer HorizontalScrollBarVisibility="Disabled"
                       VerticalScrollBarVisibility="Auto"
                       x:Name="blockInfo"
                       Grid.Row="1"
-                      Grid.Column="2" />
+                      Grid.Column="2"
+                      Padding="0,0,8,0"
+                      UseLayoutRounding="True"
+                      SnapsToDevicePixels="True">
+            <ScrollViewer.Resources>
+                <Style TargetType="ScrollBar" BasedOn="{StaticResource DebuggerScrollBar}"/>
+            </ScrollViewer.Resources>
+        </ScrollViewer>
 
     </Grid>
 </Page>

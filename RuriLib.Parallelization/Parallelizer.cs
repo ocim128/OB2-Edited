@@ -41,7 +41,19 @@ public abstract class Parallelizer<TInput, TOutput> : IDisposable
     /// Retrieves the current progress in the interval [0, 1].
     /// The progress is -1 if the manager hasn't been started yet.
     /// </summary>
-    public float Progress => (float)(processed + skip) / totalAmount;
+    public float Progress
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get
+        {
+            var tot = totalAmount;
+            if (tot <= 0) return -1f;
+            // Use volatile read to avoid torn reads across threads
+            var proc = Volatile.Read(ref processed);
+            var value = (float)(proc + skip) / tot;
+            return value > 1f ? 1f : value;
+        }
+    }
 
     /// <summary>
     /// Retrieves the completed work per minute.
@@ -71,8 +83,12 @@ public abstract class Parallelizer<TInput, TOutput> : IDisposable
     {
         get
         {
-            var minutes = (totalAmount * (1 - Progress)) / CPM;
-            return CPM > 0 && minutes < TimeSpan.MaxValue.TotalMinutes
+            var cpm = CPM;
+            var prog = Progress;
+            if (cpm <= 0 || prog < 0f) return DateTime.MaxValue;
+            var remaining = (double)totalAmount * (1d - prog);
+            var minutes = remaining / cpm;
+            return minutes < TimeSpan.MaxValue.TotalMinutes
                 ? StartTime + TimeSpan.FromMinutes(minutes)
                 : DateTime.MaxValue;
         }
@@ -81,7 +97,7 @@ public abstract class Parallelizer<TInput, TOutput> : IDisposable
     /// <summary>
     /// The time elapsed since the start of the session.
     /// </summary>
-    public TimeSpan Elapsed => TimeSpan.FromMilliseconds(stopwatch.ElapsedMilliseconds);
+    public TimeSpan Elapsed => stopwatch.Elapsed;
 
     /// <summary>
     /// The expected remaining time to finish all the work.
@@ -254,25 +270,27 @@ public abstract class Parallelizer<TInput, TOutput> : IDisposable
                 return;
             }
 
-            // Try to execute the work and report the result
             try
             {
                 var workResult = await workFunction.Invoke(item, hardCTS.Token).ConfigureAwait(false);
                 OnNewResult(new ResultDetails<TInput, TOutput>(item, workResult));
                 hardCTS.Token.ThrowIfCancellationRequested();
             }
-            // Catch and report any exceptions
+            catch (OperationCanceledException) when (hardCTS.IsCancellationRequested || softCTS.IsCancellationRequested)
+            {
+                // Swallow expected cancellations to avoid noisy TaskError spam
+            }
             catch (Exception ex)
             {
                 OnTaskError(new ErrorDetails<TInput>(item, ex));
             }
-            // Report the progress, update the CPM and release the semaphore slot
             finally
             {
+                // Use TickCount64 to avoid 24.9-day wraparound issues
                 _ = Interlocked.Increment(ref processed);
                 OnProgressChanged(Progress);
 
-                checkedTimestamps.Add(Environment.TickCount);
+                checkedTimestamps.Add(unchecked((int)Environment.TickCount64));
                 UpdateCPM();
             }
         });
@@ -364,10 +382,16 @@ public abstract class Parallelizer<TInput, TOutput> : IDisposable
     /// <param name="cancellationToken"></param>
     public async Task WaitCompletion(CancellationToken cancellationToken = default)
     {
+        // Fast-path: if idle, return immediately
+        if (Status == ParallelizerStatus.Idle) return;
+
+        // Wait with exponential backoff to reduce wakeups under long waits
+        var delay = 50;
         while (Status != ParallelizerStatus.Idle)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            await Task.Delay(100, cancellationToken).ConfigureAwait(false);
+            await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
+            delay = Math.Min(delay * 2, 500);
         }
     }
     #endregion
@@ -384,25 +408,56 @@ public abstract class Parallelizer<TInput, TOutput> : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     protected void UpdateCPM()
     {
-        // Update CPM (only 1 thread can enter)
-        if (Monitor.TryEnter(cpmLock))
+        // Attempt to update CPM without blocking; if another thread is updating, skip this tick
+        if (!Monitor.TryEnter(cpmLock))
         {
-            try
+            return;
+        }
+
+        try
+        {
+            const int windowMs = 60000;
+            int write = 0;
+            var nowTicks = unchecked((int)Environment.TickCount64);
+            var list = checkedTimestamps;
+
+            for (int read = 0; read < list.Count; read++)
             {
-                var now = DateTime.Now;
-                checkedTimestamps = checkedTimestamps.Where(static t => Environment.TickCount - t < 60000).ToList();
-                CPM = checkedTimestamps.Count;
+                int age = unchecked(nowTicks - list[read]);
+                if (age >= 0 && age < windowMs)
+                {
+                    list[write++] = list[read];
+                }
             }
-            finally
+            if (write < list.Count)
             {
-                Monitor.Exit(cpmLock);
+                list.RemoveRange(write, list.Count - write);
             }
+            CPM = list.Count;
+        }
+        finally
+        {
+            Monitor.Exit(cpmLock);
         }
     }
 
     /// <summary>
     ///
     /// </summary>
-    public void Dispose() => throw new NotImplementedException();
+    public void Dispose()
+    {
+        try
+        {
+            softCTS?.Dispose();
+        }
+        catch { }
+        try
+        {
+            hardCTS?.Dispose();
+        }
+        catch { }
+        stopwatch?.Stop();
+        Status = ParallelizerStatus.Idle;
+    }
     #endregion
 }

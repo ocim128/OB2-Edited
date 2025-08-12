@@ -4,8 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using RuriLib.Helpers;
-using RuriLib.Legacy.Models;
-using RuriLib.Legacy.LS;
+
 using RuriLib.Logging;
 using RuriLib.Models.Bots;
 using RuriLib.Models.Captchas;
@@ -44,18 +43,12 @@ public class BotExecutionCoordinator
             return CreateInvalidResult(botData);
         }
 
-        // Initialize legacy variables if needed
-        if (input.IsLegacy)
-        {
-            InitializeLegacyVariables(botData, input);
-        }
-
         var outputVariables = new Dictionary<string, object>();
         SetupBotData(botData, input);
 
         // Main execution loop with retry logic
         var executionResult = await ExecuteWithRetryLogicAsync(input, outputVariables, cancellationToken);
-        
+
         return new CheckResult
         {
             BotData = botData,
@@ -65,7 +58,7 @@ public class BotExecutionCoordinator
 
     private static bool IsDataValid(BotData botData)
     {
-        return botData.Line.IsValid && 
+        return botData.Line.IsValid &&
                botData.Line.RespectsRules(botData.ConfigSettings.DataSettings.DataRules);
     }
 
@@ -79,28 +72,7 @@ public class BotExecutionCoordinator
         };
     }
 
-    private static void InitializeLegacyVariables(BotData botData, MultiRunInput input)
-    {
-        var slices = new List<Variable>();
 
-        foreach (var slice in botData.Line.GetVariables())
-        {
-            var sliceValue = botData.ConfigSettings.DataSettings.UrlEncodeDataAfterSlicing
-                ? Uri.EscapeDataString(slice.AsString())
-                : slice.AsString();
-
-            slices.Add(new StringVariable(sliceValue) { Name = slice.Name });
-        }
-
-        var legacyVariables = new VariablesList(slices);
-
-        foreach (var customInput in botData.ConfigSettings.InputSettings.CustomInputs)
-        {
-            legacyVariables.Set(new StringVariable(customInput.DefaultAnswer) { Name = customInput.VariableName });
-        }
-
-        botData.SetObject("legacyVariables", legacyVariables);
-    }
 
     private static void SetupBotData(BotData botData, MultiRunInput input)
     {
@@ -110,26 +82,26 @@ public class BotExecutionCoordinator
         botData.BOTNUM = botIndex + 1;
     }
 
-    private async Task<ExecutionResult> ExecuteWithRetryLogicAsync(MultiRunInput input, 
+    private async Task<ExecutionResult> ExecuteWithRetryLogicAsync(MultiRunInput input,
         Dictionary<string, object> outputVariables, CancellationToken cancellationToken)
     {
         var botData = input.BotData;
-        var maxRetries = 10; // Prevent infinite loops
+        var maxRetries = 100; // Allow more retries for ERROR/RETRY statuses
         var retryCount = 0;
 
         while (retryCount < maxRetries)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            
+
             var result = await ExecuteSingleAttemptAsync(input, outputVariables, cancellationToken);
-            
+
             if (ShouldRetry(result.Status, botData, input.Job))
             {
                 retryCount++;
                 await HandleRetryAsync(botData, result.Status, input.Job);
                 continue;
             }
-            
+
             if (ShouldHandleBanOrError(result.Status, botData, input.Job))
             {
                 retryCount++;
@@ -138,20 +110,20 @@ public class BotExecutionCoordinator
                     continue; // Retry
                 }
             }
-            
+
             return result;
         }
-        
+
         // Max retries exceeded
         botData.STATUS = BotStatus.Error;
         return new ExecutionResult { Status = botData.STATUS, OutputVariables = outputVariables };
     }
 
-    private async Task<ExecutionResult> ExecuteSingleAttemptAsync(MultiRunInput input, 
+    private async Task<ExecutionResult> ExecuteSingleAttemptAsync(MultiRunInput input,
         Dictionary<string, object> outputVariables, CancellationToken cancellationToken)
     {
         var botData = input.BotData;
-        
+
         try
         {
             botData.ResetState();
@@ -169,7 +141,7 @@ public class BotExecutionCoordinator
 
             // Execute the config
             var executionOutputs = await _executionHandler.ExecuteAsync(botData, input, cancellationToken);
-            
+
             // Merge outputs
             foreach (var kvp in executionOutputs)
             {
@@ -193,7 +165,7 @@ public class BotExecutionCoordinator
 
     private static bool ShouldRetry(string status, BotData botData, MultiRunJob job)
     {
-        if (status != BotStatus.Retry)
+        if (status is not BotStatus.Retry and not BotStatus.Error)
         {
             return false;
         }
@@ -211,7 +183,7 @@ public class BotExecutionCoordinator
     {
         job.DebugLog($"RETRY ({botData.Line.Data})({botData.Proxy})");
         job.Statistics.IncrementRetried();
-        
+
         // Small delay to prevent tight retry loops
         await Task.Delay(100);
     }

@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 
 namespace OpenBullet2.Core.Models.Settings;
 
@@ -12,8 +12,7 @@ public enum ConfigSection
     Stacker,
     LoliCode,
     Settings,
-    CSharpCode,
-    LoliScript
+    CSharpCode
 }
 
 /// <summary>

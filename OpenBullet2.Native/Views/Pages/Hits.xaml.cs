@@ -184,7 +184,7 @@ namespace OpenBullet2.Native.Views.Pages
             var wordlistType = rlSettingsService.Environment.RecognizeWordlistType(firstHit.Data);
 
             // Get the config
-            var config = configService.Configs.FirstOrDefault(c => c.Metadata.Name == firstHit.ConfigName);
+            var config = configService.GetConfigsList().FirstOrDefault(c => c.Metadata.Name == firstHit.ConfigName);
 
             // If we cannot find a config with that id anymore, don't set it
             if (config == null)

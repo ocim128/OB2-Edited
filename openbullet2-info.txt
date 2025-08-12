@@ -64,7 +64,7 @@ When a config is selected, additional navigation appears:
 - **LoliCode** - Text-based scripting
 - **Settings** - Config-specific parameters
 - **C# Code** - Advanced C# scripting
-- **LoliScript** - Legacy scripting format
+
 
 ### Page-Level UI Components
 
@@ -320,4 +320,4 @@ JobStatus.Waiting    → Can skip wait, show countdown
 - **Filtering**: Multiple hit type filters
 - **Export Capabilities**: Hit data export functionality
 
-This documentation provides a comprehensive understanding of OpenBullet2 Native's architecture, focusing specifically on the desktop application's UI/UX design, real-time capabilities, and integration with the underlying automation engine. 
+This documentation provides a comprehensive understanding of OpenBullet2 Native's architecture, focusing specifically on the desktop application's UI/UX design, real-time capabilities, and integration with the underlying automation engine.

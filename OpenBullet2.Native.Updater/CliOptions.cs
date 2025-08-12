@@ -1,11 +1,11 @@
-﻿using CommandLine;
+using CommandLine;
 
 namespace OpenBullet2.Native.Updater;
 
 public class CliOptions
 {
-    [Option('r', "repository", Required = false, HelpText = "The repository, e.g. openbullet/OpenBullet2")]
-    public string Repository { get; set; } = "openbullet/OpenBullet2";
+    [Option('r', "repository", Required = false, HelpText = "The repository, e.g. ocim128/OB2-Edited")]
+    public string Repository { get; set; } = "ocim128/OB2-Edited";
     
     [Option('u', "username", Required = false, HelpText = "The username to authenticate to the repository if private")]
     public string? Username { get; set; }

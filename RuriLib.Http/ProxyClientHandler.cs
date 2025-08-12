@@ -273,7 +273,7 @@ public class ProxyClientHandler(ProxyClient proxyClient) : HttpMessageHandler, I
 
     private Task<HttpResponseMessage> ReceiveDataAsync(HttpRequestMessage request,
         CancellationToken cancellationToken) =>
-        new HttpResponseMessageBuilder(1024, CookieContainer, request.RequestUri).BuildResponseAsync(request, pipe.Reader, ReadResponseContent, cancellationToken);
+        new HttpResponseMessageBuilder(CookieContainer, request.RequestUri).BuildResponseAsync(request, pipe.Reader, ReadResponseContent, cancellationToken);
 
     private async Task CreateConnection(HttpRequestMessage request, CancellationToken cancellationToken)
     {

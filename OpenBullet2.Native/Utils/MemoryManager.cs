@@ -23,12 +23,11 @@ namespace OpenBullet2.Native.Utils
         {
             try
             {
-                // Configure GC for low-latency scenarios
+                // Prefer Interactive for UI apps; avoid SustainedLowLatency which can starve GC.
                 GCSettings.LatencyMode = GCLatencyMode.Interactive;
 
-                // Force initial garbage collections to reduce startup overhead
-                GC.Collect(0, GCCollectionMode.Optimized);
-                GC.Collect(1, GCCollectionMode.Optimized);
+                // Do a single optimized collection at startup; avoid multiple forced collections.
+                GC.Collect(GC.MaxGeneration, GCCollectionMode.Optimized, blocking: false, compacting: false);
                 GC.WaitForPendingFinalizers();
 
                 Debug.WriteLine("Applied garbage collection optimizations for low-spec mode");
@@ -44,20 +43,26 @@ namespace OpenBullet2.Native.Utils
         /// </summary>
         public static void TryCollectGarbage()
         {
+            // Throttle collections by time and memory pressure
+            var shouldCollect = false;
             lock (_lockObject)
             {
                 var now = DateTime.UtcNow;
-                if (now - _lastGcTime < _minGcInterval)
-                    return;
-
-                _lastGcTime = now;
+                if (now - _lastGcTime >= _minGcInterval && IsMemoryPressureHigh())
+                {
+                    _lastGcTime = now;
+                    shouldCollect = true;
+                }
             }
 
+            if (!shouldCollect) return;
+
+            // Use a single background task without unbounded fan-out
             Task.Run(() =>
             {
                 try
                 {
-                    GC.Collect(0, GCCollectionMode.Optimized);
+                    GC.Collect(GC.MaxGeneration, GCCollectionMode.Optimized, blocking: false, compacting: false);
                     GC.WaitForPendingFinalizers();
                 }
                 catch (Exception ex)
@@ -95,17 +100,18 @@ namespace OpenBullet2.Native.Utils
             {
                 var (workingSet, managedMemory) = GetMemoryUsage();
 
-                // More adaptive memory pressure detection based on available system memory
                 var computerInfo = new ComputerInfo();
                 var totalMemory = computerInfo.TotalPhysicalMemory;
                 var availableMemory = computerInfo.AvailablePhysicalMemory;
 
-                // Calculate percentage-based thresholds
-                var memoryUsagePercent = (double)(totalMemory - availableMemory) / totalMemory * 100;
-                var managedMemoryPercent = (double)managedMemory / totalMemory * 100;
+                if (totalMemory == 0) return false;
 
-                // Use percentage-based thresholds instead of fixed values
-                return memoryUsagePercent > 85 || managedMemoryPercent > 50 || workingSet > totalMemory * 0.8;
+                // Calculate percentage-based thresholds
+                var usedPercent = (double)(totalMemory - availableMemory) / totalMemory * 100.0;
+                var managedPercent = (double)managedMemory / totalMemory * 100.0;
+
+                // Trigger when overall memory is high or managed heap proportion is excessive relative to system RAM
+                return usedPercent >= 85.0 || managedPercent >= 40.0 || workingSet >= totalMemory * 0.85;
             }
             catch
             {
@@ -148,20 +154,22 @@ namespace OpenBullet2.Native.Utils
 
                 using var process = Process.GetCurrentProcess();
                 var currentTotalProcessorTime = process.TotalProcessorTime;
-                var currentTime = now;
 
                 if (_lastCpuTime != DateTime.MinValue)
                 {
                     var cpuUsedMs = (currentTotalProcessorTime - _lastTotalProcessorTime).TotalMilliseconds;
-                    var totalMsPassed = (currentTime - _lastCpuTime).TotalMilliseconds;
-                    var cpuUsageTotal = cpuUsedMs / (Environment.ProcessorCount * totalMsPassed);
-                    _lastCpuUsage = (float)(cpuUsageTotal * 100);
+                    var totalMsPassed = (now - _lastCpuTime).TotalMilliseconds;
+                    if (totalMsPassed > 1)
+                    {
+                        var cpuUsageTotal = cpuUsedMs / (Environment.ProcessorCount * totalMsPassed);
+                        _lastCpuUsage = (float)Math.Clamp(cpuUsageTotal * 100.0, 0.0, 100.0);
+                    }
                 }
 
                 _lastTotalProcessorTime = currentTotalProcessorTime;
-                _lastCpuTime = currentTime;
+                _lastCpuTime = now;
 
-                return Math.Min(100f, Math.Max(0f, _lastCpuUsage));
+                return _lastCpuUsage;
             }
             catch
             {
@@ -186,10 +194,10 @@ namespace OpenBullet2.Native.Utils
                     return _lastMemoryInfo;
                 }
 
-                var computerInfo = new Microsoft.VisualBasic.Devices.ComputerInfo();
+                var computerInfo = new ComputerInfo();
                 var totalMemory = (long)computerInfo.TotalPhysicalMemory;
                 var availableMemory = (long)computerInfo.AvailablePhysicalMemory;
-                var usagePercent = (float)(100.0 * (totalMemory - availableMemory) / totalMemory);
+                var usagePercent = totalMemory == 0 ? 0f : (float)(100.0 * (totalMemory - availableMemory) / totalMemory);
 
                 _lastMemoryInfo = (totalMemory, availableMemory, usagePercent);
                 _lastMemoryTime = now;
@@ -219,14 +227,13 @@ namespace OpenBullet2.Native.Utils
                     return _lastAppMemoryInfo;
                 }
 
-                var process = Process.GetCurrentProcess();
+                using var process = Process.GetCurrentProcess();
                 var workingSet = process.WorkingSet64;
                 var managedMemory = GC.GetTotalMemory(false);
-                
-                // Calculate what percentage of system memory this application is using
-                var computerInfo = new Microsoft.VisualBasic.Devices.ComputerInfo();
+
+                var computerInfo = new ComputerInfo();
                 var totalSystemMemory = (long)computerInfo.TotalPhysicalMemory;
-                var systemUsagePercent = (float)(100.0 * workingSet / totalSystemMemory);
+                var systemUsagePercent = totalSystemMemory == 0 ? 0f : (float)(100.0 * workingSet / totalSystemMemory);
 
                 _lastAppMemoryInfo = (workingSet, managedMemory, systemUsagePercent);
                 _lastAppMemoryTime = now;

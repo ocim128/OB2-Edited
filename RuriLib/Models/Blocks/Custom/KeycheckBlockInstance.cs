@@ -1,4 +1,4 @@
-﻿using RuriLib.Exceptions;
+using RuriLib.Exceptions;
 using RuriLib.Extensions;
 using RuriLib.Helpers.CSharp;
 using RuriLib.Helpers.LoliCode;
@@ -20,7 +20,7 @@ namespace RuriLib.Models.Blocks.Custom
         public KeycheckBlockInstance(KeycheckBlockDescriptor descriptor)
             : base(descriptor)
         {
-            
+
         }
 
         public override string ToLC(bool printDefaultParams = false)

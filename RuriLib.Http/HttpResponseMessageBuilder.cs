@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Net;
 using System.Text;
@@ -37,10 +37,9 @@ internal sealed class HttpResponseMessageBuilder : IAsyncDisposable
     /// <summary>
     /// Initializes a new instance of the HttpResponseMessageBuilder class.
     /// </summary>
-    /// <param name="bufferSize">The size of the buffer for reading data.</param>
     /// <param name="cookies">The cookie container for handling cookies.</param>
     /// <param name="uri">The URI of the request.</param>
-    public HttpResponseMessageBuilder(int bufferSize, CookieContainer cookies = null, Uri uri = null)
+    public HttpResponseMessageBuilder(CookieContainer cookies = null, Uri uri = null)
     {
         _cookies = cookies;
         _uri = uri;

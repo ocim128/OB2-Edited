@@ -29,8 +29,7 @@ using RuriLib.Helpers;
 using IronPython.Compiler;
 using IronPython.Runtime;
 using RuriLib.Models.Captchas;
-using RuriLib.Legacy.Models;
-using RuriLib.Legacy.LS;
+
 using RuriLib.Models.Variables;
 using RuriLib.Models.Jobs.Execution;
 using RuriLib.Models.Jobs.Statistics;
@@ -81,8 +80,6 @@ public class MultiRunJob(RuriLibSettingsService settings, PluginRepository plugi
     private BotExecutionCoordinator _executionCoordinator;
     private Timer _tickTimer;
     private dynamic _globalVariables;
-    private VariablesList _legacyGlobalVariables;
-    private Dictionary<string, string> _legacyGlobalCookies;
     private Dictionary<string, ConfigResource> _resources;
     private HttpClient _httpClient;
     private AsyncLocker _asyncLocker;
@@ -95,7 +92,7 @@ public class MultiRunJob(RuriLibSettingsService settings, PluginRepository plugi
     private static readonly char[] _separator = ['\r', '\n'];
     private readonly object _lockObject = new();
     private bool _disposed;
-    
+
     // Lazy initialization for expensive resources
     private Lazy<dynamic> _pythonEngine;
     private DateTime _lastProxyStatsUpdate = DateTime.MinValue;
@@ -212,10 +209,10 @@ public class MultiRunJob(RuriLibSettingsService settings, PluginRepository plugi
         if (Config?.Settings?.DataSettings == null) throw new ArgumentNullException(nameof(Config));
         if (DataPool == null) throw new ArgumentNullException(nameof(DataPool));
         if (Skip >= DataPool.Size) throw new ArgumentException("Skip must be smaller than data pool size");
-        
+
         if (ShouldUseProxies(ProxyMode, Config.Settings.ProxySettings) && (ProxySources?.Count ?? 0) == 0)
             throw new ArgumentNullException(nameof(ProxySources));
-            
+
         if (!Config.Settings.DataSettings.AllowedWordlistTypes.Contains(DataPool.WordlistType))
             throw new NotSupportedException($"Config does not support wordlist type: {DataPool.WordlistType}");
     }
@@ -248,16 +245,19 @@ public class MultiRunJob(RuriLibSettingsService settings, PluginRepository plugi
             new ProxyPoolOptions { AllowedTypes = Config.Settings.ProxySettings.AllowedProxyTypes };
         _proxyPool = new ProxyPool(ProxySources, proxyPoolOptions);
 
+        // Use AsyncLocker disposable to guarantee balanced release and reduce error-prone patterns
+        IDisposable releaser = null;
         try
         {
-            await _asyncLocker
+            releaser = await _asyncLocker
                 .Acquire(typeof(ProxyPool), nameof(ProxyPool.ReloadAllAsync), cancellationToken)
                 .ConfigureAwait(false);
+
             await _proxyPool.ReloadAllAsync(ShuffleProxies, cancellationToken).ConfigureAwait(false);
         }
         finally
         {
-            _asyncLocker.Release(typeof(ProxyPool), nameof(ProxyPool.ReloadAllAsync));
+            releaser?.Dispose();
         }
 
         var executionHandler = ExecutionHandlerFactory.CreateHandler(Config.Mode);
@@ -308,7 +308,7 @@ public class MultiRunJob(RuriLibSettingsService settings, PluginRepository plugi
             var type = assembly.GetType("RuriLib.CompiledConfig");
             _dllMethod = type.GetMember("Execute")[0] as MethodInfo;
         }
-        else if (Config.Mode != ConfigMode.Legacy)
+        else
         {
             switch (Config.Mode)
             {
@@ -333,8 +333,6 @@ public class MultiRunJob(RuriLibSettingsService settings, PluginRepository plugi
 
         // Initialize basic globals
         _globalVariables = new ExpandoObject();
-        _legacyGlobalVariables = new();
-        _legacyGlobalCookies = [];
         _httpClient = new();
 
         // Lazy initialization of Python engine
@@ -407,13 +405,11 @@ public class MultiRunJob(RuriLibSettingsService settings, PluginRepository plugi
         var useProxies = ShouldUseProxies(ProxyMode, Config.Settings.ProxySettings);
         var configMode = Config.Mode;
         var isDll = configMode == ConfigMode.DLL;
-        var isLegacy = configMode == ConfigMode.Legacy;
         var configSettings = Config.Settings;
-        var loliScript = Config.LoliScript;
         var customAnswers = CustomInputsAnswers;
-        
+
         long index = 0;
-        
+
         // Use yield return to avoid large array allocation
         foreach (var line in DataPool.DataList)
         {
@@ -424,12 +420,8 @@ public class MultiRunJob(RuriLibSettingsService settings, PluginRepository plugi
                 BotData = new BotData(Providers, configSettings, new BotLogger(),
                     new DataLine(line, wordlistType), null, useProxies),
                 Globals = _globalVariables,
-                LegacyLoliScript = loliScript,
-                LegacyGlobals = _legacyGlobalVariables,
-                LegacyGlobalCookies = _legacyGlobalCookies,
                 Script = _script,
                 IsDLL = isDll,
-                IsLegacy = isLegacy,
                 DLLMethod = _dllMethod,
                 CustomInputsAnswers = customAnswers,
                 Index = index++
@@ -542,14 +534,18 @@ public class MultiRunJob(RuriLibSettingsService settings, PluginRepository plugi
     #region Public Methods
     public async Task FetchProxiesFromSources(CancellationToken cancellationToken = default)
     {
+        IDisposable releaser = null;
         try
         {
-            await _asyncLocker.Acquire(typeof(ProxyPool), nameof(ProxyPool.ReloadAllAsync), cancellationToken).ConfigureAwait(false);
+            releaser = await _asyncLocker
+                .Acquire(typeof(ProxyPool), nameof(ProxyPool.ReloadAllAsync), cancellationToken)
+                .ConfigureAwait(false);
+
             await _proxyPool.ReloadAllAsync(ShuffleProxies, cancellationToken).ConfigureAwait(false);
         }
         finally
         {
-            _asyncLocker.Release(typeof(ProxyPool), nameof(ProxyPool.ReloadAllAsync));
+            releaser?.Dispose();
         }
     }
     #endregion Public Methods
@@ -613,10 +609,13 @@ public class MultiRunJob(RuriLibSettingsService settings, PluginRepository plugi
             {
                 if (_proxyPool is not null)
                 {
+                    IDisposable releaser = null;
                     try
                     {
-                        await _asyncLocker.Acquire(typeof(ProxyPool), nameof(ProxyPool.ReloadAllAsync), CancellationToken.None)
+                        releaser = await _asyncLocker
+                            .Acquire(typeof(ProxyPool), nameof(ProxyPool.ReloadAllAsync), CancellationToken.None)
                             .ConfigureAwait(false);
+
                         await _proxyPool.ReloadAllAsync(ShuffleProxies).ConfigureAwait(false);
                     }
                     catch
@@ -625,7 +624,7 @@ public class MultiRunJob(RuriLibSettingsService settings, PluginRepository plugi
                     }
                     finally
                     {
-                        _asyncLocker.Release(typeof(ProxyPool), nameof(ProxyPool.ReloadAllAsync));
+                        releaser?.Dispose();
                     }
                 }
             }), null, (int)PeriodicReloadInterval.TotalMilliseconds, (int)PeriodicReloadInterval.TotalMilliseconds);
@@ -683,6 +682,15 @@ public class MultiRunJob(RuriLibSettingsService settings, PluginRepository plugi
                 break;
             case "INVALID":
                 Statistics.IncrementInvalid();
+                break;
+            case "ERROR":
+                Statistics.IncrementErrors();
+                break;
+            case "RETRY":
+                Statistics.IncrementRetried();
+                break;
+            case "BAN":
+                Statistics.IncrementBanned();
                 break;
             default:
                 Statistics.IncrementCustom();
@@ -873,10 +881,6 @@ public struct MultiRunInput
     public ProxyPool ProxyPool { get; set; }
     public Script Script { get; set; }
     public bool IsDLL { get; set; }
-    public bool IsLegacy { get; set; }
-    public string LegacyLoliScript { get; set; }
-    public VariablesList LegacyGlobals { get; set; }
-    public Dictionary<string, string> LegacyGlobalCookies { get; set; }
     public MethodInfo DLLMethod { get; set; }
     public Dictionary<string, string> CustomInputsAnswers { get; set; }
     public long Index { get; set; }

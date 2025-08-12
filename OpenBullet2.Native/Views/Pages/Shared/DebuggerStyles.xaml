@@ -49,21 +49,28 @@
         </Setter>
     </Style>
 
-    <!-- Simplified Start Button Style -->
-    <Style x:Key="PerfectStartButton" TargetType="Button">
-        <Setter Property="Background" Value="#10B981" />
-        <Setter Property="Foreground" Value="White" />
-        <Setter Property="BorderThickness" Value="0" />
-        <Setter Property="FontSize" Value="12" />
+    <!-- Use global consolidated action buttons from App.xaml -->
+    <Style x:Key="PerfectStartButton" TargetType="Button" BasedOn="{StaticResource BaseActionButton}">
+        <Setter Property="Background">
+            <Setter.Value>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                    <GradientStop Color="#10B981" Offset="0"/>
+                    <GradientStop Color="#059669" Offset="1"/>
+                </LinearGradientBrush>
+            </Setter.Value>
+        </Setter>
         <Setter Property="Content" Value="▶ Start" />
     </Style>
 
-    <!-- Simplified Stop Button Style -->
-    <Style x:Key="PerfectStopButton" TargetType="Button">
-        <Setter Property="Background" Value="#EF4444" />
-        <Setter Property="Foreground" Value="White" />
-        <Setter Property="BorderThickness" Value="0" />
-        <Setter Property="FontSize" Value="12" />
+    <Style x:Key="PerfectStopButton" TargetType="Button" BasedOn="{StaticResource BaseActionButton}">
+        <Setter Property="Background">
+            <Setter.Value>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                    <GradientStop Color="#EF4444" Offset="0"/>
+                    <GradientStop Color="#DC2626" Offset="1"/>
+                </LinearGradientBrush>
+            </Setter.Value>
+        </Setter>
         <Setter Property="Content" Value="⏹ Stop" />
     </Style>
 

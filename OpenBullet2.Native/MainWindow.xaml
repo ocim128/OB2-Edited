@@ -28,11 +28,6 @@
         ShowCloseButton="True"
         Icon="/Images/logohq_square_padded.png"
         UseLayoutRounding="True"
-        TextOptions.TextFormattingMode="Display"
-        TextOptions.TextRenderingMode="ClearType"
-        TextOptions.TextHintingMode="Fixed"
-        RenderOptions.BitmapScalingMode="HighQuality"
-        RenderOptions.ClearTypeHint="Enabled"
         SnapsToDevicePixels="True"
         SizeChanged="OnWindowSizeChanged"
         Loaded="OnWindowLoaded">
@@ -92,15 +87,16 @@
                         Orientation="Horizontal" 
                         VerticalAlignment="Center">
                     <StackPanel.Resources>
+                        <!-- Optimized consolidated TextBlock style -->
                         <Style TargetType="TextBlock">
                             <Setter Property="FontWeight" Value="Medium" />
                             <Setter Property="Foreground" Value="#FFCCCCCC" />
                             <Setter Property="FontFamily" Value="Segoe UI" />
                             <Setter Property="VerticalAlignment" Value="Center" />
-                            <Setter Property="Background" Value="Transparent" />
+                            <Setter Property="Margin" Value="15,8" />
+                            <Setter Property="Padding" Value="12,10" />
+                            <Setter Property="FontSize" Value="12" />
                             <Setter Property="Cursor" Value="Hand" />
-                            <Setter Property="Padding" Value="12,8" />
-                            <Setter Property="Margin" Value="2,4" />
                             <Style.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
                                     <Setter Property="Background" Value="#FF3A82F7" />
@@ -122,6 +118,7 @@
                     <TextBlock x:Name="menuOptionSettings" Text="SETTINGS" MouseDown="HandleNavigation" ToolTipService.ToolTip="OpenBullet settings (Ctrl+9)"/>
                     <TextBlock x:Name="menuOptionRLSettings" Text="RL SETTINGS" MouseDown="HandleNavigation" ToolTipService.ToolTip="RuriLib settings (Ctrl+0)"/>
                     <TextBlock x:Name="menuOptionAbout" Text="ABOUT" MouseDown="HandleNavigation" ToolTipService.ToolTip="About this application"/>
+                    <TextBlock x:Name="menuOptionUpdate" Text="CHECK UPDATES" MouseDown="HandleNavigation" ToolTipService.ToolTip="Check for application updates"/>
             </StackPanel>
         </Border>
 
@@ -143,14 +140,14 @@
                 Padding="12">
             <StackPanel>
                 <StackPanel.Resources>
-                    <Style TargetType="TextBlock">
-                        <Setter Property="FontWeight" Value="Medium" />
-                        <Setter Property="Margin" Value="2,1" />
-                        <Setter Property="Padding" Value="10,8" />
+                    <!-- Submenu Item Style -->
+                    <Style TargetType="TextBlock" x:Key="SubmenuItemStyle">
+                        <Setter Property="FontWeight" Value="Normal" />
                         <Setter Property="Foreground" Value="#FFCCCCCC" />
                         <Setter Property="FontFamily" Value="Segoe UI" />
                         <Setter Property="FontSize" Value="11" />
-                        <Setter Property="VerticalAlignment" Value="Center" />
+                        <Setter Property="Margin" Value="0,2" />
+                        <Setter Property="Padding" Value="8,6" />
                         <Setter Property="Cursor" Value="Hand" />
                         <Setter Property="Background" Value="Transparent" />
                         <Style.Triggers>
@@ -163,13 +160,12 @@
                 </StackPanel.Resources>
                 
                 <!-- Config Editor Menu Items -->
-                <TextBlock x:Name="menuOptionMetadata" Text="📝 Metadata" MouseDown="HandleNavigation" ToolTipService.ToolTip="Edit config metadata"/>
-                <TextBlock x:Name="menuOptionReadme" Text="📄 Readme" MouseDown="HandleNavigation" ToolTipService.ToolTip="Edit config readme"/>
-                <TextBlock x:Name="menuOptionStacker" Text="🔧 Stacker" MouseDown="HandleNavigation" ToolTipService.ToolTip="Edit config stacker"/>
-                <TextBlock x:Name="menuOptionLoliCode" Text="💻 LoliCode" MouseDown="HandleNavigation" ToolTipService.ToolTip="Edit config LoliCode"/>
-                <TextBlock x:Name="menuOptionConfigSettings" Text="⚙️ Settings" MouseDown="HandleNavigation" ToolTipService.ToolTip="Edit config settings"/>
-                <TextBlock x:Name="menuOptionCSharpCode" Text="🔷 C# Code" MouseDown="HandleNavigation" ToolTipService.ToolTip="Edit config C# code"/>
-                <TextBlock x:Name="menuOptionLoliScript" Text="📜 LoliScript" MouseDown="HandleNavigation" ToolTipService.ToolTip="Edit config LoliScript"/>
+                <TextBlock x:Name="menuOptionMetadata" Text="📝 Metadata" Style="{StaticResource SubmenuItemStyle}" MouseDown="HandleNavigation" ToolTipService.ToolTip="Edit config metadata"/>
+                <TextBlock x:Name="menuOptionReadme" Text="📄 Readme" Style="{StaticResource SubmenuItemStyle}" MouseDown="HandleNavigation" ToolTipService.ToolTip="Edit config readme"/>
+                <TextBlock x:Name="menuOptionStacker" Text="🔧 Stacker" Style="{StaticResource SubmenuItemStyle}" MouseDown="HandleNavigation" ToolTipService.ToolTip="Edit config stacker"/>
+                <TextBlock x:Name="menuOptionLoliCode" Text="💻 LoliCode" Style="{StaticResource SubmenuItemStyle}" MouseDown="HandleNavigation" ToolTipService.ToolTip="Edit config LoliCode"/>
+                <TextBlock x:Name="menuOptionConfigSettings" Text="⚙️ Settings" Style="{StaticResource SubmenuItemStyle}" MouseDown="HandleNavigation" ToolTipService.ToolTip="Edit config settings"/>
+                <TextBlock x:Name="menuOptionCSharpCode" Text="🔷 C# Code" Style="{StaticResource SubmenuItemStyle}" MouseDown="HandleNavigation" ToolTipService.ToolTip="Edit config C# code"/>
             </StackPanel>
         </Border>
         

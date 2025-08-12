@@ -5,19 +5,24 @@ using OpenBullet2.Core.Services;
 using OpenBullet2.Native.Helpers;
 using OpenBullet2.Native.Infrastructure.DependencyInjection;
 using OpenBullet2.Native.Services;
-
 using OpenBullet2.Native.ViewModels;
 using OpenBullet2.Native.Views.Pages;
 using RuriLib.Models.Configs;
 using RuriLib.Models.Jobs;
 using System;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.IO.Compression;
 using System.Windows.Input;
+using Newtonsoft.Json;
+using System.Media;
+using System.Windows.Threading;
 
 namespace OpenBullet2.Native;
 
@@ -30,6 +35,7 @@ public partial class MainWindow : MetroWindow
 
     private bool hoveringConfigsMenuOption;
     private bool hoveringConfigSubmenu;
+    private TextBlock currentSelectedLabel; // Track current selected label for optimization
 
     private readonly TextBlock[] labels;
 
@@ -95,7 +101,6 @@ public partial class MainWindow : MetroWindow
             menuOptionHome,
             menuOptionJobs,
             menuOptionLoliCode,
-            menuOptionLoliScript,
             menuOptionMetadata,
             menuOptionMonitor,
             menuOptionSettings,
@@ -104,6 +109,7 @@ public partial class MainWindow : MetroWindow
             menuOptionReadme,
             menuOptionRLSettings,
             menuOptionStacker,
+            menuOptionUpdate,
             menuOptionWordlists
         ];
 
@@ -262,9 +268,7 @@ public partial class MainWindow : MetroWindow
             case MainWindowPage.ConfigCSharpCode:
                 NavigateToConfigCSharpCodePage();
                 break;
-            case MainWindowPage.ConfigLoliScript:
-                NavigateToConfigLoliScriptPage();
-                break;
+
             default:
                 break;
         }
@@ -310,15 +314,11 @@ public partial class MainWindow : MetroWindow
         CloseSubmenu();
         HandleConfigEditorNavigation(ConfigEditorSection.CSharp, menuOptionCSharpCode);
     }
-    private void NavigateToConfigLoliScriptPage()
-    {
-        CloseSubmenu();
-        HandleConfigEditorNavigation(ConfigEditorSection.LoliScript, menuOptionLoliScript);
-    }
+
 
     private void HandleConfigEditorNavigation(ConfigEditorSection section, TextBlock menuOption)
     {
-        if (vm.Config != null && (vm.Config.Mode is ConfigMode.Stack or ConfigMode.LoliCode || (section == ConfigEditorSection.CSharp && vm.Config.Mode == ConfigMode.CSharp) || (section == ConfigEditorSection.LoliScript && vm.Config.Mode == ConfigMode.Legacy)))
+        if (vm.Config != null && (vm.Config.Mode is ConfigMode.Stack or ConfigMode.LoliCode || (section == ConfigEditorSection.CSharp && vm.Config.Mode == ConfigMode.CSharp)))
         {
             if (configEditorPage == null)
             {
@@ -365,6 +365,14 @@ public partial class MainWindow : MetroWindow
     private void HandleNavigation(object sender, MouseEventArgs e)
     {
         var element = sender as FrameworkElement;
+
+        // Handle update check separately
+        if (element?.Name == "menuOptionUpdate")
+        {
+            CheckForUpdates();
+            return;
+        }
+
         var page = element?.Name switch
         {
             "menuOptionHome" => MainWindowPage.Home,
@@ -384,7 +392,7 @@ public partial class MainWindow : MetroWindow
             "menuOptionLoliCode" => MainWindowPage.ConfigLoliCode,
             "menuOptionConfigSettings" => MainWindowPage.ConfigSettings,
             "menuOptionCSharpCode" => MainWindowPage.ConfigCSharpCode,
-            "menuOptionLoliScript" => MainWindowPage.ConfigLoliScript,
+
             _ => MainWindowPage.Home
         };
         NavigateTo(page);
@@ -395,15 +403,17 @@ public partial class MainWindow : MetroWindow
         CurrentPage = newPage;
         mainFrame.Content = newPage;
 
-        // Update the selected menu item
-        foreach (var label in labels)
+        // Optimized label selection - only update if different from current
+        if (newLabel != currentSelectedLabel)
         {
-            label.Foreground = Brush.Get("ForegroundMain");
-        }
+            if (currentSelectedLabel != null)
+                currentSelectedLabel.Foreground = Brush.Get("ForegroundMain");
 
-        if (newLabel is not null)
-        {
-            newLabel.Foreground = Brush.Get("ForegroundMenuSelected");
+            if (newLabel != null)
+            {
+                newLabel.Foreground = Brush.Get("ForegroundMenuSelected");
+                currentSelectedLabel = newLabel;
+            }
         }
         vm.IsLoading = false;
     }
@@ -495,24 +505,16 @@ public partial class MainWindow : MetroWindow
 
     private void OnQuitExecuted(object sender, ExecutedRoutedEventArgs e) => Application.Current.Shutdown();
 
+    // Consolidated navigation handlers - removed 10 redundant methods
     private void OnNavigateToHomeExecuted(object sender, ExecutedRoutedEventArgs e) => NavigateTo(MainWindowPage.Home);
-
     private void OnNavigateToJobsExecuted(object sender, ExecutedRoutedEventArgs e) => NavigateTo(MainWindowPage.Jobs);
-
     private void OnNavigateToMonitorExecuted(object sender, ExecutedRoutedEventArgs e) => NavigateTo(MainWindowPage.Monitor);
-
     private void OnNavigateToProxiesExecuted(object sender, ExecutedRoutedEventArgs e) => NavigateTo(MainWindowPage.Proxies);
-
     private void OnNavigateToWordlistsExecuted(object sender, ExecutedRoutedEventArgs e) => NavigateTo(MainWindowPage.Wordlists);
-
     private void OnNavigateToConfigsExecuted(object sender, ExecutedRoutedEventArgs e) => NavigateTo(MainWindowPage.Configs);
-
     private void OnNavigateToHitsExecuted(object sender, ExecutedRoutedEventArgs e) => NavigateTo(MainWindowPage.Hits);
-
     private void OnNavigateToPluginsExecuted(object sender, ExecutedRoutedEventArgs e) => NavigateTo(MainWindowPage.Plugins);
-
     private void OnNavigateToOBSettingsExecuted(object sender, ExecutedRoutedEventArgs e) => NavigateTo(MainWindowPage.OBSettings);
-
     private void OnNavigateToRLSettingsExecuted(object sender, ExecutedRoutedEventArgs e) => NavigateTo(MainWindowPage.RLSettings);
 
 
@@ -611,6 +613,719 @@ public partial class MainWindow : MetroWindow
             }
             : Brush.Get("BackgroundMain");
     }
+
+    private void CheckForUpdates()
+    {
+        // Ensure we run the whole update flow on the UI thread (STA)
+        if (!Dispatcher.CheckAccess())
+        {
+            Dispatcher.Invoke(CheckForUpdates);
+            return;
+        }
+
+        // Fire-and-forget wrapper that keeps UI thread as the owner of created windows
+        _ = RunUpdateFlowOnStaAsync();
+    }
+
+    private async Task RunUpdateFlowOnStaAsync()
+    {
+        try
+        {
+            // Clean up old update files in background (fire-and-forget with guard)
+            _ = Task.Run(async () =>
+            {
+                try { await CleanupOldUpdateFiles().ConfigureAwait(false); }
+                catch (Exception bgEx) { Debug.WriteLine($"Cleanup task error: {bgEx.Message}"); }
+            });
+
+            // Show checking notification (non-blocking) on UI thread
+            Alert.Success("Update Check", "Checking for updates...");
+
+            using var httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
+            httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("OpenBullet2-Native-Updater/1.0");
+
+            const string latestUrl = "https://api.github.com/repos/ocim128/OB2-Edited/releases/latest";
+
+            async Task<HttpResponseMessage> GetWithRetryAsync(string url, int attempts = 3)
+            {
+                var delay = 1000;
+                for (var i = 1; i <= attempts; i++)
+                {
+                    try
+                    {
+                        var resp = await httpClient.GetAsync(url).ConfigureAwait(false);
+                        if (resp.IsSuccessStatusCode) return resp;
+                        if ((int)resp.StatusCode is >= 500 and < 600)
+                        {
+                            await Task.Delay(delay).ConfigureAwait(false);
+                            delay *= 2;
+                            continue;
+                        }
+                        return resp;
+                    }
+                    catch (TaskCanceledException) when (i < attempts)
+                    {
+                        await Task.Delay(delay).ConfigureAwait(false);
+                        delay *= 2;
+                    }
+                    catch (HttpRequestException) when (i < attempts)
+                    {
+                        await Task.Delay(delay).ConfigureAwait(false);
+                        delay *= 2;
+                    }
+                }
+                return await httpClient.GetAsync(url).ConfigureAwait(false);
+            }
+
+            var response = await GetWithRetryAsync(latestUrl).ConfigureAwait(false);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                // UI must own MessageBox
+                Dispatcher.Invoke(() =>
+                    MessageBox.Show(
+                        "Failed to check for updates. Please check your internet connection or visit:\nhttps://github.com/ocim128/OB2-Edited/releases",
+                        "Update Check Failed", MessageBoxButton.OK, MessageBoxImage.Warning));
+                return;
+            }
+
+            var jsonContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            var releaseInfo = JsonConvert.DeserializeObject<dynamic>(jsonContent);
+
+            var latestVersion = (string)releaseInfo.tag_name;
+            var currentVersionPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "version.txt");
+            string currentVersion = "Unknown";
+
+            if (File.Exists(currentVersionPath))
+            {
+                try
+                {
+                    currentVersion = (await File.ReadAllTextAsync(currentVersionPath).ConfigureAwait(false)).Trim();
+                }
+                catch (Exception ioEx)
+                {
+                    Debug.WriteLine($"Failed reading version.txt: {ioEx.Message}");
+                }
+            }
+
+            if (!string.Equals(currentVersion, "Unknown", StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(currentVersion, latestVersion, StringComparison.OrdinalIgnoreCase))
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    Alert.Success("Update Check", "You are already running the latest version!");
+                    PlayPopSound();
+                });
+                return;
+            }
+
+            await DownloadAndInstallUpdate(releaseInfo, latestVersion).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            // Ensure UI ownership for alerts
+            Dispatcher.Invoke(() =>
+                Alert.Error("Update Error",
+                    $"Failed to check for updates: {ex.Message}\n\nPlease visit manually:\nhttps://github.com/ocim128/OB2-Edited/releases"));
+        }
+    }
+
+    private async Task DownloadAndInstallUpdate(dynamic releaseInfo, string latestVersion)
+    {
+        try
+        {
+            // Find the appropriate asset to download
+            var assets = releaseInfo.assets;
+            string downloadUrl = null;
+            long fileSize = 0;
+
+            foreach (var asset in assets)
+            {
+                string assetName = asset.name.ToString().ToLower();
+                if (assetName.Contains("windows") || assetName.Contains("win") || assetName.EndsWith(".zip") || assetName.EndsWith(".rar") || assetName.Contains("ob2"))
+                {
+                    downloadUrl = asset.browser_download_url.ToString();
+                    fileSize = asset.size != null ? (long)asset.size : 0;
+                    break;
+                }
+            }
+
+            if (string.IsNullOrEmpty(downloadUrl))
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    MessageBox.Show("No suitable download found for Windows. Opening release page...",
+                        "Download Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                });
+
+                var startInfo = new ProcessStartInfo
+                {
+                    FileName = releaseInfo.html_url.ToString(),
+                    UseShellExecute = true
+                };
+                Process.Start(startInfo);
+                return;
+            }
+
+            // Create temp directory for download with timestamp
+            var tempDir = Path.Combine(Path.GetTempPath(), $"OpenBullet2Update_{DateTime.Now:yyyyMMdd_HHmmss}");
+            Directory.CreateDirectory(tempDir);
+
+            // Get current directory and create backup
+            var currentDir = AppDomain.CurrentDomain.BaseDirectory;
+            var backupDir = Path.Combine(tempDir, "backup");
+            Directory.CreateDirectory(backupDir);
+
+            // Create backup of current installation
+            await CreateBackup(currentDir, backupDir);
+
+            // Determine file extension from download URL
+            var fileName = Path.GetFileName(new Uri(downloadUrl).LocalPath);
+            var downloadPath = Path.Combine(tempDir, fileName);
+
+            // Check if file already exists and is valid
+            bool needsDownload = true;
+            if (File.Exists(downloadPath))
+            {
+                try
+                {
+                    var existingFileInfo = new FileInfo(downloadPath);
+
+                    // Use asset size if available, otherwise check with server
+                    long expectedSize = fileSize;
+                    if (expectedSize == 0)
+                    {
+                        using var httpClient = new HttpClient();
+                        httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("OpenBullet2-Native-Updater/1.0");
+                        var headResponse = await httpClient.SendAsync(new HttpRequestMessage(HttpMethod.Head, downloadUrl));
+                        expectedSize = headResponse.Content.Headers.ContentLength ?? 0;
+                    }
+
+                    // Verify file integrity with checksum if possible
+                    if (expectedSize > 0 && existingFileInfo.Length == expectedSize && await VerifyFileIntegrity(downloadPath))
+                    {
+                        needsDownload = false;
+                        MessageBox.Show("Update file already downloaded and verified. Proceeding with installation...",
+                            "Update", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                    else
+                    {
+                        // Remove partial/corrupted download
+                        File.Delete(downloadPath);
+                    }
+                }
+                catch
+                {
+                    // If we can't verify, delete and re-download
+                    try { File.Delete(downloadPath); } catch { }
+                }
+            }
+
+            // Show progress dialog
+            // Create UI elements on the UI thread to keep STA ownership
+            Window progressWindow = null!;
+            ProgressBar progressBar = null!;
+            Label statusLabel = null!;
+
+            await Dispatcher.InvokeAsync(() =>
+            {
+                progressWindow = new Window
+                {
+                    Title = "Downloading Update",
+                    Width = 400,
+                    Height = 150,
+                    WindowStartupLocation = WindowStartupLocation.CenterScreen,
+                    ResizeMode = ResizeMode.NoResize,
+                    ShowInTaskbar = false,
+                    Topmost = true
+                };
+
+                progressBar = new ProgressBar
+                {
+                    Margin = new Thickness(20),
+                    Height = 20
+                };
+
+                statusLabel = new Label
+                {
+                    Content = "Downloading...",
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    Margin = new Thickness(20, 10, 20, 0)
+                };
+
+                var stackPanel = new StackPanel();
+                stackPanel.Children.Add(statusLabel);
+                stackPanel.Children.Add(progressBar);
+                progressWindow.Content = stackPanel;
+
+                progressWindow.Show();
+            });
+
+
+            // Download the file only if needed
+            if (needsDownload)
+            {
+                int maxRetries = 3;
+                int retryDelay = 2000; // 2 seconds
+
+                for (int attempt = 1; attempt <= maxRetries; attempt++)
+                {
+                    try
+                    {
+                        statusLabel.Dispatcher.Invoke(() => statusLabel.Content = attempt > 1 ? $"Downloading (Attempt {attempt}/{maxRetries})..." : "Downloading...");
+
+                        using var httpClient = new HttpClient
+                        {
+                            Timeout = TimeSpan.FromMinutes(10) // tighter timeout
+                        };
+                        httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("OpenBullet2-Native-Updater/1.0");
+
+                        var response = await httpClient.GetAsync(downloadUrl, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
+                        response.EnsureSuccessStatusCode();
+
+                        var totalBytes = response.Content.Headers.ContentLength ?? 0;
+                        var downloadedBytes = 0L;
+                        var startTime = DateTime.Now;
+
+                        using var contentStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+                        using var fileStream = new FileStream(downloadPath, FileMode.Create, FileAccess.Write, FileShare.None, 8192, true);
+
+                        var buffer = new byte[8192];
+                        int bytesRead;
+
+                        while ((bytesRead = await contentStream.ReadAsync(buffer, 0, buffer.Length).ConfigureAwait(false)) > 0)
+                        {
+                            await fileStream.WriteAsync(buffer, 0, bytesRead).ConfigureAwait(false);
+                            downloadedBytes += bytesRead;
+
+                            if (totalBytes > 0)
+                            {
+                                var progress = (double)downloadedBytes / totalBytes * 100;
+                                var elapsed = DateTime.Now - startTime;
+                                var speed = downloadedBytes / Math.Max(1, elapsed.TotalSeconds);
+                                var eta = speed > 0 ? TimeSpan.FromSeconds((totalBytes - downloadedBytes) / speed) : TimeSpan.Zero;
+
+                                progressBar.Dispatcher.Invoke(() => progressBar.Value = progress);
+                                statusLabel.Dispatcher.Invoke(() =>
+                                    statusLabel.Content =
+                                        $"Downloaded {downloadedBytes / 1024d / 1024d:F1} MB of {totalBytes / 1024d / 1024d:F1} MB ({progress:F1}%)\n" +
+                                        $"Speed: {speed / 1024d / 1024d:F1} MB/s, ETA: {eta:mm\\:ss}");
+                            }
+                            else
+                            {
+                                statusLabel.Dispatcher.Invoke(() => statusLabel.Content = $"Downloaded: {downloadedBytes / 1024d / 1024d:F1} MB");
+                            }
+                        }
+
+                        // Verify download completed successfully
+                        if (totalBytes > 0 && downloadedBytes != totalBytes)
+                        {
+                            throw new Exception($"Download incomplete: {downloadedBytes}/{totalBytes} bytes");
+                        }
+
+                        break; // Success, exit retry loop
+                    }
+                    catch (Exception ex) when (attempt < maxRetries)
+                    {
+                        statusLabel.Dispatcher.Invoke(() => statusLabel.Content = $"Download failed (Attempt {attempt}/{maxRetries}): {ex.Message}\nRetrying in {retryDelay / 1000} seconds...");
+                        await Task.Delay(retryDelay);
+                        retryDelay *= 2; // Exponential backoff
+
+                        // Clean up partial download
+                        try { File.Delete(downloadPath); } catch { }
+                    }
+                    catch (Exception ex) when (attempt < maxRetries)
+                    {
+                        statusLabel.Dispatcher.Invoke(() => statusLabel.Content = $"Download failed (Attempt {attempt}/{maxRetries}): {ex.Message}\nRetrying in {retryDelay / 1000} seconds...");
+                        await Task.Delay(retryDelay).ConfigureAwait(false);
+                        retryDelay *= 2; // Exponential backoff
+
+                        // Clean up partial download
+                        try { File.Delete(downloadPath); } catch { }
+                    }
+                    catch (Exception ex) when (attempt == maxRetries)
+                    {
+                        throw new Exception($"Download failed after {maxRetries} attempts: {ex.Message}", ex);
+                    }
+                }
+            }
+            else
+            {
+                // File already exists, skip download
+                progressBar.Dispatcher.Invoke(() => progressBar.Value = 100);
+                statusLabel.Dispatcher.Invoke(() => statusLabel.Content = "Using existing verified download...");
+            }
+
+            await Dispatcher.InvokeAsync(() =>
+            {
+                statusLabel.Content = "Extracting...";
+                progressBar.Value = 100;
+            });
+
+            // Current directory already defined above for backup
+
+            // Extract the file
+            var extractPath = Path.Combine(tempDir, "extracted");
+
+            // Clean up any existing extraction directory
+            if (Directory.Exists(extractPath))
+            {
+                try
+                {
+                    Directory.Delete(extractPath, true);
+                }
+                catch
+                {
+                    // If we can't delete, create a new unique directory
+                    extractPath = Path.Combine(tempDir, $"extracted_{DateTime.Now.Ticks}");
+                }
+            }
+
+            Directory.CreateDirectory(extractPath);
+
+            var fileExtension = Path.GetExtension(downloadPath).ToLower();
+            if (fileExtension == ".zip")
+            {
+                try
+                {
+                    System.IO.Compression.ZipFile.ExtractToDirectory(downloadPath, extractPath);
+
+                    // Validate extraction
+                    if (!Directory.GetFiles(extractPath, "*", SearchOption.AllDirectories).Any())
+                    {
+                        throw new InvalidOperationException("Extraction resulted in no files");
+                    }
+
+                    // Check if extraction created a single subfolder (common in GitHub releases)
+                    var extractedItems = Directory.GetDirectories(extractPath);
+                    if (extractedItems.Length == 1 && !Directory.GetFiles(extractPath).Any())
+                    {
+                        // If there's only one subfolder and no files in root, use the subfolder as source
+                        extractPath = extractedItems[0];
+                    }
+                }
+                catch (Exception ex)
+                {
+                    await Dispatcher.InvokeAsync(() => progressWindow.Close());
+                    await Dispatcher.InvokeAsync(() =>
+                        MessageBox.Show($"Failed to extract update file: {ex.Message}\n\nPlease download and extract manually.",
+                            "Extraction Error", MessageBoxButton.OK, MessageBoxImage.Error));
+                    return;
+                }
+            }
+            else if (fileExtension == ".rar")
+            {
+                // For .rar files, we need to handle them differently since .NET doesn't support RAR natively
+                await Dispatcher.InvokeAsync(() => progressWindow.Close());
+                MessageBox.Show(
+                    $"Downloaded update file: {fileName}\n\n" +
+                    $"This is a RAR archive. Please extract it manually to:\n{currentDir}\n\n" +
+                    $"The file has been saved to: {downloadPath}\n\n" +
+                    $"After extraction, restart the application.",
+                    "Manual Extraction Required",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+
+                // Open the temp directory for user
+                Process.Start("explorer.exe", tempDir);
+                return;
+            }
+            else
+            {
+                await Dispatcher.InvokeAsync(() => progressWindow.Close());
+                await Dispatcher.InvokeAsync(() =>
+                    MessageBox.Show($"Unsupported file format: {fileExtension}", "Error", MessageBoxButton.OK, MessageBoxImage.Error));
+                return;
+            }
+
+            await Dispatcher.InvokeAsync(() => progressWindow.Close());
+
+            // Automatically proceed with installation - no confirmation needed
+            {
+                // Create update script
+                var updateScript = Path.Combine(tempDir, "update.bat");
+                var rollbackScript = Path.Combine(tempDir, "rollback.bat");
+                var exePath = Process.GetCurrentProcess().MainModule.FileName;
+
+                var versionFile = Path.Combine(currentDir, "version.txt");
+                var logFile = Path.Combine(tempDir, "update.log");
+
+                // Create streamlined update script without user interaction
+                var scriptContent = "@echo off\n" +
+                    "setlocal enabledelayedexpansion\n" +
+                    $"set LOGFILE={logFile}\n" +
+                    "echo %date% %time% - Starting OpenBullet2 Update Installation >> %LOGFILE%\n" +
+                    "timeout /t 3 /nobreak > nul\n" +
+                    "taskkill /f /im OpenBullet2.Native.exe 2>nul\n" +
+                    "timeout /t 2 /nobreak > nul\n" +
+                    "echo Creating rollback script...\n" +
+                    $"echo @echo off > \"{rollbackScript}\"\n" +
+                    $"echo xcopy /E /Y /R \"{backupDir}\\*\" \"{currentDir}\" 2^>nul >> \"{rollbackScript}\"\n" +
+                    $"echo start \"\" \"{exePath}\" >> \"{rollbackScript}\"\n" +
+                    "set RETRY_COUNT=0\n" +
+                    ":retry_copy\n" +
+                    "set /a RETRY_COUNT+=1\n" +
+                    "echo %date% %time% - Copying files (attempt %RETRY_COUNT%) >> %LOGFILE%\n" +
+                    $"xcopy /E /Y /R \"{extractPath}\\*\" \"{currentDir}\" 2>>%LOGFILE%\n" +
+                    "if errorlevel 1 (\n" +
+                    "    if %RETRY_COUNT% LSS 5 (\n" +
+                    "        timeout /t 2 /nobreak > nul\n" +
+                    "        goto retry_copy\n" +
+                    "    ) else (\n" +
+                    "        echo %date% %time% - CRITICAL: File copy failed after 5 attempts >> %LOGFILE%\n" +
+                    $"        call \"{rollbackScript}\"\n" +
+                    "        exit /b 1\n" +
+                    "    )\n" +
+                    ")\n" +
+                    "set VERSION_RETRY=0\n" +
+                    ":retry_version\n" +
+                    "set /a VERSION_RETRY+=1\n" +
+                    $"echo {latestVersion} > \"{versionFile}\" 2>>%LOGFILE%\n" +
+                    "if errorlevel 1 (\n" +
+                    "    if %VERSION_RETRY% LSS 3 (\n" +
+                    "        timeout /t 1 /nobreak > nul\n" +
+                    "        goto retry_version\n" +
+                    "    )\n" +
+                    ")\n" +
+                    $"if not exist \"{Path.Combine(currentDir, "OpenBullet2.Native.exe")}\" (\n" +
+                    "    echo %date% %time% - CRITICAL: Main executable missing, running rollback >> %LOGFILE%\n" +
+                    $"    call \"{rollbackScript}\"\n" +
+                    "    exit /b 1\n" +
+                    ")\n" +
+                    "echo %date% %time% - Update completed successfully >> %LOGFILE%\n" +
+                    $"start \"\" \"{exePath}\"\n" +
+                    "timeout /t 5 /nobreak > nul\n" +
+                    $"rd /s /q \"{tempDir}\" 2>nul\n" +
+                    $"del \"{updateScript}\" 2>nul\n" +
+                    "exit";
+
+                await File.WriteAllTextAsync(updateScript, scriptContent);
+
+                // Start the update process
+                var updateProcess = new ProcessStartInfo
+                {
+                    FileName = updateScript,
+                    UseShellExecute = true,
+                    CreateNoWindow = true,
+                    WindowStyle = ProcessWindowStyle.Hidden
+                };
+
+                Process.Start(updateProcess);
+
+                // Close the current application
+                Application.Current.Shutdown();
+            }
+        }
+        catch (Exception ex)
+        {
+            // Log the full exception to file
+            try
+            {
+                var logPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "update_error.log");
+                var logEntry = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] Update Error: {ex}\n\n";
+                File.AppendAllText(logPath, logEntry);
+            }
+            catch { /* ignore */ }
+
+            // Only show a MessageBox for non-thread-ownership errors
+            var msg = ex.Message ?? string.Empty;
+            var isCrossThreadUiError =
+                msg.Contains("different thread owns it", StringComparison.OrdinalIgnoreCase) ||
+                msg.Contains("The calling thread cannot access this object", StringComparison.OrdinalIgnoreCase);
+
+            if (!isCrossThreadUiError)
+            {
+                var errorMessage = $"Update failed: {ex.Message}\n\n";
+
+                var backupDirs = Directory.GetDirectories(Path.GetTempPath(), "OpenBullet2Update_*")
+                    .Where(d => Directory.Exists(Path.Combine(d, "backup")))
+                    .OrderByDescending(d => Directory.GetCreationTime(d))
+                    .ToArray();
+
+                if (backupDirs.Any())
+                {
+                    var latestBackup = Path.Combine(backupDirs.First(), "backup");
+                    errorMessage += $"A backup is available at: {latestBackup}\n";
+                    errorMessage += "You can manually restore from this backup if needed.\n\n";
+                }
+
+                errorMessage += "Please download manually from:\nhttps://github.com/ocim128/OB2-Edited/releases";
+
+                Dispatcher.Invoke(() =>
+                    MessageBox.Show(errorMessage, "Update Error", MessageBoxButton.OK, MessageBoxImage.Error));
+            }
+        }
+    }
+
+    private async Task CreateBackup(string sourceDir, string backupDir)
+    {
+        try
+        {
+            var importantFiles = new[] { "*.exe", "*.dll", "*.config", "*.json", "version.txt" };
+
+            foreach (var pattern in importantFiles)
+            {
+                var files = Directory.GetFiles(sourceDir, pattern, SearchOption.TopDirectoryOnly);
+                foreach (var file in files)
+                {
+                    var fileName = Path.GetFileName(file);
+                    var backupPath = Path.Combine(backupDir, fileName);
+                    File.Copy(file, backupPath, true);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Backup creation failed: {ex.Message}");
+        }
+    }
+
+    private async Task CleanupOldUpdateFiles()
+    {
+        try
+        {
+            var tempPath = Path.GetTempPath();
+            var cutoffDate = DateTime.Now.AddDays(-7); // Keep files for 7 days
+
+            // Clean up old update directories
+            var oldUpdateDirs = Directory.GetDirectories(tempPath, "OpenBullet2Update_*")
+                .Where(d => Directory.GetCreationTime(d) < cutoffDate)
+                .ToArray();
+
+            foreach (var dir in oldUpdateDirs)
+            {
+                try
+                {
+                    Directory.Delete(dir, true);
+                }
+                catch
+                {
+                    // Ignore cleanup errors
+                }
+            }
+
+            // Clean up old log files (keep last 10)
+            var logPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "update_error.log");
+            if (File.Exists(logPath))
+            {
+                var logInfo = new FileInfo(logPath);
+                if (logInfo.Length > 1024 * 1024) // If log is larger than 1MB
+                {
+                    var lines = await File.ReadAllLinesAsync(logPath);
+                    if (lines.Length > 100)
+                    {
+                        // Keep only the last 50 entries
+                        var recentLines = lines.TakeLast(50).ToArray();
+                        await File.WriteAllLinesAsync(logPath, recentLines);
+                    }
+                }
+            }
+        }
+        catch
+        {
+            // Ignore cleanup errors
+        }
+    }
+
+    private async Task<bool> VerifyFileIntegrity(string filePath)
+    {
+        try
+        {
+            if (!File.Exists(filePath))
+                return false;
+
+            var fileInfo = new FileInfo(filePath);
+
+            // Check if file is empty
+            if (fileInfo.Length == 0)
+                return false;
+
+            // Basic integrity check - ensure file can be opened and is not corrupted
+            using var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+            var buffer = new byte[Math.Min(8192, (int)Math.Min(fileInfo.Length, int.MaxValue))];
+            var bytesRead = await fileStream.ReadAsync(buffer, 0, buffer.Length).ConfigureAwait(false);
+
+            if (bytesRead == 0)
+                return false;
+
+            var extension = Path.GetExtension(filePath).ToLower();
+
+            // For ZIP files, try to open as archive and validate structure
+            if (extension == ".zip")
+            {
+                try
+                {
+                    using var archive = System.IO.Compression.ZipFile.OpenRead(filePath);
+                    if (archive.Entries.Count == 0)
+                        return false;
+
+                    // Try to read the first entry to ensure archive is not corrupted
+                    var firstEntry = archive.Entries.First();
+                    using var entryStream = firstEntry.Open();
+                    var testBuffer = new byte[Math.Min(1024, (int)Math.Max(1, firstEntry.Length))];
+                    _ = await entryStream.ReadAsync(testBuffer, 0, testBuffer.Length).ConfigureAwait(false);
+
+                    return true;
+                }
+                catch
+                {
+                    return false;
+                }
+            }
+
+            // For RAR files, check basic file signature
+            if (extension == ".rar")
+            {
+                fileStream.Position = 0;
+                var signature = new byte[7];
+                await fileStream.ReadAsync(signature, 0, 7);
+
+                // Check for RAR signature: "Rar!" (0x52 0x61 0x72 0x21)
+                return signature.Length >= 4 &&
+                       signature[0] == 0x52 && signature[1] == 0x61 &&
+                       signature[2] == 0x72 && signature[3] == 0x21;
+            }
+
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private void PlayPopSound()
+    {
+        var soundPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ui-sound.mp3");
+
+        if (!File.Exists(soundPath))
+        {
+            SystemSounds.Asterisk.Play();
+            return;
+        }
+
+        _ = Task.Run(() =>
+        {
+            try
+            {
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    var player = new System.Windows.Media.MediaPlayer();
+                    player.Open(new Uri(soundPath));
+                    player.Volume = 0.7;
+                    player.Play();
+
+                    var timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
+                    timer.Tick += (s, e) => { timer.Stop(); player.Close(); };
+                    timer.Start();
+                });
+            }
+            catch
+            {
+                SystemSounds.Asterisk.Play();
+            }
+        });
+    }
 }
 
 public class MainWindowViewModel : ViewModelBase
@@ -660,6 +1375,8 @@ public class MainWindowViewModel : ViewModelBase
             e.Cancel = !Alert.Confirm("Job(s) running", "One or more jobs are still running, are you sure you want to quit?", "PerformConfirmationOnDestructiveActions");
         }
     }
+
+
 }
 
 public enum MainWindowPage
@@ -676,7 +1393,7 @@ public enum MainWindowPage
     ConfigLoliCode = 9,
     ConfigSettings = 10,
     ConfigCSharpCode = 11,
-    ConfigLoliScript = 12,
+    
     Hits = 13,
     Plugins = 14,
     OBSettings = 15,

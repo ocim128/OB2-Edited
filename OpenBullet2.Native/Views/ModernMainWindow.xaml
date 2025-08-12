@@ -356,13 +356,7 @@
                         <TextBlock Text="C# Code" Margin="8,0,0,0" FontSize="12" />
                     </StackPanel>
                 </Button>
-                <Button x:Name="menuOptionLoliScript" Style="{StaticResource ModernNavButton}" 
-                       Click="HandleNavigation">
-                    <StackPanel Orientation="Horizontal">
-                        <iconPacks:PackIconMaterial Kind="Script" Width="14" Height="14" />
-                        <TextBlock Text="LoliScript" Margin="8,0,0,0" FontSize="12" />
-                    </StackPanel>
-                </Button>
+
             </StackPanel>
         </Border>
     </Grid>

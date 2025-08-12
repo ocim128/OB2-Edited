@@ -23,8 +23,8 @@ namespace RuriLib.Services
             BaseFolder = baseFolder;
             Directory.CreateDirectory(baseFolder);
 
-            _jsonSettings = new JsonSerializerSettings 
-            { 
+            _jsonSettings = new JsonSerializerSettings
+            {
                 Formatting = Formatting.Indented,
                 TypeNameHandling = TypeNameHandling.Auto
             };
@@ -68,7 +68,7 @@ namespace RuriLib.Services
             return settings;
         }
 
-        private string GetDefaultEnvironment() => 
+        private string GetDefaultEnvironment() =>
 @"[WORDLIST TYPE]
 Name=Default
 Regex=^.*$

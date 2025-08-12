@@ -8,8 +8,7 @@ using RuriLib.Helpers;
 using RuriLib.Helpers.Blocks;
 using RuriLib.Helpers.CSharp;
 using RuriLib.Helpers.Transpilers;
-using RuriLib.Legacy.LS;
-using RuriLib.Legacy.Models;
+
 using RuriLib.Logging;
 using RuriLib.Models.Bots;
 using RuriLib.Models.Configs;
@@ -214,119 +213,71 @@ public partial class ConfigDebugger : IDisposable
             }
         }
 
-        // [LEGACY] Set up the VariablesList - reuse already processed variables
-        if (Config.Mode == ConfigMode.Legacy)
-        {
-            // Lazy load Python runtime only when needed for legacy mode
-            var runtime = Python.CreateRuntime();
-            var pyengine = runtime.GetEngine("py");
-            var pco = (PythonCompilerOptions)pyengine.GetCompilerOptions();
-            pco.Module &= ~ModuleOptions.Optimized;
-            _data.SetObject("ironPyEngine", pyengine);
 
-            var slices = new List<Variable>(variables.Count);
-            foreach (var slice in variables)
-            {
-                var sliceValue = urlEncode ? Uri.EscapeDataString(slice.AsString()) : slice.AsString();
-                slices.Add(new StringVariable(sliceValue) { Name = slice.Name });
-            }
-
-            var legacyVariables = new VariablesList(slices);
-            foreach (var input in Config.Settings.InputSettings.CustomInputs)
-            {
-                legacyVariables.Set(new StringVariable(input.DefaultAnswer) { Name = input.VariableName });
-            }
-            _data.SetObject("legacyVariables", legacyVariables);
-        }
 
         try
         {
             sw.Start();
             ChangeStatus(ConfigDebuggerStatus.Running);
 
-            if (Config.Mode != ConfigMode.Legacy)
+            // Build scripts if needed (cached for performance)
+            await BuildScriptsIfNeeded();
+
+            // If the startup script is not empty, execute it
+            if (!string.IsNullOrWhiteSpace(Config.StartupCSharpScript))
             {
-                // Build scripts if needed (cached for performance)
-                await BuildScriptsIfNeeded();
-
-                // If the startup script is not empty, execute it
-                if (!string.IsNullOrWhiteSpace(Config.StartupCSharpScript))
+                // This data is temporary and will not be persisted to the bots, it is
+                // only used in this context to be able to use variables e.g. data.SOURCE
+                // and other things like providers, settings, logger.
+                // By default it doesn't support proxies.
+                var startupData = new BotData(providers, Config.Settings, Logger,
+                    new DataLine(string.Empty, wordlistType), null, false)
                 {
-                    // This data is temporary and will not be persisted to the bots, it is
-                    // only used in this context to be able to use variables e.g. data.SOURCE
-                    // and other things like providers, settings, logger.
-                    // By default it doesn't support proxies.
-                    var startupData = new BotData(providers, Config.Settings, Logger,
-                        new DataLine(string.Empty, wordlistType), null, false)
-                    {
-                        CancellationToken = _cts.Token,
-                        Stepper = _stepper
-                    };
+                    CancellationToken = _cts.Token,
+                    Stepper = _stepper
+                };
 
-                    Logger.Log("Executing startup script...");
-                    var startupGlobals = new ScriptGlobals(startupData, globals);
-                    _ = await _cachedStartupScript.RunAsync(startupGlobals, null, _cts.Token).ConfigureAwait(false);
-                    Logger.Log("Executing main script...");
-                }
+                Logger.Log("Executing startup script...");
+                var startupGlobals = new ScriptGlobals(startupData, globals);
+                _ = await _cachedStartupScript.RunAsync(startupGlobals, null, _cts.Token).ConfigureAwait(false);
+                Logger.Log("Executing main script...");
+            }
 
-                var state = await _cachedScript.RunAsync(scriptGlobals, null, _cts.Token).ConfigureAwait(false);
+            var state = await _cachedScript.RunAsync(scriptGlobals, null, _cts.Token).ConfigureAwait(false);
 
-                // Optimized variable processing with early filtering
-                var markedForCapture = _data.MarkedForCapture;
-                foreach (var scriptVar in state.Variables)
+            // Optimized variable processing with early filtering
+            var markedForCapture = _data.MarkedForCapture;
+            foreach (var scriptVar in state.Variables)
+            {
+                // Early exit for temporary variables
+                if (scriptVar.Name.StartsWith("tmp_")) continue;
+
+                try
                 {
-                    // Early exit for temporary variables
-                    if (scriptVar.Name.StartsWith("tmp_")) continue;
+                    var actualType = scriptVar.Type;
+                    VariableType? vType;
 
                     try
                     {
-                        var actualType = scriptVar.Type;
-                        VariableType? vType;
-
-                        try
-                        {
-                            vType = DescriptorsRepository.ToVariableType(actualType);
-                        }
-                        catch (InvalidCastException) when (scriptVar.Value != null)
-                        {
-                            actualType = scriptVar.Value.GetType();
-                            vType = DescriptorsRepository.ToVariableType(actualType);
-                        }
-
-                        if (vType.HasValue)
-                        {
-                            var variable = DescriptorsRepository.ToVariable(scriptVar.Name, actualType, scriptVar.Value);
-                            variable.MarkedForCapture = markedForCapture.Contains(scriptVar.Name);
-                            Options.Variables.Add(variable);
-                        }
+                        vType = DescriptorsRepository.ToVariableType(actualType);
                     }
-                    catch
+                    catch (InvalidCastException) when (scriptVar.Value != null)
                     {
-                        // Unsupported types are ignored
+                        actualType = scriptVar.Value.GetType();
+                        vType = DescriptorsRepository.ToVariableType(actualType);
+                    }
+
+                    if (vType.HasValue)
+                    {
+                        var variable = DescriptorsRepository.ToVariable(scriptVar.Name, actualType, scriptVar.Value);
+                        variable.MarkedForCapture = markedForCapture.Contains(scriptVar.Name);
+                        Options.Variables.Add(variable);
                     }
                 }
-            }
-            else
-            {
-                // [LEGACY] Run the LoliScript in the old way
-                var loliScript = new LoliScript(Config.LoliScript);
-                var lsGlobals = new LSGlobals(_data);
-
-                do
+                catch
                 {
-                    if (_cts.IsCancellationRequested)
-                    {
-                        break;
-                    }
-
-                    await loliScript.TakeStep(lsGlobals).ConfigureAwait(false);
-
-                    Options.Variables.Clear();
-                    var legacyVariables = _data.TryGetObject<VariablesList>("legacyVariables");
-                    Options.Variables.AddRange(legacyVariables.Variables);
-                    Options.Variables.AddRange(lsGlobals.Globals.Variables);
+                    // Unsupported types are ignored
                 }
-                while (loliScript.CanProceed);
             }
         }
         catch (OperationCanceledException)
@@ -473,15 +424,12 @@ public partial class ConfigDebugger : IDisposable
                 Config.StartupCSharpScript = Loli2CSharpTranspiler.Transpile(Config.StartupLoliCodeScript, Config.Settings, Options.StepByStep);
             }
 
-            if (Config.Mode != ConfigMode.Legacy)
-            {
-                var scriptBuilder = new ScriptBuilder();
-                _cachedScript = scriptBuilder.Build(Config.CSharpScript, Config.Settings.ScriptSettings, PluginRepo);
+            var scriptBuilder = new ScriptBuilder();
+            _cachedScript = scriptBuilder.Build(Config.CSharpScript, Config.Settings.ScriptSettings, PluginRepo);
 
-                if (!string.IsNullOrWhiteSpace(Config.StartupCSharpScript))
-                {
-                    _cachedStartupScript = scriptBuilder.Build(Config.StartupCSharpScript, Config.Settings.ScriptSettings, PluginRepo);
-                }
+            if (!string.IsNullOrWhiteSpace(Config.StartupCSharpScript))
+            {
+                _cachedStartupScript = scriptBuilder.Build(Config.StartupCSharpScript, Config.Settings.ScriptSettings, PluginRepo);
             }
 
             _scriptsBuilt = true;

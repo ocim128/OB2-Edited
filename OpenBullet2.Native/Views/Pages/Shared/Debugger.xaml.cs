@@ -264,7 +264,7 @@ namespace OpenBullet2.Native.Views.Pages.Shared
 
                     TrimLogIfNeeded();
 
-                    if (_viewModel.Indices.Length == 0)
+                    if (_viewModel.Indices.Length == 0 && _viewModel.IsAutoScrollEnabled)
                     {
                         logRTB.SelectionStart = logRTB.TextLength;
                         logRTB.ScrollToCaret();
@@ -314,8 +314,11 @@ namespace OpenBullet2.Native.Views.Pages.Shared
                         _logLineCount = TRIM_TO_LINES;
                         _viewModel.LogLineCount = _logLineCount;
 
-                        logRTB.SelectionStart = logRTB.TextLength;
-                        logRTB.ScrollToCaret();
+                        if (_viewModel.IsAutoScrollEnabled)
+                        {
+                            logRTB.SelectionStart = logRTB.TextLength;
+                            logRTB.ScrollToCaret();
+                        }
                     }
                 }
             }
@@ -601,6 +604,16 @@ namespace OpenBullet2.Native.Views.Pages.Shared
             {
                 try { variablesRTB.ResumeLayout(false); } catch { }
             }
+        }
+        #endregion
+
+        #region Button Event Handlers
+        /// <summary>
+        /// Toggles the auto-scroll functionality for the log display.
+        /// </summary>
+        private void ToggleAutoScroll(object sender, RoutedEventArgs e)
+        {
+            _viewModel.ToggleAutoScroll();
         }
         #endregion
 

@@ -24,7 +24,6 @@ namespace OpenBullet2.Native.Views.Pages
         private ConfigStacker stackerPage;
         private ConfigLoliCode loliCodePage;
         private ConfigCSharpCode cSharpPage;
-        private ConfigLoliScript loliScriptPage;
         private readonly DispatcherTimer autoSaveTimer;
         private readonly OpenBulletSettingsService obSettingsService;
 
@@ -47,7 +46,6 @@ namespace OpenBullet2.Native.Views.Pages
             stackerPage = null;
             loliCodePage = null;
             cSharpPage = null;
-            loliScriptPage = null;
 
             // Set up auto-save timer with optimized interval
             autoSaveTimer = new DispatcherTimer();
@@ -78,11 +76,7 @@ namespace OpenBullet2.Native.Views.Pages
                     editorFrame.Content = cSharpPage;
                     break;
 
-                case ConfigEditorSection.LoliScript:
-                    loliScriptPage ??= new ConfigLoliScript();
-                    loliScriptPage.UpdateViewModel();
-                    editorFrame.Content = loliScriptPage;
-                    break;
+
             }
         }
 
@@ -150,8 +144,7 @@ namespace OpenBullet2.Native.Views.Pages
     {
         Stacker,
         LoliCode,
-        CSharp,
-        LoliScript
+        CSharp
     }
 
     public class ConfigEditorViewModel : ViewModelBase

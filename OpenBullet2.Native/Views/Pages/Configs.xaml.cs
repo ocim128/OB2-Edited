@@ -192,15 +192,9 @@ namespace OpenBullet2.Native.Views.Pages
             {
                 (ConfigSection.Stacker, ConfigMode.LoliCode or ConfigMode.Stack) => MainWindowPage.ConfigStacker,
                 (ConfigSection.Stacker, ConfigMode.CSharp) => MainWindowPage.ConfigCSharpCode,
-                (ConfigSection.Stacker, ConfigMode.Legacy) => MainWindowPage.ConfigLoliScript,
                 (ConfigSection.LoliCode, ConfigMode.LoliCode or ConfigMode.Stack) => MainWindowPage.ConfigLoliCode,
                 (ConfigSection.LoliCode, ConfigMode.CSharp) => MainWindowPage.ConfigCSharpCode,
-                (ConfigSection.LoliCode, ConfigMode.Legacy) => MainWindowPage.ConfigLoliScript,
                 (ConfigSection.CSharpCode, ConfigMode.LoliCode or ConfigMode.Stack or ConfigMode.CSharp) => MainWindowPage.ConfigLoliCode,
-                (ConfigSection.CSharpCode, ConfigMode.Legacy) => MainWindowPage.ConfigLoliScript,
-                (ConfigSection.LoliScript, ConfigMode.LoliCode or ConfigMode.Stack) => MainWindowPage.ConfigLoliCode,
-                (ConfigSection.LoliScript, ConfigMode.CSharp) => MainWindowPage.ConfigCSharpCode,
-                (ConfigSection.LoliScript, ConfigMode.Legacy) => MainWindowPage.ConfigLoliScript,
                 _ => MainWindowPage.ConfigMetadata
             };
         }

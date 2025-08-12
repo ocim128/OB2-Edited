@@ -59,7 +59,8 @@
             <Label Content="{Binding Total}" VerticalAlignment="Center" />
         </StackPanel>
 
-        <ListView 
+        <!-- Single-scroll pattern: rely on ListView's internal scrolling, no outer ScrollViewer -->
+        <ListView
             x:Name="hitsListView"
             Grid.Row="1"
             Foreground="{DynamicResource ForegroundMain}"
@@ -67,7 +68,11 @@
             ItemsSource="{Binding HitsCollection}"
             SelectionMode="Extended"
             BorderThickness="1"
-            VirtualizingPanel.IsVirtualizing="True">
+            VirtualizingPanel.IsVirtualizing="True"
+            VirtualizingPanel.VirtualizationMode="Recycling"
+            ScrollViewer.CanContentScroll="True"
+            SnapsToDevicePixels="True"
+            UseLayoutRounding="True">
 
             <!-- Show Headers by overriding the default style -->
             <ListView.Style>

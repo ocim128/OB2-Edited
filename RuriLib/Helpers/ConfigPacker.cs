@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json;
+using Newtonsoft.Json;
 using RuriLib.Extensions;
 using RuriLib.Helpers.Transpilers;
 using RuriLib.Models.Configs;
@@ -57,9 +57,7 @@ namespace RuriLib.Helpers
                         await CreateZipEntryFromBytes(archive, "build.dll", config.DLLBytes);
                         break;
 
-                    case ConfigMode.Legacy:
-                        await CreateZipEntryFromString(archive, "script.legacy", config.LoliScript);
-                        break;
+
 
                     default:
                         throw new NotSupportedException();
@@ -174,19 +172,7 @@ namespace RuriLib.Helpers
                         throw new FileLoadException("Could not load the file from the opk archive", "build.dll");
                     }
                 }
-                else if (archive.Entries.Any(e => e.Name.Contains("script.legacy")))
-                {
-                    // script.legacy
-                    try
-                    {
-                        config.LoliScript = ReadStringFromZipEntry(archive, "script.legacy");
-                        config.Mode = ConfigMode.Legacy;
-                    }
-                    catch
-                    {
-                        throw new FileLoadException("Could not load the file from the opk archive", "script.legacy");
-                    }
-                }
+
                 else
                 {
                     // script.loli

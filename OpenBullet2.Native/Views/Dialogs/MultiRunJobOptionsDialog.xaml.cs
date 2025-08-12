@@ -255,7 +255,7 @@ namespace OpenBullet2.Native.Views.Dialogs
 
         private void SetConfigData()
         {
-            SelectedConfig = configService.Configs.FirstOrDefault(c => c.Id == Options.ConfigId);
+            SelectedConfig = configService.GetConfigsList().FirstOrDefault(c => c.Id == Options.ConfigId);
 
             if (SelectedConfig is not null)
             {

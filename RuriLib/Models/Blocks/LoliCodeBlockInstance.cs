@@ -1,4 +1,4 @@
-﻿using RuriLib.Extensions;
+using RuriLib.Extensions;
 using RuriLib.Helpers;
 using RuriLib.Helpers.CSharp;
 using RuriLib.Helpers.LoliCode;
@@ -151,14 +151,16 @@ public partial class LoliCodeBlockInstance(LoliCodeBlockDescriptor descriptor) :
         // #MYLABEL => MYLABEL: ;
         if ((match = Regex.Match(input, $"^#({_validTokenRegex})$")).Success)
         {
-            return $"{match.Groups[1].Value}: ;";
+            var label = match.Groups[1].Value;
+            return $"{label}: ;";
         }
 
         // JUMP
         // JUMP #MYLABEL => data.Logger.Log("Jumping to label MYLABEL", LogColors.White); goto MYLABEL;
         if ((match = Regex.Match(input, $"^JUMP #({_validTokenRegex})$")).Success)
         {
-            return $"data.Logger.Log(\"Jumping to label {match.Groups[1].Value}\", LogColors.White);{System.Environment.NewLine}goto {match.Groups[1].Value};";
+            var label = match.Groups[1].Value;
+            return $"data.Logger.Log(\"Jumping to label {label}\", LogColors.White);{System.Environment.NewLine}if (++__jumpCount_{label} > 30) throw new InvalidOperationException($\"Infinite loop detected at label {label} - maximum 30 iterations reached\");{System.Environment.NewLine}goto {label};";
         }
 
         // END

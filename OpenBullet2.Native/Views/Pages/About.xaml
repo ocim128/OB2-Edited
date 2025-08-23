@@ -22,7 +22,7 @@
                     <TextBlock Style="{StaticResource BodyTextStyle}" TextWrapping="Wrap">
                         
                         <!-- Main Introduction -->
-                        <Run FontSize="24" FontWeight="Bold" Foreground="#4FC3F7">🤖 Welcome to OpenBulletz 2!</Run>
+                        <Run FontSize="24" FontWeight="Bold" Foreground="#4FC3F7">🤖 Welcome to OpenBullet 2!</Run>
                         <LineBreak/><LineBreak/>
                         
                         <Italic>Your friendly neighborhood automation companion!</Italic> 🏠

@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json;
+using Newtonsoft.Json;
 
 namespace RuriLib.Helpers
 {
@@ -7,9 +7,9 @@ namespace RuriLib.Helpers
     /// </summary>
     public static class Cloner
     {
-        private static readonly JsonSerializerSettings settings = new() 
+        private static readonly JsonSerializerSettings settings = new()
         {
-            TypeNameHandling = TypeNameHandling.All 
+            TypeNameHandling = TypeNameHandling.All
         };
 
         /// <summary>

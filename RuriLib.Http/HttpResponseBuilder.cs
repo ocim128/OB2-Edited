@@ -1,4 +1,4 @@
-﻿using RuriLib.Http.Helpers;
+using RuriLib.Http.Helpers;
 using RuriLib.Http.Models;
 using System;
 using System.Collections.Generic;
@@ -12,9 +12,14 @@ using System.Threading.Tasks;
 using System.IO.Pipelines;
 using System.Buffers;
 using System.Runtime.CompilerServices;
+using System.Collections.Concurrent;
+using System.Runtime.InteropServices;
 
 namespace RuriLib.Http;
 
+/// <summary>
+/// High-performance HTTP response builder with optimized memory management and reduced allocations.
+/// </summary>
 internal class HttpResponseBuilder : IDisposable
 {
     private PipeReader reader;
@@ -30,6 +35,53 @@ internal class HttpResponseBuilder : IDisposable
     /// Add ArrayPool
     /// </summary>
     private static readonly ArrayPool<byte> _bufferPool = ArrayPool<byte>.Shared;
+    private static readonly ConcurrentQueue<StringBuilder> _stringBuilderPool = new();
+    private static readonly ConcurrentQueue<Dictionary<string, string>> _headerDictionaryPool = new();
+    
+    // Pre-compiled byte sequences for performance
+    private static readonly ReadOnlyMemory<byte> CrLf = "\r\n"u8.ToArray();
+    private static readonly ReadOnlyMemory<byte> DoubleCrLf = "\r\n\r\n"u8.ToArray();
+    private static readonly ReadOnlyMemory<byte> ChunkedEndMarker = "0\r\n\r\n"u8.ToArray();
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static StringBuilder GetPooledStringBuilder()
+    {
+        if (_stringBuilderPool.TryDequeue(out var sb))
+        {
+            sb.Clear();
+            return sb;
+        }
+        return new StringBuilder(256);
+    }
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void ReturnStringBuilder(StringBuilder sb)
+    {
+        if (sb.Capacity <= 4096) // Prevent memory bloat
+        {
+            _stringBuilderPool.Enqueue(sb);
+        }
+    }
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Dictionary<string, string> GetPooledHeaderDictionary()
+    {
+        if (_headerDictionaryPool.TryDequeue(out var dict))
+        {
+            dict.Clear();
+            return dict;
+        }
+        return new Dictionary<string, string>(16, StringComparer.OrdinalIgnoreCase);
+    }
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void ReturnHeaderDictionary(Dictionary<string, string> dict)
+    {
+        if (dict.Count <= 32) // Prevent memory bloat
+        {
+            _headerDictionaryPool.Enqueue(dict);
+        }
+    }
 
     /// <summary>
     /// Nested PooledMemoryStream for ArrayPool integration
@@ -57,7 +109,7 @@ internal class HttpResponseBuilder : IDisposable
     }
 
     /// <summary>
-    /// Builds an HttpResponse by reading a network stream.
+    /// Builds an HttpResponse by reading a network stream with optimized performance.
     /// </summary>
     /// <param name="request"></param>
     /// <param name="pipeReader"></param>
@@ -67,6 +119,10 @@ internal class HttpResponseBuilder : IDisposable
     internal async Task<HttpResponse> GetResponseAsync(HttpRequest request, PipeReader pipeReader,
         bool readResponseContent = true, CancellationToken cancellationToken = default)
     {
+        using var timeoutCts = new CancellationTokenSource(ReceiveTimeout);
+        using var combinedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
+        var token = combinedCts.Token;
+
         reader = pipeReader;
 
         response = new HttpResponse
@@ -78,12 +134,12 @@ internal class HttpResponseBuilder : IDisposable
 
         try
         {
-            await ReceiveFirstLineAsync(cancellationToken).ConfigureAwait(false);
-            await ReceiveHeadersAsync(cancellationToken).ConfigureAwait(false);
+            await ReceiveFirstLineAsync(token).ConfigureAwait(false);
+            await ReceiveHeadersAsync(token).ConfigureAwait(false);
 
             if (request.Method != HttpMethod.Head)
             {
-                await ReceiveContentAsync(readResponseContent, cancellationToken).ConfigureAwait(false);
+                await ReceiveContentAsync(readResponseContent, token).ConfigureAwait(false);
             }
         }
         catch
@@ -151,9 +207,10 @@ internal class HttpResponseBuilder : IDisposable
     }
 
     /// <summary>
-    /// Parses the headers
+    /// Parses the headers with optimized performance using pooled dictionaries
     /// </summary>
     /// <param name="cancellationToken"></param>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private async Task ReceiveHeadersAsync(CancellationToken cancellationToken = default)
     {
         while (true)
@@ -187,6 +244,7 @@ internal class HttpResponseBuilder : IDisposable
     /// Reads all Header Lines using <see cref="Span{T}"/> For High Performance Parsing.
     /// </summary>
     /// <param name="buff">Buffered Data From Pipe</param>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private bool ReadHeadersFastPath(ref ReadOnlySequence<byte> buff)
     {
         int endofheadersindex;
@@ -209,27 +267,37 @@ internal class HttpResponseBuilder : IDisposable
     }
 
     /// <summary>
-    /// Reads all Header Lines using SequenceReader.
+    /// Reads all Header Lines using SequenceReader with optimized performance.
     /// </summary>
     /// <param name="buff">Buffered Data From Pipe</param>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private bool ReadHeadersSlowerPath(ref ReadOnlySequence<byte> buff)
     {
         var sequenceReader = new SequenceReader<byte>(buff);
-
-        while (sequenceReader.TryReadTo(out ReadOnlySpan<byte> Line, CRLF, true))
+        var sb = GetPooledStringBuilder();
+        
+        try
         {
-            if (Line.Length == 0)// reached last crlf (empty line)
+            while (sequenceReader.TryReadTo(out ReadOnlySpan<byte> Line, CRLF, true))
             {
-                buff = buff.Slice(sequenceReader.Position);
-                return true;// all headers received
+                if (Line.Length == 0)// reached last crlf (empty line)
+                {
+                    buff = buff.Slice(sequenceReader.Position);
+                    return true;// all headers received
+                }
+                ProcessHeaderLine(Line);
             }
-            ProcessHeaderLine(Line);
+        }
+        finally
+        {
+            ReturnStringBuilder(sb);
         }
 
         buff = buff.Slice(sequenceReader.Position);
         return false;// empty line not found need more data
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private void ProcessHeaderLine(ReadOnlySpan<byte> header)
     {
         if (header.Length == 0)
@@ -244,27 +312,65 @@ internal class HttpResponseBuilder : IDisposable
             return;
         }
 
-        // Slice and trim the header name span
-        var headerNameSpan = header[..separatorPos].Trim((byte)' '); // Trim any leading/trailing spaces
-        var headerValueSpan = header[(separatorPos + 1)..].Trim((byte)' '); // Skip ':' and trim leading/trailing spaces
+        // Use pooled StringBuilder for efficient string building
+        var sb = GetPooledStringBuilder();
+        
+        try
+        {
+            // Parse header name with manual trimming to avoid allocations
+            var headerNameSpan = header[..separatorPos];
+            var nameStart = 0;
+            var nameEnd = headerNameSpan.Length - 1;
+            
+            while (nameStart <= nameEnd && headerNameSpan[nameStart] == ' ') nameStart++;
+            while (nameEnd >= nameStart && headerNameSpan[nameEnd] == ' ') nameEnd--;
+            
+            if (nameStart > nameEnd) return;
+            
+            sb.Clear();
+            for (int i = nameStart; i <= nameEnd; i++)
+            {
+                sb.Append((char)headerNameSpan[i]);
+            }
+            var headerName = sb.ToString();
+            
+            // Parse header value with manual trimming
+            var headerValueSpan = header[(separatorPos + 1)..];
+            var valueStart = 0;
+            var valueEnd = headerValueSpan.Length - 1;
+            
+            while (valueStart <= valueEnd && headerValueSpan[valueStart] == ' ') valueStart++;
+            while (valueEnd >= valueStart && headerValueSpan[valueEnd] == ' ') valueEnd--;
+            
+            sb.Clear();
+            if (valueStart <= valueEnd)
+            {
+                for (int i = valueStart; i <= valueEnd; i++)
+                {
+                    sb.Append((char)headerValueSpan[i]);
+                }
+            }
+            var headerValue = sb.ToString();
 
-        var headerName = Encoding.UTF8.GetString(headerNameSpan);
-        var headerValue = Encoding.UTF8.GetString(headerValueSpan);
-
-        // If the header is Set-Cookie, add the cookie
-        if (headerName.Equals("Set-Cookie", StringComparison.OrdinalIgnoreCase) ||
-            headerName.Equals("Set-Cookie2", StringComparison.OrdinalIgnoreCase))
-        {
-            SetCookie(response, headerValue);
+            // If the header is Set-Cookie, add the cookie
+            if (headerName.Equals("Set-Cookie", StringComparison.OrdinalIgnoreCase) ||
+                headerName.Equals("Set-Cookie2", StringComparison.OrdinalIgnoreCase))
+            {
+                SetCookie(response, headerValue);
+            }
+            // If it's a content header
+            else if (IsContentHeader(headerName))
+            {
+                AddContentHeader(headerName, headerValue);
+            }
+            else
+            {
+                AddGeneralHeader(headerName, headerValue);
+            }
         }
-        // If it's a content header
-        else if (IsContentHeader(headerName))
+        finally
         {
-            AddContentHeader(headerName, headerValue);
-        }
-        else
-        {
-            AddGeneralHeader(headerName, headerValue);
+            ReturnStringBuilder(sb);
         }
     }
 

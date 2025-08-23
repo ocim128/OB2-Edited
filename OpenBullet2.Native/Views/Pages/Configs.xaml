@@ -164,6 +164,8 @@
                       VirtualizingPanel.IsVirtualizing="True"
                       VirtualizingPanel.VirtualizationMode="Recycling"
                       VirtualizingPanel.ScrollUnit="Item"
+                      VirtualizingPanel.CacheLengthUnit="Item"
+                      VirtualizingPanel.CacheLength="40,40"
                       SelectionChanged="ItemHovered"
                       AllowDrop="True"
                       Drop="configsListView_Drop"
@@ -172,6 +174,7 @@
                       ScrollViewer.HorizontalScrollBarVisibility="Auto"
                       ScrollViewer.VerticalScrollBarVisibility="Auto"
                       ScrollViewer.CanContentScroll="True"
+                      ScrollViewer.IsDeferredScrollingEnabled="True"
                       UseLayoutRounding="True"
                       SnapsToDevicePixels="True"
                       Padding="0">

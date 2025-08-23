@@ -467,6 +467,14 @@
         "resolved": "5.0.0",
         "contentHash": "VyPlqzH2wavqquTcYpkIIAQ6WdenuKoFN0BdYBbCWsclXacSOHNQn66Gt4z5NBqEYW0FAPm5rlvki9ZiCij5xQ=="
       },
+      "Microsoft.Playwright": {
+        "type": "Transitive",
+        "resolved": "1.40.0",
+        "contentHash": "Eg4a4m5JG27T+tSueaGboQBALxB4fyzn0yDSd8bc8UZLHD/XdklHCQjsgsD5iBrVLVIjnEiIbDI0DPmsEn91Cg==",
+        "dependencies": {
+          "Microsoft.Bcl.AsyncInterfaces": "6.0.0"
+        }
+      },
       "Microsoft.Win32.SystemEvents": {
         "type": "Transitive",
         "resolved": "5.0.0",
@@ -738,6 +746,7 @@
           "Microsoft.CodeAnalysis.CSharp": "[4.5.0, )",
           "Microsoft.CodeAnalysis.CSharp.Scripting": "[4.5.0, )",
           "Microsoft.CodeAnalysis.Workspaces.Common": "[4.5.0, )",
+          "Microsoft.Playwright": "[1.40.0, )",
           "Newtonsoft.Json": "[13.0.3, )",
           "PuppeteerExtraSharp": "[2.0.0, )",
           "PuppeteerSharp": "[9.0.2, )",

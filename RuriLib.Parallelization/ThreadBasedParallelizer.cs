@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,263 +8,196 @@ using System.Threading.Tasks;
 namespace RuriLib.Parallelization
 {
     /// <summary>
-    /// Parallelizer that expoits a custom pool of threads.
+    /// Parallelizer that exploits a custom pool of threads with a blocking collection for high efficiency.
     /// </summary>
     public class ThreadBasedParallelizer<TInput, TOutput> : Parallelizer<TInput, TOutput>
     {
-        #region Private Fields
-        private readonly ConcurrentQueue<TInput> workQueue = new();
-        private readonly Thread[] workerThreads;
-        private volatile bool shouldStop = false;
-        private volatile bool isPaused = false;
-        private readonly ManualResetEventSlim pauseEvent = new(true);
-        private int activeThreads = 0;
-        private int cpmCheckCounter = 0;
-        #endregion
+        private BlockingCollection<TInput> _workQueue;
+        private Thread[] _workerThreads;
+        private CancellationTokenSource[] _workerCTS;
 
-        #region Constructors
         /// <inheritdoc/>
         public ThreadBasedParallelizer(IEnumerable<TInput> workItems, Func<TInput, CancellationToken, Task<TOutput>> workFunction,
             int degreeOfParallelism, long totalAmount, int skip = 0, int maxDegreeOfParallelism = 200)
             : base(workItems, workFunction, degreeOfParallelism, totalAmount, skip, maxDegreeOfParallelism)
         {
-            workerThreads = new Thread[maxDegreeOfParallelism];
         }
-        #endregion
 
-        #region Public Methods
         /// <inheritdoc/>
         public async override Task Start()
         {
-            await base.Start();
+            await base.Start().ConfigureAwait(false);
 
-            shouldStop = false;
-            isPaused = false;
-            activeThreads = 0;
-            cpmCheckCounter = 0;
-            pauseEvent.Set();
-            
-            // Start worker threads
-            for (int i = 0; i < degreeOfParallelism; i++)
+            _workQueue = new BlockingCollection<TInput>(new ConcurrentQueue<TInput>());
+            _workerThreads = new Thread[MaxDegreeOfParallelism];
+            _workerCTS = new CancellationTokenSource[MaxDegreeOfParallelism];
+
+            for (var i = 0; i < degreeOfParallelism; i++)
             {
-                StartWorkerThread(i);
+                _workerCTS[i] = new CancellationTokenSource();
+                var token = _workerCTS[i].Token;
+                _workerThreads[i] = new Thread(() => WorkerLoop(token))
+                {
+                    IsBackground = true,
+                    Name = $"OB2-Worker-{i}"
+                };
+                _workerThreads[i].Start();
             }
 
-            stopwatch.Restart();
             Status = ParallelizerStatus.Running;
-            _ = Task.Run(ProduceWork).ConfigureAwait(false);
+            _ = Task.Run(ProduceWorkAsync).ConfigureAwait(false);
         }
 
         /// <inheritdoc/>
         public async override Task Pause()
         {
-            await base.Pause();
-
-            Status = ParallelizerStatus.Pausing;
-            isPaused = true;
-            pauseEvent.Reset();
+            await base.Pause().ConfigureAwait(false);
             Status = ParallelizerStatus.Paused;
-            stopwatch.Stop();
         }
 
         /// <inheritdoc/>
         public async override Task Resume()
         {
-            await base.Resume();
-
-            isPaused = false;
-            pauseEvent.Set();
+            await base.Resume().ConfigureAwait(false);
             Status = ParallelizerStatus.Running;
-            stopwatch.Start();
         }
 
         /// <inheritdoc/>
         public async override Task Stop()
         {
-            await base.Stop();
+            await base.Stop().ConfigureAwait(false);
 
             Status = ParallelizerStatus.Stopping;
-            shouldStop = true;
-            pauseEvent.Set(); // Unblock paused threads
             softCTS.Cancel();
-            await WaitCompletion().ConfigureAwait(false);
-            stopwatch.Stop();
+            _workQueue.CompleteAdding();
+            await WaitForThreadsCompletion().ConfigureAwait(false);
         }
 
         /// <inheritdoc/>
         public async override Task Abort()
         {
-            await base.Abort();
+            await base.Abort().ConfigureAwait(false);
 
             Status = ParallelizerStatus.Stopping;
-            shouldStop = true;
-            pauseEvent.Set(); // Unblock paused threads
             hardCTS.Cancel();
             softCTS.Cancel();
-            await WaitCompletion().ConfigureAwait(false);
-            stopwatch.Stop();
+            _workQueue.CompleteAdding();
+            await WaitForThreadsCompletion().ConfigureAwait(false);
         }
 
         /// <inheritdoc/>
-        public async override Task ChangeDegreeOfParallelism(int newValue)
+        public override Task ChangeDegreeOfParallelism(int newValue)
         {
-            await base.ChangeDegreeOfParallelism(newValue);
-
-            if (Status == ParallelizerStatus.Idle)
-            {
-                degreeOfParallelism = newValue;
-                return;
-            }
-
             var oldDOP = degreeOfParallelism;
+            base.ChangeDegreeOfParallelism(newValue).Wait();
             degreeOfParallelism = newValue;
 
             if (newValue > oldDOP)
             {
-                // Start additional worker threads
-                for (int i = oldDOP; i < newValue; i++)
+                // Start new threads
+                for (var i = oldDOP; i < newValue; i++)
                 {
-                    StartWorkerThread(i);
+                    if (_workerThreads[i]?.IsAlive == true) continue;
+
+                    _workerCTS[i] = new CancellationTokenSource();
+                    var token = _workerCTS[i].Token;
+                    _workerThreads[i] = new Thread(() => WorkerLoop(token)) { IsBackground = true, Name = $"OB2-Worker-{i}" };
+                    _workerThreads[i].Start();
                 }
             }
             else if (newValue < oldDOP)
             {
-                // Stop excess worker threads - they will exit naturally when work is done
-                for (int i = newValue; i < oldDOP; i++)
+                // Stop surplus threads
+                for (var i = newValue; i < oldDOP; i++)
                 {
-                    if (workerThreads[i]?.IsAlive == true)
-                    {
-                        // Threads will check degreeOfParallelism and exit if their index >= new DOP
-                    }
+                    _workerCTS[i]?.Cancel();
                 }
             }
-        }
-        #endregion
 
-        #region Private Methods
-        // Producer method - feeds work items into the queue
-        private async void ProduceWork()
+            return Task.CompletedTask;
+        }
+
+        private async Task ProduceWorkAsync()
         {
             try
             {
-                // Skip the items
-                using var items = workItems.Skip(skip).GetEnumerator();
-
-                while (items.MoveNext() && !softCTS.IsCancellationRequested)
+                using var enumerator = workItems.Skip(skip).GetEnumerator();
+                while (!softCTS.IsCancellationRequested && enumerator.MoveNext())
                 {
-                    // CPM throttling with reduced checking frequency
-                    if (++cpmCheckCounter >= 100 && IsCPMLimited())
-                    {
-                        cpmCheckCounter = 0;
-                        await Task.Delay(50, softCTS.Token); // Reduced delay
-                        continue;
-                    }
-
-                    // Queue work item
-                    workQueue.Enqueue(items.Current);
-
-                    // Micro-delay to prevent CPU spinning when queue is full
-                    if (workQueue.Count > degreeOfParallelism * 2)
-                    {
-                        await Task.Delay(1, softCTS.Token);
-                    }
+                    // Wait if paused
+                    await pauseToken.WaitWhilePausedAsync().ConfigureAwait(false);
+                    _workQueue.Add(enumerator.Current, softCTS.Token);
                 }
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException) when (softCTS.IsCancellationRequested)
             {
-                // Expected when cancellation is requested
+                // Expected cancellation
+            }
+            catch (Exception ex)
+            {
+                OnError(ex);
             }
             finally
             {
-                shouldStop = true;
-                pauseEvent.Set();
-                
-                // Wait for all worker threads to finish
-                await WaitCurrentWorkCompletion();
-                
-                OnCompleted();
-                Status = ParallelizerStatus.Idle;
-                hardCTS?.Dispose();
-                softCTS?.Dispose();
-                pauseEvent?.Dispose();
-                stopwatch?.Stop();
+                _workQueue.CompleteAdding();
+                await WaitForThreadsCompletion().ConfigureAwait(false);
+                Cleanup();
             }
         }
 
-        // Start a worker thread at the specified index
-        private void StartWorkerThread(int threadIndex)
+        private void WorkerLoop(CancellationToken token)
         {
-            if (threadIndex >= workerThreads.Length || workerThreads[threadIndex]?.IsAlive == true)
-                return;
+            using var linkedCTS = CancellationTokenSource.CreateLinkedTokenSource(hardCTS.Token, token);
 
-            var thread = new Thread(() => WorkerThreadLoop(threadIndex))
-            {
-                IsBackground = true,
-                Name = $"OB2-Worker-{threadIndex}"
-            };
-            
-            workerThreads[threadIndex] = thread;
-            thread.Start();
-        }
-
-        // Optimized worker thread loop with producer-consumer pattern
-        private void WorkerThreadLoop(int threadIndex)
-        {
-            Interlocked.Increment(ref activeThreads);
-            
             try
             {
-                while (!shouldStop && threadIndex < degreeOfParallelism)
+                foreach (var item in _workQueue.GetConsumingEnumerable(linkedCTS.Token))
                 {
-                    // Handle pause state efficiently
-                    if (isPaused)
-                    {
-                        pauseEvent.Wait(softCTS.Token);
-                        continue;
-                    }
+                    // Wait if paused
+                    pauseToken.WaitWhilePausedAsync().GetAwaiter().GetResult();
 
-                    // Try to get work from queue
-                    if (workQueue.TryDequeue(out TInput workItem))
-                    {
-                        try
-                        {
-                            // Execute work synchronously (ThreadBased should be sync)
-                            if (!softCTS.IsCancellationRequested)
-                            {
-                                taskFunction(workItem).ConfigureAwait(false).GetAwaiter().GetResult();
-                            }
-                        }
-                        catch (Exception ex) when (!(ex is OperationCanceledException))
-                        {
-                            // Work function handles its own errors through base class
-                        }
-                    }
-                    else
-                    {
-                        // No work available - micro-sleep to prevent CPU spinning
-                        Thread.Sleep(1);
-                    }
+                    taskFunction(item).ConfigureAwait(false).GetAwaiter().GetResult();
                 }
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException) when (linkedCTS.IsCancellationRequested)
             {
-                // Expected during cancellation
+                // Expected cancellation
             }
-            finally
+            catch (Exception ex)
             {
-                Interlocked.Decrement(ref activeThreads);
-                workerThreads[threadIndex] = null;
+                OnError(ex);
             }
         }
 
-        // Wait until the current work completion
-        private async Task WaitCurrentWorkCompletion()
+        private async Task WaitForThreadsCompletion()
         {
-            while (activeThreads > 0)
+            var maxDopEver = _workerThreads.Count(t => t != null);
+            for (var i = 0; i < maxDopEver; i++)
             {
-                await Task.Delay(10).ConfigureAwait(false);
+                if (_workerThreads[i]?.IsAlive == true)
+                {
+                    await Task.Run(() => _workerThreads[i].Join()).ConfigureAwait(false);
+                }
             }
         }
-        #endregion
+
+        private void Cleanup()
+        {
+            if (Status == ParallelizerStatus.Idle) return;
+
+            try { OnCompleted(); } catch { /* Ignore */ }
+            Status = ParallelizerStatus.Idle;
+            try { hardCTS?.Dispose(); } catch { /* Ignore */ }
+            try { softCTS?.Dispose(); } catch { /* Ignore */ }
+            try { _workQueue?.Dispose(); } catch { /* Ignore */ }
+
+            if (_workerCTS is not null)
+            {
+                foreach (var cts in _workerCTS)
+                {
+                    try { cts?.Dispose(); } catch { /* Ignore */ }
+                }
+            }
+        }
     }
 }

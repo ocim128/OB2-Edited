@@ -1,4 +1,4 @@
-﻿using RuriLib.Extensions;
+using RuriLib.Extensions;
 using RuriLib.Models.Blocks;
 using RuriLib.Models.Blocks.Custom;
 using RuriLib.Models.Blocks.Parameters;
@@ -12,6 +12,7 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
+using System.Collections.Concurrent;
 
 namespace RuriLib.Helpers.Blocks
 {
@@ -20,7 +21,7 @@ namespace RuriLib.Helpers.Blocks
     /// </summary>
     public class DescriptorsRepository
     {
-        public Dictionary<string, BlockDescriptor> Descriptors { get; set; } = new Dictionary<string, BlockDescriptor>();
+        public ConcurrentDictionary<string, BlockDescriptor> Descriptors { get; set; } = new ConcurrentDictionary<string, BlockDescriptor>();
 
         /// <summary>
         /// Initializes a <see cref="DescriptorsRepository"/> and imports blocks from the executing assembly.
@@ -84,6 +85,9 @@ namespace RuriLib.Helpers.Blocks
                     if (Descriptors.ContainsKey(method.Name))
                         throw new Exception($"Duplicate descriptor id: {method.Name}");
 
+                    // Get parameters excluding BotData
+                    var parameters = method.GetParameters().Where(p => p.ParameterType != typeof(BotData)).ToArray();
+
                     // Add the descriptor
                     Descriptors[method.Name] = new AutoBlockDescriptor
                     {
@@ -94,8 +98,8 @@ namespace RuriLib.Helpers.Blocks
                         Description = attribute.description ?? string.Empty,
                         ExtraInfo = attribute.extraInfo ?? string.Empty,
                         AssemblyFullName = assembly.FullName,
-                        Parameters = method.GetParameters().Where(p => p.ParameterType != typeof(BotData))
-                            .Select(BuildBlockParameter).ToDictionary(p => p.Name, p => p),
+                        Parameters = parameters.Select(BuildBlockParameter).ToDictionary(p => p.Name, p => p),
+                        OriginalParameterTypes = parameters.ToDictionary(p => p.Name, p => p.ParameterType),
                         ReturnType = ToVariableType(method.ReturnType),
                         Category = new BlockCategory
                         {
@@ -263,10 +267,14 @@ namespace RuriLib.Helpers.Blocks
                 { typeof(bool), () => new BoolParameter
                     { DefaultValue = parameter.HasDefaultValue ? (bool)parameter.DefaultValue : false } },
 
+                { typeof(bool?), () => new BoolParameter
+                    { DefaultValue = parameter.HasDefaultValue && parameter.DefaultValue != null ? (bool)parameter.DefaultValue : false } },
+
                 // TODO: Add defaults for these through parameter attributes
                 { typeof(List<string>), () => new ListOfStringsParameter() },
                 { typeof(Dictionary<string, string>), () => new DictionaryOfStringsParameter() },
-                { typeof(byte[]), () => new ByteArrayParameter() }
+                { typeof(byte[]), () => new ByteArrayParameter() },
+                { typeof(string[]), () => new ListOfStringsParameter() }
             };
 
             var blockParamAttribute = parameter.GetCustomAttribute<Attributes.BlockParam>();
@@ -296,6 +304,27 @@ namespace RuriLib.Helpers.Blocks
                     DefaultValue = parameter.HasDefaultValue
                         ? parameter.DefaultValue.ToString()
                         : Enum.GetNames(parameter.ParameterType).First()
+                };
+
+                if (blockParamAttribute != null)
+                {
+                    blockParam.AssignedName = blockParamAttribute.name;
+                }
+
+                return blockParam;
+            }
+
+            // If it's a nullable enum type
+            var underlyingType = Nullable.GetUnderlyingType(parameter.ParameterType);
+            if (underlyingType != null && underlyingType.IsEnum)
+            {
+                var blockParam = new EnumParameter
+                {
+                    Name = parameter.Name,
+                    EnumType = underlyingType,
+                    DefaultValue = parameter.HasDefaultValue && parameter.DefaultValue != null
+                        ? parameter.DefaultValue.ToString()
+                        : Enum.GetNames(underlyingType).First()
                 };
 
                 if (blockParamAttribute != null)

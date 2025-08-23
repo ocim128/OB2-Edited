@@ -1,4 +1,4 @@
-﻿using PuppeteerSharp;
+using PuppeteerSharp;
 using RuriLib.Attributes;
 using RuriLib.Logging;
 using RuriLib.Models.Bots;
@@ -58,18 +58,18 @@ namespace RuriLib.Blocks.Puppeteer.Page
         public static async Task PuppeteerPageType(BotData data, string text)
         {
             data.Logger.LogHeader();
-            
+
             var page = GetPage(data);
             await page.Keyboard.TypeAsync(text);
             data.Logger.Log($"Typed {text}", LogColors.DarkSalmon);
         }
 
-        [Block("Presses and releases a key in the browser page", name = "Key Press in Page", 
+        [Block("Presses and releases a key in the browser page", name = "Key Press in Page",
             extraInfo = "Full list of keys here: https://github.com/puppeteer/puppeteer/blob/v1.14.0/lib/USKeyboardLayout.js")]
         public static async Task PuppeteerPageKeyPress(BotData data, string key)
         {
             data.Logger.LogHeader();
-            
+
             var page = GetPage(data);
             await page.Keyboard.PressAsync(key);
             data.Logger.Log($"Pressed and released {key}", LogColors.DarkSalmon);
@@ -82,7 +82,7 @@ namespace RuriLib.Blocks.Puppeteer.Page
         public static async Task PuppeteerPageKeyDown(BotData data, string key)
         {
             data.Logger.LogHeader();
-            
+
             var page = GetPage(data);
             await page.Keyboard.DownAsync(key);
             data.Logger.Log($"Pressed (and holding down) {key}", LogColors.DarkSalmon);
@@ -95,7 +95,7 @@ namespace RuriLib.Blocks.Puppeteer.Page
         public static async Task PuppeteerKeyUp(BotData data, string key)
         {
             data.Logger.LogHeader();
-            
+
             var page = GetPage(data);
             await page.Keyboard.UpAsync(key);
             data.Logger.Log($"Released {key}", LogColors.DarkSalmon);
@@ -126,7 +126,7 @@ namespace RuriLib.Blocks.Puppeteer.Page
         public static async Task PuppeteerScrollToTop(BotData data)
         {
             data.Logger.LogHeader();
-            
+
             var page = GetPage(data);
             await page.EvaluateExpressionAsync("window.scrollTo(0, 0);");
             data.Logger.Log($"Scrolled to the top of the page", LogColors.DarkSalmon);
@@ -136,7 +136,7 @@ namespace RuriLib.Blocks.Puppeteer.Page
         public static async Task PuppeteerScrollToBottom(BotData data)
         {
             data.Logger.LogHeader();
-            
+
             var page = GetPage(data);
             await page.EvaluateExpressionAsync("window.scrollTo(0, document.body.scrollHeight);");
             data.Logger.Log($"Scrolled to the bottom of the page", LogColors.DarkSalmon);
@@ -146,7 +146,7 @@ namespace RuriLib.Blocks.Puppeteer.Page
         public static async Task PuppeteerScrollBy(BotData data, int horizontalScroll, int verticalScroll)
         {
             data.Logger.LogHeader();
-            
+
             var page = GetPage(data);
             await page.EvaluateExpressionAsync($"window.scrollBy({horizontalScroll}, {verticalScroll});");
             data.Logger.Log($"Scrolled by ({horizontalScroll}, {verticalScroll})", LogColors.DarkSalmon);
@@ -193,7 +193,7 @@ namespace RuriLib.Blocks.Puppeteer.Page
 
             var page = GetPage(data);
             var cookies = await page.GetCookiesAsync();
-            
+
             if (!string.IsNullOrWhiteSpace(domain))
             {
                 cookies = cookies.Where(c => c.Domain.Contains(domain, StringComparison.OrdinalIgnoreCase)).ToArray();

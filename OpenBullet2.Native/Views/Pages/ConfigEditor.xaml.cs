@@ -5,6 +5,7 @@ using OpenBullet2.Native.ViewModels;
 using OpenBullet2.Native.Views.Pages.Shared;
 using RuriLib.Models.Configs;
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -26,6 +27,18 @@ namespace OpenBullet2.Native.Views.Pages
         private ConfigCSharpCode cSharpPage;
         private readonly DispatcherTimer autoSaveTimer;
         private readonly OpenBulletSettingsService obSettingsService;
+
+        // Public property to allow external access to the stacker controls panel
+        public DockPanel GetStackerControlsPanel() => StackerControlsPanel;
+
+        // Public method to check if current content is stacker page
+        public bool IsStackerPageActive() => editorFrame.Content == stackerPage;
+
+        // Public method to toggle editor frame visibility for stacker content
+        public void SetEditorFrameVisibility(bool isVisible)
+        {
+            editorFrame.Visibility = isVisible ? Visibility.Visible : Visibility.Collapsed;
+        }
 
         public ConfigEditor()
         {
@@ -52,6 +65,12 @@ namespace OpenBullet2.Native.Views.Pages
             autoSaveTimer.Interval = TimeSpan.FromSeconds(Math.Max(5, obSettingsService.Settings.GeneralSettings.AutoSaveInterval));
             autoSaveTimer.Tick += async (_, _) => await AutoSave();
             autoSaveTimer.Start();
+        }
+
+        // Public method to update UI when config is loaded
+        public void UpdateUI()
+        {
+            UpdateButtonsVisibility();
         }
 
         public void NavigateTo(ConfigEditorSection section)
@@ -85,6 +104,9 @@ namespace OpenBullet2.Native.Views.Pages
             var isStackOrLoliCode = vm.Config.Mode == ConfigMode.Stack || vm.Config.Mode == ConfigMode.LoliCode;
             var currentContent = editorFrame.Content;
 
+            // Show the entire panel when we have a valid config mode
+            StackerControlsPanel.Visibility = isStackOrLoliCode ? Visibility.Visible : Visibility.Collapsed;
+
             stackerButton.Visibility = isStackOrLoliCode && currentContent != stackerPage
                 ? Visibility.Visible : Visibility.Collapsed;
 
@@ -110,6 +132,8 @@ namespace OpenBullet2.Native.Views.Pages
         private void OpenStacker(object sender, RoutedEventArgs e) => mainWindow.NavigateTo(MainWindowPage.ConfigStacker);
         private void OpenLoliCode(object sender, RoutedEventArgs e) => mainWindow.NavigateTo(MainWindowPage.ConfigLoliCode);
         private void OpenCSharpCode(object sender, RoutedEventArgs e) => mainWindow.NavigateTo(MainWindowPage.ConfigCSharpCode);
+
+
 
         public async void Save(object sender, RoutedEventArgs e)
         {

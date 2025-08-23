@@ -25,13 +25,15 @@ using System.Windows.Controls;
 using System.Windows.Media.Imaging;
 using MahApps.Metro.Controls;
 using OpenBullet2.Native.Infrastructure.DependencyInjection;
+using System.Windows.Input;
+using System.Windows.Media;
 
 namespace OpenBullet2.Native.Views.Dialogs
 {
     /// <summary>
     /// Interaction logic for MultiRunJobOptionsDialog.xaml
     /// </summary>
-    public partial class MultiRunJobOptionsDialog : MetroWindow
+    public partial class MultiRunJobOptionsDialog : Page
     {
         private readonly Action<JobOptions> onAccept;
         private readonly MultiRunJobOptionsViewModel vm;
@@ -98,7 +100,7 @@ namespace OpenBullet2.Native.Views.Dialogs
 
             // Removed the dangerous config warning as requested
             onAccept?.Invoke(vm.Options);
-            this.Close();
+            ((MainDialog)Parent).Close();
         }
 
         private void SelectFileForProxySource(object sender, RoutedEventArgs e)
@@ -123,6 +125,50 @@ namespace OpenBullet2.Native.Views.Dialogs
 
             ofd.ShowDialog();
             (vm.DataPoolOptions as FileDataPoolOptionsViewModel).FileName = ofd.FileName;
+        }
+
+        // Forward mouse wheel from child scroll viewers (e.g., Proxy Sources, Hit Outputs)
+        private void ChildScrollViewer_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+        {
+            if (e.Handled) return;
+
+            if (sender is not ScrollViewer child) return;
+
+            // Determine if child can scroll in the direction of the wheel
+            bool scrollingUp = e.Delta > 0;
+            bool atTop = child.VerticalOffset <= 0;
+            bool atBottom = child.VerticalOffset >= child.ScrollableHeight;
+
+            bool shouldBubble = (scrollingUp && atTop) || (!scrollingUp && atBottom) || child.ScrollableHeight == 0;
+
+            if (!shouldBubble)
+            {
+                // Let the child scroll
+                return;
+            }
+
+            // Bubble to parent ScrollViewer (main page)
+            var parentScroll = FindAncestor<ScrollViewer>(child);
+            if (parentScroll is null) return;
+
+            e.Handled = true; // prevent the child from handling it
+            var eventArg = new MouseWheelEventArgs(e.MouseDevice, e.Timestamp, e.Delta)
+            {
+                RoutedEvent = UIElement.MouseWheelEvent,
+                Source = sender
+            };
+            parentScroll.RaiseEvent(eventArg);
+        }
+
+        private static T FindAncestor<T>(DependencyObject current) where T : DependencyObject
+        {
+            if (current is null) return null;
+            var parent = VisualTreeHelper.GetParent(current);
+            while (parent is not null && parent is not T)
+            {
+                parent = VisualTreeHelper.GetParent(parent);
+            }
+            return parent as T;
         }
     }
 

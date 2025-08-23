@@ -24,34 +24,56 @@ namespace RuriLib.Functions.Parsing
                 throw new ArgumentNullException(nameof(rightDelim));
 
             // No delimiters = return the full input
-            if (leftDelim == string.Empty && rightDelim == string.Empty)
+            if (leftDelim.Length == 0 && rightDelim.Length == 0)
             {
                 yield return input;
                 yield break;
             }
 
-            var comp = caseSensitive ? StringComparison.InvariantCulture : StringComparison.InvariantCultureIgnoreCase;
+            var comp = caseSensitive ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
+            int inputLength = input.Length;
+            int leftDelimLength = leftDelim.Length;
+            int rightDelimLength = rightDelim.Length;
+            int currentIndex = 0;
 
-            // Left delimiter or Right delimiter not present and not empty = return nothing
-            if (((leftDelim != string.Empty && !input.Contains(leftDelim, comp)) || (rightDelim != string.Empty && !input.Contains(rightDelim, comp))))
-                yield break;
-
-            while ((leftDelim == string.Empty || (input.Contains(leftDelim, comp))) && (rightDelim == string.Empty || input.Contains(rightDelim, comp)))
+            while (currentIndex < inputLength)
             {
-                // Search for left delimiter and Calculate offset
-                var pFrom = leftDelim == string.Empty ? 0 : input.IndexOf(leftDelim, comp) + leftDelim.Length;
+                int pFrom;
+                
+                // Find left delimiter
+                if (leftDelimLength == 0)
+                {
+                    pFrom = currentIndex;
+                }
+                else
+                {
+                    pFrom = input.IndexOf(leftDelim, currentIndex, comp);
+                    if (pFrom == -1)
+                        yield break;
+                    pFrom += leftDelimLength;
+                }
 
-                // Move right of offset
-                input = input.Substring(pFrom);
-                
-                // Search for right delimiter and Calculate length to parse
-                var pTo = rightDelim == string.Empty ? input.Length : input.IndexOf(rightDelim, comp);
-                
-                // Parse it
-                yield return (input.Substring(0, pTo));
-                
-                // Move right of parsed + right
-                input = input.Substring(pTo + rightDelim.Length);
+                if (pFrom >= inputLength)
+                    yield break;
+
+                // Find right delimiter
+                int pTo;
+                if (rightDelimLength == 0)
+                {
+                    pTo = inputLength;
+                }
+                else
+                {
+                    pTo = input.IndexOf(rightDelim, pFrom, comp);
+                    if (pTo == -1)
+                        yield break;
+                }
+
+                // Extract substring without creating intermediate strings
+                yield return input.Substring(pFrom, pTo - pFrom);
+
+                // Move to next position
+                currentIndex = pTo + rightDelimLength;
             }
         }
     }

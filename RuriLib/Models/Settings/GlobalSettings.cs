@@ -1,4 +1,4 @@
-﻿namespace RuriLib.Models.Settings
+namespace RuriLib.Models.Settings
 {
     public class GlobalSettings
     {
@@ -6,6 +6,7 @@
         public CaptchaSettings CaptchaSettings { get; set; } = new CaptchaSettings();
         public ProxySettings ProxySettings { get; set; } = new ProxySettings();
         public PuppeteerSettings PuppeteerSettings { get; set; } = new PuppeteerSettings();
+        public PlaywrightSettings PlaywrightSettings { get; set; } = new PlaywrightSettings();
         public SeleniumSettings SeleniumSettings { get; set; } = new SeleniumSettings();
     }
 }

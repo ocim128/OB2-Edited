@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -27,17 +27,12 @@ public static class ParallelizerFactory<TInput, TOutput>
         IEnumerable<TInput> workItems, Func<TInput, CancellationToken, Task<TOutput>> workFunction,
             int degreeOfParallelism, long totalAmount, int skip = 0, int maxDegreeOfParallelism = 200)
     {
-        var pType = type switch
+        return type switch
         {
-            ParallelizerType.TaskBased => typeof(TaskBasedParallelizer<TInput, TOutput>),
-            ParallelizerType.ThreadBased => typeof(ThreadBasedParallelizer<TInput, TOutput>),
-            ParallelizerType.ParallelBased => typeof(ParallelBasedParallelizer<TInput, TOutput>),
-            _ => throw new NotImplementedException()
+            ParallelizerType.TaskBased => new TaskBasedParallelizer<TInput, TOutput>(workItems, workFunction, degreeOfParallelism, totalAmount, skip, maxDegreeOfParallelism),
+            ParallelizerType.ThreadBased => new ThreadBasedParallelizer<TInput, TOutput>(workItems, workFunction, degreeOfParallelism, totalAmount, skip, maxDegreeOfParallelism),
+            ParallelizerType.ParallelBased => new ParallelBasedParallelizer<TInput, TOutput>(workItems, workFunction, degreeOfParallelism, totalAmount, skip, maxDegreeOfParallelism),
+            _ => throw new NotImplementedException(),
         };
-
-        var instance = Activator.CreateInstance(pType, workItems, workFunction, degreeOfParallelism, 
-            totalAmount, skip, maxDegreeOfParallelism);
-
-        return instance as Parallelizer<TInput, TOutput>;
     }
 }

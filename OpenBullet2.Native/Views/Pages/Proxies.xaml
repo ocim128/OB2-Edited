@@ -99,7 +99,7 @@
             </StackPanel>
         </Border>
 
-        <ListView x:Name="proxiesListView" Grid.Column="0" Grid.Row="2" Foreground="{DynamicResource ForegroundMain}" Background="{DynamicResource BackgroundSecondary}" ItemsSource="{Binding Path=ProxiesCollection}" SelectionMode="Extended" BorderThickness="0" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" UseLayoutRounding="True" SnapsToDevicePixels="True" AllowDrop="True" Drop="ProxyListViewDrop">
+        <ListView x:Name="proxiesListView" Grid.Column="0" Grid.Row="2" Foreground="{DynamicResource ForegroundMain}" Background="{DynamicResource BackgroundSecondary}" ItemsSource="{Binding Path=ProxiesCollection}" SelectionMode="Extended" BorderThickness="0" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" VirtualizingPanel.ScrollUnit="Item" VirtualizingPanel.CacheLengthUnit="Item" VirtualizingPanel.CacheLength="50,50" UseLayoutRounding="True" SnapsToDevicePixels="True" ScrollViewer.CanContentScroll="True" ScrollViewer.IsDeferredScrollingEnabled="True" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto" AllowDrop="True" Drop="ProxyListViewDrop">
 
             <!-- Show Headers by overriding the default style -->
             <ListView.Style>

@@ -17,36 +17,127 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Collections.Concurrent;
+using System.Runtime.CompilerServices;
+using System.Buffers;
 
 using RuriLib.Functions.Conversion;
 
 namespace RuriLib.Functions.Http
 {
+    /// <summary>
+    /// High-performance HTTP request handler using optimized <see cref="RLHttpClient"/> with advanced connection pooling.
+    /// </summary>
     internal class RLHttpClientRequestHandler : HttpRequestHandler
     {
-        // Connection pool to reuse RLHttpClient instances and reduce CPU overhead
-        private static readonly Dictionary<string, RLHttpClient> _clientPool = new();
-        private static readonly object _poolLock = new();
-        private static readonly Timer _cleanupTimer = new(CleanupExpiredClients, null, TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(5));
-        private static readonly Dictionary<string, DateTime> _clientLastUsed = new();
-        private const int ClientTimeoutMinutes = 10;
+        private static readonly ConcurrentDictionary<string, ClientPoolEntry> _clientPool = new();
+        private static readonly Timer _cleanupTimer = new(CleanupExpiredClients, null, TimeSpan.FromMinutes(2), TimeSpan.FromMinutes(2));
+        private const int MaxClientsPerKey = 8;
+        private const int ClientTimeoutMinutes = 3;
         
-        private static RLHttpClient GetOrCreateClient(BotData data, HttpOptions clientOptions)
+        // Memory optimization pools
+        private static readonly ArrayPool<byte> _bufferPool = ArrayPool<byte>.Shared;
+        private static readonly ConcurrentQueue<Dictionary<string, string>> _headerDictionaryPool = new();
+        
+        private sealed class ClientPoolEntry
+        {
+            public ConcurrentQueue<PooledClient> Clients { get; } = new();
+            public DateTime LastAccessed { get; set; } = DateTime.UtcNow;
+            public int ActiveClients;
+        }
+        
+        private sealed class PooledClient : IDisposable
+        {
+            public RLHttpClient Client { get; set; }
+            public DateTime LastUsed { get; set; } = DateTime.UtcNow;
+            public string Key { get; set; }
+            
+            public bool IsValid => (DateTime.UtcNow - LastUsed).TotalMinutes < ClientTimeoutMinutes;
+            
+            public void Dispose()
+            {
+                Client?.Dispose();
+            }
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static Dictionary<string, string> GetPooledHeaderDictionary()
+        {
+            if (_headerDictionaryPool.TryDequeue(out var dict))
+            {
+                dict.Clear();
+                return dict;
+            }
+            return new Dictionary<string, string>(16, StringComparer.OrdinalIgnoreCase);
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void ReturnHeaderDictionary(Dictionary<string, string> dict)
+        {
+            if (dict.Count <= 32)
+            {
+                _headerDictionaryPool.Enqueue(dict);
+            }
+        }
+        
+        private static PooledClient GetOrCreateClient(BotData data, HttpOptions clientOptions)
         {
             var key = GenerateClientKey(data, clientOptions);
             
-            lock (_poolLock)
+            var poolEntry = _clientPool.GetOrAdd(key, _ => new ClientPoolEntry());
+            poolEntry.LastAccessed = DateTime.UtcNow;
+            
+            // Try to get an existing valid client
+            while (poolEntry.Clients.TryDequeue(out var pooledClient))
             {
-                if (_clientPool.TryGetValue(key, out var existingClient))
+                if (pooledClient.IsValid)
                 {
-                    _clientLastUsed[key] = DateTime.UtcNow;
-                    return existingClient;
+                    pooledClient.LastUsed = DateTime.UtcNow;
+                    return pooledClient;
                 }
-                
+                pooledClient.Dispose();
+                Interlocked.Decrement(ref poolEntry.ActiveClients);
+            }
+            
+            // Create new client if under limit
+            if (poolEntry.ActiveClients < MaxClientsPerKey)
+            {
                 var newClient = HttpFactory.GetRLHttpClient(data.UseProxy ? data.Proxy : null, clientOptions);
-                _clientPool[key] = newClient;
-                _clientLastUsed[key] = DateTime.UtcNow;
-                return newClient;
+                var newPooledClient = new PooledClient
+                {
+                    Client = newClient,
+                    Key = key,
+                    LastUsed = DateTime.UtcNow
+                };
+                Interlocked.Increment(ref poolEntry.ActiveClients);
+                return newPooledClient;
+            }
+            
+            // Fallback: create temporary client (not pooled)
+            return new PooledClient
+            {
+                Client = HttpFactory.GetRLHttpClient(data.UseProxy ? data.Proxy : null, clientOptions),
+                Key = key,
+                LastUsed = DateTime.UtcNow
+            };
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void ReturnClient(PooledClient pooledClient)
+        {
+            if (pooledClient?.Client == null || !pooledClient.IsValid)
+            {
+                pooledClient?.Dispose();
+                return;
+            }
+            
+            if (_clientPool.TryGetValue(pooledClient.Key, out var poolEntry))
+            {
+                poolEntry.Clients.Enqueue(pooledClient);
+            }
+            else
+            {
+                pooledClient.Dispose();
             }
         }
         
@@ -59,27 +150,51 @@ namespace RuriLib.Functions.Http
         
         private static void CleanupExpiredClients(object state)
         {
-            lock (_poolLock)
+            var cutoff = DateTime.UtcNow.AddMinutes(-ClientTimeoutMinutes);
+            var keysToRemove = new List<string>();
+            
+            foreach (var kvp in _clientPool)
             {
-                var expiredKeys = new List<string>();
-                var cutoff = DateTime.UtcNow.AddMinutes(-ClientTimeoutMinutes);
+                var poolEntry = kvp.Value;
                 
-                foreach (var kvp in _clientLastUsed)
+                // Clean expired clients from the pool
+                var validClients = new List<PooledClient>();
+                while (poolEntry.Clients.TryDequeue(out var client))
                 {
-                    if (kvp.Value < cutoff)
+                    if (client.IsValid)
                     {
-                        expiredKeys.Add(kvp.Key);
+                        validClients.Add(client);
+                    }
+                    else
+                    {
+                        client.Dispose();
+                        Interlocked.Decrement(ref poolEntry.ActiveClients);
                     }
                 }
                 
-                foreach (var key in expiredKeys)
+                // Re-enqueue valid clients
+                foreach (var client in validClients)
                 {
-                    if (_clientPool.TryGetValue(key, out var client))
+                    poolEntry.Clients.Enqueue(client);
+                }
+                
+                // Mark pool entry for removal if unused and empty
+                if (poolEntry.LastAccessed < cutoff && poolEntry.ActiveClients == 0)
+                {
+                    keysToRemove.Add(kvp.Key);
+                }
+            }
+            
+            // Remove expired pool entries
+            foreach (var key in keysToRemove)
+            {
+                if (_clientPool.TryRemove(key, out var poolEntry))
+                {
+                    // Dispose any remaining clients
+                    while (poolEntry.Clients.TryDequeue(out var client))
                     {
                         client.Dispose();
-                        _clientPool.Remove(key);
                     }
-                    _clientLastUsed.Remove(key);
                 }
             }
         }
@@ -87,7 +202,8 @@ namespace RuriLib.Functions.Http
         {
             var clientOptions = GetClientOptions(data, options);
             
-            var client = GetOrCreateClient(data, clientOptions);
+            var pooledClient = GetOrCreateClient(data, clientOptions);
+            var client = pooledClient.Client;
 
             foreach (var cookie in options.CustomCookies)
                 data.COOKIES[cookie.Key] = cookie.Value;
@@ -170,12 +286,17 @@ namespace RuriLib.Functions.Http
                 LogHttpRequestData(data, request);
                 throw;
             }
+            finally
+            {
+                ReturnClient(pooledClient);
+            }
         }
 
         public async override Task HttpRequestRaw(BotData data, RawHttpRequestOptions options)
         {
             var clientOptions = GetClientOptions(data, options);
-            var client = GetOrCreateClient(data, clientOptions);
+            var pooledClient = GetOrCreateClient(data, clientOptions);
+            var client = pooledClient.Client;
 
             foreach (var cookie in options.CustomCookies)
                 data.COOKIES[cookie.Key] = cookie.Value;
@@ -210,12 +331,17 @@ namespace RuriLib.Functions.Http
                 LogHttpRequestData(data, request);
                 throw;
             }
+            finally
+            {
+                ReturnClient(pooledClient);
+            }
         }
 
         public async override Task HttpRequestBasicAuth(BotData data, BasicAuthHttpRequestOptions options)
         {
             var clientOptions = GetClientOptions(data, options);
-            var client = GetOrCreateClient(data, clientOptions);
+            var pooledClient = GetOrCreateClient(data, clientOptions);
+            var client = pooledClient.Client;
 
             foreach (var cookie in options.CustomCookies)
                 data.COOKIES[cookie.Key] = cookie.Value;
@@ -251,12 +377,17 @@ namespace RuriLib.Functions.Http
                 LogHttpRequestData(data, request);
                 throw;
             }
+            finally
+            {
+                ReturnClient(pooledClient);
+            }
         }
 
         public async override Task HttpRequestMultipart(BotData data, MultipartHttpRequestOptions options)
         {
                 var clientOptions = GetClientOptions(data, options);
-                var client = GetOrCreateClient(data, clientOptions);
+                var pooledClient = GetOrCreateClient(data, clientOptions);
+                var client = pooledClient.Client;
 
                 foreach (var cookie in options.CustomCookies)
                     data.COOKIES[cookie.Key] = cookie.Value;
@@ -331,6 +462,7 @@ namespace RuriLib.Functions.Http
                 {
                     if (fileStream != null)
                         await fileStream.DisposeAsync().ConfigureAwait(false);
+                    ReturnClient(pooledClient);
                 }
         }
 

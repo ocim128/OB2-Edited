@@ -59,6 +59,9 @@ public partial class MainWindow : MetroWindow
 
     public Page CurrentPage { get; private set; }
 
+    // Public property to access the config editor page
+    public ConfigEditor ConfigEditorPage => configEditorPage;
+
     /// <summary>
     /// Responsive design properties
     /// </summary>
@@ -116,7 +119,7 @@ public partial class MainWindow : MetroWindow
         // Lazy initialization - pages created only when needed
         // This reduces initial memory usage and improves startup time
 
-        Title = "OpenBullet 2 - 0.3.3 [akunlama MOD]";
+        Title = "OpenBullet 2 - 0.3.3.6 [akunlama MOD]";
 
         // Initialize HotkeyService
         var hotkeyService = ServiceLocator.GetService<HotkeyService>();
@@ -326,6 +329,9 @@ public partial class MainWindow : MetroWindow
             }
             configEditorPage.NavigateTo(section);
             ChangePage(configEditorPage, menuOption);
+
+            // Update UI to ensure buttons are visible
+            configEditorPage.UpdateUI();
         }
     }
 
@@ -407,11 +413,15 @@ public partial class MainWindow : MetroWindow
         if (newLabel != currentSelectedLabel)
         {
             if (currentSelectedLabel != null)
-                currentSelectedLabel.Foreground = Brush.Get("ForegroundMain");
+            {
+                // Clear previous selection visual state
+                currentSelectedLabel.Tag = null;
+            }
 
             if (newLabel != null)
             {
-                newLabel.Foreground = Brush.Get("ForegroundMenuSelected");
+                // Mark as selected. XAML style triggers will update Foreground accordingly
+                newLabel.Tag = "Selected";
                 currentSelectedLabel = newLabel;
             }
         }
@@ -1393,7 +1403,7 @@ public enum MainWindowPage
     ConfigLoliCode = 9,
     ConfigSettings = 10,
     ConfigCSharpCode = 11,
-    
+
     Hits = 13,
     Plugins = 14,
     OBSettings = 15,

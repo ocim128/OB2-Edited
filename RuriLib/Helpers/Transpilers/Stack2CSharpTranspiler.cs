@@ -241,7 +241,7 @@ namespace RuriLib.Helpers.Transpilers
                 return variables;
 
             // Extract variable names from the block settings
-            for (int i = 1; i <= 5; i++)
+            for (int i = 1; i <= 10; i++)
             {
                 var varNameKey = $"variableName{i}";
                 if (block.Settings.TryGetValue(varNameKey, out var setting))

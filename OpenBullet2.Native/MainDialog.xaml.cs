@@ -1,5 +1,6 @@
 using MahApps.Metro.Controls;
 using System.Windows.Controls;
+using System.Windows;
 
 namespace OpenBullet2.Native;
 
@@ -12,6 +13,14 @@ public partial class MainDialog : MetroWindow
     {
         InitializeComponent();
 
+        // Safely set Owner to avoid null reference exception
+        if (Application.Current?.MainWindow != null &&
+            Application.Current.MainWindow != this &&
+            Application.Current.MainWindow.IsLoaded)
+        {
+            Owner = Application.Current.MainWindow;
+        }
+
         Content = content;
         Title = title;
         ResizeMode = canResize ? System.Windows.ResizeMode.CanResize : System.Windows.ResizeMode.NoResize;
@@ -21,6 +30,14 @@ public partial class MainDialog : MetroWindow
     public MainDialog(Page content, string title, int initialWidth, int initialHeight)
     {
         InitializeComponent();
+
+        // Safely set Owner to avoid null reference exception
+        if (Application.Current?.MainWindow != null &&
+            Application.Current.MainWindow != this &&
+            Application.Current.MainWindow.IsLoaded)
+        {
+            Owner = Application.Current.MainWindow;
+        }
 
         Content = content;
         Title = title;

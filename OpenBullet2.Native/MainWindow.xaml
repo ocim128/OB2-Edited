@@ -87,7 +87,7 @@
                         Orientation="Horizontal" 
                         VerticalAlignment="Center">
                     <StackPanel.Resources>
-                        <!-- Optimized consolidated TextBlock style -->
+                        <!-- Enhanced Navigation Menu Style with Smooth Animations -->
                         <Style TargetType="TextBlock">
                             <Setter Property="FontWeight" Value="Medium" />
                             <Setter Property="Foreground" Value="#FFCCCCCC" />
@@ -97,28 +97,254 @@
                             <Setter Property="Padding" Value="12,10" />
                             <Setter Property="FontSize" Value="12" />
                             <Setter Property="Cursor" Value="Hand" />
+                            <Setter Property="Background" Value="Transparent" />
+                            <Setter Property="RenderTransform">
+                                <Setter.Value>
+                                    <ScaleTransform ScaleX="1" ScaleY="1" />
+                                </Setter.Value>
+                            </Setter>
+                            <Setter Property="RenderTransformOrigin" Value="0.5,0.5" />
+                            <Setter Property="Effect">
+                                <Setter.Value>
+                                    <DropShadowEffect BlurRadius="0" Opacity="0" ShadowDepth="2" Direction="270" Color="#3A82F7" />
+                                </Setter.Value>
+                            </Setter>
                             <Style.Triggers>
+                                <!-- Enhanced Hover state with smooth animations -->
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter Property="Background" Value="#FF3A82F7" />
-                                    <Setter Property="Foreground" Value="White" />
+                                    <Trigger.EnterActions>
+                                        <BeginStoryboard>
+                                            <Storyboard>
+                                                <ColorAnimation Storyboard.TargetProperty="(TextBlock.Background).(SolidColorBrush.Color)"
+                                                               To="#FF3A82F7" Duration="0:0:0.15">
+                                                    <ColorAnimation.EasingFunction>
+                                                        <QuadraticEase EasingMode="EaseOut" />
+                                                    </ColorAnimation.EasingFunction>
+                                                </ColorAnimation>
+                                                <ColorAnimation Storyboard.TargetProperty="(TextBlock.Foreground).(SolidColorBrush.Color)"
+                                                               To="#FFFFFFFF" Duration="0:0:0.15">
+                                                    <ColorAnimation.EasingFunction>
+                                                        <QuadraticEase EasingMode="EaseOut" />
+                                                    </ColorAnimation.EasingFunction>
+                                                </ColorAnimation>
+                                                <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
+                                                                To="1.02" Duration="0:0:0.15">
+                                                    <DoubleAnimation.EasingFunction>
+                                                        <QuadraticEase EasingMode="EaseOut" />
+                                                    </DoubleAnimation.EasingFunction>
+                                                </DoubleAnimation>
+                                                <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
+                                                                To="1.02" Duration="0:0:0.15">
+                                                    <DoubleAnimation.EasingFunction>
+                                                        <QuadraticEase EasingMode="EaseOut" />
+                                                    </DoubleAnimation.EasingFunction>
+                                                </DoubleAnimation>
+                                                <DoubleAnimation Storyboard.TargetProperty="(UIElement.Effect).(DropShadowEffect.BlurRadius)"
+                                                                To="8" Duration="0:0:0.15" />
+                                                <DoubleAnimation Storyboard.TargetProperty="(UIElement.Effect).(DropShadowEffect.Opacity)"
+                                                                To="0.4" Duration="0:0:0.15" />
+                                            </Storyboard>
+                                        </BeginStoryboard>
+                                    </Trigger.EnterActions>
+                                    <Trigger.ExitActions>
+                                        <BeginStoryboard>
+                                            <Storyboard>
+                                                <ColorAnimation Storyboard.TargetProperty="(TextBlock.Background).(SolidColorBrush.Color)"
+                                                               To="Transparent" Duration="0:0:0.2">
+                                                    <ColorAnimation.EasingFunction>
+                                                        <QuadraticEase EasingMode="EaseOut" />
+                                                    </ColorAnimation.EasingFunction>
+                                                </ColorAnimation>
+                                                <ColorAnimation Storyboard.TargetProperty="(TextBlock.Foreground).(SolidColorBrush.Color)"
+                                                               To="#FFCCCCCC" Duration="0:0:0.2">
+                                                    <ColorAnimation.EasingFunction>
+                                                        <QuadraticEase EasingMode="EaseOut" />
+                                                    </ColorAnimation.EasingFunction>
+                                                </ColorAnimation>
+                                                <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
+                                                                To="1" Duration="0:0:0.2">
+                                                    <DoubleAnimation.EasingFunction>
+                                                        <QuadraticEase EasingMode="EaseOut" />
+                                                    </DoubleAnimation.EasingFunction>
+                                                </DoubleAnimation>
+                                                <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
+                                                                To="1" Duration="0:0:0.2">
+                                                    <DoubleAnimation.EasingFunction>
+                                                        <QuadraticEase EasingMode="EaseOut" />
+                                                    </DoubleAnimation.EasingFunction>
+                                                </DoubleAnimation>
+                                                <DoubleAnimation Storyboard.TargetProperty="(UIElement.Effect).(DropShadowEffect.BlurRadius)"
+                                                                To="0" Duration="0:0:0.2" />
+                                                <DoubleAnimation Storyboard.TargetProperty="(UIElement.Effect).(DropShadowEffect.Opacity)"
+                                                                To="0" Duration="0:0:0.2" />
+                                            </Storyboard>
+                                        </BeginStoryboard>
+                                    </Trigger.ExitActions>
                                 </Trigger>
+
+                                <!-- Selected state with enhanced visual feedback -->
+                                <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource Self}}" Value="Selected">
+                                    <Setter Property="Foreground" Value="{DynamicResource ForegroundMenuSelected}" />
+                                    <Setter Property="Background">
+                                        <Setter.Value>
+                                            <SolidColorBrush Color="#FF2563EB" Opacity="0.8" />
+                                        </Setter.Value>
+                                    </Setter>
+                                    <Setter Property="Effect">
+                                        <Setter.Value>
+                                            <DropShadowEffect BlurRadius="6" Opacity="0.3" ShadowDepth="2" Direction="270" Color="#2563EB" />
+                                        </Setter.Value>
+                                    </Setter>
+                                </DataTrigger>
+
+                                <!-- When selected AND hovered, maintain enhanced appearance -->
+                                <MultiTrigger>
+                                    <MultiTrigger.Conditions>
+                                        <Condition Property="IsMouseOver" Value="True" />
+                                        <Condition Property="Tag" Value="Selected" />
+                                    </MultiTrigger.Conditions>
+                                    <Setter Property="Foreground" Value="#FFFFFFFF" />
+                                    <Setter Property="Background">
+                                        <Setter.Value>
+                                            <SolidColorBrush Color="#FF3A82F7" />
+                                        </Setter.Value>
+                                    </Setter>
+                                </MultiTrigger>
                             </Style.Triggers>
                         </Style>
                     </StackPanel.Resources>
                 
-                    <!-- Navigation Menu Items -->
-                    <TextBlock x:Name="menuOptionHome" Text="HOME" MouseDown="HandleNavigation" ToolTipService.ToolTip="Main dashboard (Ctrl+1)"/>
-                    <TextBlock x:Name="menuOptionJobs" Text="JOBS" MouseDown="HandleNavigation" ToolTipService.ToolTip="Manage checking jobs (Ctrl+2)"/>
-                    <TextBlock x:Name="menuOptionMonitor" Text="MONITOR" MouseDown="HandleNavigation" ToolTipService.ToolTip="Monitor running jobs (Ctrl+3)"/>
-                    <TextBlock x:Name="menuOptionProxies" Text="PROXIES" MouseDown="HandleNavigation" ToolTipService.ToolTip="Manage proxy lists (Ctrl+4)"/>
-                    <TextBlock x:Name="menuOptionWordlists" Text="WORDLISTS" MouseDown="HandleNavigation" ToolTipService.ToolTip="Manage wordlists (Ctrl+5)"/>
-                    <TextBlock x:Name="menuOptionConfigs" Text="CONFIGS" MouseDown="HandleNavigation" MouseEnter="ConfigsMenuOptionMouseEnter" MouseLeave="ConfigsMenuOptionMouseLeave" ToolTipService.ToolTip="Browse and edit configs (Ctrl+6)"/>
-                    <TextBlock x:Name="menuOptionHits" Text="HITS" MouseDown="HandleNavigation" ToolTipService.ToolTip="View successful hits (Ctrl+7)"/>
-                    <TextBlock x:Name="menuOptionPlugins" Text="PLUGINS" MouseDown="HandleNavigation" ToolTipService.ToolTip="Manage plugins (Ctrl+8)"/>
-                    <TextBlock x:Name="menuOptionSettings" Text="SETTINGS" MouseDown="HandleNavigation" ToolTipService.ToolTip="OpenBullet settings (Ctrl+9)"/>
-                    <TextBlock x:Name="menuOptionRLSettings" Text="RL SETTINGS" MouseDown="HandleNavigation" ToolTipService.ToolTip="RuriLib settings (Ctrl+0)"/>
-                    <TextBlock x:Name="menuOptionAbout" Text="ABOUT" MouseDown="HandleNavigation" ToolTipService.ToolTip="About this application"/>
-                    <TextBlock x:Name="menuOptionUpdate" Text="CHECK UPDATES" MouseDown="HandleNavigation" ToolTipService.ToolTip="Check for application updates"/>
+                    <!-- Navigation Menu Items with Enhanced Tooltips -->
+                    <TextBlock x:Name="menuOptionHome" Text="HOME" MouseDown="HandleNavigation">
+                        <TextBlock.ToolTip>
+                            <ToolTip>
+                                <StackPanel>
+                                    <TextBlock Text="Home Dashboard" FontWeight="SemiBold" Margin="0,0,0,4" />
+                                    <TextBlock Text="View system overview, performance metrics, and quick actions" FontSize="12" Opacity="0.8" TextWrapping="Wrap" />
+                                    <TextBlock Text="Shortcut: Ctrl+1" FontSize="11" FontStyle="Italic" Opacity="0.6" Margin="0,4,0,0" />
+                                </StackPanel>
+                            </ToolTip>
+                        </TextBlock.ToolTip>
+                    </TextBlock>
+                    <TextBlock x:Name="menuOptionJobs" Text="JOBS" MouseDown="HandleNavigation">
+                        <TextBlock.ToolTip>
+                            <ToolTip>
+                                <StackPanel>
+                                    <TextBlock Text="Job Management" FontWeight="SemiBold" Margin="0,0,0,4" />
+                                    <TextBlock Text="Create, configure, and manage checking jobs" FontSize="12" Opacity="0.8" TextWrapping="Wrap" />
+                                    <TextBlock Text="Shortcut: Ctrl+2" FontSize="11" FontStyle="Italic" Opacity="0.6" Margin="0,4,0,0" />
+                                </StackPanel>
+                            </ToolTip>
+                        </TextBlock.ToolTip>
+                    </TextBlock>
+                    <TextBlock x:Name="menuOptionMonitor" Text="MONITOR" MouseDown="HandleNavigation">
+                        <TextBlock.ToolTip>
+                            <ToolTip>
+                                <StackPanel>
+                                    <TextBlock Text="Live Monitoring" FontWeight="SemiBold" Margin="0,0,0,4" />
+                                    <TextBlock Text="Monitor running jobs in real-time with detailed statistics" FontSize="12" Opacity="0.8" TextWrapping="Wrap" />
+                                    <TextBlock Text="Shortcut: Ctrl+3" FontSize="11" FontStyle="Italic" Opacity="0.6" Margin="0,4,0,0" />
+                                </StackPanel>
+                            </ToolTip>
+                        </TextBlock.ToolTip>
+                    </TextBlock>
+                    <TextBlock x:Name="menuOptionProxies" Text="PROXIES" MouseDown="HandleNavigation">
+                        <TextBlock.ToolTip>
+                            <ToolTip>
+                                <StackPanel>
+                                    <TextBlock Text="Proxy Management" FontWeight="SemiBold" Margin="0,0,0,4" />
+                                    <TextBlock Text="Import, test, and manage proxy lists for your jobs" FontSize="12" Opacity="0.8" TextWrapping="Wrap" />
+                                    <TextBlock Text="Shortcut: Ctrl+4" FontSize="11" FontStyle="Italic" Opacity="0.6" Margin="0,4,0,0" />
+                                </StackPanel>
+                            </ToolTip>
+                        </TextBlock.ToolTip>
+                    </TextBlock>
+                    <TextBlock x:Name="menuOptionWordlists" Text="WORDLISTS" MouseDown="HandleNavigation">
+                        <TextBlock.ToolTip>
+                            <ToolTip>
+                                <StackPanel>
+                                    <TextBlock Text="Wordlist Library" FontWeight="SemiBold" Margin="0,0,0,4" />
+                                    <TextBlock Text="Manage username, password, and custom wordlists" FontSize="12" Opacity="0.8" TextWrapping="Wrap" />
+                                    <TextBlock Text="Shortcut: Ctrl+5" FontSize="11" FontStyle="Italic" Opacity="0.6" Margin="0,4,0,0" />
+                                </StackPanel>
+                            </ToolTip>
+                        </TextBlock.ToolTip>
+                    </TextBlock>
+                    <TextBlock x:Name="menuOptionConfigs" Text="CONFIGS" MouseDown="HandleNavigation" MouseEnter="ConfigsMenuOptionMouseEnter" MouseLeave="ConfigsMenuOptionMouseLeave">
+                        <TextBlock.ToolTip>
+                            <ToolTip>
+                                <StackPanel>
+                                    <TextBlock Text="Configuration Editor" FontWeight="SemiBold" Margin="0,0,0,4" />
+                                    <TextBlock Text="Browse, edit, and create automation configurations" FontSize="12" Opacity="0.8" TextWrapping="Wrap" />
+                                    <TextBlock Text="Hover to see editor options • Shortcut: Ctrl+6" FontSize="11" FontStyle="Italic" Opacity="0.6" Margin="0,4,0,0" />
+                                </StackPanel>
+                            </ToolTip>
+                        </TextBlock.ToolTip>
+                    </TextBlock>
+                    <TextBlock x:Name="menuOptionHits" Text="HITS" MouseDown="HandleNavigation">
+                        <TextBlock.ToolTip>
+                            <ToolTip>
+                                <StackPanel>
+                                    <TextBlock Text="Successful Results" FontWeight="SemiBold" Margin="0,0,0,4" />
+                                    <TextBlock Text="View and export successful hits from your jobs" FontSize="12" Opacity="0.8" TextWrapping="Wrap" />
+                                    <TextBlock Text="Shortcut: Ctrl+7" FontSize="11" FontStyle="Italic" Opacity="0.6" Margin="0,4,0,0" />
+                                </StackPanel>
+                            </ToolTip>
+                        </TextBlock.ToolTip>
+                    </TextBlock>
+                    <TextBlock x:Name="menuOptionPlugins" Text="PLUGINS" MouseDown="HandleNavigation">
+                        <TextBlock.ToolTip>
+                            <ToolTip>
+                                <StackPanel>
+                                    <TextBlock Text="Plugin Manager" FontWeight="SemiBold" Margin="0,0,0,4" />
+                                    <TextBlock Text="Install and manage plugins to extend functionality" FontSize="12" Opacity="0.8" TextWrapping="Wrap" />
+                                    <TextBlock Text="Shortcut: Ctrl+8" FontSize="11" FontStyle="Italic" Opacity="0.6" Margin="0,4,0,0" />
+                                </StackPanel>
+                            </ToolTip>
+                        </TextBlock.ToolTip>
+                    </TextBlock>
+                    <TextBlock x:Name="menuOptionSettings" Text="SETTINGS" MouseDown="HandleNavigation">
+                        <TextBlock.ToolTip>
+                            <ToolTip>
+                                <StackPanel>
+                                    <TextBlock Text="Application Settings" FontWeight="SemiBold" Margin="0,0,0,4" />
+                                    <TextBlock Text="Configure OpenBullet preferences and behaviors" FontSize="12" Opacity="0.8" TextWrapping="Wrap" />
+                                    <TextBlock Text="Shortcut: Ctrl+9" FontSize="11" FontStyle="Italic" Opacity="0.6" Margin="0,4,0,0" />
+                                </StackPanel>
+                            </ToolTip>
+                        </TextBlock.ToolTip>
+                    </TextBlock>
+                    <TextBlock x:Name="menuOptionRLSettings" Text="RL SETTINGS" MouseDown="HandleNavigation">
+                        <TextBlock.ToolTip>
+                            <ToolTip>
+                                <StackPanel>
+                                    <TextBlock Text="RuriLib Settings" FontWeight="SemiBold" Margin="0,0,0,4" />
+                                    <TextBlock Text="Advanced engine configuration and performance tuning" FontSize="12" Opacity="0.8" TextWrapping="Wrap" />
+                                    <TextBlock Text="Shortcut: Ctrl+0" FontSize="11" FontStyle="Italic" Opacity="0.6" Margin="0,4,0,0" />
+                                </StackPanel>
+                            </ToolTip>
+                        </TextBlock.ToolTip>
+                    </TextBlock>
+                    <TextBlock x:Name="menuOptionAbout" Text="ABOUT" MouseDown="HandleNavigation">
+                        <TextBlock.ToolTip>
+                            <ToolTip>
+                                <StackPanel>
+                                    <TextBlock Text="About OpenBullet" FontWeight="SemiBold" Margin="0,0,0,4" />
+                                    <TextBlock Text="View version information, credits, and license details" FontSize="12" Opacity="0.8" TextWrapping="Wrap" />
+                                </StackPanel>
+                            </ToolTip>
+                        </TextBlock.ToolTip>
+                    </TextBlock>
+                    <TextBlock x:Name="menuOptionUpdate" Text="CHECK UPDATES" MouseDown="HandleNavigation">
+                        <TextBlock.ToolTip>
+                            <ToolTip>
+                                <StackPanel>
+                                    <TextBlock Text="Update Manager" FontWeight="SemiBold" Margin="0,0,0,4" />
+                                    <TextBlock Text="Check for and install application updates" FontSize="12" Opacity="0.8" TextWrapping="Wrap" />
+                                </StackPanel>
+                            </ToolTip>
+                        </TextBlock.ToolTip>
+                    </TextBlock>
             </StackPanel>
         </Border>
 
@@ -169,17 +395,59 @@
             </StackPanel>
         </Border>
         
-        <!-- Main Content Area -->
+        <!-- Main Content Area with Enhanced Transitions -->
         <Border x:Name="MainContentBorder"
                 Grid.Row="1" 
                 Background="Transparent" 
                 CornerRadius="8" 
                 BorderBrush="#FF333333"
-                BorderThickness="1">
-            <Frame x:Name="mainFrame" 
-                   NavigationUIVisibility="Hidden" 
-                   Background="Transparent"
-                   BorderThickness="0" />
+                BorderThickness="1"
+                ClipToBounds="True">
+            <Grid>
+                <!-- Main content frame with smooth transitions -->
+                <Frame x:Name="mainFrame" 
+                       NavigationUIVisibility="Hidden" 
+                       Background="Transparent"
+                       BorderThickness="0"
+                       RenderTransformOrigin="0.5,0.5">
+                    <Frame.RenderTransform>
+                        <TransformGroup>
+                            <TranslateTransform x:Name="MainFrameTranslate" X="0" Y="0" />
+                            <ScaleTransform x:Name="MainFrameScale" ScaleX="1" ScaleY="1" />
+                        </TransformGroup>
+                    </Frame.RenderTransform>
+                </Frame>
+                
+                <!-- Enhanced loading overlay with smooth animations -->
+                <Border x:Name="LoadingOverlay" 
+                        Background="#80000000"
+                        Opacity="0"
+                        IsHitTestVisible="False"
+                        CornerRadius="8">
+                    <Border.RenderTransform>
+                        <ScaleTransform ScaleX="1" ScaleY="1" />
+                    </Border.RenderTransform>
+                    <Grid>
+                        <Border Background="{StaticResource Modern.BackgroundCard}"
+                                CornerRadius="12"
+                                Padding="32,24"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                Effect="{StaticResource DropShadowEffect}">
+                            <StackPanel Orientation="Horizontal">
+                                <mah:ProgressRing IsActive="True" 
+                                                 Width="24" Height="24"
+                                                 Foreground="{StaticResource Modern.ThemeMain}"
+                                                 Margin="0,0,12,0" />
+                                <TextBlock Text="Loading..." 
+                                          Style="{StaticResource ModernBodyText}"
+                                          FontWeight="Medium"
+                                          VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </Border>
+            </Grid>
         </Border>
 
         <mah:ProgressRing 

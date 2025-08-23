@@ -9,6 +9,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Threading;
+using System.Linq;
 using OpenBullet2.Native.Infrastructure.DependencyInjection;
 
 namespace OpenBullet2.Native.Views.Pages.Shared
@@ -39,6 +40,9 @@ namespace OpenBullet2.Native.Views.Pages.Shared
         private bool _updatesPaused;
         private readonly Dictionary<int, System.Drawing.Color> _originalTextColors = new();
         private bool _isSearching;
+        private bool _areTabButtonsVisible = false;
+        private bool _areOptionsVisible = false;
+        private bool _areStackerControlsVisible = false;
         #endregion
 
         #region Constructor
@@ -219,6 +223,7 @@ namespace OpenBullet2.Native.Views.Pages.Shared
                     Search(null, null);
                     e.Handled = true;
                     break;
+
             }
         }
         #endregion
@@ -614,6 +619,154 @@ namespace OpenBullet2.Native.Views.Pages.Shared
         private void ToggleAutoScroll(object sender, RoutedEventArgs e)
         {
             _viewModel.ToggleAutoScroll();
+        }
+
+        /// <summary>
+        /// Toggles the visibility of the options area.
+        /// </summary>
+        private void ToggleOptions(object sender, RoutedEventArgs e)
+        {
+            _areOptionsVisible = !_areOptionsVisible;
+
+            // Toggle visibility of the secondary options grid
+            SecondaryOptionsGrid.Visibility = _areOptionsVisible ? Visibility.Visible : Visibility.Collapsed;
+
+            // Update the toggle button appearance for better UX
+            if (_areOptionsVisible)
+            {
+                OptionsToggleIcon.Kind = MahApps.Metro.IconPacks.PackIconUniconsKind.EyeSlash;
+                ((TextBlock)((StackPanel)OptionsToggleButton.Content).Children[1]).Text = "Hide Options";
+                OptionsToggleButton.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(220, 38, 38)); // Red when visible
+            }
+            else
+            {
+                OptionsToggleIcon.Kind = MahApps.Metro.IconPacks.PackIconUniconsKind.Eye;
+                ((TextBlock)((StackPanel)OptionsToggleButton.Content).Children[1]).Text = "Show Options";
+                OptionsToggleButton.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(124, 58, 237)); // Purple when hidden
+            }
+        }
+
+        /// <summary>
+        /// Toggles the visibility of the stacker block list only, keeping block information visible.
+        /// </summary>
+        private void ToggleStacker(object sender, RoutedEventArgs e)
+        {
+            _areStackerControlsVisible = !_areStackerControlsVisible;
+
+            // Get reference to the main window and config editor
+            var mainWindow = Application.Current.MainWindow as MainWindow;
+            var configEditor = mainWindow?.ConfigEditorPage;
+            if (configEditor != null)
+            {
+                // Only toggle if we're on the stacker page
+                if (configEditor.IsStackerPageActive())
+                {
+                    // Get the ConfigStacker page loaded in the editorFrame
+                    var editorFrame = configEditor.editorFrame;
+                    if (editorFrame?.Content is ConfigStacker configStacker)
+                    {
+                        // Find the main grid in ConfigStacker
+                        var mainGrid = configStacker.Content as Grid;
+                        if (mainGrid != null && mainGrid.ColumnDefinitions.Count >= 3)
+                        {
+                            // Target the block list column (column 0) and toolbar
+                            var blockListColumn = mainGrid.ColumnDefinitions[0];
+                            var splitterColumn = mainGrid.ColumnDefinitions[1];
+
+                            // Find the toolbar (Border in row 0, column 0) and block list container
+                            Border toolbar = null;
+                            Border blockListContainer = null;
+
+                            foreach (var child in mainGrid.Children)
+                            {
+                                if (child is Border border)
+                                {
+                                    int row = Grid.GetRow(border);
+                                    int col = Grid.GetColumn(border);
+
+                                    if (row == 0 && col == 0)
+                                        toolbar = border;
+                                    else if (row == 1 && col == 0)
+                                        blockListContainer = border;
+                                }
+                            }
+
+                            if (_areStackerControlsVisible)
+                            {
+                                // Show stacker - restore original layout
+                                blockListColumn.Width = new GridLength(200, GridUnitType.Pixel);
+                                splitterColumn.Width = new GridLength(8, GridUnitType.Pixel);
+                                if (toolbar != null) toolbar.Visibility = Visibility.Visible;
+                                if (blockListContainer != null) blockListContainer.Visibility = Visibility.Visible;
+                                var blockInfo = mainGrid.Children.OfType<ScrollViewer>().FirstOrDefault(c => c.Name == "blockInfo");
+                                if (blockInfo != null)
+                                {
+                                    Grid.SetColumn(blockInfo, 2);
+                                    Grid.SetColumnSpan(blockInfo, 1);
+                                }
+                            }
+                            else
+                            {
+                                // Hide stacker - hide block list and expand block info to use full space
+                                blockListColumn.Width = new GridLength(0);
+                                splitterColumn.Width = new GridLength(0);
+                                if (toolbar != null) toolbar.Visibility = Visibility.Collapsed;
+                                if (blockListContainer != null) blockListContainer.Visibility = Visibility.Collapsed;
+                                var blockInfo = mainGrid.Children.OfType<ScrollViewer>().FirstOrDefault(c => c.Name == "blockInfo");
+                                if (blockInfo != null)
+                                {
+                                    Grid.SetColumn(blockInfo, 0);
+                                    Grid.SetColumnSpan(blockInfo, 3);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Update the toggle button appearance for better UX
+            if (_areStackerControlsVisible)
+            {
+                StackerToggleIcon.Kind = MahApps.Metro.IconPacks.PackIconUniconsKind.EyeSlash;
+                ((TextBlock)((StackPanel)StackerToggleButton.Content).Children[1]).Text = "Hide Stacker";
+                StackerToggleButton.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(220, 38, 38)); // Red when visible
+            }
+            else
+            {
+                StackerToggleIcon.Kind = MahApps.Metro.IconPacks.PackIconUniconsKind.Eye;
+                ((TextBlock)((StackPanel)StackerToggleButton.Content).Children[1]).Text = "Show Stacker";
+                StackerToggleButton.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(5, 150, 105)); // Green when hidden
+            }
+        }
+
+        /// <summary>
+        /// Toggles the visibility of the tab buttons and search controls.
+        /// </summary>
+        private void ToggleTabButtons(object sender, RoutedEventArgs e)
+        {
+            _areTabButtonsVisible = !_areTabButtonsVisible;
+
+            // Toggle visibility of the three tab buttons
+            LogTabButton.Visibility = _areTabButtonsVisible ? Visibility.Visible : Visibility.Collapsed;
+            VariablesTabButton.Visibility = _areTabButtonsVisible ? Visibility.Visible : Visibility.Collapsed;
+            HtmlTabButton.Visibility = _areTabButtonsVisible ? Visibility.Visible : Visibility.Collapsed;
+
+            // Toggle visibility of the search controls area
+            SearchControlsArea.Visibility = _areTabButtonsVisible ? Visibility.Visible : Visibility.Collapsed;
+
+            // Update the toggle button appearance for better UX
+            if (_areTabButtonsVisible)
+            {
+                TabToggleIcon.Kind = MahApps.Metro.IconPacks.PackIconUniconsKind.EyeSlash;
+                ((TextBlock)((StackPanel)TabToggleButton.Content).Children[1]).Text = "Hide UI";
+                TabToggleButton.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(220, 38, 38)); // Red when visible
+            }
+            else
+            {
+                TabToggleIcon.Kind = MahApps.Metro.IconPacks.PackIconUniconsKind.Eye;
+                ((TextBlock)((StackPanel)TabToggleButton.Content).Children[1]).Text = "Show UI";
+                TabToggleButton.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(5, 150, 105)); // Green when hidden
+            }
         }
         #endregion
 

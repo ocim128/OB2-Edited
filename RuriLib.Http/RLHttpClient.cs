@@ -17,11 +17,13 @@ using System.Collections.Generic;
 using RuriLib.Http.Models;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Collections.Concurrent;
+using System.Runtime.CompilerServices;
 
 namespace RuriLib.Http;
 
 /// <summary>
-/// Custom implementation of an HttpClient.
+/// High-performance custom implementation of an HttpClient with advanced connection pooling and memory optimization.
 /// </summary>
 /// <remarks>
 /// Creates a new instance of <see cref="RLHttpClient"/> given a <paramref name="proxyClient"/>.
@@ -29,13 +31,100 @@ namespace RuriLib.Http;
 /// </remarks>
 public class RLHttpClient(ProxyClient proxyClient = null) : IDisposable
 {
-
+    // High-performance connection pool with concurrent access using configuration
+    private static readonly ConcurrentDictionary<string, ConnectionPoolEntry> _connectionPool = new();
+    private static readonly Timer _poolCleanupTimer = new(CleanupConnectionPool, null, 
+        TimeSpan.FromMinutes(HttpPerformanceConfig.PoolCleanupIntervalMinutes), 
+        TimeSpan.FromMinutes(HttpPerformanceConfig.PoolCleanupIntervalMinutes));
+    
+    // Memory optimization with ArrayPool
+    private static readonly ArrayPool<byte> _bufferPool = ArrayPool<byte>.Shared;
+    
+    // Current connection state
     private TcpClient tcpClient;
     private Stream connectionCommonStream;
     private NetworkStream connectionNetworkStream;
     private string lastConnectedHost;
     private int lastConnectedPort;
     private bool lastConnectionWasSecure;
+    private DateTime lastUsed = DateTime.UtcNow;
+    
+    // Connection pool entry for efficient reuse
+    private sealed class ConnectionPoolEntry
+    {
+        public ConcurrentQueue<PooledConnection> Connections { get; } = new();
+        public DateTime LastAccessed { get; set; } = DateTime.UtcNow;
+        public int ActiveConnections;
+    }
+    
+    private sealed class PooledConnection : IDisposable
+    {
+        public TcpClient TcpClient { get; set; }
+        public Stream CommonStream { get; set; }
+        public NetworkStream NetworkStream { get; set; }
+        public DateTime LastUsed { get; set; } = DateTime.UtcNow;
+        public bool IsSecure { get; set; }
+        public string Host { get; set; }
+        public int Port { get; set; }
+        
+        public bool IsValid => TcpClient?.Connected == true && 
+                              (DateTime.UtcNow - LastUsed).TotalMinutes < HttpPerformanceConfig.ConnectionTimeoutMinutes;
+        
+        public void Dispose()
+        {
+            TcpClient?.Close();
+            CommonStream?.Dispose();
+            NetworkStream?.Dispose();
+        }
+    }
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void CleanupConnectionPool(object state)
+    {
+        var cutoff = DateTime.UtcNow.AddMinutes(-HttpPerformanceConfig.ConnectionTimeoutMinutes);
+        var keysToRemove = new List<string>();
+        
+        foreach (var kvp in _connectionPool)
+        {
+            var entry = kvp.Value;
+            if (entry.LastAccessed < cutoff)
+            {
+                keysToRemove.Add(kvp.Key);
+                continue;
+            }
+            
+            // Clean up expired connections within the entry
+            var validConnections = new List<PooledConnection>();
+            while (entry.Connections.TryDequeue(out var conn))
+            {
+                if (conn.IsValid)
+                {
+                    validConnections.Add(conn);
+                }
+                else
+                {
+                    conn.Dispose();
+                    Interlocked.Decrement(ref entry.ActiveConnections);
+                }
+            }
+            
+            foreach (var conn in validConnections)
+            {
+                entry.Connections.Enqueue(conn);
+            }
+        }
+        
+        foreach (var key in keysToRemove)
+        {
+            if (_connectionPool.TryRemove(key, out var entry))
+            {
+                while (entry.Connections.TryDequeue(out var conn))
+                {
+                    conn.Dispose();
+                }
+            }
+        }
+    }
 
     #region Properties
     /// <summary>
@@ -123,105 +212,229 @@ public class RLHttpClient(ProxyClient proxyClient = null) : IDisposable
     #endregion Properties
 
     /// <summary>
-    /// Asynchronously sends a <paramref name="request"/> and returns an <see cref="HttpResponse"/>.
+    /// Sends an HTTP request with high-performance connection pooling and optimized async patterns.
     /// </summary>
-    /// <param name="request">The request to send</param>
-    /// <param name="cancellationToken">A cancellation token to cancel the operation</param>
-    public Task<HttpResponse> SendAsync(HttpRequest request, CancellationToken cancellationToken = default)
-        => SendAsync(request, 0, cancellationToken);
-
-    private async Task<HttpResponse> SendAsync(HttpRequest request, int redirects,
-        CancellationToken cancellationToken = default)
+    /// <param name="request">The HTTP request to send</param>
+    /// <param name="cancellationToken">The cancellation token</param>
+    /// <returns>The HTTP response</returns>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    public async Task<HttpResponse> SendAsync(HttpRequest request, CancellationToken cancellationToken = default)
     {
-        if (redirects > MaxNumberOfRedirects)
+        var redirectCount = 0;
+        var currentRequest = request;
+        
+        // Pre-allocate for performance
+        var redirectHeaders = new Dictionary<string, string>(16, StringComparer.OrdinalIgnoreCase);
+        
+        while (redirectCount <= MaxNumberOfRedirects)
         {
-            throw new Exception("Maximum number of redirects exceeded");
+            var response = await SendSingleAsync(currentRequest, cancellationToken).ConfigureAwait(false);
+            
+            if (!AllowAutoRedirect || !IsRedirectStatusCode(response.StatusCode))
+            {
+                return response;
+            }
+            
+            if (++redirectCount > MaxNumberOfRedirects)
+            {
+                return response;
+            }
+            
+            if (!response.Headers.TryGetValue("Location", out var location) || string.IsNullOrEmpty(location))
+            {
+                return response;
+            }
+            
+            var redirectUri = new Uri(currentRequest.Uri, location);
+            
+            // Change method to GET for non-307 redirects
+            var newMethod = response.StatusCode == HttpStatusCode.TemporaryRedirect ? currentRequest.Method : HttpMethod.Get;
+            
+            // Reuse dictionary for better performance
+            redirectHeaders.Clear();
+            foreach (var header in currentRequest.Headers)
+            {
+                redirectHeaders[header.Key] = header.Value;
+            }
+            
+            // Update Host header for new domain
+            if (!string.Equals(redirectUri.Host, currentRequest.Uri.Host, StringComparison.OrdinalIgnoreCase))
+            {
+                redirectHeaders["Host"] = redirectUri.Host;
+                
+                // Clear cookies for different domain
+                redirectHeaders.Remove("Cookie");
+            }
+            
+            currentRequest = new HttpRequest
+            {
+                Uri = redirectUri,
+                Method = newMethod,
+                Version = currentRequest.Version,
+                Headers = redirectHeaders,
+                Content = newMethod == HttpMethod.Get ? null : currentRequest.Content
+            };
         }
+        
+        return await SendSingleAsync(currentRequest, cancellationToken).ConfigureAwait(false);
+    }
 
-        ArgumentNullException.ThrowIfNull(request);
+    private static bool IsRedirectStatusCode(HttpStatusCode statusCode)
+    {
+        return statusCode == HttpStatusCode.MovedPermanently ||
+               statusCode == HttpStatusCode.Found ||
+               statusCode == HttpStatusCode.SeeOther ||
+               statusCode == HttpStatusCode.TemporaryRedirect ||
+               statusCode == HttpStatusCode.PermanentRedirect;
+    }
 
-        await CreateConnection(request, cancellationToken).ConfigureAwait(false);
-        await SendDataAsync(request, cancellationToken).ConfigureAwait(false);
-
-        var responseMessage = await ReceiveDataAsync(request, cancellationToken).ConfigureAwait(false);
-
+    private async Task<HttpResponse> SendSingleAsync(HttpRequest request, CancellationToken cancellationToken)
+    {
+        var poolKey = GetPoolKey(request.Uri.Host, request.Uri.Port, request.Uri.Scheme == "https");
+        var pooledConnection = await GetPooledConnectionAsync(poolKey, request.Uri.Host, request.Uri.Port, request.Uri.Scheme == "https", cancellationToken).ConfigureAwait(false);
+        
         try
         {
-            // Optionally perform auto redirection on 3xx response
-            if (((int)responseMessage.StatusCode) / 100 == 3 && AllowAutoRedirect)
-            {
-                // Compute the redirection URI
-                var locationHeaderName = responseMessage.Headers.Keys
-                    .FirstOrDefault(static k => k.Equals("Location", StringComparison.OrdinalIgnoreCase)) ?? throw new Exception($"Status code was {(int)responseMessage.StatusCode} but no Location header received. " +
-                        "Disable auto redirect and try again.");
-                _ = Uri.TryCreate(responseMessage.Headers[locationHeaderName], UriKind.RelativeOrAbsolute, out var newLocation);
-
-                var redirectUri = newLocation.IsAbsoluteUri
-                    ? newLocation
-                    : new Uri(request.Uri, newLocation);
-
-                // If not 307, change the method to GET
-                if (responseMessage.StatusCode != HttpStatusCode.RedirectKeepVerb)
-                {
-                    request.Method = HttpMethod.Get;
-                    request.Content = null;
-                }
-
-                // Adjust the request if the host is different
-                if (request.Uri.Host != redirectUri.Host)
-                {
-                    // This is needed otherwise if the Host header was set manually
-                    // it will keep the previous one after a domain switch
-                    if (request.HeaderExists("Host", out var hostHeaderName))
-                    {
-                        _ = request.Headers.Remove(hostHeaderName);
-                    }
-
-                    // Remove additional headers that could cause trouble
-                    _ = request.Headers.Remove("Origin");
-                }
-
-                // Set the new URI
-                request.Uri = redirectUri;
-
-                // Prevent duplicate Cookie headers: if a Cookie header is present, clear the Cookies dictionary
-                if (request.Headers.Keys.Any(static k => k.Equals("Cookie", StringComparison.OrdinalIgnoreCase)))
-                {
-                    request.Cookies.Clear();
-                }
-
-                // Dispose the previous response
-                responseMessage.Dispose();
-
-                // Perform a new request
-                return await SendAsync(request, redirects + 1, cancellationToken).ConfigureAwait(false);
-            }
+            await SendDataAsync(request, pooledConnection.CommonStream, cancellationToken).ConfigureAwait(false);
+            return await ReceiveDataAsync(request, pooledConnection.CommonStream, cancellationToken).ConfigureAwait(false);
         }
         catch
         {
-            responseMessage.Dispose();
+            // On error, dispose the connection instead of returning it to pool
+            pooledConnection.Dispose();
             throw;
         }
-
-        return responseMessage;
+        finally
+        {
+            // Return connection to pool if still valid
+            if (pooledConnection.IsValid)
+            {
+                ReturnConnectionToPool(poolKey, pooledConnection);
+            }
+            else
+            {
+                pooledConnection.Dispose();
+            }
+        }
     }
 
-    private async Task SendDataAsync(HttpRequest request, CancellationToken cancellationToken = default)
+    private static string GetPoolKey(string host, int port, bool isSecure)
+    {
+        return $"{host}:{port}:{isSecure}";
+    }
+
+    private async Task<PooledConnection> GetPooledConnectionAsync(string poolKey, string host, int port, bool isSecure, CancellationToken cancellationToken)
+    {
+        var entry = _connectionPool.GetOrAdd(poolKey, _ => new ConnectionPoolEntry());
+        entry.LastAccessed = DateTime.UtcNow;
+        
+        // Try to get an existing connection
+        while (entry.Connections.TryDequeue(out var connection))
+        {
+            if (connection.IsValid)
+            {
+                connection.LastUsed = DateTime.UtcNow;
+                return connection;
+            }
+            
+            connection.Dispose();
+            Interlocked.Decrement(ref entry.ActiveConnections);
+        }
+        
+        // Create new connection if under limit
+        if (entry.ActiveConnections < HttpPerformanceConfig.MaxConnectionsPerHost)
+        {
+            Interlocked.Increment(ref entry.ActiveConnections);
+            return await CreateNewConnectionAsync(host, port, isSecure, cancellationToken).ConfigureAwait(false);
+        }
+        
+        // Wait and retry if at limit
+        await Task.Delay(10, cancellationToken).ConfigureAwait(false);
+        return await GetPooledConnectionAsync(poolKey, host, port, isSecure, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<PooledConnection> CreateNewConnectionAsync(string host, int port, bool isSecure, CancellationToken cancellationToken)
+    {
+        var tcpClient = await ProxyClient.ConnectAsync(host, port, null, cancellationToken).ConfigureAwait(false);
+        var networkStream = tcpClient.GetStream();
+        Stream commonStream = networkStream;
+        
+        if (isSecure)
+        {
+            try
+            {
+                var sslStream = new SslStream(networkStream, false, ServerCertificateCustomValidationCallback);
+                
+                var sslOptions = new SslClientAuthenticationOptions
+                {
+                    TargetHost = host,
+                    EnabledSslProtocols = SslProtocols,
+                    CertificateRevocationCheckMode = CertRevocationMode
+                };
+                
+                if (CertRevocationMode != X509RevocationMode.Online)
+                {
+                    sslOptions.RemoteCertificateValidationCallback = static (_, _, _, _) => true;
+                }
+                
+                if (UseCustomCipherSuites && !RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                {
+                    sslOptions.CipherSuitesPolicy = new CipherSuitesPolicy(AllowedCipherSuites);
+                }
+                
+                await sslStream.AuthenticateAsClientAsync(sslOptions, cancellationToken).ConfigureAwait(false);
+                commonStream = sslStream;
+            }
+            catch (Exception ex) when (ex is IOException or AuthenticationException)
+            {
+                tcpClient.Dispose();
+                throw new ProxyException("Failed SSL connect");
+            }
+        }
+        
+        return new PooledConnection
+        {
+            TcpClient = tcpClient,
+            NetworkStream = networkStream,
+            CommonStream = commonStream,
+            Host = host,
+            Port = port,
+            IsSecure = isSecure,
+            LastUsed = DateTime.UtcNow
+        };
+    }
+
+    private static void ReturnConnectionToPool(string poolKey, PooledConnection connection)
+    {
+        if (_connectionPool.TryGetValue(poolKey, out var entry))
+        {
+            entry.Connections.Enqueue(connection);
+            entry.LastAccessed = DateTime.UtcNow;
+        }
+        else
+        {
+            connection.Dispose();
+        }
+    }
+
+
+
+    private async Task SendDataAsync(HttpRequest request, Stream stream, CancellationToken cancellationToken = default)
     {
         // Use ArrayBufferWriter to collect the request bytes
         var bufferWriter = new ArrayBufferWriter<byte>();
-        await request.WriteToAsync(bufferWriter, cancellationToken);
+        await request.WriteToAsync(bufferWriter, cancellationToken).ConfigureAwait(false);
         var buffer = bufferWriter.WrittenSpan.ToArray();
 
-        await connectionCommonStream.WriteAsync(buffer.AsMemory(0, buffer.Length), cancellationToken).ConfigureAwait(false);
+        await stream.WriteAsync(buffer.AsMemory(0, buffer.Length), cancellationToken).ConfigureAwait(false);
 
         RawRequests.Add(buffer);
     }
 
-    private Task<HttpResponse> ReceiveDataAsync(HttpRequest request,
+    private Task<HttpResponse> ReceiveDataAsync(HttpRequest request, Stream stream,
         CancellationToken cancellationToken)
     {
-        var pipeReader = PipeReader.Create(connectionCommonStream);
+        var pipeReader = PipeReader.Create(stream);
         return new HttpResponseBuilder().GetResponseAsync(request, pipeReader, ReadResponseContent, cancellationToken);
     }
 
@@ -229,7 +442,7 @@ public class RLHttpClient(ProxyClient proxyClient = null) : IDisposable
     {
         var uri = request.Uri;
         var isSecure = uri.Scheme.Equals("https", StringComparison.OrdinalIgnoreCase);
-        
+
         // Check if we can reuse the existing connection
         if (CanReuseConnection(uri.Host, uri.Port, isSecure))
         {
@@ -285,7 +498,7 @@ public class RLHttpClient(ProxyClient proxyClient = null) : IDisposable
         {
             connectionCommonStream = connectionNetworkStream;
         }
-        
+
         // Store connection details for reuse
         lastConnectedHost = uri.Host;
         lastConnectedPort = uri.Port;

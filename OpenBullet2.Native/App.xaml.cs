@@ -37,6 +37,7 @@ public partial class App : Application
 {
     private readonly ServiceProvider _serviceProvider;
     private readonly IConfiguration _config;
+    private readonly CancellationTokenSource _startupCts = new();
 
 
     public App()
@@ -83,8 +84,22 @@ public partial class App : Application
 
         Trace("ServiceProvider built");
 
-        // Apply critical optimizations immediately for faster startup
-        ThreadPool.SetMinThreads(Environment.ProcessorCount, Environment.ProcessorCount);
+        // Apply critical optimizations immediately for faster startup (config-driven)
+        try
+        {
+            var resources = _config.GetSection("Resources");
+            int workerThreads = resources.GetValue("WorkerThreads", Environment.ProcessorCount);
+            int ioThreads = resources.GetValue("IOThreads", Environment.ProcessorCount);
+            ThreadPool.SetMinThreads(workerThreads, ioThreads);
+
+            // ConnectionLimit applies to legacy handlers (WinHTTP/ServicePointManager)
+            // Still useful for some libraries; modern SocketsHttpHandler honors per-handler limits
+            ServicePointManager.DefaultConnectionLimit = resources.GetValue("ConnectionLimit", Environment.ProcessorCount * 16);
+        }
+        catch (Exception tpEx)
+        {
+            Debug.WriteLine($"Failed to apply threadpool/network resource settings: {tpEx.Message}");
+        }
 
         // Defer heavy operations to background with priority-based loading
         _ = Task.Run(async () =>
@@ -92,9 +107,11 @@ public partial class App : Application
             try
             {
                 // Priority 1: Essential network optimizations
-                ServicePointManager.DefaultConnectionLimit = Environment.ProcessorCount * 4;
+                ServicePointManager.DefaultConnectionLimit = Math.Max(ServicePointManager.DefaultConnectionLimit, Environment.ProcessorCount * 4);
                 ServicePointManager.Expect100Continue = false;
                 ServicePointManager.UseNagleAlgorithm = false;
+
+                if (_startupCts.IsCancellationRequested) return;
 
                 // Priority 2: Database migration (critical for app functionality)
                 using var scope = _serviceProvider.CreateScope();
@@ -102,13 +119,17 @@ public partial class App : Application
                 await dbContext.Database.MigrateAsync().ConfigureAwait(false);
                 Trace("Database migration completed");
 
+                if (_startupCts.IsCancellationRequested) return;
+
                 // Priority 3: Load configurations (needed for UI)
                 var configService = _serviceProvider.GetRequiredService<ConfigService>();
                 await configService.ReloadConfigsAsync().ConfigureAwait(false);
                 Trace("Configuration loaded successfully");
 
+                if (_startupCts.IsCancellationRequested) return;
+
                 // Priority 4: Initialize services with delay to avoid resource contention
-                await Task.Delay(100).ConfigureAwait(false); // Small delay to let UI render
+                await Task.Delay(100, _startupCts.Token).ConfigureAwait(false); // Small delay to let UI render
 
                 // Background optimizations (lower priority)
                 ThreadPool.SetMaxThreads(Environment.ProcessorCount * 4, Environment.ProcessorCount * 2);
@@ -118,12 +139,16 @@ public partial class App : Application
                 _ = _serviceProvider.GetService<JobMonitorService>();
                 Trace("Deferred initialization completed");
             }
+            catch (OperationCanceledException)
+            {
+                // App is shutting down; ignore
+            }
             catch (Exception ex)
             {
                 Trace($"Startup optimization error: {ex.Message}");
                 _ = Dispatcher.BeginInvoke(() => Alert.Error("Startup Error", $"Some background initialization failed: {ex.Message}"));
             }
-        });
+        }, _startupCts.Token);
 
         Trace($"Priority-based startup optimization initiated");
 
@@ -224,6 +249,9 @@ public partial class App : Application
             Trace("Creating MainWindow");
             var mainWindow = _serviceProvider.GetService<MainWindow>();
 
+            // Set as the main window before showing
+            MainWindow = mainWindow;
+
             // Show window immediately to improve first-paint perception
             mainWindow.Show();
             Trace("MainWindow shown");
@@ -279,8 +307,10 @@ public partial class App : Application
     {
         try
         {
-            var reducedAnimations = _config.GetSection("Performance").GetValue("ReducedAnimations", true);
-            var frameRate = reducedAnimations ? 20 : 30;
+            var perf = _config.GetSection("Performance");
+            var reducedAnimations = perf.GetValue("ReducedAnimations", true);
+            var lowSpecMode = perf.GetValue("LowSpecMode", false);
+            var frameRate = lowSpecMode ? 15 : (reducedAnimations ? 20 : 30);
 
             // Set animation frame rate based on performance mode
             Timeline.DesiredFrameRateProperty.OverrideMetadata(
@@ -288,13 +318,13 @@ public partial class App : Application
                 new FrameworkPropertyMetadata { DefaultValue = frameRate }
             );
 
-            if (reducedAnimations)
+            if (lowSpecMode || reducedAnimations)
             {
                 // Disable hardware acceleration for low-spec systems to reduce GPU load
                 RenderOptions.ProcessRenderMode = System.Windows.Interop.RenderMode.SoftwareOnly;
             }
 
-            Debug.WriteLine($"Conservative GPU settings applied: {frameRate}fps animations{(reducedAnimations ? ", software rendering" : "")} to reduce laptop heating");
+            Debug.WriteLine($"Conservative GPU settings applied: {frameRate}fps animations{(lowSpecMode || reducedAnimations ? ", software rendering" : "")} to reduce laptop heating");
         }
         catch (Exception ex)
         {
@@ -335,6 +365,10 @@ public partial class App : Application
     {
         try
         {
+            // Signal background startup work to stop
+            try { _startupCts.Cancel(); } catch { }
+            try { _startupCts.Dispose(); } catch { }
+
             // Dispose centralized exception handler if present
             if (Resources["GlobalExceptionHandler"] is IDisposable geh)
             {

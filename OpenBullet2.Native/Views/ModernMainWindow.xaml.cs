@@ -52,7 +52,7 @@ namespace OpenBullet2.Native.Views
                 "menuOptionLoliCode" => "LoliCode",
                 "menuOptionConfigSettings" => "ConfigSettings",
                 "menuOptionCSharpCode" => "CSharpCode",
-    
+
                 _ => "Home"
             };
             NavigateToPage(pageName);

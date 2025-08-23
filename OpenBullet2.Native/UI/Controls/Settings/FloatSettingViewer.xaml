@@ -34,10 +34,10 @@
             <TabItem>
                 <ComboBox 
                     IsEditable="True"
-                    Background="#112"
                     Height="30"
                     ItemsSource="{Binding Suggestions}"
-                    Text="{Binding VariableName, UpdateSourceTrigger=PropertyChanged}" />
+                    Text="{Binding VariableName, UpdateSourceTrigger=PropertyChanged}"
+                    Style="{StaticResource CleanComboBox}" />
             </TabItem>
             <TabItem>
                 <mah:NumericUpDown Minimum="-3.40282347E+38"

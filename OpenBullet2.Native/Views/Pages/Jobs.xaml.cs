@@ -64,8 +64,8 @@ namespace OpenBullet2.Native.Views.Pages
 
             if (jobVM is MultiRunJobViewModel)
             {
-                var dialog = new MultiRunJobOptionsDialog(jobOptions as MultiRunJobOptions, onAccept);
-                dialog.ShowDialog();
+                var page = new MultiRunJobOptionsDialog(jobOptions as MultiRunJobOptions, onAccept);
+                new MainDialog(page, $"Edit job #{entity.Id}", 1100, 800).ShowDialog();
             }
             else if (jobVM is ProxyCheckJobViewModel)
             {
@@ -94,8 +94,8 @@ namespace OpenBullet2.Native.Views.Pages
 
             if (jobVM is MultiRunJobViewModel)
             {
-                var dialog = new MultiRunJobOptionsDialog(newOptions as MultiRunJobOptions, onAccept);
-                dialog.ShowDialog();
+                var page = new MultiRunJobOptionsDialog(newOptions as MultiRunJobOptions, onAccept);
+                new MainDialog(page, $"Clone job #{entity.Id}", 1100, 800).ShowDialog();
             }
             else if (jobVM is ProxyCheckJobViewModel)
             {

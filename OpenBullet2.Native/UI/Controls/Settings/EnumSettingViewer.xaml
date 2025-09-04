@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="OpenBullet2.Native.Controls.EnumSettingViewer"
+<UserControl x:Class="OpenBullet2.Native.Controls.EnumSettingViewer"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
@@ -24,6 +24,7 @@
             SelectedValue="{Binding Value}"
             Height="30"
             Grid.Column="1"
+            Style="{StaticResource CleanComboBox}"
             />
 
     </Grid>

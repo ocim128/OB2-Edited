@@ -219,17 +219,6 @@
                       ResizeBehavior="PreviousAndNext"
                       Margin="0,8,0,0"/>
                       
-        <!-- Block Information Header -->
-        <TextBlock Text="Block Information"
-                   FontSize="14" 
-                   FontWeight="SemiBold" 
-                   HorizontalAlignment="Left" 
-                   Margin="10 0 0 0" 
-                   Foreground="{DynamicResource ForegroundCustom}"
-                   VerticalAlignment="Center" 
-                   Grid.Column="2" 
-                   Grid.Row="0"/>
-
         <!-- Simple Block Information Content Area (single-scroll for info pane only, Debugger-like scrollbar) -->
         <ScrollViewer HorizontalScrollBarVisibility="Disabled"
                       VerticalScrollBarVisibility="Auto"

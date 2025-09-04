@@ -1,4 +1,4 @@
-﻿<Page x:Class="OpenBullet2.Native.Views.Pages.ConfigEditor"
+<Page x:Class="OpenBullet2.Native.Views.Pages.ConfigEditor"
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
@@ -68,11 +68,12 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="*" />
                 <RowDefinition Height="auto" />
+                <RowDefinition Height="auto" />
             </Grid.RowDefinitions>
 
             <Frame x:Name="editorFrame" Grid.Row="0" NavigationUIVisibility="Hidden" />
 
-            <DockPanel Grid.Row="1" Height="32" HorizontalAlignment="Stretch" Margin="0,8,0,0">
+            <DockPanel x:Name="StackerControlsPanel" Grid.Row="1" Height="32" HorizontalAlignment="Stretch" Margin="0,8,0,0" Visibility="Collapsed">
                 <Button Click="OpenStacker"
                     x:Name="stackerButton"
                     HorizontalAlignment="Stretch"

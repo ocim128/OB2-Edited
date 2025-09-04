@@ -1,4 +1,4 @@
-﻿using RuriLib.Attributes;
+using RuriLib.Attributes;
 using RuriLib.Extensions;
 using RuriLib.Logging;
 using RuriLib.Models.Bots;
@@ -8,6 +8,7 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
+using RuriLib.Functions.Parsing;
 
 namespace RuriLib.Blocks.Functions.String
 {
@@ -95,6 +96,9 @@ namespace RuriLib.Blocks.Functions.String
         [Block("Replaces all occurrences of some text in a string")]
         public static string Replace(BotData data, [Variable] string original, string toReplace, string replacement)
         {
+            if (string.IsNullOrEmpty(original) || string.IsNullOrEmpty(toReplace))
+                return original;
+
             var replaced = original.Replace(toReplace, replacement);
             data.Logger.LogHeader();
             data.Logger.Log($"Replaced string: {replaced}", LogColors.YellowGreen);
@@ -105,7 +109,11 @@ namespace RuriLib.Blocks.Functions.String
             extraInfo = "The replacement can contain regex groups with syntax like $1$2")]
         public static string RegexReplace(BotData data, [Variable] string original, string pattern, string replacement)
         {
-            var replaced = Regex.Replace(original, pattern, replacement);
+            if (string.IsNullOrEmpty(original) || string.IsNullOrEmpty(pattern))
+                return original;
+
+            var regex = RegexCache.GetOrCreate(pattern);
+            var replaced = regex.Replace(original, replacement);
             data.Logger.LogHeader();
             data.Logger.Log($"Replaced string: {replaced}", LogColors.YellowGreen);
             return replaced;
@@ -115,17 +123,47 @@ namespace RuriLib.Blocks.Functions.String
         public static string Translate(BotData data, [Variable] string input, Dictionary<string, string> translations,
             bool replaceOne = false)
         {
-            var sb = new StringBuilder(input);
+            if (string.IsNullOrEmpty(input) || translations == null || translations.Count == 0)
+                return input;
+
+            var sb = new StringBuilder(input.Length * 2); // Pre-allocate capacity
             var replacements = 0;
+            var currentIndex = 0;
+            var inputLength = input.Length;
             
-            foreach (var entry in translations.OrderBy(e => e.Key.Length).Reverse())
+            // Sort translations by length descending to handle longer matches first
+            var sortedTranslations = translations
+                .OrderByDescending(e => e.Key.Length)
+                .Where(e => !string.IsNullOrEmpty(e.Key))
+                .ToArray();
+
+            while (currentIndex < inputLength)
             {
-                if (input.Contains(entry.Key))
+                bool replaced = false;
+                foreach (var entry in sortedTranslations)
                 {
-                    replacements += input.CountOccurrences(entry.Key);
-                    sb.Replace(entry.Key, entry.Value);
-                    if (replaceOne) break;
+                    var key = entry.Key;
+                    var keyLength = key.Length;
+                    
+                    if (currentIndex + keyLength <= inputLength &&
+                        string.CompareOrdinal(input.Substring(currentIndex, keyLength), key) == 0)
+                    {
+                        sb.Append(entry.Value);
+                        currentIndex += keyLength;
+                        replacements++;
+                        replaced = true;
+                        if (replaceOne) break;
+                        break;
+                    }
                 }
+                
+                if (!replaced)
+                {
+                    sb.Append(input[currentIndex]);
+                    currentIndex++;
+                }
+                
+                if (replaceOne && replacements > 0) break;
             }
 
             var translated = sb.ToString();
@@ -176,21 +214,54 @@ namespace RuriLib.Blocks.Functions.String
             extraInfo = "?l = Lowercase, ?u = Uppercase, ?d = Digit, ?f = Uppercase + Lowercase, ?s = Symbol, ?h = Hex (Lowercase), ?H = Hex (Uppercase), ?m = Upper + Digits, ?n = Lower + Digits, ?i = Lower + Upper + Digits, ?a = Any, ?c = Custom")]
         public static string RandomString(BotData data, string input, string customCharset = "0123456789")
         {
-            input = Regex.Replace(input, @"\?l", m => _lowercase[data.Random.Next(_lowercase.Length)].ToString());
-            input = Regex.Replace(input, @"\?u", m => _uppercase[data.Random.Next(_uppercase.Length)].ToString());
-            input = Regex.Replace(input, @"\?d", m => _digits[data.Random.Next(_digits.Length)].ToString());
-            input = Regex.Replace(input, @"\?s", m => _symbols[data.Random.Next(_symbols.Length)].ToString());
-            input = Regex.Replace(input, @"\?h", m => _hex[data.Random.Next(_hex.Length)].ToString());
-            input = Regex.Replace(input, @"\?H", m => _hex[data.Random.Next(_hex.Length)].ToString().ToUpper());
-            input = Regex.Replace(input, @"\?a", m => _allChars[data.Random.Next(_allChars.Length)].ToString());
-            input = Regex.Replace(input, @"\?m", m => _udChars[data.Random.Next(_udChars.Length)].ToString());
-            input = Regex.Replace(input, @"\?n", m => _ldChars[data.Random.Next(_ldChars.Length)].ToString());
-            input = Regex.Replace(input, @"\?i", m => _ludChars[data.Random.Next(_ludChars.Length)].ToString());
-            input = Regex.Replace(input, @"\?f", m => _upperlwr[data.Random.Next(_upperlwr.Length)].ToString());
-            input = Regex.Replace(input, @"\?c", m => customCharset[data.Random.Next(customCharset.Length)].ToString());
+            if (string.IsNullOrEmpty(input))
+                return string.Empty;
+
+            var result = new StringBuilder(input.Length * 2);
+            var random = data.Random;
+
+            for (int i = 0; i < input.Length; i++)
+            {
+                if (i + 1 < input.Length && input[i] == '?')
+                {
+                    char next = input[i + 1];
+                    string charset = next switch
+                    {
+                        'l' => _lowercase,
+                        'u' => _uppercase,
+                        'd' => _digits,
+                        's' => _symbols,
+                        'h' => _hex,
+                        'H' => _hex.ToUpper(),
+                        'a' => _allChars,
+                        'm' => _udChars,
+                        'n' => _ldChars,
+                        'i' => _ludChars,
+                        'f' => _upperlwr,
+                        'c' => customCharset,
+                        _ => null
+                    };
+
+                    if (charset != null)
+                    {
+                        result.Append(charset[random.Next(charset.Length)]);
+                        i++; // Skip the next character
+                    }
+                    else
+                    {
+                        result.Append(input[i]);
+                    }
+                }
+                else
+                {
+                    result.Append(input[i]);
+                }
+            }
+
+            var generated = result.ToString();
             data.Logger.LogHeader();
-            data.Logger.Log($"Generated string: {input}", LogColors.YellowGreen);
-            return input;
+            data.Logger.Log($"Generated string: {generated}", LogColors.YellowGreen);
+            return generated;
         }
 
         [Block("Unescapes characters in a string")]

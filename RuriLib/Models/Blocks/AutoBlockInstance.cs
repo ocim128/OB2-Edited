@@ -1,4 +1,4 @@
-﻿using RuriLib.Exceptions;
+using RuriLib.Exceptions;
 using RuriLib.Extensions;
 using RuriLib.Helpers;
 using RuriLib.Helpers.CSharp;
@@ -236,8 +236,14 @@ public partial class AutoBlockInstance : BlockInstance
         }
 
         // Append MethodName(data, param1, "param2", param3);
+        var autoDescriptor = (AutoBlockDescriptor)Descriptor;
         var parameters = new List<string> { "data" }
-            .Concat(Settings.Values.Select(CSharpWriter.FromSetting));
+            .Concat(Settings.Values.Select(setting =>
+            {
+                // Get the original parameter type for this setting
+                var targetType = autoDescriptor.OriginalParameterTypes.TryGetValue(setting.Name, out var type) ? type : null;
+                return CSharpWriter.FromSetting(setting, targetType);
+            }));
 
         writer.Write($"{Descriptor.Id}({string.Join(", ", parameters)})");
 

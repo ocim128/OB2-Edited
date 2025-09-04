@@ -1,6 +1,7 @@
-﻿using RuriLib.Parallelization.Exceptions;
+using RuriLib.Parallelization.Exceptions;
 using RuriLib.Parallelization.Models;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -147,9 +148,15 @@ public abstract class Parallelizer<TInput, TOutput> : IDisposable
     protected int processed;
 
     /// <summary>
-    /// The list of timestamps for CPM calculation.
+    /// The queue of timestamps for CPM calculation. Using a ConcurrentQueue for thread safety
+    /// and efficient enqueue/dequeue operations.
     /// </summary>
-    protected List<int> checkedTimestamps = [];
+    protected readonly ConcurrentQueue<long> checkedTimestamps = new();
+
+    /// <summary>
+    /// A timer that periodically updates the CPM and progress.
+    /// </summary>
+    private Timer _updateTimer;
 
     /// <summary>
     /// A lock that can be used to update the CPM from a single thread at a time.
@@ -160,6 +167,16 @@ public abstract class Parallelizer<TInput, TOutput> : IDisposable
     /// The stopwatch that calculates the elapsed time.
     /// </summary>
     protected readonly Stopwatch stopwatch = new();
+
+    /// <summary>
+    /// A token that can be used to pause the execution of the parallelizer.
+    /// </summary>
+    protected readonly PauseTokenSource pauseTokenSource = new();
+
+    /// <summary>
+    /// The pause token.
+    /// </summary>
+    protected PauseToken pauseToken;
 
     /// <summary>
     /// A soft cancellation token. Cancel this for soft AND hard abort.
@@ -262,6 +279,8 @@ public abstract class Parallelizer<TInput, TOutput> : IDisposable
         this.skip = skip;
         MaxDegreeOfParallelism = maxDegreeOfParallelism;
 
+        pauseToken = pauseTokenSource.Token;
+
         // Assign the task function
         taskFunction = new Func<TInput, Task>(async item =>
         {
@@ -287,11 +306,8 @@ public abstract class Parallelizer<TInput, TOutput> : IDisposable
             finally
             {
                 // Use TickCount64 to avoid 24.9-day wraparound issues
+                checkedTimestamps.Enqueue(Environment.TickCount64);
                 _ = Interlocked.Increment(ref processed);
-                OnProgressChanged(Progress);
-
-                checkedTimestamps.Add(unchecked((int)Environment.TickCount64));
-                UpdateCPM();
             }
         });
     }
@@ -311,25 +327,52 @@ public abstract class Parallelizer<TInput, TOutput> : IDisposable
 
         StartTime = DateTime.Now;
         EndTime = null;
-        checkedTimestamps.Clear();
+
+        // Clear the queue by dequeuing any existing items
+        while (checkedTimestamps.TryDequeue(out _)) { }
 
         softCTS = new CancellationTokenSource();
         hardCTS = new CancellationTokenSource();
+
+        stopwatch.Restart();
+        _updateTimer = new Timer(_ =>
+        {
+            UpdateCPM(Environment.TickCount64);
+            OnProgressChanged(Progress);
+        }, null, 1000, 1000);
 
         return Task.CompletedTask;
     }
 
     /// <summary>Pauses the execution (waits until the ongoing operations are completed).</summary>
     /// <exception cref="RequiredStatusException"></exception>
-    public virtual Task Pause() => Status != ParallelizerStatus.Running
-            ? throw new RequiredStatusException(ParallelizerStatus.Running, Status)
-            : Task.CompletedTask;
+    public virtual Task Pause()
+    {
+        if (Status != ParallelizerStatus.Running)
+        {
+            throw new RequiredStatusException(ParallelizerStatus.Running, Status);
+        }
+
+        _updateTimer?.Change(Timeout.Infinite, Timeout.Infinite);
+        stopwatch.Stop();
+
+        return pauseTokenSource.PauseAsync();
+    }
 
     /// <summary>Resumes a paused execution.</summary>
     /// <exception cref="RequiredStatusException"></exception>
-    public virtual Task Resume() => Status != ParallelizerStatus.Paused
-            ? throw new RequiredStatusException(ParallelizerStatus.Paused, Status)
-            : Task.CompletedTask;
+    public virtual Task Resume()
+    {
+        if (Status != ParallelizerStatus.Paused)
+        {
+            throw new RequiredStatusException(ParallelizerStatus.Paused, Status);
+        }
+
+        _updateTimer?.Change(1000, 1000);
+        stopwatch.Start();
+
+        return pauseTokenSource.ResumeAsync();
+    }
 
     /// <summary>
     /// Stops the execution (waits for the current items to finish).
@@ -342,6 +385,9 @@ public abstract class Parallelizer<TInput, TOutput> : IDisposable
             throw new RequiredStatusException([ParallelizerStatus.Running, ParallelizerStatus.Paused], Status);
         }
 
+        _updateTimer?.Dispose();
+        _updateTimer = null;
+        stopwatch.Stop();
         EndTime = DateTime.Now;
 
         return Task.CompletedTask;
@@ -360,6 +406,9 @@ public abstract class Parallelizer<TInput, TOutput> : IDisposable
             Status);
         }
 
+        _updateTimer?.Dispose();
+        _updateTimer = null;
+        stopwatch.Stop();
         EndTime = DateTime.Now;
 
         return Task.CompletedTask;
@@ -406,7 +455,7 @@ public abstract class Parallelizer<TInput, TOutput> : IDisposable
     /// Updates the CPM (safe to be called from multiple threads).
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    protected void UpdateCPM()
+    protected void UpdateCPM(long nowTicks)
     {
         // Attempt to update CPM without blocking; if another thread is updating, skip this tick
         if (!Monitor.TryEnter(cpmLock))
@@ -416,24 +465,15 @@ public abstract class Parallelizer<TInput, TOutput> : IDisposable
 
         try
         {
-            const int windowMs = 60000;
-            int write = 0;
-            var nowTicks = unchecked((int)Environment.TickCount64);
-            var list = checkedTimestamps;
+            const int windowMs = 60_000;
 
-            for (int read = 0; read < list.Count; read++)
+            // Dequeue timestamps older than the time window
+            while (checkedTimestamps.TryPeek(out var timestamp) && nowTicks - timestamp >= windowMs)
             {
-                int age = unchecked(nowTicks - list[read]);
-                if (age >= 0 && age < windowMs)
-                {
-                    list[write++] = list[read];
-                }
+                checkedTimestamps.TryDequeue(out _);
             }
-            if (write < list.Count)
-            {
-                list.RemoveRange(write, list.Count - write);
-            }
-            CPM = list.Count;
+
+            CPM = checkedTimestamps.Count;
         }
         finally
         {
@@ -456,6 +496,8 @@ public abstract class Parallelizer<TInput, TOutput> : IDisposable
             hardCTS?.Dispose();
         }
         catch { }
+
+        _updateTimer?.Dispose();
         stopwatch?.Stop();
         Status = ParallelizerStatus.Idle;
     }

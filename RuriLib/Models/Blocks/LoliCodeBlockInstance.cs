@@ -104,7 +104,7 @@ public partial class LoliCodeBlockInstance(LoliCodeBlockDescriptor descriptor) :
             // Try to read it as a LoliCode-exclusive statement
             try
             {
-                writer.WriteLine(TranspileStatement(trimmedLine, definedVariables));
+                writer.WriteLine(TranspileStatement(trimmedLine, definedVariables, settings));
             }
 
             // If it failed, we assume what is written is bare C# so we just copy it over (untrimmed)
@@ -117,7 +117,7 @@ public partial class LoliCodeBlockInstance(LoliCodeBlockDescriptor descriptor) :
         return writer.ToString();
     }
 
-    private string TranspileStatement(string input, List<string> definedVariables)
+    private string TranspileStatement(string input, List<string> definedVariables, ConfigSettings settings)
     {
         Match match;
 
@@ -160,7 +160,8 @@ public partial class LoliCodeBlockInstance(LoliCodeBlockDescriptor descriptor) :
         if ((match = Regex.Match(input, $"^JUMP #({_validTokenRegex})$")).Success)
         {
             var label = match.Groups[1].Value;
-            return $"data.Logger.Log(\"Jumping to label {label}\", LogColors.White);{System.Environment.NewLine}if (++__jumpCount_{label} > 30) throw new InvalidOperationException($\"Infinite loop detected at label {label} - maximum 30 iterations reached\");{System.Environment.NewLine}goto {label};";
+            var maxJumps = settings?.GeneralSettings?.MaxJumpIterations > 0 ? settings.GeneralSettings.MaxJumpIterations : 40;
+            return $"data.Logger.Log(\"Jumping to label {label}\", LogColors.White);{System.Environment.NewLine}if (++__jumpCount_{label} > {maxJumps}) throw new InvalidOperationException($\"Infinite loop detected at label {label} - maximum {maxJumps} iterations reached\");{System.Environment.NewLine}goto {label};";
         }
 
         // END
@@ -251,162 +252,90 @@ public partial class LoliCodeBlockInstance(LoliCodeBlockDescriptor descriptor) :
             return $"}}{System.Environment.NewLine}else if ({line}){System.Environment.NewLine}{{";
         }
 
-        // TRY
-        // TRY => try {
-        if (input == "TRY")
+        // SET
+        // SET X = myVariable => var X = myVariable;
+        if (input.StartsWith("SET "))
         {
-            return $"try{System.Environment.NewLine}{{";
+            try
+            {
+                var setMatch = Regex.Match(input, $"^SET @?({_validTokenRegex})\\s*=\\s*(.+)$");
+                if (!setMatch.Success)
+                {
+                    throw new FormatException();
+                }
+
+                var varName = setMatch.Groups[1].Value;
+                var expression = setMatch.Groups[2].Value;
+
+                if (definedVariables.Contains(varName))
+                {
+                    return $"{varName} = {expression};";
+                }
+
+                definedVariables.Add(varName);
+                return $"var {varName} = {expression};";
+            }
+            catch (FormatException)
+            {
+                throw new NotSupportedException();
+            }
         }
 
-        // CATCH
-        // CATCH => } catch {
-        if (input == "CATCH")
+        // MARK, UNMARK
+        if (input.StartsWith("MARK "))
         {
-            return $"}}{System.Environment.NewLine}catch{System.Environment.NewLine}{{";
+            return $"data.Mark({input[5..]});";
+        }
+        if (input.StartsWith("UNMARK "))
+        {
+            return $"data.Unmark({input[7..]});";
         }
 
-        // FINALLY
-        // FINALLY => } finally {
-        if (input == "FINALLY")
+        // USE PROXY
+        if (input.StartsWith("SET USEPROXY "))
         {
-            return $"}}{System.Environment.NewLine}finally{System.Environment.NewLine}{{";
+            var proxyType = ProxyType.Http;
+            var useProxy = false;
+
+            if ((match = MyRegex10().Match(input)).Success)
+            {
+                useProxy = bool.Parse(match.Groups[1].Value);
+            }
+            else if ((match = Regex.Match(input, $"^SET USEPROXY ({_validTokenRegex})$"))
+                .Success)
+            {
+                var v = match.Groups[1].Value;
+                return $"if ({v}){{data.UseProxy = true;}}else{{data.UseProxy = false;}}";
+            }
+
+            if (!useProxy)
+            {
+                return $"data.UseProxy = false;";
+            }
+
+            var path = $"data.Providers.Proxies.{proxyType}Proxies";
+            return $"if (globals.UseProxies){{data.UseProxy = true;data.Proxy = {path}.GetRandomValid(data.UseBanLoop, data.ProxyGroup);data.Logger.Log(\"Using proxy: \", LogColors.Tomato);data.Logger.LogObject(data.Proxy, LogColors.White);}}else{{data.UseProxy = false;}}";
+        }
+
+        // ACQUIRE LOCK
+        if ((match = MyRegex14().Match(input)).Success)
+        {
+            return $"await data.Locker.Acquire({match.Groups[1].Value}, data.CancellationToken);";
         }
 
         // LOCK
-        // LOCK globals => lock (globals) {
         if ((match = MyRegex15().Match(input)).Success)
         {
-            return $"lock({match.Groups[1].Value}){System.Environment.NewLine}{{";
+            return $"await data.Locker.Lock({match.Groups[1].Value}, data.CancellationToken);";
         }
 
-        // ACQUIRELOCK
-        // ACQUIRELOCK globals => await data.AsyncLocker.Acquire(nameof(globals), data.CancellationToken);
-        if ((match = MyRegex14().Match(input)).Success)
-        {
-            return $"await data.AsyncLocker.Acquire(nameof({match.Groups[1].Value}), data.CancellationToken);";
-        }
-
-        // RELEASELOCK
-        // RELEASELOCK globals => data.AsyncLocker.Release(nameof(globals));
+        // RELEASE LOCK
         if ((match = MyRegex11().Match(input)).Success)
         {
-            return $"data.AsyncLocker.Release(nameof({match.Groups[1].Value}));";
+            return $"data.Locker.Release({match.Groups[1].Value});";
         }
 
-        // SET VAR
-        // SET VAR myString "hello" => string myString = "hello";
-        if ((match = Regex.Match(input, $"^SET VAR @?\"?({_validTokenRegex})\"? (.+)$")).Success)
-        {
-            if (definedVariables.Contains(match.Groups[1].Value))
-            {
-                return $"{match.Groups[1].Value} = {match.Groups[2].Value};";
-            }
-
-            definedVariables.Add(match.Groups[1].Value);
-            return $"string {match.Groups[1].Value} = {match.Groups[2].Value};";
-        }
-
-        // SET CAP
-        // SET CAP myCapture "hello" => string myString = "hello"; data.MarkForCapture(nameof(myCapture));
-        if ((match = Regex.Match(input, $"^SET CAP @?\"?({_validTokenRegex})\"? (.+)$")).Success)
-        {
-            if (definedVariables.Contains(match.Groups[1].Value))
-            {
-                return $"{match.Groups[1].Value} = {match.Groups[2].Value};{System.Environment.NewLine}data.MarkForCapture(nameof({match.Groups[1].Value}));";
-            }
-
-            definedVariables.Add(match.Groups[1].Value);
-            return $"string {match.Groups[1].Value} = {match.Groups[2].Value};{System.Environment.NewLine}data.MarkForCapture(nameof({match.Groups[1].Value}));";
-        }
-
-        // SET USEPROXY
-        // SET USEPROXY TRUE => data.UseProxy = "true";
-        if ((match = MyRegex10().Match(input)).Success)
-        {
-            return $"data.UseProxy = {match.Groups[1].Value.ToLower(System.Globalization.CultureInfo.CurrentCulture)};";
-        }
-
-        // SET PROXY
-        // SET PROXY "127.0.0.1" 9050 SOCKS5 => data.Proxy = new Proxy("127.0.0.1", 9050, ProxyType.Socks5);
-        // SET PROXY "127.0.0.1" 9050 SOCKS5 "username" "password" => data.Proxy = new Proxy("127.0.0.1", 9050, ProxyType.Socks5, "username", "password");
-        if (input.StartsWith("SET PROXY "))
-        {
-            var setProxyParams = input["SET PROXY ".Length..].Split(' ');
-            var proxyType = (ProxyType)Enum.Parse(typeof(ProxyType), setProxyParams[2], true);
-
-            return setProxyParams.Length == 3
-                ? $"data.Proxy = new Proxy({setProxyParams[0]}, {setProxyParams[1]}, ProxyType.{proxyType});"
-                : $"data.Proxy = new Proxy({setProxyParams[0]}, {setProxyParams[1]}, ProxyType.{proxyType}, {setProxyParams[3]}, {setProxyParams[4]});";
-        }
-
-        // MARK
-        // MARK @myVar => data.MarkForCapture(nameof(myVar));
-        if ((match = Regex.Match(input, $"^MARK @?({_validTokenRegex})$")).Success)
-        {
-            return $"data.MarkForCapture(nameof({match.Groups[1].Value}));";
-        }
-
-        // UNMARK
-        // UNMARK @myVar => data.MarkedForCapture.Remove(nameof(myVar));
-        return (match = Regex.Match(input, $"^UNMARK @?({_validTokenRegex})$")).Success
-            ? $"data.UnmarkCapture(nameof({match.Groups[1].Value}));"
-            : throw new NotSupportedException();
-    }
-
-    /// <summary>
-    /// Detects variables from Key objects in IF/WHILE statements.
-    /// </summary>
-    private HashSet<string> DetectVariablesFromKeys()
-    {
-        var variables = new HashSet<string>();
-
-        if (string.IsNullOrEmpty(Script))
-        {
-            return variables;
-        }
-
-        using var reader = new StringReader(Script);
-        string line;
-
-        while ((line = reader.ReadLine()) != null)
-        {
-            var trimmed = line.Trim();
-
-            // Check for IF statements with keys
-            var ifMatch = MyRegex16().Match(trimmed);
-            if (ifMatch.Success)
-            {
-                var condition = ifMatch.Groups[1].Value.Trim();
-                if (LoliCodeParser.keyIdentifiers.Any(condition.StartsWith))
-                {
-                    variables.UnionWith(ExtractVariablesFromKeyCondition(condition));
-                }
-            }
-
-            // Check for WHILE statements with keys
-            var whileMatch = MyRegex9().Match(trimmed);
-            if (whileMatch.Success)
-            {
-                var condition = whileMatch.Groups[1].Value.Trim();
-                if (LoliCodeParser.keyIdentifiers.Any(condition.StartsWith))
-                {
-                    variables.UnionWith(ExtractVariablesFromKeyCondition(condition));
-                }
-            }
-
-            // Check for ELSE IF statements with keys
-            var elseIfMatch = MyRegex8().Match(trimmed);
-            if (elseIfMatch.Success)
-            {
-                var condition = elseIfMatch.Groups[1].Value.Trim();
-                if (LoliCodeParser.keyIdentifiers.Any(condition.StartsWith))
-                {
-                    variables.UnionWith(ExtractVariablesFromKeyCondition(condition));
-                }
-            }
-        }
-
-        return variables;
+        throw new NotSupportedException();
     }
 
     /// <summary>
@@ -452,61 +381,66 @@ public partial class LoliCodeBlockInstance(LoliCodeBlockDescriptor descriptor) :
                line.StartsWith('>');
     }
 
-    /// <summary>
-    /// Extracts variable names from a key condition like "STRINGKEY @cp Contains "%""
-    /// </summary>
-    private static HashSet<string> ExtractVariablesFromKeyCondition(string condition)
+    private HashSet<string> DetectVariablesFromKeys()
     {
-        var variables = new HashSet<string>();
+        var detected = new HashSet<string>();
 
-        try
+        using var reader = new StringReader(Script);
+        string line;
+        while ((line = reader.ReadLine()) != null)
         {
-            var lineCopy = condition;
-            var keyType = LineParser.ParseToken(ref lineCopy);
-            var key = LoliCodeParser.ParseKey(ref lineCopy, keyType);
+            var trimmedLine = line.Trim();
+            if (string.IsNullOrWhiteSpace(trimmedLine) || trimmedLine.StartsWith("//")) continue;
 
-            // Check left side of the condition
-            if (key.Left.InputMode == SettingInputMode.Variable && !string.IsNullOrEmpty(key.Left.InputVariableName))
+            // Match WHILE and IF lines
+            Match match;
+            if ((match = MyRegex9().Match(trimmedLine)).Success || (match = MyRegex16().Match(trimmedLine)).Success)
             {
-                var baseVar = VariableDetector.ExtractBaseVariableName(key.Left.InputVariableName);
-                if (!string.IsNullOrEmpty(baseVar))
+                var condition = match.Groups[1].Value.Trim();
+                if (LoliCodeParser.keyIdentifiers.Any(t => condition.StartsWith(t)))
                 {
-                    _ = variables.Add(baseVar);
+                    try
+                    {
+                        var keyType = LineParser.ParseToken(ref condition);
+                        var key = LoliCodeParser.ParseKey(ref condition, keyType);
+
+                        // Detect variables from interpolated string settings inside keys
+                        if (key.Left.InterpolatedSetting is InterpolatedStringSetting leftStr)
+                        {
+                            detected.UnionWith(VariableDetector.DetectFromInterpolatedString(leftStr.Value));
+                        }
+                        if (key.Right.InterpolatedSetting is InterpolatedStringSetting rightStr)
+                        {
+                            detected.UnionWith(VariableDetector.DetectFromInterpolatedString(rightStr.Value));
+                        }
+
+                        // Detect variables from variable input modes inside keys
+                        if (key.Left.InputMode == SettingInputMode.Variable && !string.IsNullOrEmpty(key.Left.InputVariableName))
+                        {
+                            var baseVar = VariableDetector.ExtractBaseVariableName(key.Left.InputVariableName);
+                            if (!string.IsNullOrEmpty(baseVar))
+                            {
+                                detected.Add(baseVar);
+                            }
+                        }
+                        if (key.Right.InputMode == SettingInputMode.Variable && !string.IsNullOrEmpty(key.Right.InputVariableName))
+                        {
+                            var baseVar = VariableDetector.ExtractBaseVariableName(key.Right.InputVariableName);
+                            if (!string.IsNullOrEmpty(baseVar))
+                            {
+                                detected.Add(baseVar);
+                            }
+                        }
+                    }
+                    catch
+                    {
+                        // Ignore parsing errors in detection
+                    }
                 }
             }
-
-            // Check right side of the condition 
-            if (key.Right.InputMode == SettingInputMode.Variable && !string.IsNullOrEmpty(key.Right.InputVariableName))
-            {
-                var baseVar = VariableDetector.ExtractBaseVariableName(key.Right.InputVariableName);
-                if (!string.IsNullOrEmpty(baseVar))
-                {
-                    _ = variables.Add(baseVar);
-                }
-            }
-
-            // Check interpolated strings in left side
-            if (key.Left.InputMode == SettingInputMode.Interpolated && key.Left.InterpolatedSetting is InterpolatedStringSetting leftString)
-            {
-                variables.UnionWith(VariableDetector.DetectFromInterpolatedString(leftString.Value));
-            }
-
-            // Check interpolated strings in right side
-            if (key.Right.InputMode == SettingInputMode.Interpolated && key.Right.InterpolatedSetting is InterpolatedStringSetting rightString)
-            {
-                variables.UnionWith(VariableDetector.DetectFromInterpolatedString(rightString.Value));
-            }
-        }
-        catch
-        {
-            // If parsing fails, fall back to regex detection
-            foreach (Match match in MyRegex1().Matches(condition))
-            {
-                _ = variables.Add(match.Groups[1].Value);
-            }
         }
 
-        return variables;
+        return detected;
     }
 
     [GeneratedRegex(@"^=> VAR @?([A-Za-z][A-Za-z0-9_]*)")]

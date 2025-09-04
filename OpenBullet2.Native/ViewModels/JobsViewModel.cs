@@ -269,8 +269,9 @@ public class MultiRunJobViewModel(MultiRunJob job) : JobViewModel(job)
 {
     private MultiRunJob MultiRunJob => Job as MultiRunJob;
 
-    public string ConfigName => MultiRunJob.Config.Metadata.Name;
+    public string ConfigName => MultiRunJob.Config?.Metadata?.Name ?? "Config Missing";
     public string ConfigDisplayName => ConfigName;
+    public string JobTypeDisplay => "Multi-Run Job";
     public string DataPoolInfo => MultiRunJob.DataPool switch
     {
         WordlistDataPool w => $"{w.Wordlist.Name} (Wordlist)",

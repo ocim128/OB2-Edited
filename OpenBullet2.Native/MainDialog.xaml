@@ -8,13 +8,18 @@
         mc:Ignorable="d"
         Title="MainDialog" Height="300" Width="300"
         Background="{DynamicResource BackgroundMain}"
-        SizeToContent="WidthAndHeight" ResizeMode="NoResize"
+        SizeToContent="Width"
+        ResizeMode="NoResize"
         BorderThickness="0"
         GlowBrush="Black"
         WindowTitleBrush="{DynamicResource BackgroundSecondary}"
         WindowTransitionsEnabled="False"
         TitleCharacterCasing="Normal"
-        WindowStartupLocation="CenterScreen">
+        WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="False"
+        MaxHeight="{Binding Source={x:Static SystemParameters.WorkArea}, Path=Height}"
+        MaxWidth="{Binding Source={x:Static SystemParameters.WorkArea}, Path=Width}"
+        MinHeight="320">
     <Grid>
         
     </Grid>

@@ -1,4 +1,4 @@
-﻿using Microsoft.CodeAnalysis.CSharp.Scripting;
+using Microsoft.CodeAnalysis.CSharp.Scripting;
 using Microsoft.CodeAnalysis.Scripting;
 using RuriLib.Models.Bots;
 using RuriLib.Models.Configs.Settings;
@@ -28,7 +28,7 @@ namespace RuriLib.Helpers.CSharp
         {
             var ruriLib = Assembly.GetAssembly(typeof(ScriptBuilder));
             var plugins = pluginRepo != null ? pluginRepo.GetPlugins() : Array.Empty<Assembly>();
-            
+
             var script =
                 CSharpScript.Create(
                     code: preScript.ToString() + cSharpScript + postScript.ToString(),
@@ -99,7 +99,7 @@ namespace RuriLib.Helpers.CSharp
                 }
                 catch
                 {
-                    
+
                 }
             }
 

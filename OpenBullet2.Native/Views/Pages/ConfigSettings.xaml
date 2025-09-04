@@ -9,6 +9,7 @@
       xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
       xmlns:resources="clr-namespace:RuriLib.Models.Data.Resources.Options;assembly=RuriLib"
       xmlns:rules="clr-namespace:RuriLib.Models.Data.Rules;assembly=RuriLib"
+      xmlns:settings="clr-namespace:RuriLib.Models.Configs.Settings;assembly=RuriLib"
       mc:Ignorable="d" 
       d:DesignHeight="2750" d:DesignWidth="800"
       Title="Config Settings">
@@ -41,6 +42,8 @@
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
+                                <!-- Added row for Max Jump Iterations -->
+                                <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
 
                         <!-- Bot Settings -->
@@ -59,6 +62,10 @@
                             <TextBlock Text="Statuses for which the bot will continue / stop:" FontWeight="SemiBold" Foreground="#FF1E90FF" Margin="0,0,0,8"/>
                             <uc:MultipleSelector SelectedValues="{Binding ContinueStatuses, Mode=TwoWay}" PossibleValues="{Binding AllStatuses}"/>
                         </StackPanel>
+                        
+                        <!-- Max Jump Iterations -->
+                        <TextBlock Grid.Row="5" Grid.Column="0" Text="Max JUMP iterations (infinite loop guard):" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center" Margin="0,8"/>
+                        <mah:NumericUpDown Grid.Row="5" Grid.Column="1" Minimum="1" Maximum="100000" Value="{Binding GeneralSettings.MaxJumpIterations}" Width="200" HorizontalAlignment="Left" Margin="12,8"/>
                         </Grid>
                     </StackPanel>
                 </Border>
@@ -167,7 +174,8 @@
                                     <TextBox Grid.Column="1" Text="{Binding SliceName}" Height="30" Margin="5 0" Style="{StaticResource MatchingTextBox}" />
                                     <ComboBox Grid.Column="2" 
                                               ItemsSource="{Binding DataContext.StringRules, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                                              SelectedItem="{Binding Comparison}" Height="30" Margin="5 0" />
+                                              SelectedItem="{Binding Comparison}" Height="30" Margin="5 0"
+                                              Style="{StaticResource CleanComboBox}" />
                                     <TextBox Grid.Column="3" Text="{Binding StringToCompare}" Height="30" Margin="5 0" Style="{StaticResource MatchingTextBox}" />
                                     <CheckBox Grid.Column="4" Content="Case sensitive"
                                       IsChecked="{Binding CaseSensitive}"
@@ -413,6 +421,20 @@
                                       IsChecked="{Binding BrowserSettings.Headless}" 
                                       FontWeight="SemiBold" Foreground="White" 
                                       VerticalContentAlignment="Center" Margin="0,8"/>
+                            <StackPanel Margin="0,8">
+                                <TextBlock Text="Stealth Mode:" 
+                                           FontWeight="SemiBold" Foreground="#FF1E90FF" 
+                                           Margin="0,0,0,4"/>
+                                <ComboBox SelectedValue="{Binding BrowserSettings.StealthMode}" 
+                                          Style="{StaticResource CleanComboBox}" 
+                                          Width="200" Height="30" HorizontalAlignment="Left"
+                                          SelectedValuePath="Tag">
+                                    <ComboBoxItem Content="Default" Tag="{x:Static settings:BrowserStealthMode.Default}" />
+                        <ComboBoxItem Content="Stealth" Tag="{x:Static settings:BrowserStealthMode.Stealth}" />
+                        <ComboBoxItem Content="Enhanced Stealth" Tag="{x:Static settings:BrowserStealthMode.EnhancedStealth}" />
+                        <ComboBoxItem Content="Option4 Maximum Stealth" Tag="{x:Static settings:BrowserStealthMode.Option4}" />
+                                </ComboBox>
+                            </StackPanel>
                             <CheckBox Content="Load only document and script" 
                                       IsChecked="{Binding BrowserSettings.LoadOnlyDocumentAndScript}" 
                                       FontWeight="SemiBold" Foreground="White" 

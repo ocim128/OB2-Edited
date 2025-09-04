@@ -63,8 +63,11 @@ namespace OpenBullet2.Native.Views.Pages
                 ServiceLocator.GetService<MainWindow>().NavigateTo(MainWindowPage.Configs);
             }
 
-            vm.SelectBlock(null, false);
             vm.UpdateViewModel();
+            if (vm.Stack?.Any() == true)
+            {
+                vm.SelectBlock(vm.Stack.First(), false);
+            }
         }
 
         public void CreateBlock(BlockDescriptor descriptor)
@@ -74,7 +77,7 @@ namespace OpenBullet2.Native.Views.Pages
         }
 
         private void AddBlock(object sender, RoutedEventArgs e)
-            => new MainDialog(new AddBlockDialog(this), "Add block").ShowDialog();
+            => new MainDialog(new AddBlockDialog(this), "Add block", 760, 620).ShowDialog();
 
         private void RemoveBlock(object sender, RoutedEventArgs e)
         {

@@ -1,4 +1,4 @@
-﻿using RuriLib.Models.Blocks.Custom.Keycheck;
+using RuriLib.Models.Blocks.Custom.Keycheck;
 using RuriLib.Models.Blocks.Settings;
 using RuriLib.Models.Blocks.Settings.Interpolated;
 using System;
@@ -26,6 +26,16 @@ namespace RuriLib.Helpers.CSharp
         /// Converts a <paramref name="setting"/> to a valid C# snippet.
         /// </summary>
         public static string FromSetting(BlockSetting setting)
+        {
+            return FromSetting(setting, null);
+        }
+
+        /// <summary>
+        /// Converts a <paramref name="setting"/> to a valid C# snippet with optional target type conversion.
+        /// </summary>
+        /// <param name="setting">The block setting to convert</param>
+        /// <param name="targetType">The target parameter type for conversion (e.g., string[] vs List&lt;string&gt;)</param>
+        public static string FromSetting(BlockSetting setting, Type targetType)
         {
             if (setting.InputMode == SettingInputMode.Variable)
             {
@@ -60,7 +70,7 @@ namespace RuriLib.Helpers.CSharp
                 return setting.InterpolatedSetting switch
                 {
                     InterpolatedStringSetting x => SerializeInterpString(x.Value),
-                    InterpolatedListOfStringsSetting x => SerializeList(x.Value, true),
+                    InterpolatedListOfStringsSetting x => targetType == typeof(string[]) ? SerializeStringArray(x.Value, true) : SerializeList(x.Value, true),
                     InterpolatedDictionaryOfStringsSetting x => SerializeDictionary(x.Value, true),
                     _ => throw new NotImplementedException()
                 };
@@ -74,7 +84,7 @@ namespace RuriLib.Helpers.CSharp
                 DictionaryOfStringsSetting x => SerializeDictionary(x.Value),
                 FloatSetting x => ToPrimitive(x.Value),
                 IntSetting x => ToPrimitive(x.Value),
-                ListOfStringsSetting x => SerializeList(x.Value),
+                ListOfStringsSetting x => targetType == typeof(string[]) ? SerializeStringArray(x.Value) : SerializeList(x.Value),
                 StringSetting x => ToPrimitive(x.Value),
                 EnumSetting x => $"{x.EnumType.FullName}.{x.Value}",
                 _ => throw new NotImplementedException()
@@ -162,6 +172,26 @@ namespace RuriLib.Helpers.CSharp
 
             using var writer = new StringWriter();
             writer.Write("new List<string> {");
+
+            var toWrite = list.Select(e => interpolated
+                ? SerializeInterpString(e)
+                : ToPrimitive(e));
+
+            writer.Write(string.Join(", ", toWrite));
+            writer.Write("}");
+            return writer.ToString();
+        }
+
+        /// <summary>
+        /// Serializes a list of strings as a string array, optionally interpolated.
+        /// </summary>
+        public static string SerializeStringArray(List<string> list, bool interpolated = false)
+        {
+            if (list == null)
+                return "null";
+
+            using var writer = new StringWriter();
+            writer.Write("new string[] {");
 
             var toWrite = list.Select(e => interpolated
                 ? SerializeInterpString(e)

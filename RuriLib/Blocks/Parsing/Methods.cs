@@ -1,4 +1,4 @@
-﻿using RuriLib.Attributes;
+using RuriLib.Attributes;
 using RuriLib.Functions.Parsing;
 using RuriLib.Logging;
 using RuriLib.Models.Bots;
@@ -13,12 +13,34 @@ namespace RuriLib.Blocks.Parsing
     public static class Methods
     {
         #region LR
-        public static List<string> ParseBetweenStringsRecursive(BotData data, string input, 
+        public static List<string> ParseBetweenStringsRecursive(BotData data, string input,
             string leftDelim, string rightDelim, bool caseSensitive = true, string prefix = "", string suffix = "",
             bool urlEncodeOutput = false)
         {
-            var parsed = LRParser.ParseBetween(input, leftDelim, rightDelim, caseSensitive)
-                .Select(p => prefix + p + suffix).Select(p => urlEncodeOutput ? Uri.UnescapeDataString(p) : p).ToList();
+            if (string.IsNullOrEmpty(input))
+            {
+                var result = string.Concat(prefix, suffix);
+                data.Logger.LogHeader();
+                data.Logger.Log($"Parsed 1 value (empty input, applied prefix/suffix): {result}", LogColors.Yellow);
+                return new List<string> { result };
+            }
+
+            // Allow empty leftDelim and rightDelim - LRParser handles this correctly
+
+            var matches = LRParser.ParseBetween(input, leftDelim, rightDelim, caseSensitive).ToList();
+
+            if (matches.Count == 0)
+            {
+                var singleResult = string.Concat(prefix, suffix);
+                data.Logger.LogHeader();
+                data.Logger.Log($"Parsed 1 value: {singleResult}", LogColors.Yellow);
+                return new List<string> { singleResult };
+            }
+
+            var parsed = matches
+                .Select(p => string.Concat(prefix, p, suffix))
+                .Select(p => urlEncodeOutput ? Uri.UnescapeDataString(p) : p)
+                .ToList();
 
             data.Logger.LogHeader();
             data.Logger.Log($"Parsed {parsed.Count} values:", LogColors.Yellow);
@@ -26,12 +48,30 @@ namespace RuriLib.Blocks.Parsing
             return parsed;
         }
 
-        public static string ParseBetweenStrings(BotData data, string input, 
-            string leftDelim, string rightDelim, bool caseSensitive = true, string prefix = "", string suffix = "",
-            bool urlEncodeOutput = false)
+        public static string ParseBetweenStrings(BotData data, string input, string leftDelim, string rightDelim,
+            bool caseSensitive = true, string prefix = "", string suffix = "", bool urlEncodeOutput = false)
         {
+            if (string.IsNullOrEmpty(input))
+            {
+                var result = string.Concat(prefix, suffix);
+                data.Logger.LogHeader();
+                data.Logger.Log($"Parsed value: {result} (empty input, applied prefix/suffix)", LogColors.Yellow);
+                return result;
+            }
+
+            // Allow empty leftDelim and rightDelim - LRParser handles this correctly
+
             var parsed = LRParser.ParseBetween(input, leftDelim, rightDelim, caseSensitive).FirstOrDefault() ?? string.Empty;
-            parsed = prefix + parsed + suffix;
+
+            if (string.IsNullOrEmpty(parsed))
+            {
+                parsed = string.Concat(prefix, suffix);
+                data.Logger.LogHeader();
+                data.Logger.Log($"Parsed value: {parsed}", LogColors.Yellow);
+                return parsed;
+            }
+
+            parsed = string.Concat(prefix, parsed, suffix);
 
             if (urlEncodeOutput)
             {
@@ -140,8 +180,29 @@ namespace RuriLib.Blocks.Parsing
         public static List<string> MatchRegexGroupsRecursive(BotData data, string input,
             string pattern, string outputFormat, bool multiLine, string prefix = "", string suffix = "", bool urlEncodeOutput = false)
         {
-            var parsed = RegexParser.MatchGroupsToString(input, pattern, outputFormat, multiLine ? RegexOptions.Multiline : RegexOptions.None)
-                .Select(p => prefix + p + suffix).Select(p => urlEncodeOutput ? Uri.UnescapeDataString(p) : p).ToList();
+            if (string.IsNullOrEmpty(input) || string.IsNullOrEmpty(pattern))
+            {
+                var result = string.Concat(prefix, suffix);
+                data.Logger.LogHeader();
+                data.Logger.Log($"Parsed 1 value (empty input or pattern, applied prefix/suffix): {result}", LogColors.Yellow);
+                return new List<string> { result };
+            }
+
+            var matches = RegexParser.MatchGroupsToString(input, pattern, outputFormat,
+                multiLine ? RegexOptions.Multiline : RegexOptions.None).ToList();
+
+            if (matches.Count == 0)
+            {
+                var singleResult = string.Concat(prefix, suffix);
+                data.Logger.LogHeader();
+                data.Logger.Log($"Parsed 1 value: {singleResult}", LogColors.Yellow);
+                return new List<string> { singleResult };
+            }
+
+            var parsed = matches
+                .Select(p => string.Concat(prefix, p, suffix))
+                .Select(p => urlEncodeOutput ? Uri.UnescapeDataString(p) : p)
+                .ToList();
 
             data.Logger.LogHeader();
             data.Logger.Log($"Parsed {parsed.Count} values:", LogColors.Yellow);
@@ -157,8 +218,26 @@ namespace RuriLib.Blocks.Parsing
         public static string MatchRegexGroups(BotData data, string input, string pattern, string outputFormat,
             bool multiLine, string prefix = "", string suffix = "", bool urlEncodeOutput = false)
         {
-            var parsed = RegexParser.MatchGroupsToString(input, pattern, outputFormat, multiLine ? RegexOptions.Multiline : RegexOptions.None).FirstOrDefault() ?? string.Empty;
-            parsed = prefix + parsed + suffix;
+            if (string.IsNullOrEmpty(input) || string.IsNullOrEmpty(pattern))
+            {
+                var result = string.Concat(prefix, suffix);
+                data.Logger.LogHeader();
+                data.Logger.Log($"Parsed value: {result}", LogColors.Yellow);
+                return result;
+            }
+
+            var parsed = RegexParser.MatchGroupsToString(input, pattern, outputFormat,
+                multiLine ? RegexOptions.Multiline : RegexOptions.None).FirstOrDefault() ?? string.Empty;
+
+            if (string.IsNullOrEmpty(parsed))
+            {
+                parsed = string.Concat(prefix, suffix);
+                data.Logger.LogHeader();
+                data.Logger.Log($"Parsed value: {parsed}", LogColors.Yellow);
+                return parsed;
+            }
+
+            parsed = string.Concat(prefix, parsed, suffix);
 
             if (urlEncodeOutput)
             {

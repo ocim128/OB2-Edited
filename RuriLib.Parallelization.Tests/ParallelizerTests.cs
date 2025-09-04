@@ -12,10 +12,10 @@ namespace RuriLib.Parallelization.Tests
     {
         private readonly Func<int, CancellationToken, Task<bool>> parityCheck
             = new((number, token) => Task.FromResult(number % 2 == 0));
-        
+
         private readonly Func<int, CancellationToken, Task<bool>> longTask
             = new(async (number, token) => { await Task.Delay(100); return true; });
-        
+
         private readonly ParallelizerType type = ParallelizerType.TaskBased;
         private int progressCount;
         private bool lastResult;
@@ -45,8 +45,8 @@ namespace RuriLib.Parallelization.Tests
             parallelizer.ProgressChanged += OnProgress;
             parallelizer.NewResult += OnResult;
             parallelizer.Completed += OnCompleted;
-            parallelizer.Error += OnException; 
-            
+            parallelizer.Error += OnException;
+
             await parallelizer.Start();
 
             var cts = new CancellationTokenSource();
@@ -122,7 +122,7 @@ namespace RuriLib.Parallelization.Tests
                 degreeOfParallelism: 10,
                 totalAmount: 1000,
                 skip: 0);
-            
+
             progressCount = 0;
             completedFlag = false;
             lastException = null;
@@ -154,7 +154,7 @@ namespace RuriLib.Parallelization.Tests
                 degreeOfParallelism: 1,
                 totalAmount: 10,
                 skip: 0);
-            
+
             var stopwatch = new Stopwatch();
 
             // Start with 1 concurrent task

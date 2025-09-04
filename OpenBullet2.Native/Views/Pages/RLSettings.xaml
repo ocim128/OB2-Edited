@@ -176,7 +176,8 @@
                             <ComboBox Grid.Column="1" ItemsSource="{Binding CaptchaServiceTypes}"
                                       SelectedValue="{Binding Path=CurrentCaptchaService}"
                                       Width="250"
-                                      HorizontalAlignment="Left"/>
+                                      HorizontalAlignment="Left"
+                                      Style="{StaticResource CleanComboBox}"/>
                         </Grid>
                 <TabControl x:Name="captchaServiceTabControl" Background="Transparent" BorderThickness="0">
                     <TabControl.ItemContainerStyle>
@@ -591,6 +592,119 @@
                     </StackPanel>
                 </Border>
                 
+                <!-- Playwright Settings Section -->
+                <Border Background="#C0353535" CornerRadius="8" Padding="16" Margin="0,0,0,12">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                            <iconPacks:PackIconMaterial Kind="Theater" Width="24" Height="24" Foreground="#FF1E90FF" Margin="0,0,12,0"/>
+                            <TextBlock Text="Playwright Settings" FontSize="20" FontWeight="Bold" Foreground="#FF1E90FF" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        
+                        <!-- Browser Type Selection -->
+                        <Grid Margin="0,0,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <TextBlock Grid.Column="0" Text="Browser Type:" Foreground="White" FontSize="14" Margin="0,0,16,0" VerticalAlignment="Center"/>
+                            <ComboBox Grid.Column="1" ItemsSource="{Binding PlaywrightBrowserTypes}"
+                                      SelectedValue="{Binding Path=PlaywrightBrowserType}"
+                                      Width="200"
+                                      HorizontalAlignment="Left"
+                                      Style="{StaticResource CleanComboBox}"/>
+                        </Grid>
+                        
+                        <!-- Chromium Binary Path -->
+                        <Grid Margin="0,0,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <TextBlock Grid.Column="0" Text="Chromium Binary Path:" Foreground="White" FontSize="14" Margin="0,0,16,0" VerticalAlignment="Center"/>
+                            <TextBox Grid.Column="1" Text="{Binding PlaywrightChromiumBinaryLocation}"
+                                     Background="#FF333333" Foreground="White" BorderBrush="#FF1E90FF" BorderThickness="1" Padding="8"
+                                     Width="500" HorizontalAlignment="Left"/>
+                        </Grid>
+                        
+                        <!-- Firefox Binary Path -->
+                        <Grid Margin="0,0,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <TextBlock Grid.Column="0" Text="Firefox Binary Path:" Foreground="White" FontSize="14" Margin="0,0,16,0" VerticalAlignment="Center"/>
+                            <TextBox Grid.Column="1" Text="{Binding PlaywrightFirefoxBinaryLocation}"
+                                     Background="#FF333333" Foreground="White" BorderBrush="#FF1E90FF" BorderThickness="1" Padding="8"
+                                     Width="500" HorizontalAlignment="Left"/>
+                        </Grid>
+                        
+                        <!-- Webkit Binary Path -->
+                        <Grid Margin="0,0,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <TextBlock Grid.Column="0" Text="Webkit Binary Path:" Foreground="White" FontSize="14" Margin="0,0,16,0" VerticalAlignment="Center"/>
+                            <TextBox Grid.Column="1" Text="{Binding PlaywrightWebkitBinaryLocation}"
+                                     Background="#FF333333" Foreground="White" BorderBrush="#FF1E90FF" BorderThickness="1" Padding="8"
+                                     Width="500" HorizontalAlignment="Left"/>
+                        </Grid>
+                        
+                        <!-- Headless Mode -->
+                        <Grid Margin="0,0,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <TextBlock Grid.Column="0" Text="Headless Mode:" Foreground="White" FontSize="14" Margin="0,0,16,0" VerticalAlignment="Center"/>
+                            <CheckBox Grid.Column="1" IsChecked="{Binding PlaywrightHeadless}"
+                                      VerticalAlignment="Center"/>
+                        </Grid>
+                        
+                        <!-- Draw Mouse Movement -->
+                        <Grid Margin="0,0,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <TextBlock Grid.Column="0" Text="Draw Mouse Movement:" Foreground="White" FontSize="14" Margin="0,0,16,0" VerticalAlignment="Center"/>
+                            <CheckBox Grid.Column="1" IsChecked="{Binding PlaywrightDrawMouseMovement}"
+                                      VerticalAlignment="Center"/>
+                        </Grid>
+                        
+                        <!-- Timeout -->
+                        <Grid Margin="0,0,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <TextBlock Grid.Column="0" Text="Timeout (ms):" Foreground="White" FontSize="14" Margin="0,0,16,0" VerticalAlignment="Center"/>
+                            <TextBox Grid.Column="1" Text="{Binding PlaywrightTimeoutMilliseconds}"
+                                     Background="#FF333333" Foreground="White" BorderBrush="#FF1E90FF" BorderThickness="1" Padding="8"
+                                     Width="200" HorizontalAlignment="Left"/>
+                        </Grid>
+                        
+                        <!-- Ignore HTTPS Errors -->
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <TextBlock Grid.Column="0" Text="Ignore HTTPS Errors:" Foreground="White" FontSize="14" Margin="0,0,16,0" VerticalAlignment="Center"/>
+                            <CheckBox Grid.Column="1" IsChecked="{Binding PlaywrightIgnoreHTTPSErrors}"
+                                      VerticalAlignment="Center"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+                
                 <!-- Selenium Settings Section -->
                 <Border Background="#C0353535" CornerRadius="8" Padding="16" Margin="0,0,0,12">
                     <StackPanel>
@@ -610,7 +724,8 @@
                             <ComboBox Grid.Column="1" ItemsSource="{Binding SeleniumBrowserTypes}"
                                       SelectedValue="{Binding Path=SeleniumBrowserType}"
                                       Width="200"
-                                      HorizontalAlignment="Left"/>
+                                      HorizontalAlignment="Left"
+                                      Style="{StaticResource CleanComboBox}"/>
                         </Grid>
                         
                         <!-- Chrome Binary Path -->

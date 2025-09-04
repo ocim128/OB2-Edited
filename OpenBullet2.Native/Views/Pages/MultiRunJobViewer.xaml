@@ -544,6 +544,15 @@
                     SelectionMode="Extended"
                     BorderThickness="0"
                     Margin="4"
+                    VirtualizingPanel.IsVirtualizing="True"
+                    VirtualizingPanel.VirtualizationMode="Recycling"
+                    VirtualizingPanel.ScrollUnit="Item"
+                    VirtualizingPanel.CacheLengthUnit="Item"
+                    VirtualizingPanel.CacheLength="40,40"
+                    ScrollViewer.CanContentScroll="True"
+                    ScrollViewer.IsDeferredScrollingEnabled="True"
+                    ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                    ScrollViewer.VerticalScrollBarVisibility="Auto"
                     ContextMenu="{StaticResource botsContextMenu}">
                 <!-- Align Headers to the Left -->
                 <ListView.Resources>
@@ -682,6 +691,15 @@
                     SelectionMode="Extended"
                     BorderThickness="0"
                     Margin="4"
+                    VirtualizingPanel.IsVirtualizing="True"
+                    VirtualizingPanel.VirtualizationMode="Recycling"
+                    VirtualizingPanel.ScrollUnit="Item"
+                    VirtualizingPanel.CacheLengthUnit="Item"
+                    VirtualizingPanel.CacheLength="30,30"
+                    ScrollViewer.CanContentScroll="True"
+                    ScrollViewer.IsDeferredScrollingEnabled="True"
+                    ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                    ScrollViewer.VerticalScrollBarVisibility="Auto"
                     ContextMenu="{StaticResource hitsContextMenu}">
                     <!-- Align Headers to the Left -->
                     <ListView.Resources>

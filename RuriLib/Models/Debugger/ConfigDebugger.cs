@@ -29,6 +29,7 @@ using System.Net.Http;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Playwright;
 
 namespace RuriLib.Models.Debugger;
 
@@ -60,6 +61,8 @@ public partial class ConfigDebugger : IDisposable
     private CancellationTokenSource _cts;
     private Browser _lastPuppeteerBrowser;
     private OpenQA.Selenium.WebDriver _lastSeleniumBrowser;
+    private Microsoft.Playwright.IBrowser _lastPlaywrightBrowser;
+    private Microsoft.Playwright.IPlaywright _lastPlaywrightInstance;
 
     // Performance optimization: Cache frequently used objects
     private readonly object _statusLock = new();
@@ -117,7 +120,7 @@ public partial class ConfigDebugger : IDisposable
             throw new ArgumentException($"Wordlist type '{Options.WordlistType}' not found");
         }
         var dataLine = new DataLine(Options.TestData, wordlistType);
-        var proxy = Options.UseProxy ? Proxy.Parse(Options.TestProxy, Options.ProxyType) : null;
+        var proxy = Options.UseProxy ? RuriLib.Models.Proxies.Proxy.Parse(Options.TestProxy, Options.ProxyType) : null;
 
         var providers = new Bots.Providers(RuriLibSettings)
         {
@@ -369,10 +372,12 @@ public partial class ConfigDebugger : IDisposable
             // Save the browsers for later use if they were set during this run
             _lastPuppeteerBrowser = _data.TryGetObject<Browser>("puppeteer");
             _lastSeleniumBrowser = _data.TryGetObject<OpenQA.Selenium.WebDriver>("selenium");
+            _lastPlaywrightBrowser = _data.TryGetObject<Microsoft.Playwright.IBrowser>("playwright");
+            _lastPlaywrightInstance = _data.TryGetObject<Microsoft.Playwright.IPlaywright>("playwrightInstance");
 
             // Dispose stuff in data.Objects
             // We only want to dispose of general objects, not browser objects that are managed by the debugger itself
-            _data.DisposeObjectsExcept(["httpClient", "ironPyEngine", "puppeteer", "puppeteerPage", "puppeteerFrame", "selenium", "seleniumDriver"]);
+            _data.DisposeObjectsExcept(["httpClient", "ironPyEngine", "puppeteer", "puppeteerPage", "puppeteerFrame", "selenium", "seleniumDriver", "playwright", "playwrightPage", "playwrightInstance"]);
 
             // Dispose resources - fixed: use ToList() to avoid modification during iteration
             foreach (var resource in resources.Values.OfType<IDisposable>().ToList())
@@ -493,6 +498,12 @@ public partial class ConfigDebugger : IDisposable
             }
             _lastSeleniumBrowser?.Quit();
             _lastSeleniumBrowser?.Dispose();
+            if (_lastPlaywrightBrowser != null)
+            {
+                _ = _lastPlaywrightBrowser.CloseAsync().ConfigureAwait(false);
+                _lastPlaywrightBrowser = null;
+            }
+            _lastPlaywrightInstance?.Dispose();
         }
         catch (Exception ex)
         {

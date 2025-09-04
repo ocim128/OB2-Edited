@@ -1,4 +1,4 @@
-﻿using OpenBullet2.Core.Models.Jobs;
+using OpenBullet2.Core.Models.Jobs;
 using OpenBullet2.Native.Views.Pages;
 using System;
 using System.Windows;
@@ -39,12 +39,11 @@ namespace OpenBullet2.Native.Views.Dialogs
             switch (type)
             {
                 case JobType.MultiRun:
-                    var multiRunDialog = new MultiRunJobOptionsDialog(null, onAccept);
-                    multiRunDialog.ShowDialog();
+                    new MainDialog(new MultiRunJobOptionsDialog(null, onAccept), "Create Multi-Run Job", 1100, 800).ShowDialog();
                     break;
 
                 case JobType.ProxyCheck:
-                    new MainDialog(new ProxyCheckJobOptionsDialog(null, onAccept), "Create Proxy Check Job").ShowDialog();
+                    new MainDialog(new ProxyCheckJobOptionsDialog(null, onAccept), "Create Proxy Check Job", 900, 650).ShowDialog();
                     break;
             }
 

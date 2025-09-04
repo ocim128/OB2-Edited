@@ -17,6 +17,7 @@ public class RLSettingsViewModel : ViewModelBase
     private ProxySettings Proxy => _service.RuriLibSettings.ProxySettings;
     private CaptchaSettings Captcha => _service.RuriLibSettings.CaptchaSettings;
     private PuppeteerSettings Puppeteer => _service.RuriLibSettings.PuppeteerSettings;
+    private PlaywrightSettings Playwright => _service.RuriLibSettings.PlaywrightSettings;
     private SeleniumSettings Selenium => _service.RuriLibSettings.SeleniumSettings;
 
     public event Action<CaptchaServiceType> CaptchaServiceChanged;
@@ -572,6 +573,98 @@ public class RLSettingsViewModel : ViewModelBase
         set
         {
             Puppeteer.ChromeBinaryLocation = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public static IEnumerable<PlaywrightBrowserType> PlaywrightBrowserTypes => Enum.GetValues(typeof(PlaywrightBrowserType)).Cast<PlaywrightBrowserType>();
+
+    public PlaywrightBrowserType PlaywrightBrowserType
+    {
+        get => Playwright.BrowserType;
+        set
+        {
+            Playwright.BrowserType = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public string PlaywrightChromiumBinaryLocation
+    {
+        get => Playwright.ChromiumBinaryLocation;
+        set
+        {
+            Playwright.ChromiumBinaryLocation = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public string PlaywrightFirefoxBinaryLocation
+    {
+        get => Playwright.FirefoxBinaryLocation;
+        set
+        {
+            Playwright.FirefoxBinaryLocation = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public string PlaywrightWebkitBinaryLocation
+    {
+        get => Playwright.WebkitBinaryLocation;
+        set
+        {
+            Playwright.WebkitBinaryLocation = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public bool PlaywrightHeadless
+    {
+        get => Playwright.Headless;
+        set
+        {
+            Playwright.Headless = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public bool PlaywrightDrawMouseMovement
+    {
+        get => Playwright.DrawMouseMovement;
+        set
+        {
+            Playwright.DrawMouseMovement = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public int PlaywrightTimeoutMilliseconds
+    {
+        get => Playwright.TimeoutMilliseconds;
+        set
+        {
+            Playwright.TimeoutMilliseconds = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public bool PlaywrightIgnoreHTTPSErrors
+    {
+        get => Playwright.IgnoreHTTPSErrors;
+        set
+        {
+            Playwright.IgnoreHTTPSErrors = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public string[] PlaywrightExtraArgs
+    {
+        get => Playwright.ExtraArgs;
+        set
+        {
+            Playwright.ExtraArgs = value;
             OnPropertyChanged();
         }
     }

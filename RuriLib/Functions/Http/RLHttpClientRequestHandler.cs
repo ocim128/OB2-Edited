@@ -17,77 +17,193 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Collections.Concurrent;
+using System.Runtime.CompilerServices;
+using System.Buffers;
 
 using RuriLib.Functions.Conversion;
 
 namespace RuriLib.Functions.Http
 {
+    /// <summary>
+    /// High-performance HTTP request handler using optimized <see cref="RLHttpClient"/> with advanced connection pooling.
+    /// </summary>
     internal class RLHttpClientRequestHandler : HttpRequestHandler
     {
-        // Connection pool to reuse RLHttpClient instances and reduce CPU overhead
-        private static readonly Dictionary<string, RLHttpClient> _clientPool = new();
-        private static readonly object _poolLock = new();
-        private static readonly Timer _cleanupTimer = new(CleanupExpiredClients, null, TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(5));
-        private static readonly Dictionary<string, DateTime> _clientLastUsed = new();
-        private const int ClientTimeoutMinutes = 10;
-        
-        private static RLHttpClient GetOrCreateClient(BotData data, HttpOptions clientOptions)
+        private static readonly ConcurrentDictionary<string, ClientPoolEntry> _clientPool = new();
+        private static readonly Timer _cleanupTimer = new(CleanupExpiredClients, null, TimeSpan.FromMinutes(2), TimeSpan.FromMinutes(2));
+        private const int MaxClientsPerKey = 8;
+        private const int ClientTimeoutMinutes = 3;
+
+        // Memory optimization pools
+        private static readonly ArrayPool<byte> _bufferPool = ArrayPool<byte>.Shared;
+        private static readonly ConcurrentQueue<Dictionary<string, string>> _headerDictionaryPool = new();
+
+        private sealed class ClientPoolEntry
         {
-            var key = GenerateClientKey(data, clientOptions);
-            
-            lock (_poolLock)
+            public ConcurrentQueue<PooledClient> Clients { get; } = new();
+            public DateTime LastAccessed { get; set; } = DateTime.UtcNow;
+            public int ActiveClients;
+        }
+
+        private sealed class PooledClient : IDisposable
+        {
+            public RLHttpClient Client { get; set; }
+            public DateTime LastUsed { get; set; } = DateTime.UtcNow;
+            public string Key { get; set; }
+
+            public bool IsValid => (DateTime.UtcNow - LastUsed).TotalMinutes < ClientTimeoutMinutes;
+
+            public void Dispose()
             {
-                if (_clientPool.TryGetValue(key, out var existingClient))
-                {
-                    _clientLastUsed[key] = DateTime.UtcNow;
-                    return existingClient;
-                }
-                
-                var newClient = HttpFactory.GetRLHttpClient(data.UseProxy ? data.Proxy : null, clientOptions);
-                _clientPool[key] = newClient;
-                _clientLastUsed[key] = DateTime.UtcNow;
-                return newClient;
+                Client?.Dispose();
             }
         }
-        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static Dictionary<string, string> GetPooledHeaderDictionary()
+        {
+            if (_headerDictionaryPool.TryDequeue(out var dict))
+            {
+                dict.Clear();
+                return dict;
+            }
+            return new Dictionary<string, string>(16, StringComparer.OrdinalIgnoreCase);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void ReturnHeaderDictionary(Dictionary<string, string> dict)
+        {
+            if (dict.Count <= 32)
+            {
+                _headerDictionaryPool.Enqueue(dict);
+            }
+        }
+
+        private static PooledClient GetOrCreateClient(BotData data, HttpOptions clientOptions)
+        {
+            var key = GenerateClientKey(data, clientOptions);
+
+            var poolEntry = _clientPool.GetOrAdd(key, _ => new ClientPoolEntry());
+            poolEntry.LastAccessed = DateTime.UtcNow;
+
+            // Try to get an existing valid client
+            while (poolEntry.Clients.TryDequeue(out var pooledClient))
+            {
+                if (pooledClient.IsValid)
+                {
+                    pooledClient.LastUsed = DateTime.UtcNow;
+                    return pooledClient;
+                }
+                pooledClient.Dispose();
+                Interlocked.Decrement(ref poolEntry.ActiveClients);
+            }
+
+            // Create new client if under limit
+            if (poolEntry.ActiveClients < MaxClientsPerKey)
+            {
+                var newClient = HttpFactory.GetRLHttpClient(data.UseProxy ? data.Proxy : null, clientOptions);
+                var newPooledClient = new PooledClient
+                {
+                    Client = newClient,
+                    Key = key,
+                    LastUsed = DateTime.UtcNow
+                };
+                Interlocked.Increment(ref poolEntry.ActiveClients);
+                return newPooledClient;
+            }
+
+            // Fallback: create temporary client (not pooled)
+            return new PooledClient
+            {
+                Client = HttpFactory.GetRLHttpClient(data.UseProxy ? data.Proxy : null, clientOptions),
+                Key = key,
+                LastUsed = DateTime.UtcNow
+            };
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void ReturnClient(PooledClient pooledClient)
+        {
+            if (pooledClient?.Client == null || !pooledClient.IsValid)
+            {
+                pooledClient?.Dispose();
+                return;
+            }
+
+            if (_clientPool.TryGetValue(pooledClient.Key, out var poolEntry))
+            {
+                poolEntry.Clients.Enqueue(pooledClient);
+            }
+            else
+            {
+                pooledClient.Dispose();
+            }
+        }
+
         private static string GenerateClientKey(BotData data, HttpOptions clientOptions)
         {
             var proxy = data.UseProxy ? data.Proxy : null;
             var proxyKey = proxy != null ? $"{proxy.Type}:{proxy.Host}:{proxy.Port}" : "noproxy";
             return $"{proxyKey}:{clientOptions.SecurityProtocol}:{clientOptions.UseCustomCipherSuites}";
         }
-        
+
         private static void CleanupExpiredClients(object state)
         {
-            lock (_poolLock)
+            var cutoff = DateTime.UtcNow.AddMinutes(-ClientTimeoutMinutes);
+            var keysToRemove = new List<string>();
+
+            foreach (var kvp in _clientPool)
             {
-                var expiredKeys = new List<string>();
-                var cutoff = DateTime.UtcNow.AddMinutes(-ClientTimeoutMinutes);
-                
-                foreach (var kvp in _clientLastUsed)
+                var poolEntry = kvp.Value;
+
+                // Clean expired clients from the pool
+                var validClients = new List<PooledClient>();
+                while (poolEntry.Clients.TryDequeue(out var client))
                 {
-                    if (kvp.Value < cutoff)
+                    if (client.IsValid)
                     {
-                        expiredKeys.Add(kvp.Key);
+                        validClients.Add(client);
                     }
-                }
-                
-                foreach (var key in expiredKeys)
-                {
-                    if (_clientPool.TryGetValue(key, out var client))
+                    else
                     {
                         client.Dispose();
-                        _clientPool.Remove(key);
+                        Interlocked.Decrement(ref poolEntry.ActiveClients);
                     }
-                    _clientLastUsed.Remove(key);
+                }
+
+                // Re-enqueue valid clients
+                foreach (var client in validClients)
+                {
+                    poolEntry.Clients.Enqueue(client);
+                }
+
+                // Mark pool entry for removal if unused and empty
+                if (poolEntry.LastAccessed < cutoff && poolEntry.ActiveClients == 0)
+                {
+                    keysToRemove.Add(kvp.Key);
+                }
+            }
+
+            // Remove expired pool entries
+            foreach (var key in keysToRemove)
+            {
+                if (_clientPool.TryRemove(key, out var poolEntry))
+                {
+                    // Dispose any remaining clients
+                    while (poolEntry.Clients.TryDequeue(out var client))
+                    {
+                        client.Dispose();
+                    }
                 }
             }
         }
         public async override Task HttpRequestStandard(BotData data, StandardHttpRequestOptions options)
         {
             var clientOptions = GetClientOptions(data, options);
-            
-            var client = GetOrCreateClient(data, clientOptions);
+
+            var pooledClient = GetOrCreateClient(data, clientOptions);
+            var client = pooledClient.Client;
 
             foreach (var cookie in options.CustomCookies)
                 data.COOKIES[cookie.Key] = cookie.Value;
@@ -127,7 +243,7 @@ namespace RuriLib.Functions.Http
                 using var response = await client.SendAsync(request, linkedCts.Token).ConfigureAwait(false);
 
                 LogHttpRequestData(data, request);
-                
+
                 // Add generic redirect handling for all 3xx codes
                 if (options.AutoRedirect && options.MaxNumberOfRedirects > 0 &&
                     (int)response.StatusCode >= 300 && (int)response.StatusCode < 400 &&
@@ -162,7 +278,7 @@ namespace RuriLib.Functions.Http
                     await HttpRequestStandard(data, redirectOptions).ConfigureAwait(false);
                     return;
                 }
-                
+
                 await LogHttpResponseData(data, response, request, options).ConfigureAwait(false);
             }
             catch
@@ -170,12 +286,17 @@ namespace RuriLib.Functions.Http
                 LogHttpRequestData(data, request);
                 throw;
             }
+            finally
+            {
+                ReturnClient(pooledClient);
+            }
         }
 
         public async override Task HttpRequestRaw(BotData data, RawHttpRequestOptions options)
         {
             var clientOptions = GetClientOptions(data, options);
-            var client = GetOrCreateClient(data, clientOptions);
+            var pooledClient = GetOrCreateClient(data, clientOptions);
+            var client = pooledClient.Client;
 
             foreach (var cookie in options.CustomCookies)
                 data.COOKIES[cookie.Key] = cookie.Value;
@@ -210,12 +331,17 @@ namespace RuriLib.Functions.Http
                 LogHttpRequestData(data, request);
                 throw;
             }
+            finally
+            {
+                ReturnClient(pooledClient);
+            }
         }
 
         public async override Task HttpRequestBasicAuth(BotData data, BasicAuthHttpRequestOptions options)
         {
             var clientOptions = GetClientOptions(data, options);
-            var client = GetOrCreateClient(data, clientOptions);
+            var pooledClient = GetOrCreateClient(data, clientOptions);
+            var client = pooledClient.Client;
 
             foreach (var cookie in options.CustomCookies)
                 data.COOKIES[cookie.Key] = cookie.Value;
@@ -251,87 +377,93 @@ namespace RuriLib.Functions.Http
                 LogHttpRequestData(data, request);
                 throw;
             }
+            finally
+            {
+                ReturnClient(pooledClient);
+            }
         }
 
         public async override Task HttpRequestMultipart(BotData data, MultipartHttpRequestOptions options)
         {
-                var clientOptions = GetClientOptions(data, options);
-                var client = GetOrCreateClient(data, clientOptions);
+            var clientOptions = GetClientOptions(data, options);
+            var pooledClient = GetOrCreateClient(data, clientOptions);
+            var client = pooledClient.Client;
 
-                foreach (var cookie in options.CustomCookies)
-                    data.COOKIES[cookie.Key] = cookie.Value;
+            foreach (var cookie in options.CustomCookies)
+                data.COOKIES[cookie.Key] = cookie.Value;
 
-                if (string.IsNullOrWhiteSpace(options.Boundary))
-                    options.Boundary = GenerateMultipartBoundary();
+            if (string.IsNullOrWhiteSpace(options.Boundary))
+                options.Boundary = GenerateMultipartBoundary();
 
-                // Rewrite the value of the Content-Type header otherwise it will add double quotes around it like
-                // Content-Type: multipart/form-data; boundary="------WebKitFormBoundaryewozmkbxwbblilpm"
-                var multipartContent = new MultipartFormDataContent(options.Boundary);
-                multipartContent.Headers.ContentType.Parameters.First(o => o.Name == "boundary").Value = options.Boundary;
+            // Rewrite the value of the Content-Type header otherwise it will add double quotes around it like
+            // Content-Type: multipart/form-data; boundary="------WebKitFormBoundaryewozmkbxwbblilpm"
+            var multipartContent = new MultipartFormDataContent(options.Boundary);
+            multipartContent.Headers.ContentType.Parameters.First(o => o.Name == "boundary").Value = options.Boundary;
 
-                FileStream fileStream = null;
+            FileStream fileStream = null;
 
-                foreach (var c in options.Contents)
+            foreach (var c in options.Contents)
+            {
+                switch (c)
                 {
-                    switch (c)
-                    {
-                        case StringHttpContent x:
-                            multipartContent.Add(new StringContent(x.Data, Encoding.UTF8, x.ContentType), x.Name);
-                            break;
+                    case StringHttpContent x:
+                        multipartContent.Add(new StringContent(x.Data, Encoding.UTF8, x.ContentType), x.Name);
+                        break;
 
-                        case RawHttpContent x:
-                            var byteContent = new ByteArrayContent(x.Data);
-                            byteContent.Headers.ContentType = new MediaTypeHeaderValue(x.ContentType);
-                            multipartContent.Add(byteContent, x.Name);
-                            break;
+                    case RawHttpContent x:
+                        var byteContent = new ByteArrayContent(x.Data);
+                        byteContent.Headers.ContentType = new MediaTypeHeaderValue(x.ContentType);
+                        multipartContent.Add(byteContent, x.Name);
+                        break;
 
-                        case FileHttpContent x:
-                            lock (FileLocker.GetHandle(x.FileName))
-                            {
-                                if (data.Providers.Security.RestrictBlocksToCWD)
-                                    FileUtils.ThrowIfNotInCWD(x.FileName);
+                    case FileHttpContent x:
+                        lock (FileLocker.GetHandle(x.FileName))
+                        {
+                            if (data.Providers.Security.RestrictBlocksToCWD)
+                                FileUtils.ThrowIfNotInCWD(x.FileName);
 
-                                fileStream = new FileStream(x.FileName, FileMode.Open);
-                                var fileContent = CreateFileContent(fileStream, x.Name, Path.GetFileName(x.FileName), x.ContentType);
-                                multipartContent.Add(fileContent, x.Name);
-                            }
-                            break;
-                    }
+                            fileStream = new FileStream(x.FileName, FileMode.Open);
+                            var fileContent = CreateFileContent(fileStream, x.Name, Path.GetFileName(x.FileName), x.ContentType);
+                            multipartContent.Add(fileContent, x.Name);
+                        }
+                        break;
                 }
+            }
 
-                using var request = new HttpRequest
-                {
-                    Method = new System.Net.Http.HttpMethod(options.Method.ToString()),
-                    Uri = new Uri(options.Url),
-                    Version = Version.Parse(options.HttpVersion),
-                    Headers = options.CustomHeaders,
-                    Cookies = data.COOKIES,
-                    AbsoluteUriInFirstLine = options.AbsoluteUriInFirstLine,
-                    Content = multipartContent
-                };
+            using var request = new HttpRequest
+            {
+                Method = new System.Net.Http.HttpMethod(options.Method.ToString()),
+                Uri = new Uri(options.Url),
+                Version = Version.Parse(options.HttpVersion),
+                Headers = options.CustomHeaders,
+                Cookies = data.COOKIES,
+                AbsoluteUriInFirstLine = options.AbsoluteUriInFirstLine,
+                Content = multipartContent
+            };
 
-                data.Logger.LogHeader();
+            data.Logger.LogHeader();
 
-                try
-                {
-                    Activity.Current = null;
-                    using var timeoutCts = new CancellationTokenSource(options.TimeoutMilliseconds);
-                    using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(data.CancellationToken, timeoutCts.Token);
-                    using var response = await client.SendAsync(request, linkedCts.Token).ConfigureAwait(false);
+            try
+            {
+                Activity.Current = null;
+                using var timeoutCts = new CancellationTokenSource(options.TimeoutMilliseconds);
+                using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(data.CancellationToken, timeoutCts.Token);
+                using var response = await client.SendAsync(request, linkedCts.Token).ConfigureAwait(false);
 
-                    LogHttpRequestData(data, request, options.Boundary, options.Contents);
-                    await LogHttpResponseData(data, response, request, options).ConfigureAwait(false);
-                }
-                catch
-                {
-                    LogHttpRequestData(data, request, options.Boundary, options.Contents);
-                    throw;
-                }
-                finally
-                {
-                    if (fileStream != null)
-                        await fileStream.DisposeAsync().ConfigureAwait(false);
-                }
+                LogHttpRequestData(data, request, options.Boundary, options.Contents);
+                await LogHttpResponseData(data, response, request, options).ConfigureAwait(false);
+            }
+            catch
+            {
+                LogHttpRequestData(data, request, options.Boundary, options.Contents);
+                throw;
+            }
+            finally
+            {
+                if (fileStream != null)
+                    await fileStream.DisposeAsync().ConfigureAwait(false);
+                ReturnClient(pooledClient);
+            }
         }
 
         private static void LogHttpRequestData(BotData data, HttpRequest request,
@@ -431,10 +563,10 @@ namespace RuriLib.Functions.Http
                         header.Key.Equals("Set-Cookie2", StringComparison.OrdinalIgnoreCase))
                     {
                         var cookieList = new List<string>();
-                        
+
                         // Split the header by semicolons and commas to find individual cookies
                         var cookieHeaders = SplitSetCookieHeaders(header.Value);
-                        
+
                         foreach (var cookieHeader in cookieHeaders)
                         {
                             if (TryParseCookieForDisplay(cookieHeader.Trim(), out var cookieName, out var cookieValue))
@@ -442,7 +574,7 @@ namespace RuriLib.Functions.Http
                                 cookieList.Add($"{cookieName}={cookieValue}");
                             }
                         }
-                        
+
                         if (cookieList.Count > 0)
                         {
                             return string.Join("; ", cookieList);
@@ -635,7 +767,7 @@ namespace RuriLib.Functions.Http
                 while (i < combinedHeader.Length)
                 {
                     var c = combinedHeader[i];
-                    
+
                     if (c == '"')
                     {
                         inQuotes = !inQuotes;
@@ -648,7 +780,7 @@ namespace RuriLib.Functions.Http
                         var nextIndex = i + 1;
                         while (nextIndex < combinedHeader.Length && char.IsWhiteSpace(combinedHeader[nextIndex]))
                             nextIndex++;
-                        
+
                         if (nextIndex < combinedHeader.Length)
                         {
                             // Look for cookie name pattern (alphanumeric followed by =)
@@ -656,10 +788,10 @@ namespace RuriLib.Functions.Http
                             var tempIndex = nextIndex;
                             while (tempIndex < combinedHeader.Length && !char.IsWhiteSpace(combinedHeader[tempIndex]) && combinedHeader[tempIndex] != '=')
                                 tempIndex++;
-                            
+
                             if (tempIndex < combinedHeader.Length && combinedHeader[tempIndex] == '=')
                                 foundEquals = true;
-                            
+
                             if (foundEquals)
                             {
                                 // This comma separates cookies
@@ -681,15 +813,15 @@ namespace RuriLib.Functions.Http
                     {
                         current.Append(c);
                     }
-                    
+
                     i++;
                 }
-                
+
                 if (current.Length > 0)
                 {
                     result.Add(current.ToString().Trim());
                 }
-                
+
                 return result.ToArray();
             }
 
@@ -716,7 +848,7 @@ namespace RuriLib.Functions.Http
             {
                 data.SOURCE = Encoding.UTF8.GetString(data.RAWSOURCE);
             }
-            
+
             if (requestOptions.DecodeHtml)
             {
                 data.SOURCE = WebUtility.HtmlDecode(data.SOURCE);

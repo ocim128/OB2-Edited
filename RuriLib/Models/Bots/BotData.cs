@@ -1,4 +1,4 @@
-﻿using AngleSharp.Text;
+using AngleSharp.Text;
 using RuriLib.Helpers;
 using RuriLib.Logging;
 using RuriLib.Models.Configs;

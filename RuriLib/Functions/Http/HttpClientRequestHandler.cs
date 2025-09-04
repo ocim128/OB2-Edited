@@ -23,12 +23,12 @@ namespace RuriLib.Functions.Http
 {
     internal class HttpClientRequestHandler : HttpRequestHandler
     {
-		private static readonly HttpClient sharedClient = new HttpClient(new HttpClientHandler
-{
-    AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate,
-    AllowAutoRedirect = false,
-    UseCookies = false
-});
+        private static readonly HttpClient sharedClient = new HttpClient(new HttpClientHandler
+        {
+            AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate,
+            AllowAutoRedirect = false,
+            UseCookies = false
+        });
 
         public async override Task HttpRequestStandard(BotData data, StandardHttpRequestOptions options)
         {
@@ -86,32 +86,32 @@ namespace RuriLib.Functions.Http
             Activity.Current = null;
             using var timeoutCts = new CancellationTokenSource(options.TimeoutMilliseconds);
             using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(data.CancellationToken, timeoutCts.Token);
-            
+
             var response = await client.SendAsync(request, options.ReadResponseContent ?
                 HttpCompletionOption.ResponseContentRead : HttpCompletionOption.ResponseHeadersRead,
                 linkedCts.Token).ConfigureAwait(false);
 
             // Fast redirect handling if auto redirect is enabled
             int redirectCount = 0;
-            while (options.AutoRedirect && redirectCount < options.MaxNumberOfRedirects && 
-                   ((int)response.StatusCode >= 300 && (int)response.StatusCode < 400) && 
+            while (options.AutoRedirect && redirectCount < options.MaxNumberOfRedirects &&
+                   ((int)response.StatusCode >= 300 && (int)response.StatusCode < 400) &&
                    response.Headers.Location != null)
             {
                 // Before following redirect, log response to update data.COOKIES
                 await LogHttpResponseData(data, response, cookieContainer, options).ConfigureAwait(false);
 
-                var location = response.Headers.Location.IsAbsoluteUri 
-                    ? response.Headers.Location 
+                var location = response.Headers.Location.IsAbsoluteUri
+                    ? response.Headers.Location
                     : new Uri(new Uri(options.Url), response.Headers.Location);
-                
+
                 response.Dispose();
-                
+
                 // Create redirect request with minimal headers
                 using var redirectRequest = new HttpRequestMessage(System.Net.Http.HttpMethod.Get, location)
                 {
                     Version = request.Version
                 };
-                
+
                 // Copy essential headers only
                 if (request.Headers.UserAgent.Count > 0)
                     redirectRequest.Headers.UserAgent.ParseAdd(request.Headers.UserAgent.ToString());
@@ -122,11 +122,11 @@ namespace RuriLib.Functions.Http
                     var cookieHeader = string.Join("; ", data.COOKIES.Select(c => $"{c.Key}={c.Value}"));
                     redirectRequest.Headers.TryAddWithoutValidation("Cookie", cookieHeader);
                 }
-                
+
                 response = await client.SendAsync(redirectRequest, options.ReadResponseContent ?
                     HttpCompletionOption.ResponseContentRead : HttpCompletionOption.ResponseHeadersRead,
                     linkedCts.Token).ConfigureAwait(false);
-                
+
                 redirectCount++;
             }
 
@@ -178,45 +178,45 @@ namespace RuriLib.Functions.Http
             Activity.Current = null;
             using var timeoutCts = new CancellationTokenSource(options.TimeoutMilliseconds);
             using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(data.CancellationToken, timeoutCts.Token);
-            
+
             var response = await client.SendAsync(request, options.ReadResponseContent ?
                 HttpCompletionOption.ResponseContentRead : HttpCompletionOption.ResponseHeadersRead,
                 linkedCts.Token).ConfigureAwait(false);
 
             // Fast redirect handling (but usually not used for raw requests)
             int redirectCount = 0;
-            while (options.AutoRedirect && redirectCount < options.MaxNumberOfRedirects && 
-                   ((int)response.StatusCode >= 300 && (int)response.StatusCode < 400) && 
+            while (options.AutoRedirect && redirectCount < options.MaxNumberOfRedirects &&
+                   ((int)response.StatusCode >= 300 && (int)response.StatusCode < 400) &&
                    response.Headers.Location != null)
             {
                 // Before following redirect, log response to update data.COOKIES
                 await LogHttpResponseData(data, response, cookieContainer, options).ConfigureAwait(false);
 
-                var location = response.Headers.Location.IsAbsoluteUri 
-                    ? response.Headers.Location 
+                var location = response.Headers.Location.IsAbsoluteUri
+                    ? response.Headers.Location
                     : new Uri(new Uri(options.Url), response.Headers.Location);
-                
+
                 response.Dispose();
-                
+
                 using var redirectRequest = new HttpRequestMessage(System.Net.Http.HttpMethod.Get, location)
                 {
                     Version = request.Version
                 };
-                
+
                 if (request.Headers.UserAgent.Count > 0)
                     redirectRequest.Headers.UserAgent.ParseAdd(request.Headers.UserAgent.ToString());
-                
+
                 // Re-add accumulated cookies for the redirect
                 if (data.COOKIES.Count > 0)
                 {
                     var cookieHeader = string.Join("; ", data.COOKIES.Select(c => $"{c.Key}={c.Value}"));
                     redirectRequest.Headers.TryAddWithoutValidation("Cookie", cookieHeader);
                 }
-                
+
                 response = await client.SendAsync(redirectRequest, options.ReadResponseContent ?
                     HttpCompletionOption.ResponseContentRead : HttpCompletionOption.ResponseHeadersRead,
                     linkedCts.Token).ConfigureAwait(false);
-                
+
                 redirectCount++;
             }
 
@@ -269,52 +269,52 @@ namespace RuriLib.Functions.Http
             Activity.Current = null;
             using var timeoutCts = new CancellationTokenSource(options.TimeoutMilliseconds);
             using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(data.CancellationToken, timeoutCts.Token);
-            
+
             var response = await client.SendAsync(request, options.ReadResponseContent ?
                 HttpCompletionOption.ResponseContentRead : HttpCompletionOption.ResponseHeadersRead,
                 linkedCts.Token).ConfigureAwait(false);
 
             // Fast redirect handling for basic auth
             int redirectCount = 0;
-            while (options.AutoRedirect && redirectCount < options.MaxNumberOfRedirects && 
-                   ((int)response.StatusCode >= 300 && (int)response.StatusCode < 400) && 
+            while (options.AutoRedirect && redirectCount < options.MaxNumberOfRedirects &&
+                   ((int)response.StatusCode >= 300 && (int)response.StatusCode < 400) &&
                    response.Headers.Location != null)
             {
                 // Before following redirect, log response to update data.COOKIES
                 await LogHttpResponseData(data, response, cookieContainer, options).ConfigureAwait(false);
 
-                var location = response.Headers.Location.IsAbsoluteUri 
-                    ? response.Headers.Location 
+                var location = response.Headers.Location.IsAbsoluteUri
+                    ? response.Headers.Location
                     : new Uri(new Uri(options.Url), response.Headers.Location);
-                
+
                 response.Dispose();
-                
+
                 using var redirectRequest = new HttpRequestMessage(System.Net.Http.HttpMethod.Get, location)
                 {
                     Version = request.Version
                 };
-                
+
                 if (request.Headers.UserAgent.Count > 0)
                     redirectRequest.Headers.UserAgent.ParseAdd(request.Headers.UserAgent.ToString());
-                
+
                 // Keep basic auth for redirects to same domain
                 if (location.Host.Equals(new Uri(options.Url).Host, StringComparison.OrdinalIgnoreCase))
                 {
                     redirectRequest.Headers.TryAddWithoutValidation("Authorization", "Basic " + Convert.ToBase64String(
                         Encoding.UTF8.GetBytes($"{options.Username}:{options.Password}")));
                 }
-                
+
                 // Re-add accumulated cookies for the redirect
                 if (data.COOKIES.Count > 0)
                 {
                     var cookieHeader = string.Join("; ", data.COOKIES.Select(c => $"{c.Key}={c.Value}"));
                     redirectRequest.Headers.TryAddWithoutValidation("Cookie", cookieHeader);
                 }
-                
+
                 response = await client.SendAsync(redirectRequest, options.ReadResponseContent ?
                     HttpCompletionOption.ResponseContentRead : HttpCompletionOption.ResponseHeadersRead,
                     linkedCts.Token).ConfigureAwait(false);
-                
+
                 redirectCount++;
             }
 
@@ -403,45 +403,45 @@ namespace RuriLib.Functions.Http
                 Activity.Current = null;
                 using var timeoutCts = new CancellationTokenSource(options.TimeoutMilliseconds);
                 using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(data.CancellationToken, timeoutCts.Token);
-                
+
                 var response = await client.SendAsync(request, options.ReadResponseContent ?
                     HttpCompletionOption.ResponseContentRead : HttpCompletionOption.ResponseHeadersRead,
                     linkedCts.Token).ConfigureAwait(false);
 
                 // Fast redirect handling for multipart (usually not needed but supported)
                 int redirectCount = 0;
-                while (options.AutoRedirect && redirectCount < options.MaxNumberOfRedirects && 
-                       ((int)response.StatusCode >= 300 && (int)response.StatusCode < 400) && 
+                while (options.AutoRedirect && redirectCount < options.MaxNumberOfRedirects &&
+                       ((int)response.StatusCode >= 300 && (int)response.StatusCode < 400) &&
                        response.Headers.Location != null)
                 {
                     // Before following redirect, log response to update data.COOKIES
                     await LogHttpResponseData(data, response, cookieContainer, options).ConfigureAwait(false);
 
-                    var location = response.Headers.Location.IsAbsoluteUri 
-                        ? response.Headers.Location 
+                    var location = response.Headers.Location.IsAbsoluteUri
+                        ? response.Headers.Location
                         : new Uri(new Uri(options.Url), response.Headers.Location);
-                    
+
                     response.Dispose();
-                    
+
                     using var redirectRequest = new HttpRequestMessage(System.Net.Http.HttpMethod.Get, location)
                     {
                         Version = request.Version
                     };
-                    
+
                     if (request.Headers.UserAgent.Count > 0)
                         redirectRequest.Headers.UserAgent.ParseAdd(request.Headers.UserAgent.ToString());
-                    
+
                     // Re-add accumulated cookies for the redirect
                     if (data.COOKIES.Count > 0)
                     {
                         var cookieHeader = string.Join("; ", data.COOKIES.Select(c => $"{c.Key}={c.Value}"));
                         redirectRequest.Headers.TryAddWithoutValidation("Cookie", cookieHeader);
                     }
-                    
+
                     response = await client.SendAsync(redirectRequest, options.ReadResponseContent ?
                         HttpCompletionOption.ResponseContentRead : HttpCompletionOption.ResponseHeadersRead,
                         linkedCts.Token).ConfigureAwait(false);
-                    
+
                     redirectCount++;
                 }
 
@@ -557,7 +557,7 @@ namespace RuriLib.Functions.Http
                                 {
                                     var cookieName = cookieHeader.AsSpan(0, separatorPos).ToString();
                                     var endCookiePos = cookieHeader.IndexOf(';', separatorPos);
-                                    var cookieValue = endCookiePos == -1 
+                                    var cookieValue = endCookiePos == -1
                                         ? cookieHeader.AsSpan(separatorPos + 1).ToString()
                                         : cookieHeader.AsSpan(separatorPos + 1, endCookiePos - separatorPos - 1).ToString();
                                     cleanedCookies.Add($"{cookieName}={cookieValue}");

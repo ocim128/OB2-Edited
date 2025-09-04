@@ -1,4 +1,4 @@
-﻿using RuriLib.Http.Extensions;
+using RuriLib.Http.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,11 +7,12 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Buffers;
+using System.Runtime.CompilerServices;
 
 namespace RuriLib.Http.Models
 {
     /// <summary>
-    /// An HTTP request that can be sent using a <see cref="RLHttpClient"/>.
+    /// A high-performance HTTP request with optimized memory management.
     /// </summary>
     public class HttpRequest : IDisposable
     {
@@ -54,20 +55,15 @@ namespace RuriLib.Http.Models
         public HttpContent Content { get; set; }
 
         /// <summary>
-        /// Writes the raw bytes that will be sent on the network stream.
+        /// Writes the HTTP request to an <see cref="IBufferWriter{T}"/> with high-performance optimizations.
         /// </summary>
         /// <param name="writer">The buffer writer to write to</param>
         /// <param name="cancellationToken">The token to cancel the operation</param>
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         public async Task WriteToAsync(IBufferWriter<byte> writer, CancellationToken cancellationToken = default)
         {
-            BuildFirstLine(writer);
-            BuildHeaders(writer);
-
-            if (Content != null)
-            {
-                var contentBytes = await Content.ReadAsByteArrayAsync(cancellationToken);
-                writer.Write(contentBytes);
-            }
+            // Use the optimized HTTP performance writer for better throughput
+            await HttpPerformanceOptimizer.WriteOptimizedRequestAsync(this, writer, cancellationToken).ConfigureAwait(false);
         }
 
         private static readonly byte[] CRLF = Encoding.ASCII.GetBytes("\r\n");

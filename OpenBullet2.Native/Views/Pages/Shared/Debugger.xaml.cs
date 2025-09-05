@@ -779,7 +779,7 @@ namespace OpenBullet2.Native.Views.Pages.Shared
         {
             _isWindowMinimized = isMinimized;
         }
-        
+
         /// <summary>
         /// Sets the resizing state to control debugger updates during external resize operations.
         /// </summary>
@@ -790,7 +790,7 @@ namespace OpenBullet2.Native.Views.Pages.Shared
             {
                 _isResizing = true;
                 _updatesPaused = true;
-                
+
                 try
                 {
                     _updateTimer.Stop();
@@ -800,7 +800,7 @@ namespace OpenBullet2.Native.Views.Pages.Shared
                     variablesRTB.SuspendLayout();
                 }
                 catch { }
-                
+
                 // Start or restart the resize timer
                 _resizeTimer.Stop();
                 _resizeTimer.Start();

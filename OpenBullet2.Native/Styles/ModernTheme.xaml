@@ -3,6 +3,11 @@
                     xmlns:mah="http://metro.mahapps.com/winfx/xaml/controls"
                     xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks">
 
+    <!-- Consolidated Icon Resources -->
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="/OpenBullet2.Native;component/Styles/ConsolidatedIcons.xaml" />
+    </ResourceDictionary.MergedDictionaries>
+
     <!-- Modern Color Palette -->
     <SolidColorBrush x:Key="Modern.ThemeMain" Color="#3B82F6" />
     <SolidColorBrush x:Key="Modern.ThemeAccent" Color="#8B5CF6" />

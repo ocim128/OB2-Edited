@@ -44,4 +44,52 @@
     <TieredCompilation>true</TieredCompilation>
     <TieredPGO>true</TieredPGO>
   </PropertyGroup>
-</Project> 
+  
+  <!-- Build Output Size Optimizations -->
+  <PropertyGroup>
+    <!-- Reduce assembly metadata -->
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
+    <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
+    
+    <!-- Optimize serialization -->
+    <GenerateSerializationAssemblies>Off</GenerateSerializationAssemblies>
+    
+    <!-- Reduce debug information -->
+    <DebugType Condition="'$(Configuration)' == 'Release'">none</DebugType>
+    <DebugSymbols Condition="'$(Configuration)' == 'Release'">false</DebugSymbols>
+    
+    <!-- Assembly linking optimizations (disabled for WinForms compatibility) -->
+    <PublishTrimmed Condition="'$(Configuration)' == 'Release'">false</PublishTrimmed>
+    <!-- <TrimMode Condition="'$(Configuration)' == 'Release'">partial</TrimMode> -->
+    <!-- <SuppressTrimAnalysisWarnings>true</SuppressTrimAnalysisWarnings> -->
+    
+    <!-- Compression settings -->
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <IncludeAllContentForSelfExtract>false</IncludeAllContentForSelfExtract>
+    
+    <!-- Remove unused references -->
+    <TrimUnusedDependencies>true</TrimUnusedDependencies>
+    
+    <!-- Optimize IL -->
+    <IlcOptimizationPreference>Size</IlcOptimizationPreference>
+
+    <!-- Only include English satellite resource assemblies to shrink output size -->
+    <SatelliteResourceLanguages>en;en-US</SatelliteResourceLanguages>
+    
+    <!-- Exclude unnecessary runtime identifiers to reduce build output size -->
+    <ExcludeAssets Condition="'$(Configuration)' == 'testing' OR '$(Configuration)' == 'Debug'">runtimes/android;runtimes/ios;runtimes/linux;runtimes/osx;runtimes/browser;runtimes/tizen;runtimes/freebsd</ExcludeAssets>
+    
+    <!-- Prevent copying of cross-platform runtime files -->
+    <RuntimeIdentifiers Condition="'$(Configuration)' == 'testing' OR '$(Configuration)' == 'Debug'">win-x64</RuntimeIdentifiers>
+    <UseAppHost Condition="'$(Configuration)' == 'testing' OR '$(Configuration)' == 'Debug'">true</UseAppHost>
+  </PropertyGroup>
+  
+  <!-- Exclude specific NuGet package assets that cause bloat -->
+  <ItemGroup Condition="'$(Configuration)' == 'testing' OR '$(Configuration)' == 'Debug'">
+    <!-- Exclude non-Windows runtime assets from all packages -->
+    <PackageReference Update="*">
+      <ExcludeAssets>$(ExcludeAssets);runtimes/android;runtimes/ios;runtimes/linux;runtimes/osx;runtimes/browser;runtimes/tizen;runtimes/freebsd</ExcludeAssets>
+    </PackageReference>
+  </ItemGroup>
+</Project>

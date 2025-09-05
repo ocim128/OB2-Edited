@@ -4,6 +4,26 @@
     <TargetFramework>net8.0</TargetFramework>
     <Authors>Ruri</Authors>
     <Nullable>enable</Nullable>
+    
+    <!-- Size optimization settings -->
+    <Optimize>true</Optimize>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <IncludeSymbols>false</IncludeSymbols>
+    <IncludeSource>false</IncludeSource>
+    
+    <!-- Reduce assembly size -->
+    <TrimUnusedDependencies>true</TrimUnusedDependencies>
+    <EnableTrimAnalyzer>false</EnableTrimAnalyzer>
+    
+    <!-- Disable unnecessary features -->
+    <EnableNETAnalyzers>false</EnableNETAnalyzers>
+    <RunAnalyzersDuringBuild>false</RunAnalyzersDuringBuild>
+    <AnalysisLevel>none</AnalysisLevel>
+    
+    <!-- Package reference optimizations -->
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <DisableImplicitNuGetFallbackFolder>true</DisableImplicitNuGetFallbackFolder>
   </PropertyGroup>
 
   <ItemGroup>
@@ -13,14 +33,14 @@
     <PackageReference Include="DeviceId" Version="5.2.0" />
     <PackageReference Include="FluentFTP" Version="50.0.1" />
     <PackageReference Include="HtmlAgilityPack" Version="1.11.61" />
-    <PackageReference Include="IronPython" Version="2.7.11" />
-    <PackageReference Include="IronPython.StdLib" Version="2.7.11" />
+    <PackageReference Include="IronPython" Version="3.4.2" />
+    <PackageReference Include="IronPython.StdLib" Version="3.4.2" />
     <PackageReference Include="Jering.Javascript.NodeJS" Version="7.0.0" />
-    <PackageReference Include="Jint" Version="3.1.2" />
+    <PackageReference Include="Jint" Version="4.4.1" />
     <PackageReference Include="JWT" Version="10.1.1" />
     <PackageReference Include="MailKit" Version="4.8.0" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.5.0" />
-    <PackageReference Include="Microsoft.Playwright" Version="1.40.0" />
+    <PackageReference Include="Microsoft.Playwright" Version="1.54.0" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="4.5.0" />
     <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.Common" Version="4.5.0" />
 	<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />

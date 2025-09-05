@@ -131,7 +131,7 @@
                 <Button Click="Undo" Width="26" Height="26" ToolTip="Undo last action" 
                         Style="{StaticResource ConsistentBlockButton}"
                         Background="#7C3AED" Margin="1,1" Padding="4">
-                    <iconPacks:PackIconMicrons Kind="Undo" Width="14" Height="14" Foreground="White"/>
+                    <iconPacks:PackIconMaterial Kind="Refresh" Width="14" Height="14" Foreground="White"/>
                 </Button>
             </WrapPanel>
         </Border>

@@ -59,8 +59,16 @@
         <DebugType>none</DebugType>
         <Optimize>true</Optimize>
         <DefineConstants>TRACE</DefineConstants>
+        <!-- Disable trimming for WinForms/WPF compatibility -->
         <PublishTrimmed>false</PublishTrimmed>
         <PublishSingleFile>true</PublishSingleFile>
+        <PublishReadyToRun>false</PublishReadyToRun>
+        <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+        <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+        <IncludeAllContentForSelfExtract>false</IncludeAllContentForSelfExtract>
+        <!-- Size optimizations compatible with WinForms -->
+        <IlcOptimizationPreference>Size</IlcOptimizationPreference>
+        <IlcFoldIdenticalMethodBodies>true</IlcFoldIdenticalMethodBodies>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Configuration)' == 'testing'">
         <DebugType>none</DebugType>
@@ -123,7 +131,7 @@
                           Version="8.1.866-beta" />
         <PackageReference Include="MahApps.Metro"
                           Version="2.4.10" />
-        <!-- Essential Icon Packs Only - Reduced to actually used ones -->
+        <!-- Optimized Icon Packs - Consolidated to essential packs only -->
         <PackageReference Include="MahApps.Metro.IconPacks.Material"
                           Version="4.8.0" />
         <PackageReference Include="MahApps.Metro.IconPacks.MaterialDesign"
@@ -144,13 +152,7 @@
                           Version="4.8.0" />
         <PackageReference Include="MahApps.Metro.IconPacks.ForkAwesome"
                           Version="4.8.0" />
-        <PackageReference Include="MahApps.Metro.IconPacks.Modern"
-                          Version="4.8.0" />
-        <PackageReference Include="MahApps.Metro.IconPacks.Microns"
-                          Version="4.8.0" />
-        <!-- Removed unused icon packs to reduce build size:
-             - BootstrapIcons (only used in About.xaml - can be replaced)
-             - SimpleIcons (only used in About.xaml - can be replaced) -->
+        <!-- Removed unused icon packs to reduce build size -->
         <PackageReference Include="MahApps.Metro.SimpleChildWindow"
                           Version="2.2.1" />
         <PackageReference Include="Markdig"
@@ -173,7 +175,7 @@
         <PackageReference Include="SixLabors.ImageSharp"
                           Version="3.1.11" />
         <PackageReference Include="Microsoft.Playwright"
-                          Version="1.40.0" />
+                          Version="1.54.0" />
     </ItemGroup>
     <!-- Project References -->
     <ItemGroup>
@@ -218,5 +220,24 @@
         <None Remove="crash.log" />
         <None Remove="*.log" />
         <None Remove="*.tmp" />
+        <!-- Exclude additional unnecessary files -->
+        <None Remove="*.pdb" />
+        <None Remove="*.xml" />
+        <Content Remove="*.pdb" />
+        <Content Remove="*.xml" />
+        <!-- Exclude test and development files -->
+        <None Remove="test\**" />
+        <None Remove="tests\**" />
+        <None Remove="*.test.*" />
+        <Content Remove="test\**" />
+        <Content Remove="tests\**" />
+        <Content Remove="*.test.*" />
+    </ItemGroup>
+    
+    <!-- Trim unused assemblies and dependencies -->
+    <ItemGroup Condition="'$(Configuration)' == 'Release'">
+        <TrimmerRootAssembly Include="OpenBullet2.Native" />
+        <TrimmerRootAssembly Include="OpenBullet2.Core" />
+        <TrimmerRootAssembly Include="RuriLib" />
     </ItemGroup>
 </Project>

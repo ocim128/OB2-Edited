@@ -1,4 +1,4 @@
-﻿<Page x:Class="OpenBullet2.Native.Views.Pages.ProxyCheckJobViewer"
+<Page x:Class="OpenBullet2.Native.Views.Pages.ProxyCheckJobViewer"
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
@@ -85,7 +85,7 @@
                     Visibility="{Binding CanPause, Converter={StaticResource ResourceKey=BoolToVis}}"
                     Margin="2 0 0 0" Style="{StaticResource StyledWarningButton}">
                     <StackPanel Orientation="Horizontal">
-                        <iconPacks:PackIconModern Kind="ControlPause" />
+                        <iconPacks:PackIconMaterial Kind="Pause" />
                         <TextBlock VerticalAlignment="Center" Margin="5 0">Pause</TextBlock>
                     </StackPanel>
                 </Button>

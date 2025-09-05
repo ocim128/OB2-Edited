@@ -122,10 +122,10 @@
                         <StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
                                 <iconPacks:PackIconMaterial Kind="Memory" 
-                                                             Width="18" Height="18" 
-                                                             Foreground="{StaticResource Modern.Success}"
-                                                             VerticalAlignment="Center" 
-                                                             Margin="0,0,8,0" />
+                                                              Width="18" Height="18" 
+                                                              Foreground="{StaticResource Modern.Success}"
+                                                              VerticalAlignment="Center" 
+                                                              Margin="0,0,8,0" />
                                 <TextBlock Text="Memory" 
                                            Style="{StaticResource MetricLabelStyle}" />
                             </StackPanel>
@@ -147,10 +147,10 @@
                         <StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
                                 <iconPacks:PackIconMaterial Kind="ClockOutline" 
-                                                             Width="18" Height="18" 
-                                                             Foreground="{StaticResource Modern.Warning}"
-                                                             VerticalAlignment="Center" 
-                                                             Margin="0,0,8,0" />
+                                                              Width="18" Height="18" 
+                                                              Foreground="{StaticResource Modern.Warning}"
+                                                              VerticalAlignment="Center" 
+                                                              Margin="0,0,8,0" />
                                 <TextBlock Text="Uptime" 
                                            Style="{StaticResource MetricLabelStyle}" />
                             </StackPanel>
@@ -250,10 +250,10 @@
                         <StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                                 <iconPacks:PackIconMaterial Kind="Briefcase" 
-                                                             Width="16" Height="16" 
-                                                             Foreground="{StaticResource Modern.ThemeMain}"
-                                                             VerticalAlignment="Center" 
-                                                             Margin="0,0,8,0" />
+                                                              Width="16" Height="16" 
+                                                              Foreground="{StaticResource Modern.ThemeMain}"
+                                                              VerticalAlignment="Center" 
+                                                              Margin="0,0,8,0" />
                                 <TextBlock Text="Jobs" 
                                            Style="{StaticResource MetricLabelStyle}" />
                             </StackPanel>
@@ -267,10 +267,10 @@
                         <StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                                 <iconPacks:PackIconMaterial Kind="ServerNetwork" 
-                                                             Width="16" Height="16" 
-                                                             Foreground="{StaticResource Modern.Success}"
-                                                             VerticalAlignment="Center" 
-                                                             Margin="0,0,8,0" />
+                                                              Width="16" Height="16" 
+                                                              Foreground="{StaticResource Modern.Success}"
+                                                              VerticalAlignment="Center" 
+                                                              Margin="0,0,8,0" />
                                 <TextBlock Text="Proxies" 
                                            Style="{StaticResource MetricLabelStyle}" />
                             </StackPanel>
@@ -284,10 +284,10 @@
                         <StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                                 <iconPacks:PackIconMaterial Kind="FormatListBulleted" 
-                                                             Width="16" Height="16" 
-                                                             Foreground="{StaticResource Modern.Warning}"
-                                                             VerticalAlignment="Center" 
-                                                             Margin="0,0,8,0" />
+                                                              Width="16" Height="16" 
+                                                              Foreground="{StaticResource Modern.Warning}"
+                                                              VerticalAlignment="Center" 
+                                                              Margin="0,0,8,0" />
                                 <TextBlock Text="Wordlists" 
                                            Style="{StaticResource MetricLabelStyle}" />
                             </StackPanel>
@@ -301,10 +301,10 @@
                         <StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                                 <iconPacks:PackIconMaterial Kind="FormatLineSpacing" 
-                                                             Width="16" Height="16" 
-                                                             Foreground="#F59E0B"
-                                                             VerticalAlignment="Center" 
-                                                             Margin="0,0,8,0" />
+                                                              Width="16" Height="16" 
+                                                              Foreground="#F59E0B"
+                                                              VerticalAlignment="Center" 
+                                                              Margin="0,0,8,0" />
                                 <TextBlock Text="Lines" 
                                            Style="{StaticResource MetricLabelStyle}" />
                             </StackPanel>
@@ -328,10 +328,10 @@
                         <StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                                 <iconPacks:PackIconMaterial Kind="Target" 
-                                                             Width="16" Height="16" 
-                                                             Foreground="#EF4444"
-                                                             VerticalAlignment="Center" 
-                                                             Margin="0,0,8,0" />
+                                                              Width="16" Height="16" 
+                                                              Foreground="#EF4444"
+                                                              VerticalAlignment="Center" 
+                                                              Margin="0,0,8,0" />
                                 <TextBlock Text="Hits" 
                                            Style="{StaticResource MetricLabelStyle}" />
                             </StackPanel>
@@ -345,10 +345,10 @@
                         <StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                                 <iconPacks:PackIconMaterial Kind="Cog" 
-                                                             Width="16" Height="16" 
-                                                             Foreground="#06B6D4"
-                                                             VerticalAlignment="Center" 
-                                                             Margin="0,0,8,0" />
+                                                              Width="16" Height="16" 
+                                                              Foreground="#06B6D4"
+                                                              VerticalAlignment="Center" 
+                                                              Margin="0,0,8,0" />
                                 <TextBlock Text="Configs" 
                                            Style="{StaticResource MetricLabelStyle}" />
                             </StackPanel>
@@ -362,10 +362,10 @@
                         <StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                                 <iconPacks:PackIconMaterial Kind="AccountGroup" 
-                                                             Width="16" Height="16" 
-                                                             Foreground="#84CC16"
-                                                             VerticalAlignment="Center" 
-                                                             Margin="0,0,8,0" />
+                                                              Width="16" Height="16" 
+                                                              Foreground="#84CC16"
+                                                              VerticalAlignment="Center" 
+                                                              Margin="0,0,8,0" />
                                 <TextBlock Text="Guests" 
                                            Style="{StaticResource MetricLabelStyle}" />
                             </StackPanel>
@@ -379,10 +379,10 @@
                         <StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                                 <iconPacks:PackIconMaterial Kind="Puzzle" 
-                                                             Width="16" Height="16" 
-                                                             Foreground="#F97316"
-                                                             VerticalAlignment="Center" 
-                                                             Margin="0,0,8,0" />
+                                                              Width="16" Height="16" 
+                                                              Foreground="#F97316"
+                                                              VerticalAlignment="Center" 
+                                                              Margin="0,0,8,0" />
                                 <TextBlock Text="Plugins" 
                                            Style="{StaticResource MetricLabelStyle}" />
                             </StackPanel>

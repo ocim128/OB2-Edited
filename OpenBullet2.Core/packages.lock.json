@@ -104,6 +104,11 @@
         "resolved": "3.1.11",
         "contentHash": "JfPLyigLthuE50yi6tMt7Amrenr/fA31t2CvJyhy/kQmfulIBAqo5T/YFUSRHtuYPXRSaUHygFeh6Qd933EoSw=="
       },
+      "Acornima": {
+        "type": "Transitive",
+        "resolved": "1.2.0",
+        "contentHash": "pT3kn/WrVzz4NmrzN5zOAVDOK2VuQFJ7VivKviKmKbbzppMVEToEvnAaVhxerXclptvjpBUudhOwUtDsRjrMYQ=="
+      },
       "AngleSharp": {
         "type": "Transitive",
         "resolved": "1.1.2",
@@ -133,17 +138,11 @@
       },
       "DynamicLanguageRuntime": {
         "type": "Transitive",
-        "resolved": "1.3.0",
-        "contentHash": "a3ATP2CAiAQdcnj5mBgyhqyjoAiCXjuiLY8x3yAmo2Uacs7ecKvre8sc30dcgfN9YGAM9s9dvBIlyqisJLg1ew==",
+        "resolved": "1.3.5",
+        "contentHash": "HHCVAlsIe8eBuj0bxh+0zCflYPeu+WSmP5iJ2J+oqd9wa1j7kcw70hiGPxoDPSoLM/RRLGXUdvj7ISkelxLpNw==",
         "dependencies": {
-          "System.CodeDom": "4.7.0",
-          "System.Configuration.ConfigurationManager": "4.7.0"
+          "System.CodeDom": "8.0.0"
         }
-      },
-      "Esprima": {
-        "type": "Transitive",
-        "resolved": "3.0.5",
-        "contentHash": "yJrbImpXdJAwKoa0FOgK3JV4wuOPHhKI1vWmNepJD5U/t6ENwEr0FX6gl06rIxxKbVGrKCd8JMmm7rieT/4dIw=="
       },
       "ExCSS": {
         "type": "Transitive",
@@ -167,18 +166,19 @@
       },
       "IronPython": {
         "type": "Transitive",
-        "resolved": "2.7.11",
-        "contentHash": "uKHcJ9N+bEpngWMBsz30oP4a6jnkmcUX9E73B3mcj0eddC5bdpxD0ojTVIQWvBSYMQaUAq69U6twHGVocOaDhg==",
+        "resolved": "3.4.2",
+        "contentHash": "OPYemSbwfDtgWU24GELr0/ud7uHbNSMAPaTzatWk7Ab7X5xWquDHfQtdiFJ+3j/CoGtj7eOFhkeRYs1o3uZEmQ==",
         "dependencies": {
-          "DynamicLanguageRuntime": "1.3.0"
+          "DynamicLanguageRuntime": "1.3.5",
+          "Mono.Unix": "7.1.0-final.1.21458.1"
         }
       },
       "IronPython.StdLib": {
         "type": "Transitive",
-        "resolved": "2.7.11",
-        "contentHash": "iEuwTtp/Y+9mipusaumbTL5BN17B4e+AeckxM4NHXnKyviRWgNx1POvMtBQLgcE4b71CVE2VN+eGEh7y/5ukaA==",
+        "resolved": "3.4.2",
+        "contentHash": "deehM2JDVnA3JENIaOwjn5HDqMgst7my3loSSfEmQRugCehSntGGIJwY7mxRnNl7a/vEaTeKMNOChStNCUD1pg==",
         "dependencies": {
-          "IronPython": "[2.7.8, 3.0.0)"
+          "IronPython": "[3.4.0, 3.5.0)"
         }
       },
       "Jering.Javascript.NodeJS": {
@@ -192,10 +192,10 @@
       },
       "Jint": {
         "type": "Transitive",
-        "resolved": "3.1.2",
-        "contentHash": "Wt9DWcs2RIEKrSiNOOIppxN8MkrONv0K9csGerwtO3eaggPoxYpmx7HFp6ph7Nqd+wg7cTHcgnUzpQJ4SHuEaA==",
+        "resolved": "4.4.1",
+        "contentHash": "hb1cQygDKGJblgw82YMkaEpPbIy+YHMUtx1ab+cUMwTRkRXcY8JK7YkJ5F/jPMNInTcFPOfVJZ5VfspsjXp2xQ==",
         "dependencies": {
-          "Esprima": "3.0.5"
+          "Acornima": "1.2.0"
         }
       },
       "JWT": {
@@ -469,8 +469,8 @@
       },
       "Microsoft.Playwright": {
         "type": "Transitive",
-        "resolved": "1.40.0",
-        "contentHash": "Eg4a4m5JG27T+tSueaGboQBALxB4fyzn0yDSd8bc8UZLHD/XdklHCQjsgsD5iBrVLVIjnEiIbDI0DPmsEn91Cg==",
+        "resolved": "1.54.0",
+        "contentHash": "u/ftvv1mdusX2R+4u0XINaRw10w9oGhxZePjkFgNZhpG/hUaOg/0npgavXh3mlO1u8b06v+XQKuvOYdsieHMZg==",
         "dependencies": {
           "Microsoft.Bcl.AsyncInterfaces": "6.0.0"
         }
@@ -499,6 +499,11 @@
         "dependencies": {
           "System.CodeDom": "4.4.0"
         }
+      },
+      "Mono.Unix": {
+        "type": "Transitive",
+        "resolved": "7.1.0-final.1.21458.1",
+        "contentHash": "Rhxz4A7By8Q0wEgDqR+mioDsYXGrcYMYPiWE9bSaUKMpG8yAGArhetEQV5Ms6KhKCLdQTlPYLBKPZYoKbAvT/g=="
       },
       "Newtonsoft.Json": {
         "type": "Transitive",
@@ -651,15 +656,6 @@
           "System.Composition.Runtime": "6.0.0"
         }
       },
-      "System.Configuration.ConfigurationManager": {
-        "type": "Transitive",
-        "resolved": "4.7.0",
-        "contentHash": "/anOTeSZCNNI2zDilogWrZ8pNqCmYbzGNexUnNhjW8k0sHqEZ2nHJBp147jBV3hGYswu5lINpNg1vxR7bnqvVA==",
-        "dependencies": {
-          "System.Security.Cryptography.ProtectedData": "4.7.0",
-          "System.Security.Permissions": "4.7.0"
-        }
-      },
       "System.Drawing.Common": {
         "type": "Transitive",
         "resolved": "5.0.3",
@@ -692,27 +688,6 @@
         "resolved": "8.0.0",
         "contentHash": "ULmp3xoOwNYjOYp4JZ2NK/6NdTgiN1GQXzVVN1njQ7LOZ0d0B9vyMnhyqbIi9Qw4JXj1JgCsitkTShboHRx7Eg=="
       },
-      "System.Security.Cryptography.ProtectedData": {
-        "type": "Transitive",
-        "resolved": "4.7.0",
-        "contentHash": "ehYW0m9ptxpGWvE4zgqongBVWpSDU/JCFD4K7krxkQwSz/sFQjEXCUqpvencjy6DYDbn7Ig09R8GFffu8TtneQ=="
-      },
-      "System.Security.Permissions": {
-        "type": "Transitive",
-        "resolved": "4.7.0",
-        "contentHash": "dkOV6YYVBnYRa15/yv004eCGRBVADXw8qRbbNiCn/XpdJSUXkkUeIvdvFHkvnko4CdKMqG8yRHC4ox83LSlMsQ==",
-        "dependencies": {
-          "System.Windows.Extensions": "4.7.0"
-        }
-      },
-      "System.Windows.Extensions": {
-        "type": "Transitive",
-        "resolved": "4.7.0",
-        "contentHash": "CeWTdRNfRaSh0pm2gDTJFwVaXfTq6Xwv/sA887iwPTneW7oMtMlpvDIO+U60+3GWTB7Aom6oQwv5VZVUhQRdPQ==",
-        "dependencies": {
-          "System.Drawing.Common": "4.7.0"
-        }
-      },
       "Websocket.Client": {
         "type": "Transitive",
         "resolved": "5.1.1",
@@ -737,16 +712,16 @@
           "DeviceId": "[5.2.0, )",
           "FluentFTP": "[50.0.1, )",
           "HtmlAgilityPack": "[1.11.61, )",
-          "IronPython": "[2.7.11, )",
-          "IronPython.StdLib": "[2.7.11, )",
+          "IronPython": "[3.4.2, )",
+          "IronPython.StdLib": "[3.4.2, )",
           "JWT": "[10.1.1, )",
           "Jering.Javascript.NodeJS": "[7.0.0, )",
-          "Jint": "[3.1.2, )",
+          "Jint": "[4.4.1, )",
           "MailKit": "[4.8.0, )",
           "Microsoft.CodeAnalysis.CSharp": "[4.5.0, )",
           "Microsoft.CodeAnalysis.CSharp.Scripting": "[4.5.0, )",
           "Microsoft.CodeAnalysis.Workspaces.Common": "[4.5.0, )",
-          "Microsoft.Playwright": "[1.40.0, )",
+          "Microsoft.Playwright": "[1.54.0, )",
           "Newtonsoft.Json": "[13.0.3, )",
           "PuppeteerExtraSharp": "[2.0.0, )",
           "PuppeteerSharp": "[9.0.2, )",

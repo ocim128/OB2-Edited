@@ -175,7 +175,7 @@ namespace OpenBullet2.Native.Controls
         {
             NotificationTitle.Text = title;
             NotificationMessage.Text = message;
-            
+
             // Set icon based on type (using Path data and Fill color like Ctrl+Alt+Q plugin)
             switch (iconType.ToLower())
             {
@@ -194,13 +194,13 @@ namespace OpenBullet2.Native.Controls
                     NotificationIcon.Fill = new SolidColorBrush(System.Windows.Media.Color.FromRgb(129, 199, 132)); // Green
                     break;
             }
-            
+
             NotificationOverlay.Visibility = Visibility.Visible;
-            
+
             // Create fade-in animation
             var fadeIn = new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(300));
             NotificationWindow.BeginAnimation(UIElement.OpacityProperty, fadeIn);
-            
+
             // Auto-dismiss after 4 seconds with fade-out (like Ctrl+Alt+Q plugin)
             var timer = new System.Windows.Threading.DispatcherTimer
             {
@@ -427,16 +427,16 @@ namespace OpenBullet2.Native.Controls
             // Hide buttons when width is less than 600px (compact mode)
             // Show buttons when width is 600px or more (fullscreen mode)
             bool showButtons = this.ActualWidth >= 600;
-            
+
             if (interpolatedToggle != null)
                 interpolatedToggle.Visibility = showButtons ? Visibility.Visible : Visibility.Collapsed;
-            
+
             if (lockToggle != null)
                 lockToggle.Visibility = showButtons ? Visibility.Visible : Visibility.Collapsed;
-            
+
             if (removeButton != null)
                 removeButton.Visibility = showButtons ? Visibility.Visible : Visibility.Collapsed;
-            
+
             // Also adjust column widths to save space when buttons are hidden
             var grid = this.Content as Grid;
             if (grid != null && grid.ColumnDefinitions.Count >= 5)

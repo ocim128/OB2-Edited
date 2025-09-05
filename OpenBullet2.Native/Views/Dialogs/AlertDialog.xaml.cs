@@ -1,4 +1,4 @@
-﻿using MahApps.Metro.IconPacks;
+using MahApps.Metro.IconPacks;
 using System;
 using System.Windows;
 using System.Windows.Controls;

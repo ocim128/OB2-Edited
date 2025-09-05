@@ -189,7 +189,7 @@ public partial class ScriptBlockInstance(ScriptBlockDescriptor descriptor) : Blo
                         writer.Write($"{ToCSharpType(output.Type)} ");
                     }
 
-                    writer.WriteLine($"{output.Name} = {engineName}.Global.GetProperty(\"{output.Name}\").Value.{GetJintMethod(output.Type)};");
+                    writer.WriteLine($"{output.Name} = {engineName}.GetValue(\"{output.Name}\").{GetJintMethod(output.Type)};");
                 }
 
                 break;

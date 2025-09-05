@@ -81,7 +81,7 @@
                         Style="{StaticResource ConsistentModeButton}"
                         Background="#8B5CF6" 
                         Foreground="White">
-                    <iconPacks:PackIconModern Kind="TextSerif" Width="16" Height="16" />
+                    <iconPacks:PackIconMaterial Kind="FormatText" Width="16" Height="16" />
                 </Button>
             </TabItem>
             <TabItem>

@@ -2,6 +2,22 @@
 
     <PropertyGroup>
         <TargetFramework>net8.0</TargetFramework>
+        
+        <!-- Size optimization settings -->
+        <Optimize>true</Optimize>
+        <GenerateDocumentationFile>false</GenerateDocumentationFile>
+        <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+        <IncludeSymbols>false</IncludeSymbols>
+        <IncludeSource>false</IncludeSource>
+        
+        <!-- Reduce assembly size -->
+        <TrimUnusedDependencies>true</TrimUnusedDependencies>
+        <EnableTrimAnalyzer>false</EnableTrimAnalyzer>
+        
+        <!-- Disable unnecessary features -->
+        <EnableNETAnalyzers>false</EnableNETAnalyzers>
+        <RunAnalyzersDuringBuild>false</RunAnalyzersDuringBuild>
+        <AnalysisLevel>none</AnalysisLevel>
     </PropertyGroup>
 
     <ItemGroup>

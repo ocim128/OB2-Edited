@@ -1,0 +1,262 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:mah="http://metro.mahapps.com/winfx/xaml/controls"
+                    xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks">
+
+    <!-- ========================================= -->
+    <!-- CONSOLIDATED ICON RESOURCES              -->
+    <!-- Enhanced for Better Performance,         -->
+    <!-- Maintainability, and Consistency        -->
+    <!-- ========================================= -->
+
+    <!-- ========================================= -->
+    <!-- CORE SYSTEM ICONS (Material Design)     -->
+    <!-- ========================================= -->
+    
+    <!-- Basic Actions -->
+    <iconPacks:PackIconMaterial x:Key="Icon.Play" Kind="Play" />
+    <iconPacks:PackIconMaterial x:Key="Icon.Pause" Kind="Pause" />
+    <iconPacks:PackIconMaterial x:Key="Icon.Stop" Kind="Stop" />
+    <iconPacks:PackIconMaterial x:Key="Icon.Close" Kind="Close" />
+    <iconPacks:PackIconMaterial x:Key="Icon.CloseThick" Kind="CloseThick" />
+    <iconPacks:PackIconMaterial x:Key="Icon.CloseOutline" Kind="CloseOutline" />
+    <iconPacks:PackIconMaterial x:Key="Icon.Plus" Kind="Plus" />
+    <iconPacks:PackIconMaterial x:Key="Icon.Minus" Kind="Minus" />
+    <iconPacks:PackIconMaterial x:Key="Icon.Refresh" Kind="Refresh" />
+    <iconPacks:PackIconMaterial x:Key="Icon.Save" Kind="ContentSave" />
+    <iconPacks:PackIconMaterial x:Key="Icon.Export" Kind="Export" />
+    <iconPacks:PackIconMaterial x:Key="Icon.DatabaseExport" Kind="DatabaseExport" />
+    
+    <!-- Edit Actions -->
+    <iconPacks:PackIconMaterial x:Key="Icon.Edit" Kind="Pencil" />
+    <iconPacks:PackIconMaterial x:Key="Icon.Delete" Kind="Delete" />
+    <iconPacks:PackIconMaterial x:Key="Icon.DeleteSweep" Kind="DeleteSweep" />
+    <iconPacks:PackIconMaterial x:Key="Icon.TrashCan" Kind="TrashCan" />
+    <iconPacks:PackIconMaterial x:Key="Icon.Copy" Kind="ContentCopy" />
+    
+    <!-- Navigation -->
+    <iconPacks:PackIconMaterial x:Key="Icon.Home" Kind="Home" />
+    <iconPacks:PackIconMaterial x:Key="Icon.ChevronDown" Kind="ChevronDown" />
+    <iconPacks:PackIconMaterial x:Key="Icon.ChevronUp" Kind="ChevronUp" />
+    <iconPacks:PackIconMaterial x:Key="Icon.ChevronLeft" Kind="ChevronLeft" />
+    <iconPacks:PackIconMaterial x:Key="Icon.ChevronRight" Kind="ChevronRight" />
+    
+    <!-- Files & Folders -->
+    <iconPacks:PackIconMaterial x:Key="Icon.Folder" Kind="Folder" />
+    <iconPacks:PackIconMaterial x:Key="Icon.FolderOpen" Kind="FolderOpen" />
+    <iconPacks:PackIconMaterial x:Key="Icon.FolderOutline" Kind="FolderOutline" />
+    <iconPacks:PackIconMaterial x:Key="Icon.File" Kind="FileDocument" />
+    <iconPacks:PackIconMaterial x:Key="Icon.FileEdit" Kind="FileDocumentEdit" />
+    <iconPacks:PackIconMaterial x:Key="Icon.FileOutline" Kind="FileDocumentOutline" />
+    
+    <!-- System & Settings -->
+    <iconPacks:PackIconMaterial x:Key="Icon.Cog" Kind="Cog" />
+    <iconPacks:PackIconMaterial x:Key="Icon.Settings" Kind="Settings" />
+    <iconPacks:PackIconMaterial x:Key="Icon.SettingsHelper" Kind="SettingsHelper" />
+    <iconPacks:PackIconMaterial x:Key="Icon.Tune" Kind="Tune" />
+    
+    <!-- Status & Feedback -->
+    <iconPacks:PackIconMaterial x:Key="Icon.Info" Kind="Information" />
+    <iconPacks:PackIconMaterial x:Key="Icon.Warning" Kind="Alert" />
+    <iconPacks:PackIconMaterial x:Key="Icon.AlertCircle" Kind="AlertCircle" />
+    <iconPacks:PackIconMaterial x:Key="Icon.Error" Kind="CloseCircle" />
+    <iconPacks:PackIconMaterial x:Key="Icon.Success" Kind="CheckCircle" />
+    <iconPacks:PackIconMaterial x:Key="Icon.Check" Kind="Check" />
+    
+    <!-- Search & Discovery -->
+    <iconPacks:PackIconMaterial x:Key="Icon.Search" Kind="Magnify" />
+    <iconPacks:PackIconMaterial x:Key="Icon.Target" Kind="Target" />
+    
+    <!-- ========================================= -->
+    <!-- APPLICATION SPECIFIC ICONS              -->
+    <!-- ========================================= -->
+    
+    <!-- OpenBullet Core -->
+    <iconPacks:PackIconMaterial x:Key="Icon.Robot" Kind="Robot" />
+    <iconPacks:PackIconMaterial x:Key="Icon.Briefcase" Kind="Briefcase" />
+    <iconPacks:PackIconMaterial x:Key="Icon.MonitorDashboard" Kind="MonitorDashboard" />
+    <iconPacks:PackIconMaterial x:Key="Icon.Rocket" Kind="RocketLaunchOutline" />
+    
+    <!-- Network & Server -->
+    <iconPacks:PackIconMaterial x:Key="Icon.Server" Kind="Server" />
+    <iconPacks:PackIconMaterial x:Key="Icon.Network" Kind="ServerNetwork" />
+    <iconPacks:PackIconMaterial x:Key="Icon.Lan" Kind="Lan" />
+    <iconPacks:PackIconMaterial x:Key="Icon.Web" Kind="Web" />
+    
+    <!-- Data & Analytics -->
+    <iconPacks:PackIconMaterial x:Key="Icon.Database" Kind="Database" />
+    <iconPacks:PackIconMaterial x:Key="Icon.Chart" Kind="ChartLine" />
+    <iconPacks:PackIconMaterial x:Key="Icon.Variable" Kind="Variable" />
+    
+    <!-- Development -->
+    <iconPacks:PackIconMaterial x:Key="Icon.Code" Kind="CodeBraces" />
+    <iconPacks:PackIconMaterial x:Key="Icon.Language" Kind="LanguageCsharp" />
+    <iconPacks:PackIconMaterial x:Key="Icon.Bug" Kind="Bug" />
+    <iconPacks:PackIconMaterial x:Key="Icon.FormatText" Kind="FormatText" />
+    
+    <!-- System Resources -->
+    <iconPacks:PackIconMaterial x:Key="Icon.CPU" Kind="Cpu64Bit" />
+    <iconPacks:PackIconMaterial x:Key="Icon.Memory" Kind="Memory" />
+    <iconPacks:PackIconMaterial x:Key="Icon.Clock" Kind="ClockOutline" />
+    
+    <!-- User & Social -->
+    <iconPacks:PackIconMaterial x:Key="Icon.Users" Kind="AccountGroup" />
+    <iconPacks:PackIconMaterial x:Key="Icon.Account" Kind="AccountOutline" />
+    
+    <!-- Media & Content -->
+    <iconPacks:PackIconMaterial x:Key="Icon.Camera" Kind="Camera" />
+    <iconPacks:PackIconMaterial x:Key="Icon.Theater" Kind="Theater" />
+    <iconPacks:PackIconMaterial x:Key="Icon.GoogleChrome" Kind="GoogleChrome" />
+    
+    <!-- Miscellaneous -->
+    <iconPacks:PackIconMaterial x:Key="Icon.Palette" Kind="Palette" />
+    <iconPacks:PackIconMaterial x:Key="Icon.Cloud" Kind="CloudDownload" />
+    <iconPacks:PackIconMaterial x:Key="Icon.Tag" Kind="TagText" />
+    <iconPacks:PackIconMaterial x:Key="Icon.TagOutline" Kind="TagOutline" />
+    <iconPacks:PackIconMaterial x:Key="Icon.ViewModule" Kind="ViewModule" />
+    <iconPacks:PackIconMaterial x:Key="Icon.Puzzle" Kind="Puzzle" />
+    <iconPacks:PackIconMaterial x:Key="Icon.Update" Kind="Update" />
+    <iconPacks:PackIconMaterial x:Key="Icon.Bitcoin" Kind="Bitcoin" />
+    <iconPacks:PackIconMaterial x:Key="Icon.CurrencyUsd" Kind="CurrencyUsd" />
+    <iconPacks:PackIconMaterial x:Key="Icon.Git" Kind="Git" />
+    <iconPacks:PackIconMaterial x:Key="Icon.Bullhorn" Kind="Bullhorn" />
+    <iconPacks:PackIconMaterial x:Key="Icon.Lock" Kind="Lock" />
+    <iconPacks:PackIconMaterial x:Key="Icon.SelectAll" Kind="SelectAll" />
+    <iconPacks:PackIconMaterial x:Key="Icon.FastForward" Kind="FastForward" />
+    <iconPacks:PackIconMaterial x:Key="Icon.History" Kind="History" />
+    
+    <!-- ========================================= -->
+    <!-- SPECIALIZED ICON PACKS                  -->
+    <!-- ========================================= -->
+    
+    <!-- Material Design Icons (Alternative Styles) -->
+    <iconPacks:PackIconMaterialDesign x:Key="Icon.Add" Kind="Add" />
+    <iconPacks:PackIconMaterialDesign x:Key="Icon.SearchMD" Kind="Search" />
+    <iconPacks:PackIconMaterialDesign x:Key="Icon.CloseMD" Kind="Close" />
+
+    <!-- Remix Icons (Filled Variants) -->
+    <iconPacks:PackIconRemixIcon x:Key="Icon.EditFill" Kind="Edit2Fill" />
+    <iconPacks:PackIconRemixIcon x:Key="Icon.SaveFill" Kind="Save3Fill" />
+    <iconPacks:PackIconRemixIcon x:Key="Icon.FolderFill" Kind="Folder2Fill" />
+
+    <!-- Unicons (Directional & Special) -->
+    <iconPacks:PackIconUnicons x:Key="Icon.AngleUp" Kind="AngleUp" />
+    <iconPacks:PackIconUnicons x:Key="Icon.AngleDown" Kind="AngleDown" />
+    <iconPacks:PackIconUnicons x:Key="Icon.AngleLeft" Kind="AngleLeft" />
+    <iconPacks:PackIconUnicons x:Key="Icon.AngleRight" Kind="AngleRight" />
+    <iconPacks:PackIconUnicons x:Key="Icon.Import" Kind="Import" />
+    <iconPacks:PackIconUnicons x:Key="Icon.CheckUnicons" Kind="Check" />
+    <iconPacks:PackIconUnicons x:Key="Icon.Eye" Kind="Eye" />
+    <iconPacks:PackIconUnicons x:Key="Icon.EyeSlash" Kind="EyeSlash" />
+
+    <!-- Octicons (GitHub Style) -->
+    <iconPacks:PackIconOcticons x:Key="Icon.CheckOCT" Kind="Check" />
+    <iconPacks:PackIconOcticons x:Key="Icon.AlertOCT" Kind="Alert" />
+    <iconPacks:PackIconOcticons x:Key="Icon.XOcticons" Kind="X" />
+    <iconPacks:PackIconOcticons x:Key="Icon.InfoOCT" Kind="Info" />
+
+    <!-- BoxIcons (Regular Style) -->
+    <iconPacks:PackIconBoxIcons x:Key="Icon.CogBox" Kind="RegularCog" />
+    <iconPacks:PackIconBoxIcons x:Key="Icon.ServerBox" Kind="RegularServer" />
+    <iconPacks:PackIconBoxIcons x:Key="Icon.DataBox" Kind="RegularData" />
+    <iconPacks:PackIconBoxIcons x:Key="Icon.PlusBox" Kind="RegularPlus" />
+    <iconPacks:PackIconBoxIcons x:Key="Icon.XBox" Kind="RegularX" />
+    <iconPacks:PackIconBoxIcons x:Key="Icon.TestTube" Kind="RegularTestTube" />
+    <iconPacks:PackIconBoxIcons x:Key="Icon.EditBox" Kind="RegularEdit" />
+
+    <!-- Radix Icons (Development) -->
+    <iconPacks:PackIconRadixIcons x:Key="Icon.ActivityLog" Kind="ActivityLog" />
+    <iconPacks:PackIconRadixIcons x:Key="Icon.CodeRadix" Kind="Code" />
+    <iconPacks:PackIconRadixIcons x:Key="Icon.UpdateRadix" Kind="Update" />
+
+    <!-- ForkAwesome (Classic) -->
+    <iconPacks:PackIconForkAwesome x:Key="Icon.FileFA" Kind="File" />
+    <iconPacks:PackIconForkAwesome x:Key="Icon.DownloadFA" Kind="Download" />
+    <iconPacks:PackIconForkAwesome x:Key="Icon.UsersFA" Kind="Users" />
+    <iconPacks:PackIconForkAwesome x:Key="Icon.BugFA" Kind="Bug" />
+    <iconPacks:PackIconForkAwesome x:Key="Icon.BanFA" Kind="Ban" />
+    <iconPacks:PackIconForkAwesome x:Key="Icon.CheckFA" Kind="Check" />
+    <iconPacks:PackIconForkAwesome x:Key="Icon.TimesFA" Kind="Times" />
+
+    <!-- FontAwesome (Solid Variants) -->
+    <iconPacks:PackIconFontAwesome x:Key="Icon.Forward" Kind="ForwardSolid" />
+    <iconPacks:PackIconFontAwesome x:Key="Icon.Clone" Kind="CloneSolid" />
+    <iconPacks:PackIconFontAwesome x:Key="Icon.LayerGroup" Kind="LayerGroupSolid" />
+    <iconPacks:PackIconFontAwesome x:Key="Icon.AngleDoubleRight" Kind="AngleDoubleRightSolid" />
+    <iconPacks:PackIconFontAwesome x:Key="Icon.AngleDoubleLeft" Kind="AngleDoubleLeftSolid" />
+
+    <!-- Entypo (Controller & UI) -->
+    <iconPacks:PackIconEntypo x:Key="Icon.PlayEntypo" Kind="ControllerPlay" />
+    <iconPacks:PackIconEntypo x:Key="Icon.StopEntypo" Kind="ControllerStop" />
+    <iconPacks:PackIconEntypo x:Key="Icon.CodeEntypo" Kind="Code" />
+    <iconPacks:PackIconEntypo x:Key="Icon.Browser" Kind="Browser" />
+
+    <!-- Modern (Removed - Use Material Pause instead) -->
+
+    <!-- Microns (Removed - Use Material Refresh instead) -->
+
+    <!-- ========================================= -->
+    <!-- ICON STYLES & TEMPLATES                 -->
+    <!-- ========================================= -->
+    
+    <!-- Icon Templates for Common Sizes -->
+    <Style x:Key="Icon.Size16" TargetType="Control">
+        <Setter Property="Width" Value="16" />
+        <Setter Property="Height" Value="16" />
+    </Style>
+
+    <Style x:Key="Icon.Size14" TargetType="Control">
+        <Setter Property="Width" Value="14" />
+        <Setter Property="Height" Value="14" />
+    </Style>
+
+    <Style x:Key="Icon.Size12" TargetType="Control">
+        <Setter Property="Width" Value="12" />
+        <Setter Property="Height" Value="12" />
+    </Style>
+
+    <Style x:Key="Icon.Size10" TargetType="Control">
+        <Setter Property="Width" Value="10" />
+        <Setter Property="Height" Value="10" />
+    </Style>
+
+    <Style x:Key="Icon.Size24" TargetType="Control">
+        <Setter Property="Width" Value="24" />
+        <Setter Property="Height" Value="24" />
+    </Style>
+
+    <!-- Common Icon Combinations with Styles -->
+    <Style x:Key="IconButton.Search" TargetType="Button" BasedOn="{StaticResource ModernButton}">
+        <Setter Property="Content">
+            <Setter.Value>
+                <StackPanel Orientation="Horizontal">
+                    <ContentControl Style="{StaticResource Icon.Size16}" Content="{StaticResource Icon.Search}" />
+                    <TextBlock Margin="4,0,0,0" Text="Search" VerticalAlignment="Center" />
+                </StackPanel>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="IconButton.Save" TargetType="Button" BasedOn="{StaticResource ModernButton}">
+        <Setter Property="Content">
+            <Setter.Value>
+                <StackPanel Orientation="Horizontal">
+                    <ContentControl Style="{StaticResource Icon.Size16}" Content="{StaticResource Icon.Save}" />
+                    <TextBlock Margin="4,0,0,0" Text="Save" VerticalAlignment="Center" />
+                </StackPanel>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="IconButton.Add" TargetType="Button" BasedOn="{StaticResource ModernButton}">
+        <Setter Property="Content">
+            <Setter.Value>
+                <StackPanel Orientation="Horizontal">
+                    <ContentControl Style="{StaticResource Icon.Size16}" Content="{StaticResource Icon.Plus}" />
+                    <TextBlock Margin="4,0,0,0" Text="Add" VerticalAlignment="Center" />
+                </StackPanel>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+</ResourceDictionary>

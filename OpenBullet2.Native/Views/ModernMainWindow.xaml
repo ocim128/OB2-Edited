@@ -84,7 +84,7 @@
                         <Button x:Name="navHome" Style="{StaticResource ModernNavButton}" 
                                Click="HandleNavigation" Margin="0,0,0,4">
                             <StackPanel Orientation="Horizontal">
-                                <iconPacks:PackIconMaterial Kind="Home" Width="16" Height="16" />
+                                <ContentPresenter Content="{StaticResource Icon.Home}" Width="16" Height="16" />
                                 <TextBlock Text="Home" Margin="12,0,0,0" />
                             </StackPanel>
                         </Button>
@@ -92,7 +92,7 @@
                         <Button x:Name="navJobs" Style="{StaticResource ModernNavButton}" 
                                Click="HandleNavigation" Margin="0,0,0,4">
                             <StackPanel Orientation="Horizontal">
-                                <iconPacks:PackIconMaterial Kind="Play" Width="16" Height="16" />
+                                <ContentPresenter Content="{StaticResource Icon.Play}" Width="16" Height="16" />
                                 <TextBlock Text="Jobs" Margin="12,0,0,0" />
                             </StackPanel>
                         </Button>
@@ -100,7 +100,7 @@
                         <Button x:Name="navMonitor" Style="{StaticResource ModernNavButton}" 
                                Click="HandleNavigation" Margin="0,0,0,4">
                             <StackPanel Orientation="Horizontal">
-                                <iconPacks:PackIconMaterial Kind="MonitorDashboard" Width="16" Height="16" />
+                                <ContentPresenter Content="{StaticResource Icon.MonitorDashboard}" Width="16" Height="16" />
                                 <TextBlock Text="Monitor" Margin="12,0,0,0" />
                             </StackPanel>
                         </Button>
@@ -113,7 +113,7 @@
                         <Button x:Name="navProxies" Style="{StaticResource ModernNavButton}" 
                                Click="HandleNavigation" Margin="0,0,0,4">
                             <StackPanel Orientation="Horizontal">
-                                <iconPacks:PackIconMaterial Kind="Lan" Width="16" Height="16" />
+                                <ContentPresenter Content="{StaticResource Icon.Lan}" Width="16" Height="16" />
                                 <TextBlock Text="Proxies" Margin="12,0,0,0" />
                             </StackPanel>
                         </Button>
@@ -121,7 +121,7 @@
                         <Button x:Name="navWordlists" Style="{StaticResource ModernNavButton}" 
                                Click="HandleNavigation" Margin="0,0,0,4">
                             <StackPanel Orientation="Horizontal">
-                                <iconPacks:PackIconMaterial Kind="FileDocument" Width="16" Height="16" />
+                                <ContentPresenter Content="{StaticResource Icon.FileDocument}" Width="16" Height="16" />
                                 <TextBlock Text="Wordlists" Margin="12,0,0,0" />
                             </StackPanel>
                         </Button>
@@ -131,9 +131,9 @@
                                MouseEnter="ConfigsMenuOptionMouseEnter"
                                MouseLeave="ConfigsMenuOptionMouseLeave">
                             <StackPanel Orientation="Horizontal">
-                                <iconPacks:PackIconMaterial Kind="Cog" Width="16" Height="16" />
+                                <ContentPresenter Content="{StaticResource Icon.Cog}" Width="16" Height="16" />
                                 <TextBlock Text="Configs" Margin="12,0,0,0" />
-                                <iconPacks:PackIconMaterial Kind="ChevronDown" Width="12" Height="12" 
+                                <ContentPresenter Content="{StaticResource Icon.ChevronDown}" Width="12" Height="12" 
                                                           Margin="8,0,0,0"
                                                           Visibility="{Binding IsConfigSelected, Converter={StaticResource BoolToVis}}" />
                             </StackPanel>
@@ -147,7 +147,7 @@
                         <Button x:Name="navHits" Style="{StaticResource ModernNavButton}" 
                                Click="HandleNavigation" Margin="0,0,0,4">
                             <StackPanel Orientation="Horizontal">
-                                <iconPacks:PackIconMaterial Kind="Target" Width="16" Height="16" />
+                                <ContentPresenter Content="{StaticResource Icon.Target}" Width="16" Height="16" />
                                 <TextBlock Text="Hits" Margin="12,0,0,0" />
                             </StackPanel>
                         </Button>
@@ -160,7 +160,7 @@
                         <Button x:Name="navPlugins" Style="{StaticResource ModernNavButton}" 
                                Click="HandleNavigation" Margin="0,0,0,4">
                             <StackPanel Orientation="Horizontal">
-                                <iconPacks:PackIconMaterial Kind="Puzzle" Width="16" Height="16" />
+                                <ContentPresenter Content="{StaticResource Icon.Puzzle}" Width="16" Height="16" />
                                 <TextBlock Text="Plugins" Margin="12,0,0,0" />
                             </StackPanel>
                         </Button>
@@ -173,7 +173,7 @@
                         <Button x:Name="navOBSettings" Style="{StaticResource ModernNavButton}" 
                                Click="HandleNavigation" Margin="0,0,0,4">
                             <StackPanel Orientation="Horizontal">
-                                <iconPacks:PackIconMaterial Kind="Settings" Width="16" Height="16" />
+                                <ContentPresenter Content="{StaticResource Icon.Settings}" Width="16" Height="16" />
                                 <TextBlock Text="OB Settings" Margin="12,0,0,0" />
                             </StackPanel>
                         </Button>
@@ -181,7 +181,7 @@
                         <Button x:Name="navRLSettings" Style="{StaticResource ModernNavButton}" 
                                Click="HandleNavigation" Margin="0,0,0,4">
                             <StackPanel Orientation="Horizontal">
-                                <iconPacks:PackIconMaterial Kind="SettingsHelper" Width="16" Height="16" />
+                                <ContentPresenter Content="{StaticResource Icon.SettingsHelper}" Width="16" Height="16" />
                                 <TextBlock Text="RL Settings" Margin="12,0,0,0" />
                             </StackPanel>
                         </Button>
@@ -189,7 +189,7 @@
                         <Button x:Name="navAbout" Style="{StaticResource ModernNavButton}" 
                                Click="HandleNavigation" Margin="0,0,0,24">
                             <StackPanel Orientation="Horizontal">
-                                <iconPacks:PackIconMaterial Kind="Information" Width="16" Height="16" />
+                                <ContentPresenter Content="{StaticResource Icon.Information}" Width="16" Height="16" />
                                 <TextBlock Text="About" Margin="12,0,0,0" />
                             </StackPanel>
                         </Button>
@@ -208,7 +208,7 @@
                            HorizontalAlignment="Stretch"
                            Margin="0,0,0,8">
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                            <iconPacks:PackIconMaterial Kind="Camera" Width="16" Height="16" />
+                            <ContentPresenter Content="{StaticResource Icon.Camera}" Width="16" Height="16" />
                             <TextBlock Text="Screenshot" Margin="8,0,0,0" />
                         </StackPanel>
                     </Button>
@@ -220,7 +220,7 @@
                            Visibility="{Binding UpdateAvailable, Converter={StaticResource BoolToVis}}"
                            HorizontalAlignment="Stretch">
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                            <iconPacks:PackIconMaterial Kind="Update" Width="16" Height="16" />
+                            <ContentPresenter Content="{StaticResource Icon.Update}" Width="16" Height="16" />
                             <TextBlock Text="Update Available" Margin="8,0,0,0" />
                         </StackPanel>
                     </Button>
@@ -258,16 +258,16 @@
                         <Button Style="{StaticResource ModernButton}" 
                                ToolTip="New Config (Ctrl+N)"
                                Margin="0,0,4,0">
-                            <iconPacks:PackIconMaterial Kind="Plus" Width="16" Height="16" />
+                            <ContentPresenter Content="{StaticResource Icon.Plus}" Width="16" Height="16" />
                         </Button>
                         <Button Style="{StaticResource ModernButton}" 
                                ToolTip="Open Config (Ctrl+O)"
                                Margin="0,0,4,0">
-                            <iconPacks:PackIconMaterial Kind="FolderOpen" Width="16" Height="16" />
+                            <ContentPresenter Content="{StaticResource Icon.FolderOpen}" Width="16" Height="16" />
                         </Button>
                         <Button Style="{StaticResource ModernButton}" 
                                ToolTip="Save Config (Ctrl+S)">
-                            <iconPacks:PackIconMaterial Kind="ContentSave" Width="16" Height="16" />
+                            <ContentPresenter Content="{StaticResource Icon.ContentSave}" Width="16" Height="16" />
                         </Button>
                     </StackPanel>
                 </Grid>
@@ -317,42 +317,42 @@
                 <Button x:Name="menuOptionMetadata" Style="{StaticResource ModernNavButton}" 
                        Click="HandleNavigation" Margin="0,0,0,2">
                     <StackPanel Orientation="Horizontal">
-                        <iconPacks:PackIconMaterial Kind="TagText" Width="14" Height="14" />
+                        <ContentPresenter Content="{StaticResource Icon.TagText}" Width="14" Height="14" />
                         <TextBlock Text="Metadata" Margin="8,0,0,0" FontSize="12" />
                     </StackPanel>
                 </Button>
                 <Button x:Name="menuOptionReadme" Style="{StaticResource ModernNavButton}" 
                        Click="HandleNavigation" Margin="0,0,0,2">
                     <StackPanel Orientation="Horizontal">
-                        <iconPacks:PackIconMaterial Kind="FileDocumentEdit" Width="14" Height="14" />
+                        <ContentPresenter Content="{StaticResource Icon.FileDocumentEdit}" Width="14" Height="14" />
                         <TextBlock Text="Readme" Margin="8,0,0,0" FontSize="12" />
                     </StackPanel>
                 </Button>
                 <Button x:Name="menuOptionStacker" Style="{StaticResource ModernNavButton}" 
                        Click="HandleNavigation" Margin="0,0,0,2">
                     <StackPanel Orientation="Horizontal">
-                        <iconPacks:PackIconMaterial Kind="ViewModule" Width="14" Height="14" />
+                        <ContentPresenter Content="{StaticResource Icon.ViewModule}" Width="14" Height="14" />
                         <TextBlock Text="Stacker" Margin="8,0,0,0" FontSize="12" />
                     </StackPanel>
                 </Button>
                 <Button x:Name="menuOptionLoliCode" Style="{StaticResource ModernNavButton}" 
                        Click="HandleNavigation" Margin="0,0,0,2">
                     <StackPanel Orientation="Horizontal">
-                        <iconPacks:PackIconMaterial Kind="CodeBraces" Width="14" Height="14" />
+                        <ContentPresenter Content="{StaticResource Icon.CodeBraces}" Width="14" Height="14" />
                         <TextBlock Text="LoliCode" Margin="8,0,0,0" FontSize="12" />
                     </StackPanel>
                 </Button>
                 <Button x:Name="menuOptionConfigSettings" Style="{StaticResource ModernNavButton}" 
                        Click="HandleNavigation" Margin="0,0,0,2">
                     <StackPanel Orientation="Horizontal">
-                        <iconPacks:PackIconMaterial Kind="Tune" Width="14" Height="14" />
+                        <ContentPresenter Content="{StaticResource Icon.Tune}" Width="14" Height="14" />
                         <TextBlock Text="Settings" Margin="8,0,0,0" FontSize="12" />
                     </StackPanel>
                 </Button>
                 <Button x:Name="menuOptionCSharpCode" Style="{StaticResource ModernNavButton}" 
                        Click="HandleNavigation" Margin="0,0,0,2">
                     <StackPanel Orientation="Horizontal">
-                        <iconPacks:PackIconMaterial Kind="LanguageCsharp" Width="14" Height="14" />
+                        <ContentPresenter Content="{StaticResource Icon.LanguageCsharp}" Width="14" Height="14" />
                         <TextBlock Text="C# Code" Margin="8,0,0,0" FontSize="12" />
                     </StackPanel>
                 </Button>

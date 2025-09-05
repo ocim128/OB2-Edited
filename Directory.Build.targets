@@ -13,7 +13,8 @@
     <CopyBuildOutputToOutputDirectory>true</CopyBuildOutputToOutputDirectory>
     <CopyOutputSymbolsToOutputDirectory>false</CopyOutputSymbolsToOutputDirectory>
     <CopyDocumentationFileToOutputDirectory>false</CopyDocumentationFileToOutputDirectory>
-    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <!-- Do not copy all lock file assemblies; rely on default per-project CopyLocal to shrink bin size -->
+    <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
     <RestoreProjectStyle>PackageReference</RestoreProjectStyle>
   </PropertyGroup>
   
@@ -37,4 +38,49 @@
     <Message Text="[PERF] Configuration: $(Configuration)" Importance="high" />
     <Message Text="[PERF] Parallel build: $(BuildInParallel)" Importance="high" />
   </Target>
-</Project> 
+
+  <!-- Remove unnecessary runtime files after build to reduce output size -->
+  <Target Name="RemoveUnnecessaryRuntimeFiles" AfterTargets="Publish" Condition="'$(Configuration)' == 'testing' OR '$(Configuration)' == 'Debug'">
+    <PropertyGroup>
+      <TargetDir Condition="'$(PublishDir)' != ''">$(PublishDir)</TargetDir>
+      <TargetDir Condition="'$(PublishDir)' == ''">$(OutputPath)</TargetDir>
+    </PropertyGroup>
+    
+    <Message Text="[OPTIMIZATION] Starting cleanup in directory: $(TargetDir)" Importance="high" />
+    
+    <ItemGroup>
+      <!-- Remove non-Windows runtime directories -->
+      <UnnecessaryRuntimeDirs Include="$(TargetDir)runtimes\android*" />
+      <UnnecessaryRuntimeDirs Include="$(TargetDir)runtimes\ios*" />
+      <UnnecessaryRuntimeDirs Include="$(TargetDir)runtimes\linux*" />
+      <UnnecessaryRuntimeDirs Include="$(TargetDir)runtimes\osx*" />
+      <UnnecessaryRuntimeDirs Include="$(TargetDir)runtimes\browser*" />
+      <UnnecessaryRuntimeDirs Include="$(TargetDir)runtimes\tizen*" />
+      <UnnecessaryRuntimeDirs Include="$(TargetDir)runtimes\freebsd*" />
+      
+      <!-- Remove unnecessary Python libraries -->
+      <UnnecessaryPythonLibs Include="$(TargetDir)lib\ensurepip" />
+      <UnnecessaryPythonLibs Include="$(TargetDir)lib\lib2to3" />
+      <UnnecessaryPythonLibs Include="$(TargetDir)lib\pydoc_data" />
+      <UnnecessaryPythonLibs Include="$(TargetDir)lib\turtledemo" />
+      <UnnecessaryPythonLibs Include="$(TargetDir)lib\msilib" />
+      <UnnecessaryPythonLibs Include="$(TargetDir)lib\venv" />
+      <UnnecessaryPythonLibs Include="$(TargetDir)lib\wsgiref" />
+      <UnnecessaryPythonLibs Include="$(TargetDir)lib\xmlrpc" />
+      
+      <!-- Remove non-Windows selenium-manager binaries -->
+      <UnnecessarySeleniumFiles Include="$(TargetDir)selenium-manager\linux" />
+      <UnnecessarySeleniumFiles Include="$(TargetDir)selenium-manager\macos" />
+      
+      <!-- Note: .playwright directory is required for browser automation, do not remove -->
+    </ItemGroup>
+    
+    <!-- Remove the directories -->
+    <RemoveDir Directories="@(UnnecessaryRuntimeDirs)" ContinueOnError="true" />
+    <RemoveDir Directories="@(UnnecessaryPythonLibs)" ContinueOnError="true" />
+    <RemoveDir Directories="@(UnnecessarySeleniumFiles)" ContinueOnError="true" />
+    
+    <Message Text="[OPTIMIZATION] Removed unnecessary runtime files to reduce build output size" Importance="high" />
+  </Target>
+
+</Project>

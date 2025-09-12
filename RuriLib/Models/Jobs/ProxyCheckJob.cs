@@ -385,12 +385,9 @@ public class ProxyCheckJob(RuriLibSettingsService settings, PluginRepository plu
         Status = status switch
         {
             ParallelizerStatus.Idle => JobStatus.Idle,
-            ParallelizerStatus.Starting => JobStatus.Starting,
             ParallelizerStatus.Running => JobStatus.Running,
-            ParallelizerStatus.Pausing => JobStatus.Pausing,
             ParallelizerStatus.Paused => JobStatus.Paused,
             ParallelizerStatus.Stopping => JobStatus.Stopping,
-            ParallelizerStatus.Resuming => JobStatus.Resuming,
             _ => throw new NotImplementedException()
         };
 

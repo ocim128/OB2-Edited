@@ -1,4 +1,4 @@
-﻿namespace OpenBullet2.Core.Models.Settings;
+namespace OpenBullet2.Core.Models.Settings;
 
 /// <summary>
 /// Settings related to the appearance of the OpenBullet2 GUI.
@@ -125,4 +125,34 @@ public class CustomizationSettings
     /// Whether to play a sound when a hit is found.
     /// </summary>
     public bool PlaySoundOnHit { get; set; } = false;
+
+    /// <summary>
+    /// The saved window width. Native UI only.
+    /// </summary>
+    public double WindowWidth { get; set; } = 1000;
+
+    /// <summary>
+    /// The saved window height. Native UI only.
+    /// </summary>
+    public double WindowHeight { get; set; } = 600;
+
+    /// <summary>
+    /// The saved window left position. Native UI only.
+    /// </summary>
+    public double WindowLeft { get; set; } = 100;
+
+    /// <summary>
+    /// The saved window top position. Native UI only.
+    /// </summary>
+    public double WindowTop { get; set; } = 100;
+
+    /// <summary>
+    /// The saved window state (Normal, Maximized, Minimized). Native UI only.
+    /// </summary>
+    public int WindowState { get; set; } = 0; // 0 = Normal, 1 = Minimized, 2 = Maximized
+
+    /// <summary>
+    /// Whether to remember window size and position. Native UI only.
+    /// </summary>
+    public bool RememberWindowState { get; set; } = true;
 }

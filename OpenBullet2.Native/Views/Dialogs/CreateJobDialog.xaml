@@ -1,4 +1,4 @@
-﻿<Page x:Class="OpenBullet2.Native.Views.Dialogs.CreateJobDialog"
+<Page x:Class="OpenBullet2.Native.Views.Dialogs.CreateJobDialog"
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
@@ -27,13 +27,9 @@
             </Grid.RowDefinitions>
 
             <!-- Header Section -->
-            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,28">
-                <iconPacks:PackIconMaterial Kind="RocketLaunchOutline"
-                                            Width="28"
-                                            Height="28"
-                                            Foreground="#3B82F6"
-                                            VerticalAlignment="Center"
-                                            Margin="0,0,12,0"/>
+            <StackPanel Grid.Row="0" Style="{StaticResource DialogHeader.WithIcon}">
+                <ContentControl Content="{StaticResource Icon.Rocket}"
+                               Style="{StaticResource DialogHeader.Icon}"/>
                 <StackPanel>
                     <TextBlock Text="Create New Job"
                                FontFamily="Segoe UI"
@@ -84,9 +80,9 @@
                                 CornerRadius="8" 
                                 Padding="10" 
                                 Margin="0,0,16,0">
-                            <iconPacks:PackIconMaterial Kind="Play" 
-                                                        Width="20" Height="20" 
-                                                        Foreground="White"/>
+                            <ContentControl Content="{StaticResource Icon.Play}" 
+                                           Width="20" Height="20" 
+                                           Foreground="White"/>
                         </Border>
                         
                         <!-- Content Section -->
@@ -105,11 +101,11 @@
                         </StackPanel>
                         
                         <!-- Arrow Icon -->
-                        <iconPacks:PackIconMaterial Grid.Column="2" 
-                                                    Kind="ChevronRight" 
-                                                    Width="20" Height="20" 
-                                                    Foreground="#64748B"
-                                                    VerticalAlignment="Center"/>
+                        <ContentControl Grid.Column="2" 
+                                       Content="{StaticResource Icon.ChevronRight}" 
+                                       Width="20" Height="20" 
+                                       Foreground="#64748B"
+                                       VerticalAlignment="Center"/>
                     </Grid>
                 </Border>
 
@@ -144,9 +140,9 @@
                                 CornerRadius="8" 
                                 Padding="10" 
                                 Margin="0,0,16,0">
-                            <iconPacks:PackIconMaterial Kind="ServerNetwork" 
-                                                        Width="20" Height="20" 
-                                                        Foreground="White"/>
+                            <ContentControl Content="{StaticResource Icon.Network}" 
+                                           Width="20" Height="20" 
+                                           Foreground="White"/>
                         </Border>
                         
                         <!-- Content Section -->
@@ -165,11 +161,11 @@
                         </StackPanel>
                         
                         <!-- Arrow Icon -->
-                        <iconPacks:PackIconMaterial Grid.Column="2" 
-                                                    Kind="ChevronRight" 
-                                                    Width="20" Height="20" 
-                                                    Foreground="#64748B"
-                                                    VerticalAlignment="Center"/>
+                        <ContentControl Grid.Column="2" 
+                                       Content="{StaticResource Icon.ChevronRight}" 
+                                       Width="20" Height="20" 
+                                       Foreground="#64748B"
+                                       VerticalAlignment="Center"/>
                     </Grid>
                 </Border>
             </StackPanel>

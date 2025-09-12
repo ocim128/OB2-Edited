@@ -1,4 +1,4 @@
-﻿using Ganss.Xss;
+using Ganss.Xss;
 using Markdig;
 using OpenBullet2.Native.Helpers;
 using OpenBullet2.Native.Utils;

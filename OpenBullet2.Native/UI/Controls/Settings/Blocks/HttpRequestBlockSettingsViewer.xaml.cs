@@ -1,4 +1,4 @@
-﻿using OpenBullet2.Native.ViewModels;
+using OpenBullet2.Native.ViewModels;
 using RuriLib.Models.Blocks.Custom;
 using RuriLib.Models.Blocks.Custom.HttpRequest;
 using System;

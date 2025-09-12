@@ -188,7 +188,7 @@
                     <ColumnDefinition Width="auto"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
-                <iconPacks:PackIconMaterial Kind="Cog" Width="18" Height="18" Foreground="#FF1E90FF" VerticalAlignment="Center"/>
+                <ContentControl Content="{StaticResource Icon.Cog}" Width="18" Height="18" Foreground="#FF1E90FF" VerticalAlignment="Center"/>
                 <TextBlock Grid.Column="1" Text="Job Configuration" FontSize="14" FontWeight="SemiBold" 
                            Foreground="White" VerticalAlignment="Center" Margin="8,0,0,0"/>
             </Grid>
@@ -274,7 +274,7 @@
                             <Button Click="SelectConfig" HorizontalAlignment="Left"
                                     Style="{StaticResource StyledPrimaryButton}" Padding="10,5">
                             <StackPanel Orientation="Horizontal">
-                                    <iconPacks:PackIconMaterial Kind="FolderOpen" Width="12" Height="12"/>
+                                    <ContentControl Content="{StaticResource Icon.FolderOpen}" Width="12" Height="12"/>
                                     <TextBlock Text="Select Config" VerticalAlignment="Center" Margin="5,0,0,0" FontSize="11"/>
                             </StackPanel>
                         </Button>
@@ -397,7 +397,7 @@
                                         HorizontalAlignment="Left"
                                         Style="{StaticResource StyledPrimaryButton}">
                                                 <StackPanel Orientation="Horizontal">
-                                                    <iconPacks:PackIconMaterial Kind="FolderOpen" Width="10" Height="10"/>
+                                                    <ContentControl Content="{StaticResource Icon.FolderOpen}" Width="10" Height="10"/>
                                                     <TextBlock Text="Select Wordlist" VerticalAlignment="Center" Margin="4,0,0,0"/>
                                                 </StackPanel>
                                             </Button>
@@ -407,7 +407,7 @@
                                         HorizontalAlignment="Left"
                                                    Style="{StaticResource StyledSuccessButton}">
                                                 <StackPanel Orientation="Horizontal">
-                                                    <iconPacks:PackIconMaterial Kind="Plus" Width="10" Height="10"/>
+                                                    <ContentControl Content="{StaticResource Icon.Plus}" Width="10" Height="10"/>
                                                     <TextBlock Text="Add Wordlist" VerticalAlignment="Center" Margin="4,0,0,0"/>
                                                 </StackPanel>
                                             </Button>
@@ -432,7 +432,7 @@
                                         Click="SelectFileForDataPool" 
                                         Margin="5 0 5 0" >
                                             <StackPanel Orientation="Horizontal">
-                                                <iconPacks:PackIconRemixIcon Kind="Folder2Fill" />
+                                                <ContentControl Content="{StaticResource Icon.FolderFill}" />
                                             </StackPanel>
                                         </Button>
                                         <ComboBox
@@ -559,7 +559,7 @@
                         Style="{StaticResource StyledPrimaryButton}"
                                         Padding="8,4" Margin="0,0,6,0">
                                 <StackPanel Orientation="Horizontal">
-                                        <iconPacks:PackIconMaterial Kind="Plus" Width="10" Height="10"/>
+                                        <ContentControl Content="{StaticResource Icon.Plus}" Width="10" Height="10"/>
                                         <TextBlock Text="Group" VerticalAlignment="Center" Margin="3,0,0,0" FontSize="10"/>
                                 </StackPanel>
                             </Button>
@@ -567,7 +567,7 @@
                         Style="{StaticResource StyledPrimaryButton}"
                                         Padding="8,4" Margin="0,0,6,0">
                                 <StackPanel Orientation="Horizontal">
-                                        <iconPacks:PackIconMaterial Kind="Plus" Width="10" Height="10"/>
+                                        <ContentControl Content="{StaticResource Icon.Plus}" Width="10" Height="10"/>
                                         <TextBlock Text="File" VerticalAlignment="Center" Margin="3,0,0,0" FontSize="10"/>
                                 </StackPanel>
                             </Button>
@@ -575,7 +575,7 @@
                         Style="{StaticResource StyledPrimaryButton}"
                                         Padding="8,4">
                                 <StackPanel Orientation="Horizontal">
-                                        <iconPacks:PackIconMaterial Kind="Plus" Width="10" Height="10"/>
+                                        <ContentControl Content="{StaticResource Icon.Plus}" Width="10" Height="10"/>
                                         <TextBlock Text="Remote" VerticalAlignment="Center" Margin="3,0,0,0" FontSize="10"/>
                                 </StackPanel>
                             </Button>
@@ -622,7 +622,7 @@
                                                         Style="{StaticResource StyledDangerButton}"
                                                         Width="24" Height="20"
                                                         Padding="2">
-                                                    <iconPacks:PackIconMaterial Kind="Close" Width="10" Height="10"/>
+                                                    <ContentControl Content="{StaticResource Icon.Close}" Width="10" Height="10"/>
                                                 </Button>
                                             </Grid>
                                         </Border>
@@ -651,7 +651,7 @@
                                                         Width="24" Height="20"
                                                         Padding="2"
                                                         Style="{StaticResource StyledPrimaryButton}">
-                                                    <iconPacks:PackIconMaterial Kind="FolderOpen" Width="10" Height="10"/>
+                                                    <ContentControl Content="{StaticResource Icon.FolderOpen}" Width="10" Height="10"/>
                                                 </Button>
                                                 <ComboBox Grid.Column="3"
                                     ItemsSource="{Binding DataContext.ProxyTypes, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
@@ -663,7 +663,7 @@
                                                         Style="{StaticResource StyledDangerButton}"
                                                         Width="24" Height="20"
                                                         Padding="2">
-                                                    <iconPacks:PackIconMaterial Kind="Close" Width="10" Height="10"/>
+                                                    <ContentControl Content="{StaticResource Icon.Close}" Width="10" Height="10"/>
                                                 </Button>
                                             </Grid>
                                         </Border>
@@ -696,7 +696,7 @@
                                                         Style="{StaticResource StyledDangerButton}"
                                                         Width="24" Height="20"
                                                         Padding="2">
-                                                    <iconPacks:PackIconMaterial Kind="Close" Width="10" Height="10"/>
+                                                    <ContentControl Content="{StaticResource Icon.Close}" Width="10" Height="10"/>
                                                 </Button>
                                             </Grid>
                                         </Border>
@@ -719,7 +719,7 @@
                         Style="{StaticResource StyledPrimaryButton}"
                                         Padding="6,3" Margin="0,0,4,0">
                                 <StackPanel Orientation="Horizontal">
-                                        <iconPacks:PackIconMaterial Kind="Plus" Width="10" Height="10"/>
+                                        <ContentControl Content="{StaticResource Icon.Plus}" Width="10" Height="10"/>
                                         <TextBlock Text="DB" VerticalAlignment="Center" Margin="2,0,0,0" FontSize="9"/>
                                 </StackPanel>
                             </Button>
@@ -727,7 +727,7 @@
                         Style="{StaticResource StyledPrimaryButton}"
                                         Padding="6,3" Margin="0,0,4,0">
                                 <StackPanel Orientation="Horizontal">
-                                        <iconPacks:PackIconMaterial Kind="Plus" Width="10" Height="10"/>
+                                        <ContentControl Content="{StaticResource Icon.Plus}" Width="10" Height="10"/>
                                         <TextBlock Text="File" VerticalAlignment="Center" Margin="2,0,0,0" FontSize="9"/>
                                 </StackPanel>
                             </Button>
@@ -735,7 +735,7 @@
                         Style="{StaticResource StyledPrimaryButton}"
                                         Padding="6,3" Margin="0,0,4,0">
                                 <StackPanel Orientation="Horizontal">
-                                        <iconPacks:PackIconMaterial Kind="Plus" Width="10" Height="10"/>
+                                        <ContentControl Content="{StaticResource Icon.Plus}" Width="10" Height="10"/>
                                         <TextBlock Text="Discord" VerticalAlignment="Center" Margin="2,0,0,0" FontSize="9"/>
                                 </StackPanel>
                             </Button>
@@ -743,7 +743,7 @@
                         Style="{StaticResource StyledPrimaryButton}"
                                         Padding="6,3" Margin="0,0,4,0">
                                 <StackPanel Orientation="Horizontal">
-                                        <iconPacks:PackIconMaterial Kind="Plus" Width="10" Height="10"/>
+                                        <ContentControl Content="{StaticResource Icon.Plus}" Width="10" Height="10"/>
                                         <TextBlock Text="Telegram" VerticalAlignment="Center" Margin="2,0,0,0" FontSize="9"/>
                                 </StackPanel>
                             </Button>
@@ -751,7 +751,7 @@
                         Style="{StaticResource StyledPrimaryButton}"
                                         Padding="6,3">
                                 <StackPanel Orientation="Horizontal">
-                                        <iconPacks:PackIconMaterial Kind="Plus" Width="10" Height="10"/>
+                                        <ContentControl Content="{StaticResource Icon.Plus}" Width="10" Height="10"/>
                                         <TextBlock Text="Webhook" VerticalAlignment="Center" Margin="2,0,0,0" FontSize="9"/>
                                 </StackPanel>
                             </Button>
@@ -799,7 +799,7 @@
                                                         Style="{StaticResource StyledDangerButton}"
                                                         Width="24" Height="20"
                                                         Padding="2">
-                                                    <iconPacks:PackIconMaterial Kind="Close" Width="10" Height="10"/>
+                                                    <ContentControl Content="{StaticResource Icon.Close}" Width="10" Height="10"/>
                                                 </Button>
                                             </Grid>
                                         </Border>
@@ -827,7 +827,7 @@
                                                         Style="{StaticResource StyledDangerButton}"
                                                         Width="24" Height="20"
                                                         Padding="2">
-                                                    <iconPacks:PackIconMaterial Kind="Close" Width="10" Height="10"/>
+                                                    <ContentControl Content="{StaticResource Icon.Close}" Width="10" Height="10"/>
                                                 </Button>
                                             </Grid>
                                         </Border>
@@ -856,7 +856,7 @@
                                                             Style="{StaticResource StyledDangerButton}"
                                                             Width="24" Height="20"
                                                             Padding="2">
-                                                        <iconPacks:PackIconMaterial Kind="Close" Width="10" Height="10"/>
+                                                        <ContentControl Content="{StaticResource Icon.Close}" Width="10" Height="10"/>
                                                 </Button>
                                             </Grid>
                                                 <Grid>
@@ -909,7 +909,7 @@
                                                             Style="{StaticResource StyledDangerButton}"
                                                             Width="24" Height="20"
                                                             Padding="2">
-                                                        <iconPacks:PackIconMaterial Kind="Close" Width="10" Height="10"/>
+                                                        <ContentControl Content="{StaticResource Icon.Close}" Width="10" Height="10"/>
                                                     </Button>
                                                 </Grid>
                                             <Grid>
@@ -977,7 +977,7 @@
                                                         Style="{StaticResource StyledDangerButton}"
                                                         Width="24" Height="20"
                                                         Padding="2">
-                                                    <iconPacks:PackIconMaterial Kind="Close" Width="10" Height="10"/>
+                                                    <ContentControl Content="{StaticResource Icon.Close}" Width="10" Height="10"/>
                                                 </Button>
                                             </Grid>
                                         </Border>
@@ -1007,7 +1007,7 @@
                 Style="{StaticResource StyledSuccessButton}"
                             Padding="14,6" FontSize="11" FontWeight="SemiBold">
                     <StackPanel Orientation="Horizontal">
-                            <iconPacks:PackIconMaterial Kind="Check" Width="12" Height="12"/>
+                            <ContentControl Content="{StaticResource Icon.Check}" Width="12" Height="12"/>
                             <TextBlock Text="Save Configuration" VerticalAlignment="Center" Margin="5,0,0,0"/>
                     </StackPanel>
                 </Button>

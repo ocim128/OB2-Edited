@@ -1,4 +1,4 @@
-﻿using OpenBullet2.Core.Entities;
+using OpenBullet2.Core.Entities;
 using OpenBullet2.Native.Helpers;
 using OpenBullet2.Native.Views.Pages;
 using System.Windows;

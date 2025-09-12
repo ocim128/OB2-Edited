@@ -88,7 +88,7 @@
                             </Setter>
                         </Style>
                     </Button.Style>
-                    <iconPacks:PackIconUnicons Kind="AngleUp" Width="24" Height="24" Foreground="White" />
+                    <ContentControl Content="{StaticResource Icon.AngleUp}" Width="24" Height="24" Foreground="White" />
                 </Button>
 
                 <!-- Modern Search Box -->
@@ -102,12 +102,12 @@
                             <ColumnDefinition Width="auto"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <iconPacks:PackIconMaterialDesign Kind="Search" 
-                                                         Grid.Column="0"
-                                                         Width="16" Height="16" 
-                                                         Foreground="#FF888888" 
-                                                         Margin="12,0,8,0"
-                                                         VerticalAlignment="Center"/>
+                        <ContentControl Content="{StaticResource Icon.SearchMD}" 
+                                       Grid.Column="0"
+                                       Width="16" Height="16" 
+                                       Foreground="#FF888888" 
+                                       Margin="12,0,8,0"
+                                       VerticalAlignment="Center"/>
                         <TextBox x:Name="filterTextBox"
                                  Grid.Column="1"
                                  KeyDown="FilterKeyDown"
@@ -166,7 +166,7 @@
                             </Setter>
                         </Style>
                     </Button.Style>
-                    <iconPacks:PackIconMaterialDesign Kind="Search" Width="24" Height="24" Foreground="White" />
+                    <ContentControl Content="{StaticResource Icon.SearchMD}" Width="24" Height="24" Foreground="White" />
                 </Button>
             </Grid>
 
@@ -315,10 +315,10 @@
 
             <!-- Recently Used Blocks Header -->
             <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,20,0,10">
-                <iconPacks:PackIconMaterial Kind="History" 
-                                           Width="20" Height="20" 
-                                           Foreground="#FF1E90FF" 
-                                           VerticalAlignment="Center"/>
+                <ContentControl Content="{StaticResource Icon.History}" 
+                               Width="20" Height="20" 
+                               Foreground="#FF1E90FF" 
+                               VerticalAlignment="Center"/>
                 <TextBlock Text="Recently Used Blocks" 
                            FontSize="16" 
                            FontWeight="SemiBold" 

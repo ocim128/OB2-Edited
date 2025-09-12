@@ -259,36 +259,57 @@ namespace OpenBullet2.Native.Views.Pages.Shared
         {
             Application.Current.Dispatcher.BeginInvoke(() =>
             {
-                try
+                if (ShouldSkipLogEntry()) return;
+
+                Alert.SafeExecute(() =>
                 {
-                    if (_updatesPaused || _isResizing || _isWindowMinimized) return;
-
                     logRTB.SuspendLayout();
-                    logRTB.AppendText(entry.Message + Environment.NewLine, entry.Color);
-                    _logLineCount++;
-                    _viewModel.LogLineCount = _logLineCount;
-
-                    TrimLogIfNeeded();
-
-                    if (_viewModel.Indices.Length == 0 && _viewModel.IsAutoScrollEnabled)
-                    {
-                        logRTB.SelectionStart = logRTB.TextLength;
-                        logRTB.ScrollToCaret();
-                    }
-
-                    if (_logLineCount % CLEAR_UNDO_FREQUENCY == 0)
-                    {
-                        logRTB.ClearUndoHistory();
-                    }
-
+                    AppendLogEntry(entry);
+                    HandleAutoScroll();
+                    HandleUndoClearing();
                     logRTB.ResumeLayout(false);
                     UpdateVariablesList();
-                }
-                catch
-                {
-                    try { logRTB.ResumeLayout(false); } catch { }
-                }
+                }, "processing log entry");
             }, DispatcherPriority.Background);
+        }
+
+        /// <summary>
+        /// Checks if log entry processing should be skipped.
+        /// </summary>
+        private bool ShouldSkipLogEntry() => _updatesPaused || _isResizing || _isWindowMinimized;
+
+        /// <summary>
+        /// Appends a log entry to the display and updates counters.
+        /// </summary>
+        private void AppendLogEntry(BotLoggerEntry entry)
+        {
+            logRTB.AppendText(entry.Message + Environment.NewLine, entry.Color);
+            _logLineCount++;
+            _viewModel.LogLineCount = _logLineCount;
+            TrimLogIfNeeded();
+        }
+
+        /// <summary>
+        /// Handles auto-scrolling when enabled and no search is active.
+        /// </summary>
+        private void HandleAutoScroll()
+        {
+            if (_viewModel.Indices.Length == 0 && _viewModel.IsAutoScrollEnabled)
+            {
+                logRTB.SelectionStart = logRTB.TextLength;
+                logRTB.ScrollToCaret();
+            }
+        }
+
+        /// <summary>
+        /// Clears undo history periodically to prevent memory buildup.
+        /// </summary>
+        private void HandleUndoClearing()
+        {
+            if (_logLineCount % CLEAR_UNDO_FREQUENCY == 0)
+            {
+                logRTB.ClearUndoHistory();
+            }
         }
 
         /// <summary>
@@ -298,41 +319,64 @@ namespace OpenBullet2.Native.Views.Pages.Shared
         {
             if (_logLineCount <= MAX_LOG_LINES) return;
 
-            try
+            Alert.SafeExecute(() =>
             {
-                var text = logRTB.Text;
                 var lines = logRTB.Lines;
+                if (lines.Length <= TRIM_TO_LINES) return;
 
-                if (lines.Length > TRIM_TO_LINES)
+                var charsToRemove = CalculateCharsToRemove(lines);
+                if (charsToRemove > 0 && charsToRemove < logRTB.Text.Length)
                 {
-                    var linesToRemove = lines.Length - TRIM_TO_LINES;
-                    var charsToRemove = 0;
-
-                    for (int i = 0; i < linesToRemove && i < lines.Length; i++)
-                    {
-                        charsToRemove += lines[i].Length + Environment.NewLine.Length;
-                    }
-
-                    if (charsToRemove > 0 && charsToRemove < text.Length)
-                    {
-                        logRTB.Select(0, charsToRemove);
-                        logRTB.SelectedText = "";
-                        _logLineCount = TRIM_TO_LINES;
-                        _viewModel.LogLineCount = _logLineCount;
-
-                        if (_viewModel.IsAutoScrollEnabled)
-                        {
-                            logRTB.SelectionStart = logRTB.TextLength;
-                            logRTB.ScrollToCaret();
-                        }
-                    }
+                    RemoveLogLines(charsToRemove);
+                    UpdateLogCountAfterTrim();
+                    HandleAutoScrollAfterTrim();
                 }
-            }
-            catch
+            }, "trimming log");
+        }
+
+        /// <summary>
+        /// Calculates the number of characters to remove when trimming the log.
+        /// </summary>
+        private int CalculateCharsToRemove(string[] lines)
+        {
+            var linesToRemove = lines.Length - TRIM_TO_LINES;
+            var charsToRemove = 0;
+
+            for (int i = 0; i < linesToRemove && i < lines.Length; i++)
             {
-                logRTB.Clear();
-                _logLineCount = 0;
-                _viewModel.LogLineCount = 0;
+                charsToRemove += lines[i].Length + Environment.NewLine.Length;
+            }
+
+            return charsToRemove;
+        }
+
+        /// <summary>
+        /// Removes the specified number of characters from the beginning of the log.
+        /// </summary>
+        private void RemoveLogLines(int charsToRemove)
+        {
+            logRTB.Select(0, charsToRemove);
+            logRTB.SelectedText = "";
+        }
+
+        /// <summary>
+        /// Updates the log line count after trimming.
+        /// </summary>
+        private void UpdateLogCountAfterTrim()
+        {
+            _logLineCount = TRIM_TO_LINES;
+            _viewModel.LogLineCount = _logLineCount;
+        }
+
+        /// <summary>
+        /// Handles auto-scrolling after log trimming if enabled.
+        /// </summary>
+        private void HandleAutoScrollAfterTrim()
+        {
+            if (_viewModel.IsAutoScrollEnabled)
+            {
+                logRTB.SelectionStart = logRTB.TextLength;
+                logRTB.ScrollToCaret();
             }
         }
 

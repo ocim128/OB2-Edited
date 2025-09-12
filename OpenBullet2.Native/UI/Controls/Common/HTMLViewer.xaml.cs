@@ -1,4 +1,4 @@
-﻿using Ganss.Xss;
+using Ganss.Xss;
 using OpenBullet2.Native.Helpers;
 using OpenBullet2.Native.Utils;
 using System.Windows;

@@ -12,7 +12,7 @@ using OpenBullet2.Native.Infrastructure.DependencyInjection;
 
 namespace OpenBullet2.Native.ViewModels
 {
-    public class HitsViewModel : ViewModelBase
+    public class HitsViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
     {
         private readonly OpenBulletSettingsService obSettingsService;
         private readonly IHitRepository hitRepo;
@@ -45,8 +45,14 @@ namespace OpenBullet2.Native.ViewModels
             }
         }
 
-        public IEnumerable<string> ConfigNames => new string[] { "All" }.Concat(
-            HitsCollection.GroupBy(h => h.ConfigName).Select(g => g.First().ConfigName));
+        public IEnumerable<string> ConfigNames
+        {
+            get
+            {
+                return new string[] { "All" }.Concat(
+                    HitsCollection.GroupBy(h => h.ConfigName).Select(g => g.First().ConfigName));
+            }
+        }
 
         private string configFilter = "All";
         public string ConfigFilter
@@ -58,11 +64,18 @@ namespace OpenBullet2.Native.ViewModels
                 OnPropertyChanged();
                 CollectionViewSource.GetDefaultView(HitsCollection).Refresh();
                 OnPropertyChanged(nameof(Total));
+                OnPropertyChanged(nameof(ConfigNames));
             }
         }
 
-        public IEnumerable<string> HitTypes => new string[] { "All" }.Concat(
-            HitsCollection.GroupBy(h => h.Type).Select(g => g.First().Type));
+        public IEnumerable<string> HitTypes
+        {
+            get
+            {
+                return new string[] { "All" }.Concat(
+                    HitsCollection.GroupBy(h => h.Type).Select(g => g.First().Type));
+            }
+        }
 
         private string typeFilter = "All";
         public string TypeFilter
@@ -74,6 +87,7 @@ namespace OpenBullet2.Native.ViewModels
                 OnPropertyChanged();
                 CollectionViewSource.GetDefaultView(HitsCollection).Refresh();
                 OnPropertyChanged(nameof(Total));
+                OnPropertyChanged(nameof(HitTypes));
             }
         }
 
@@ -102,11 +116,13 @@ namespace OpenBullet2.Native.ViewModels
         private bool HitsFilter(object item)
         {
             var hit = item as HitEntity;
-            var captureOk = string.IsNullOrEmpty(searchString) || hit.CapturedData.Contains(searchString, StringComparison.OrdinalIgnoreCase);
+            var searchOk = string.IsNullOrEmpty(searchString) || 
+                          hit.Data.Contains(searchString, StringComparison.OrdinalIgnoreCase) ||
+                          hit.CapturedData.Contains(searchString, StringComparison.OrdinalIgnoreCase);
             var configOk = configFilter == "All" || hit.ConfigName == configFilter;
             var typeOk = typeFilter == "All" || hit.Type == typeFilter;
 
-            return captureOk && configOk && typeOk;
+            return searchOk && configOk && typeOk;
         }
 
         public async Task RefreshListAsync()
@@ -118,6 +134,8 @@ namespace OpenBullet2.Native.ViewModels
                 var items = await hitRepo.GetAll().ToListAsync();
                 HitsCollection = new ObservableCollection<HitEntity>(items);
                 OnPropertyChanged(nameof(Total));
+                OnPropertyChanged(nameof(ConfigNames));
+                OnPropertyChanged(nameof(HitTypes));
                 HookFilters();
             }
             catch

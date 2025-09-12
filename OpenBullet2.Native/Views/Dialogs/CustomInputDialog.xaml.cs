@@ -1,4 +1,5 @@
-﻿using System;
+using OpenBullet2.Native.ViewModels.Infrastructure;
+using System;
 using System.Windows;
 using System.Windows.Controls;
 
@@ -30,7 +31,7 @@ namespace OpenBullet2.Native.Views.Dialogs
         private void Ok(object sender, RoutedEventArgs e)
         {
             onAnswer(answerComboBox.Text);
-            ((MainDialog)Parent).Close();
+            UIHelpers.CloseParentDialog(this);
         }
     }
 }

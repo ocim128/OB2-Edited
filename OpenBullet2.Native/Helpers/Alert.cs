@@ -3,6 +3,7 @@ using OpenBullet2.Native.Views.Dialogs;
 using OpenBullet2.Native.Services;
 using System;
 using System.Windows;
+using System.Windows.Controls;
 using OpenBullet2.Native.Infrastructure.DependencyInjection;
 
 namespace OpenBullet2.Native.Helpers
@@ -36,6 +37,112 @@ namespace OpenBullet2.Native.Helpers
             });
 
             return answer;
+        }
+
+        /// <summary>
+        /// Centralized helper for showing dialogs with consistent patterns.
+        /// Reduces MainDialog creation duplication across the codebase.
+        /// </summary>
+        public static void ShowDialog(Page content, string title, bool canResize = false, Action onClosed = null)
+        {
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                var dialog = new MainDialog(content, title, canResize);
+                if (onClosed != null)
+                {
+                    dialog.Closed += (s, e) => onClosed();
+                }
+                dialog.ShowDialog();
+            });
+        }
+
+        /// <summary>
+        /// Centralized helper for showing dialogs with custom dimensions.
+        /// </summary>
+        public static void ShowDialog(Page content, string title, int width, int height, Action onClosed = null)
+        {
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                var dialog = new MainDialog(content, title, width, height);
+                if (onClosed != null)
+                {
+                    dialog.Closed += (s, e) => onClosed();
+                }
+                dialog.ShowDialog();
+            });
+        }
+
+        /// <summary>
+        /// Helper for safe exception handling with UI feedback.
+        /// Consolidates exception handling patterns across UI components.
+        /// </summary>
+        public static void HandleException(Exception ex, string context = "operation")
+        {
+            var message = $"An error occurred during {context}: {ex.Message}";
+            System.Diagnostics.Debug.WriteLine($"Exception in {context}: {ex}");
+            Error("Error", message);
+        }
+
+        /// <summary>
+        /// Helper for safe async operation execution with exception handling.
+        /// </summary>
+        public static async System.Threading.Tasks.Task SafeExecuteAsync(Func<System.Threading.Tasks.Task> operation, string context = "operation")
+        {
+            try
+            {
+                await operation();
+            }
+            catch (Exception ex)
+            {
+                HandleException(ex, context);
+            }
+        }
+
+        /// <summary>
+        /// Helper for safe async operation execution with return value and exception handling.
+        /// </summary>
+        public static async System.Threading.Tasks.Task<T> SafeExecuteAsync<T>(Func<System.Threading.Tasks.Task<T>> operation, T defaultValue = default, string context = "operation")
+        {
+            try
+            {
+                return await operation();
+            }
+            catch (Exception ex)
+            {
+                HandleException(ex, context);
+                return defaultValue;
+            }
+        }
+
+        /// <summary>
+        /// Helper for safe synchronous operation execution with exception handling.
+        /// </summary>
+        public static void SafeExecute(Action operation, string context = "operation")
+        {
+            try
+            {
+                operation();
+            }
+            catch (Exception ex)
+            {
+                HandleException(ex, context);
+            }
+        }
+
+        /// <summary>
+        /// Helper for safe synchronous operation execution with return value and exception handling.
+        /// </summary>
+        public static T SafeExecute<T>(Func<T> operation, T defaultValue = default, string context = "operation")
+        {
+            try
+            {
+                return operation();
+            }
+            catch (Exception ex)
+            {
+                HandleException(ex, context);
+                return defaultValue;
+            }
         }
 
         private static void ShowAlert(AlertType type, string title, string message)

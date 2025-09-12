@@ -1,5 +1,7 @@
 using OpenBullet2.Core.Models.Jobs;
 using OpenBullet2.Native.Views.Pages;
+using OpenBullet2.Native.Helpers;
+using OpenBullet2.Native.ViewModels.Infrastructure;
 using System;
 using System.Windows;
 using System.Windows.Controls;
@@ -24,7 +26,7 @@ namespace OpenBullet2.Native.Views.Dialogs
         private void CreateMultiRunJob(object sender, MouseButtonEventArgs e) => CreateJob(JobType.MultiRun);
         private void CreateProxyCheckJob(object sender, MouseButtonEventArgs e) => CreateJob(JobType.ProxyCheck);
 
-        private void Cancel(object sender, RoutedEventArgs e) => ((MainDialog)Parent).Close();
+        private void Cancel(object sender, RoutedEventArgs e) => UIHelpers.CloseParentDialog(this);
 
         private void CreateJob(JobType type)
         {
@@ -39,15 +41,15 @@ namespace OpenBullet2.Native.Views.Dialogs
             switch (type)
             {
                 case JobType.MultiRun:
-                    new MainDialog(new MultiRunJobOptionsDialog(null, onAccept), "Create Multi-Run Job", 1100, 800).ShowDialog();
+                    Alert.ShowDialog(new MultiRunJobOptionsDialog(null, onAccept), "Create Multi-Run Job", 1100, 800);
                     break;
 
                 case JobType.ProxyCheck:
-                    new MainDialog(new ProxyCheckJobOptionsDialog(null, onAccept), "Create Proxy Check Job", 900, 650).ShowDialog();
+                    Alert.ShowDialog(new ProxyCheckJobOptionsDialog(null, onAccept), "Create Proxy Check Job", 900, 650);
                     break;
             }
 
-            ((MainDialog)Parent).Close();
+            UIHelpers.CloseParentDialog(this);
         }
     }
 }

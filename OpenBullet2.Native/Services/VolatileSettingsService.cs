@@ -1,4 +1,4 @@
-﻿using RuriLib.Models.Blocks;
+using RuriLib.Models.Blocks;
 using System.Collections.Generic;
 using System.ComponentModel;
 

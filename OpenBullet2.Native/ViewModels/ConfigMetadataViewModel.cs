@@ -11,7 +11,7 @@ using OpenBullet2.Native.Infrastructure.DependencyInjection;
 
 namespace OpenBullet2.Native.ViewModels
 {
-    public class ConfigMetadataViewModel : ViewModelBase
+    public class ConfigMetadataViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
     {
         private readonly ConfigService configService;
         private Config Config => configService.SelectedConfig;

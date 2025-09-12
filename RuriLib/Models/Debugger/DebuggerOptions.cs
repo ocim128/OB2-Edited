@@ -1,4 +1,4 @@
-﻿using RuriLib.Models.Proxies;
+using RuriLib.Models.Proxies;
 using RuriLib.Models.Variables;
 using System.Collections.Generic;
 

@@ -1,4 +1,4 @@
-﻿using OpenBullet2.Native.ViewModels;
+using OpenBullet2.Native.ViewModels;
 using RuriLib.Functions.Conversion;
 using RuriLib.Models.Blocks.Settings;
 using System;
@@ -73,7 +73,7 @@ namespace OpenBullet2.Native.Controls
         }
     }
 
-    public class ByteArraySettingViewerViewModel : ViewModelBase
+    public class ByteArraySettingViewerViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
     {
         public BlockSetting Setting { get; init; }
 

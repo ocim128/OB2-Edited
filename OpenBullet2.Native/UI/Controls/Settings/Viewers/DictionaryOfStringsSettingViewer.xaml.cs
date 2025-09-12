@@ -1,4 +1,3 @@
-using OpenBullet2.Native.Extensions;
 using OpenBullet2.Native.ViewModels;
 using RuriLib.Models.Blocks.Settings;
 using RuriLib.Models.Blocks.Settings.Interpolated;
@@ -89,7 +88,7 @@ namespace OpenBullet2.Native.Controls
         }
     }
 
-    public class DictionaryOfStringsSettingViewerViewModel : ViewModelBase
+    public class DictionaryOfStringsSettingViewerViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
     {
         public BlockSetting Setting { get; init; }
 

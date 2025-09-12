@@ -4,6 +4,7 @@ using OpenBullet2.Core.Repositories;
 using OpenBullet2.Native.Helpers;
 using OpenBullet2.Native.Services;
 using OpenBullet2.Native.ViewModels;
+using OpenBullet2.Native.ViewModels.Infrastructure;
 using OpenBullet2.Native.Views.Dialogs;
 using System;
 using System.Windows;
@@ -15,19 +16,23 @@ using OpenBullet2.Native.Infrastructure.DependencyInjection;
 namespace OpenBullet2.Native.Views.Pages
 {
     /// <summary>
-    /// Interaction logic for Jobs.xaml
+    /// Interaction logic for Jobs.xaml - Uses centralized service retrieval
     /// </summary>
     public partial class Jobs : Page
     {
         private readonly MainWindow mainWindow;
         private readonly IJobRepository jobRepo;
         private readonly JobsViewModel vm;
+        private readonly PageHelper helper;
 
         public Jobs()
         {
-            mainWindow = ServiceLocator.GetService<MainWindow>() ?? throw new InvalidOperationException("MainWindow service is null");
-            jobRepo = ServiceLocator.GetService<IJobRepository>() ?? throw new InvalidOperationException("JobRepository service is null");
-            var viewModelsService = ServiceLocator.GetService<ViewModelsService>() ?? throw new InvalidOperationException("ViewModelsService is null");
+            helper = new PageHelper(this);
+            
+            // Use centralized service retrieval with proper error handling
+            mainWindow = helper.GetRequiredService<MainWindow>();
+            jobRepo = helper.GetRequiredService<IJobRepository>();
+            var viewModelsService = helper.GetRequiredService<ViewModelsService>();
             vm = viewModelsService.Jobs ?? throw new InvalidOperationException("Jobs ViewModel is null");
 
             DataContext = vm;
@@ -35,21 +40,15 @@ namespace OpenBullet2.Native.Views.Pages
         }
 
         private void NewJob(object sender, RoutedEventArgs e)
-            => new MainDialog(new CreateJobDialog(this), "Select job type").ShowDialog();
+            => Alert.ShowDialog(new CreateJobDialog(this), "Select job type");
 
         private void RemoveAll(object sender, RoutedEventArgs e)
         {
-            try
-            {
-                vm.RemoveAll();
-            }
-            catch (Exception ex)
-            {
-                Alert.Exception(ex);
-            }
+            // Use centralized exception handling
+            UIHelpers.HandleUIException(() => vm.RemoveAll(), "removing all jobs");
         }
 
-        private void EditJob(object sender, RoutedEventArgs e) => EditJob((JobViewModel)(sender as Button).Tag);
+        private void EditJob(object sender, RoutedEventArgs e) => EditJob(UIHelpers.GetButtonTag<JobViewModel>(sender));
 
         public async void EditJob(JobViewModel jobVM)
         {
@@ -65,12 +64,12 @@ namespace OpenBullet2.Native.Views.Pages
             if (jobVM is MultiRunJobViewModel)
             {
                 var page = new MultiRunJobOptionsDialog(jobOptions as MultiRunJobOptions, onAccept);
-                new MainDialog(page, $"Edit job #{entity.Id}", 1100, 800).ShowDialog();
+                Alert.ShowDialog(page, $"Edit job #{entity.Id}", 1100, 800);
             }
             else if (jobVM is ProxyCheckJobViewModel)
             {
                 var page = new ProxyCheckJobOptionsDialog(jobOptions as ProxyCheckJobOptions, onAccept);
-                new MainDialog(page, $"Edit job #{entity.Id}", 800, 600).ShowDialog();
+                Alert.ShowDialog(page, $"Edit job #{entity.Id}", 800, 600);
             }
             else
             {
@@ -95,12 +94,12 @@ namespace OpenBullet2.Native.Views.Pages
             if (jobVM is MultiRunJobViewModel)
             {
                 var page = new MultiRunJobOptionsDialog(newOptions as MultiRunJobOptions, onAccept);
-                new MainDialog(page, $"Clone job #{entity.Id}", 1100, 800).ShowDialog();
+                Alert.ShowDialog(page, $"Clone job #{entity.Id}", 1100, 800);
             }
             else if (jobVM is ProxyCheckJobViewModel)
             {
                 var page = new ProxyCheckJobOptionsDialog(newOptions as ProxyCheckJobOptions, onAccept);
-                new MainDialog(page, $"Clone job #{entity.Id}", 800, 600).ShowDialog();
+                Alert.ShowDialog(page, $"Clone job #{entity.Id}", 800, 600);
             }
             else
             {
@@ -110,42 +109,26 @@ namespace OpenBullet2.Native.Views.Pages
 
         private async void RemoveJob(object sender, RoutedEventArgs e)
         {
-            try
+            // Use centralized exception handling
+            await Alert.SafeExecuteAsync(async () =>
             {
-                await vm.RemoveJobAsync((JobViewModel)(sender as Button).Tag);
-            }
-            catch (Exception ex)
-            {
-                Alert.Exception(ex);
-            }
+                await vm.RemoveJobAsync(UIHelpers.GetButtonTag<JobViewModel>(sender));
+            }, "removing job");
         }
 
         public async void CreateJob(JobOptions options) => await vm.CreateJobAsync(options);
 
         private void ViewJob(object sender, MouseButtonEventArgs e)
         {
-            try
+            // Use centralized exception handling and tag extraction
+            UIHelpers.HandleUIException(() =>
             {
-                JobViewModel jobVM = null;
-
-                if (sender is Grid grid && grid.Tag is JobViewModel gridJobVM)
-                {
-                    jobVM = gridJobVM;
-                }
-                else if (sender is WrapPanel wrapPanel && wrapPanel.Tag is JobViewModel panelJobVM)
-                {
-                    jobVM = panelJobVM;
-                }
-
+                var jobVM = UIHelpers.GetButtonTag<JobViewModel>(sender);
                 if (jobVM != null)
                 {
                     mainWindow.DisplayJob(jobVM);
                 }
-            }
-            catch (Exception ex)
-            {
-                Alert.Exception(ex);
-            }
+            }, "viewing job");
         }
     }
 }

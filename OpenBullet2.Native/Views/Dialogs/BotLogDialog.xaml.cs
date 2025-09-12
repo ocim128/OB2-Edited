@@ -1,4 +1,4 @@
-﻿using OpenBullet2.Native.Extensions;
+using OpenBullet2.Native.Extensions;
 using OpenBullet2.Native.ViewModels;
 using RuriLib.Logging;
 using System;
@@ -149,7 +149,7 @@ namespace OpenBullet2.Native.Views.Dialogs
         #endregion
     }
     
-    public class BotLogDialogViewModel : ViewModelBase
+    public class BotLogDialogViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
     {
         private string searchString = string.Empty;
         public string SearchString

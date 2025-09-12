@@ -75,7 +75,7 @@
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
                 <Border Background="#FF1E90FF" CornerRadius="10" Padding="10" VerticalAlignment="Center">
-                    <iconPacks:PackIconMaterial Kind="Cog" Width="18" Height="18" Foreground="White"/>
+                    <ContentControl Content="{StaticResource Icon.Cog}" Width="18" Height="18" Foreground="White"/>
                 </Border>
                 <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
                     <TextBlock Text="Job Configuration" FontSize="16" FontWeight="SemiBold" Foreground="White"/>

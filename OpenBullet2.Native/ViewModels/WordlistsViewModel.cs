@@ -11,7 +11,7 @@ using OpenBullet2.Native.Infrastructure.DependencyInjection;
 
 namespace OpenBullet2.Native.ViewModels;
 
-public class WordlistsViewModel : ViewModelBase
+    public class WordlistsViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
 {
     private readonly IWordlistRepository wordlistRepo;
     private bool initialized;

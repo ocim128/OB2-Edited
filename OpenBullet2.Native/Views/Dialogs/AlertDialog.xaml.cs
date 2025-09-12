@@ -1,4 +1,5 @@
 using MahApps.Metro.IconPacks;
+using OpenBullet2.Native.ViewModels.Infrastructure;
 using System;
 using System.Windows;
 using System.Windows.Controls;
@@ -40,13 +41,13 @@ namespace OpenBullet2.Native.Views.Dialogs
             okButton.Focus();
         }
 
-        private void Ok(object sender, RoutedEventArgs e) => ((MainDialog)Parent).Close();
+        private void Ok(object sender, RoutedEventArgs e) => UIHelpers.CloseParentDialog(this);
 
         private void PageKeyDown(object sender, KeyEventArgs e)
         {
             if (e.Key == Key.Enter)
             {
-                ((MainDialog)Parent).Close();
+                UIHelpers.CloseParentDialog(this);
             }
         }
     }

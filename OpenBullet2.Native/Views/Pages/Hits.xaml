@@ -57,6 +57,10 @@
             </Button>
             <Label Content="Total hits:" VerticalAlignment="Center" />
             <Label Content="{Binding Total}" VerticalAlignment="Center" />
+            <Separator Width="20" Background="Transparent" />
+            <TextBox x:Name="searchTextbox" Text="{Binding SearchString, UpdateSourceTrigger=PropertyChanged}" Margin="0,5,5,5" Width="150" Style="{StaticResource MatchingTextBox}" ToolTip="Search in captured data"/>
+            <ComboBox ItemsSource="{Binding ConfigNames}" SelectedItem="{Binding ConfigFilter}" Margin="0,5,5,5" Width="150" Style="{StaticResource MatchingComboBox}" ToolTip="Filter by config"/>
+            <ComboBox ItemsSource="{Binding HitTypes}" SelectedItem="{Binding TypeFilter}" Margin="0,5,5,5" Width="120" Style="{StaticResource MatchingComboBox}" ToolTip="Filter by hit type"/>
         </StackPanel>
 
         <!-- Optimized ListView with enhanced virtualization -->

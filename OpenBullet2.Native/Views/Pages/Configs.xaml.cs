@@ -72,7 +72,7 @@ namespace OpenBullet2.Native.Views.Pages
         }
 
         public void Create(object sender, RoutedEventArgs e)
-            => new MainDialog(new CreateConfigDialog(this), "Create config").ShowDialog();
+            => Alert.ShowDialog(new CreateConfigDialog(this), "Create config");
 
         public async void CreateConfig(ConfigForCreationDto dto) => await vm.CreateAsync(dto);
 

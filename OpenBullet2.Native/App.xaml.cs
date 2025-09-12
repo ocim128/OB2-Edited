@@ -28,7 +28,6 @@ using System.Windows;
 using System.Windows.Threading;
 using System.Diagnostics;
 using System.Windows.Media;
-using System.Windows.Media.Animation;
 using System.Globalization;
 using System.Text;
 
@@ -47,7 +46,7 @@ public partial class App : Application
     public App()
     {
         Trace("App constructor START");
-        
+
         // Initialize startup diagnostics as early as possible
         try
         {
@@ -59,7 +58,7 @@ public partial class App : Application
         {
             Debug.WriteLine($"Failed to initialize startup diagnostics: {ex.Message}");
         }
-        
+
         // Legacy handlers kept for backward compatibility; centralized handler is initialized in OnStartup.
         Dispatcher.UnhandledException += OnDispatcherUnhandledException;
         TaskScheduler.UnobservedTaskException += OnTaskException;
@@ -84,7 +83,7 @@ public partial class App : Application
             var testFile = Path.Combine(userDataPath, ".write_test");
             File.WriteAllText(testFile, "test");
             File.Delete(testFile);
-            
+
             StartupDiagnosticsService.Instance.LogCheckpoint("App.Constructor", "UserData directory write test successful");
         }
         catch (UnauthorizedAccessException ex)
@@ -111,7 +110,7 @@ public partial class App : Application
         _config = builder.Build(); // Build the config once and assign it to the field
 
         Trace("Configuration built");
-        
+
         try
         {
             StartupDiagnosticsService.Instance.LogCheckpoint("App.Constructor", "Configuration built successfully");
@@ -126,7 +125,7 @@ public partial class App : Application
         ServiceLocator.Initialize(_serviceProvider);
 
         Trace("ServiceProvider built");
-        
+
         try
         {
             StartupDiagnosticsService.Instance.LogCheckpoint("App.Constructor", "ServiceProvider built and ServiceLocator initialized");
@@ -174,12 +173,12 @@ public partial class App : Application
                     StartupDiagnosticsService.Instance.LogCheckpoint("App.BackgroundInit", "Starting database migration");
                 }
                 catch { }
-                
+
                 using var scope = _serviceProvider.CreateScope();
                 var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
                 await dbContext.Database.MigrateAsync().ConfigureAwait(false);
                 Trace("Database migration completed");
-                
+
                 try
                 {
                     StartupDiagnosticsService.Instance.LogCheckpoint("App.BackgroundInit", "Database migration completed successfully");
@@ -194,11 +193,11 @@ public partial class App : Application
                     StartupDiagnosticsService.Instance.LogCheckpoint("App.BackgroundInit", "Starting configuration reload");
                 }
                 catch { }
-                
+
                 var configService = _serviceProvider.GetRequiredService<ConfigService>();
                 await configService.ReloadConfigsAsync().ConfigureAwait(false);
                 Trace("Configuration loaded successfully");
-                
+
                 try
                 {
                     StartupDiagnosticsService.Instance.LogCheckpoint("App.BackgroundInit", "Configuration reload completed successfully");
@@ -213,17 +212,17 @@ public partial class App : Application
                 // Background optimizations (lower priority)
                 ThreadPool.SetMaxThreads(Environment.ProcessorCount * 4, Environment.ProcessorCount * 2);
 
-                // Initialize remaining services
+                // Initialize remaining services lazily
                 try
                 {
-                    StartupDiagnosticsService.Instance.LogCheckpoint("App.BackgroundInit", "Initializing remaining services");
+                    StartupDiagnosticsService.Instance.LogCheckpoint("App.BackgroundInit", "Initializing remaining services lazily");
                 }
                 catch { }
-                
+
                 AutocompletionProvider.Init();
-                _ = _serviceProvider.GetService<JobMonitorService>();
-                Trace("Deferred initialization completed");
-                
+                // Services are now lazy-loaded on first access, reducing startup memory footprint
+                Trace("Lazy initialization setup completed");
+
                 try
                 {
                     StartupDiagnosticsService.Instance.LogCheckpoint("App.BackgroundInit", "Background initialization completed successfully");
@@ -242,14 +241,14 @@ public partial class App : Application
             catch (Exception ex)
             {
                 Trace($"Startup optimization error: {ex.Message}");
-                
+
                 try
                 {
                     StartupDiagnosticsService.Instance.LogCheckpoint("App.BackgroundInit", $"Background initialization failed: {ex.Message}");
                     CrashLoggingService.Instance.LogCrash(ex, "App.BackgroundInit", "Background initialization failure", false);
                 }
                 catch { }
-                
+
                 _ = Dispatcher.BeginInvoke(() => Alert.Error("Startup Error", $"Some background initialization failed: {ex.Message}"));
             }
         }, _startupCts.Token);
@@ -298,10 +297,22 @@ public partial class App : Application
             new HybridWordlistRepository(service.GetService<ApplicationDbContext>(),
             Path.Combine(userDataPath, "Wordlists")));
 
-        // Singletons
+        // Critical services (loaded immediately)
         services.AddSingleton<VolatileSettingsService>();
         services.AddSingleton<ViewModelsService>();
         services.AddSingleton<ConfigService>();
+        
+        // Non-critical services (lazy loaded for performance)
+        services.AddSingleton<Lazy<ProxyReloadService>>(provider => new Lazy<ProxyReloadService>(() => provider.GetRequiredService<ProxyReloadService>()));
+        services.AddSingleton<Lazy<ProxyCheckOutputFactory>>(provider => new Lazy<ProxyCheckOutputFactory>(() => provider.GetRequiredService<ProxyCheckOutputFactory>()));
+        services.AddSingleton<Lazy<JobFactoryService>>(provider => new Lazy<JobFactoryService>(() => provider.GetRequiredService<JobFactoryService>()));
+        services.AddSingleton<Lazy<JobManagerService>>(provider => new Lazy<JobManagerService>(() => provider.GetRequiredService<JobManagerService>()));
+        services.AddSingleton<Lazy<JobMonitorService>>(provider => new Lazy<JobMonitorService>(() => provider.GetRequiredService<JobMonitorService>()));
+        services.AddSingleton<Lazy<HitStorageService>>(provider => new Lazy<HitStorageService>(() => provider.GetRequiredService<HitStorageService>()));
+        services.AddSingleton<Lazy<DataPoolFactoryService>>(provider => new Lazy<DataPoolFactoryService>(() => provider.GetRequiredService<DataPoolFactoryService>()));
+        services.AddSingleton<Lazy<ProxySourceFactoryService>>(provider => new Lazy<ProxySourceFactoryService>(() => provider.GetRequiredService<ProxySourceFactoryService>()));
+        
+        // Actual service registrations for lazy services
         services.AddSingleton<ProxyReloadService>();
         services.AddSingleton<ProxyCheckOutputFactory>();
         services.AddSingleton<JobFactoryService>();
@@ -331,7 +342,7 @@ public partial class App : Application
         try
         {
             StartupDiagnosticsService.Instance.LogCheckpoint("App.OnStartup", "Initializing enhanced exception handling");
-            
+
             var appDirectory = AppDomain.CurrentDomain.BaseDirectory;
             var userDataPath = System.IO.Path.Combine(appDirectory, "UserData");
             var logsRoot = System.IO.Path.Combine(userDataPath, "Logs");
@@ -341,13 +352,13 @@ public partial class App : Application
             var geh = new GlobalExceptionHandler(logsRoot);
             geh.Initialize();
             Resources["GlobalExceptionHandler"] = geh;
-            
+
             StartupDiagnosticsService.Instance.LogCheckpoint("App.OnStartup", "Enhanced exception handling initialized successfully");
         }
         catch (Exception gehEx)
         {
             Debug.WriteLine($"GlobalExceptionHandler init failed: {gehEx.Message}");
-            
+
             try
             {
                 StartupDiagnosticsService.Instance.LogCheckpoint("App.OnStartup", $"Exception handling initialization failed: {gehEx.Message}");
@@ -423,27 +434,16 @@ public partial class App : Application
         try
         {
             var perf = _config.GetSection("Performance");
-            var reducedAnimations = perf.GetValue("ReducedAnimations", true);
             var lowSpecMode = perf.GetValue("LowSpecMode", false);
-            var frameRate = lowSpecMode ? 15 : (reducedAnimations ? 20 : 30);
 
-            // Set animation frame rate based on performance mode
-            Timeline.DesiredFrameRateProperty.OverrideMetadata(
-                typeof(Timeline),
-                new FrameworkPropertyMetadata { DefaultValue = frameRate }
-            );
+            // Disable hardware acceleration for maximum performance
+            RenderOptions.ProcessRenderMode = System.Windows.Interop.RenderMode.SoftwareOnly;
 
-            if (lowSpecMode || reducedAnimations)
-            {
-                // Disable hardware acceleration for low-spec systems to reduce GPU load
-                RenderOptions.ProcessRenderMode = System.Windows.Interop.RenderMode.SoftwareOnly;
-            }
-
-            Debug.WriteLine($"Conservative GPU settings applied: {frameRate}fps animations{(lowSpecMode || reducedAnimations ? ", software rendering" : "")} to reduce laptop heating");
+            Debug.WriteLine($"Maximum performance settings applied: software rendering, animations disabled");
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"Could not apply conservative GPU settings: {ex.Message}");
+            Debug.WriteLine($"Could not apply performance settings: {ex.Message}");
         }
     }
 

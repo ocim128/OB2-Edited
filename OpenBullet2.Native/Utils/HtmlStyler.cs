@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 
 namespace OpenBullet2.Native.Utils
 {

@@ -55,16 +55,7 @@ namespace OpenBullet2.Native.Views.Dialogs
             }
         }
 
-        private void UpdateSearch(object sender, KeyEventArgs e)
-        {
-            if (e.Key == Key.Enter)
-            {
-                vm.SearchString = filterTextbox.Text;
-            }
-        }
-
-        private void Search(object sender, RoutedEventArgs e) => vm.SearchString = filterTextbox.Text;
-
+        
         private void ItemHovered(object sender, SelectionChangedEventArgs e)
         {
             var items = e.AddedItems as IList<object>;
@@ -121,7 +112,7 @@ namespace OpenBullet2.Native.Views.Dialogs
         private void ShowNoConfigSelectedError() => Alert.Error("No config selected", "Please select a config first!");
     }
 
-    public class SelectConfigDialogViewModel : ViewModelBase
+    public class SelectConfigDialogViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
     {
         private readonly ConfigsViewModel configsViewModel;
         private readonly ConfigService configService;

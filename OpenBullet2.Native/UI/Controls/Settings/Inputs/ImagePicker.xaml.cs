@@ -1,4 +1,4 @@
-﻿using Microsoft.Win32;
+using Microsoft.Win32;
 using OpenBullet2.Core.Helpers;
 using OpenBullet2.Native.Helpers;
 using OpenBullet2.Native.Utils;
@@ -54,7 +54,7 @@ namespace OpenBullet2.Native.Controls
         }
     }
 
-    public class ImagePickerViewModel : ViewModelBase
+    public class ImagePickerViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
     {
         private byte[] imageBytes;
         public byte[] ImageBytes

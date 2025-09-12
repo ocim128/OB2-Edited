@@ -7,7 +7,7 @@ using OpenBullet2.Native.Infrastructure.DependencyInjection;
 
 namespace OpenBullet2.Native.ViewModels
 {
-    public class PluginsViewModel : ViewModelBase
+    public class PluginsViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
     {
         private ObservableCollection<PluginInfo> pluginsCollection;
         private PluginRepository pluginRepo;

@@ -10,7 +10,7 @@ using OpenBullet2.Native.Infrastructure.DependencyInjection;
 
 namespace OpenBullet2.Native.ViewModels;
 
-public class RLSettingsViewModel : ViewModelBase
+    public class RLSettingsViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
 {
     private readonly RuriLibSettingsService _service = ServiceLocator.GetService<RuriLibSettingsService>();
     private GeneralSettings General => _service.RuriLibSettings.GeneralSettings;

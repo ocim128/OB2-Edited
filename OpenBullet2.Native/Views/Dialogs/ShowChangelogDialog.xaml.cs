@@ -19,7 +19,7 @@ namespace OpenBullet2.Native.Views.Dialogs
             DataContext = vm;
         }
 
-        public class ChangelogViewModel : ViewModelBase
+        public class ChangelogViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
         {
             private string text = "Loading...";
             public string Text

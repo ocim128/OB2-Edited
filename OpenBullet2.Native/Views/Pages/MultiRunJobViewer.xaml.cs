@@ -63,76 +63,22 @@ namespace OpenBullet2.Native.Views.Pages
         }
 
         private async void Start(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                await vm.StartAsync();
-            }
-            catch (Exception ex)
-            {
-                Alert.Exception(ex);
-            }
-        }
+            => await Alert.SafeExecuteAsync(() => vm.StartAsync(), "starting multi-run job");
 
         private async void Stop(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                await vm.StopAsync();
-            }
-            catch (Exception ex)
-            {
-                Alert.Exception(ex);
-            }
-        }
+            => await Alert.SafeExecuteAsync(() => vm.StopAsync(), "stopping multi-run job");
 
         private async void Pause(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                await vm.PauseAsync();
-            }
-            catch (Exception ex)
-            {
-                Alert.Exception(ex);
-            }
-        }
+            => await Alert.SafeExecuteAsync(() => vm.PauseAsync(), "pausing multi-run job");
 
         private async void Resume(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                await vm.ResumeAsync();
-            }
-            catch (Exception ex)
-            {
-                Alert.Exception(ex);
-            }
-        }
+            => await Alert.SafeExecuteAsync(() => vm.ResumeAsync(), "resuming multi-run job");
 
         private async void Abort(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                await vm.AbortAsync();
-            }
-            catch (Exception ex)
-            {
-                Alert.Exception(ex);
-            }
-        }
+            => await Alert.SafeExecuteAsync(() => vm.AbortAsync(), "aborting multi-run job");
 
         private void SkipWait(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                vm.SkipWait();
-            }
-            catch (Exception ex)
-            {
-                Alert.Exception(ex);
-            }
-        }
+            => Alert.SafeExecute(() => vm.SkipWait(), "skipping wait");
 
         private void ChangeOptions(object sender, RoutedEventArgs e) => mainWindow.EditJob(vm.Job);
 
@@ -140,20 +86,11 @@ namespace OpenBullet2.Native.Views.Pages
             => new MainDialog(new ChangeBotsDialog(this, vm.Job.Bots), "Change bots").ShowDialog();
 
         public async Task ChangeBots(int newValue)
-        {
-            try
-            {
-                await vm.ChangeBotsAsync(newValue);
-            }
-            catch (Exception ex)
-            {
-                Alert.Exception(ex);
-            }
-        }
+            => await Alert.SafeExecuteAsync(() => vm.ChangeBotsAsync(newValue), "changing bot count");
 
         private void ResetSkip(object sender, RoutedEventArgs e)
         {
-            try
+            Alert.SafeExecute(() =>
             {
                 var dialog = new ConfirmationDialog(
                     "Reset Skip Confirmation",
@@ -165,11 +102,7 @@ namespace OpenBullet2.Native.Views.Pages
                 {
                     vm.ResetSkip();
                 }
-            }
-            catch (Exception ex)
-            {
-                Alert.Exception(ex);
-            }
+            }, "resetting skip count");
         }
 
         private void CopySelectedHits(object sender, RoutedEventArgs e)

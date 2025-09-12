@@ -22,18 +22,16 @@
         <!-- Modern Toolbar -->
         <Border Grid.Row="0" Background="#FF333333" CornerRadius="8" Padding="16,12" Margin="0,0,0,16">
             <StackPanel Orientation="Horizontal">
-            <Button Click="ToggleUsings" 
+            <Button Click="ToggleUsings"
                         Style="{StaticResource StyledPrimaryButton}"
-                        Padding="12,8"
                         Margin="0,0,8,0">
                 <StackPanel Orientation="Horizontal">
                         <iconPacks:PackIconRadixIcons Kind="ActivityLog" Width="16" Height="16"/>
                         <TextBlock VerticalAlignment="Center" Margin="8,0,0,0" FontWeight="SemiBold">Toggle Usings</TextBlock>
                 </StackPanel>
             </Button>
-            <Button Click="ToggleStartup" 
-                        Style="{StaticResource StyledPrimaryButton}"
-                        Padding="12,8">
+            <Button Click="ToggleStartup"
+                        Style="{StaticResource StyledPrimaryButton}">
                 <StackPanel Orientation="Horizontal">
                         <iconPacks:PackIconRadixIcons Kind="Code" Width="16" Height="16"/>
                         <TextBlock VerticalAlignment="Center" Margin="8,0,0,0" FontWeight="SemiBold">Toggle Startup LoliCode</TextBlock>

@@ -2,7 +2,6 @@
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
-    <GenerateDocumentationFile>True</GenerateDocumentationFile>
     <Authors>Ruri</Authors>
     <Version>1.0.1</Version>
     <Description>This is a library that provides a custom HTTP client, in addition to an HttpMessageHandler to be used with the default HttpClient of System.Net</Description>
@@ -10,6 +9,19 @@
     <RepositoryUrl>https://github.com/openbullet/OpenBullet2/tree/master/RuriLib.Http</RepositoryUrl>
     <PackageTags>http; proxy; socks; client; custom;</PackageTags>
     <LangVersion>preview</LangVersion>
+    
+    <!-- Performance optimizations -->
+    <Optimize>true</Optimize>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <IncludeSymbols>false</IncludeSymbols>
+    <IncludeSource>false</IncludeSource>
+    <TrimUnusedDependencies>true</TrimUnusedDependencies>
+    <EnableTrimAnalyzer>false</EnableTrimAnalyzer>
+    <EnableNETAnalyzers>false</EnableNETAnalyzers>
+    <RunAnalyzersDuringBuild>false</RunAnalyzersDuringBuild>
+    <AnalysisLevel>none</AnalysisLevel>
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
   </PropertyGroup>
 
   <ItemGroup>

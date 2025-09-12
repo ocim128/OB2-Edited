@@ -10,7 +10,7 @@ using OpenBullet2.Native.Infrastructure.DependencyInjection;
 
 namespace OpenBullet2.Native.ViewModels;
 
-public class ConfigStackerViewModel : ViewModelBase
+    public class ConfigStackerViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
 {
     private readonly ConfigService configService;
 
@@ -560,7 +560,7 @@ public class ConfigStackerViewModel : ViewModelBase
     }
 }
 
-public class BlockViewModel(BlockInstance block) : ViewModelBase
+public class BlockViewModel(BlockInstance block) : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
 {
     public BlockInstance Block { get; init; } = block;
 

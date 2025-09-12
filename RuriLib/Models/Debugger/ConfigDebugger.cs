@@ -67,9 +67,6 @@ public partial class ConfigDebugger : IDisposable
     // Performance optimization: Cache frequently used objects
     private readonly object _statusLock = new();
     private readonly StringBuilder _logBuilder = new(1024); // Reusable StringBuilder
-    private Script _cachedScript;
-    private Script _cachedStartupScript;
-    private bool _scriptsBuilt;
 
     public ConfigDebugger(Config config, DebuggerOptions options = null, BotLogger logger = null)
     {
@@ -81,8 +78,23 @@ public partial class ConfigDebugger : IDisposable
 
     public async Task Run()
     {
-        // Performance: Build scripts only once and cache them
-        await BuildScriptsIfNeeded().ConfigureAwait(false);
+        // Build scripts
+        if (Config.Mode is ConfigMode.Stack or ConfigMode.LoliCode)
+        {
+            Config.CSharpScript = Config.Mode == ConfigMode.Stack
+                ? Stack2CSharpTranspiler.Transpile(Config.Stack, Config.Settings, Options.StepByStep)
+                : Loli2CSharpTranspiler.Transpile(Config.LoliCodeScript, Config.Settings, Options.StepByStep);
+
+            Config.StartupCSharpScript = Loli2CSharpTranspiler.Transpile(Config.StartupLoliCodeScript, Config.Settings, Options.StepByStep);
+        }
+
+        var scriptBuilder = new ScriptBuilder();
+        var script = scriptBuilder.Build(Config.CSharpScript, Config.Settings.ScriptSettings, PluginRepo);
+        Script startupScript = null;
+        if (!string.IsNullOrWhiteSpace(Config.StartupCSharpScript))
+        {
+            startupScript = scriptBuilder.Build(Config.StartupCSharpScript, Config.Settings.ScriptSettings, PluginRepo);
+        }
 
         if (Options.UseProxy && !Options.TestProxy.Contains(':'))
         {
@@ -94,20 +106,6 @@ public partial class ConfigDebugger : IDisposable
             Logger.Clear();
         }
 
-        // Close any previously opened browsers
-        if (_lastPuppeteerBrowser != null)
-        {
-            await _lastPuppeteerBrowser.CloseAsync().ConfigureAwait(false);
-            await _lastPuppeteerBrowser.DisposeAsync();
-            _lastPuppeteerBrowser = null;
-        }
-
-        if (_lastSeleniumBrowser != null)
-        {
-            _lastSeleniumBrowser.Quit();
-            _lastSeleniumBrowser.Dispose();
-            _lastSeleniumBrowser = null;
-        }
 
         Options.Variables.Clear();
         ChangeStatus(ConfigDebuggerStatus.Running);
@@ -161,9 +159,7 @@ public partial class ConfigDebugger : IDisposable
         _data.AsyncLocker = new();
         dynamic globals = new ExpandoObject();
 
-        // Use cached scripts for better performance
-        var script = _cachedScript;
-        var startupScript = _cachedStartupScript;
+        // Scripts are already built above
 
         // Optimized slice logging with single enumeration and reusable StringBuilder
         var variables = dataLine.GetVariables().ToList();
@@ -223,8 +219,6 @@ public partial class ConfigDebugger : IDisposable
             sw.Start();
             ChangeStatus(ConfigDebuggerStatus.Running);
 
-            // Build scripts if needed (cached for performance)
-            await BuildScriptsIfNeeded();
 
             // If the startup script is not empty, execute it
             if (!string.IsNullOrWhiteSpace(Config.StartupCSharpScript))
@@ -242,11 +236,11 @@ public partial class ConfigDebugger : IDisposable
 
                 Logger.Log("Executing startup script...");
                 var startupGlobals = new ScriptGlobals(startupData, globals);
-                _ = await _cachedStartupScript.RunAsync(startupGlobals, null, _cts.Token).ConfigureAwait(false);
+                _ = await startupScript.RunAsync(startupGlobals, null, _cts.Token).ConfigureAwait(false);
                 Logger.Log("Executing main script...");
             }
 
-            var state = await _cachedScript.RunAsync(scriptGlobals, null, _cts.Token).ConfigureAwait(false);
+            var state = await script.RunAsync(scriptGlobals, null, _cts.Token).ConfigureAwait(false);
 
             // Optimized variable processing with early filtering
             var markedForCapture = _data.MarkedForCapture;
@@ -292,72 +286,11 @@ public partial class ConfigDebugger : IDisposable
         {
             _data.STATUS = "ERROR";
 
-            // Enhanced error handling with detailed verbose output, especially for compilation errors
-            if (ex.GetType().Name.Contains("CompilationError"))
+            // Simplified error handling
+            Logger.Log($"❌ {ex.GetType().Name}: {ex.Message}", LogColors.Tomato);
+            if (RuriLibSettings.RuriLibSettings.GeneralSettings.VerboseMode)
             {
-                var errorAlreadyLogged = false;
-                try
-                {
-                    var csharpScript = Config.CSharpScript;
-                    var lines = csharpScript.Split('\n');
-
-                    // Try to extract C# line number from error message ("(line,col)")
-                    var errorMatch = MyRegex().Match(ex.Message);
-                    if (errorMatch.Success && int.TryParse(errorMatch.Groups[1].Value, out var csharpLineNumber))
-                    {
-                        csharpLineNumber--; // Convert to 0-based index
-
-                        // Find closest LoliCode line comment (optimized search)
-                        var loliCodeLineNumber = FindLoliCodeLineNumber(lines, csharpLineNumber);
-
-                        if (loliCodeLineNumber > 0)
-                        {
-                            // Extract concise error (optimized)
-                            var conciseError = ExtractConciseError(ex.Message);
-                            Logger.Log($"❌ Compilation Error at Line {loliCodeLineNumber}: {conciseError}", LogColors.Tomato);
-
-                            // Log problematic LoliCode line (optimized)
-                            LogProblematicLoliCodeLine(loliCodeLineNumber);
-
-                            // Log surrounding C# code if verbose
-                            if (RuriLibSettings.RuriLibSettings.GeneralSettings.VerboseMode)
-                            {
-                                LogSurroundingCSharpCode(lines, csharpLineNumber);
-                            }
-
-                            errorAlreadyLogged = true;
-                        }
-                    }
-
-                    // Fallback to simple error reporting if detailed mapping was not possible
-                    if (!errorAlreadyLogged)
-                    {
-                        Logger.Log($"❌ Compilation Error: {ex.Message}", LogColors.Tomato);
-
-                        if (RuriLibSettings.RuriLibSettings.GeneralSettings.VerboseMode)
-                        {
-                            Logger.Log("📝 Generated C# code:", LogColors.Gray);
-                            for (var i = 0; i < lines.Length; i++)
-                            {
-                                Logger.Log($"{i + 1:D3}: {lines[i].TrimEnd()}", LogColors.Gray);
-                            }
-                        }
-                    }
-                }
-                catch
-                {
-                    // Final fallback if everything else failed
-                    Logger.Log($"❌ Compilation Error: {ex.Message}", LogColors.Tomato);
-                }
-            }
-            else
-            {
-                // Non-compilation errors
-                Logger.Log($"❌ {ex.GetType().Name}: {ex.Message}", LogColors.Tomato);
-                if (RuriLibSettings.RuriLibSettings.GeneralSettings.VerboseMode)
-                {
-                    Logger.Log(ex.StackTrace ?? string.Empty, LogColors.Gray);
-                }
+                Logger.Log(ex.StackTrace ?? string.Empty, LogColors.Gray);
             }
 
             ChangeStatus(ConfigDebuggerStatus.Idle);
@@ -377,7 +310,7 @@ public partial class ConfigDebugger : IDisposable
 
             // Dispose stuff in data.Objects
             // We only want to dispose of general objects, not browser objects that are managed by the debugger itself
-            _data.DisposeObjectsExcept(["httpClient", "ironPyEngine", "puppeteer", "puppeteerPage", "puppeteerFrame", "selenium", "seleniumDriver", "playwright", "playwrightPage", "playwrightInstance"]);
+            _data.DisposeObjectsExcept(["ironPyEngine", "puppeteer", "puppeteerPage", "puppeteerFrame", "selenium", "seleniumDriver", "playwright", "playwrightPage", "playwrightInstance"]);
 
             // Dispose resources - fixed: use ToList() to avoid modification during iteration
             foreach (var resource in resources.Values.OfType<IDisposable>().ToList())
@@ -409,37 +342,6 @@ public partial class ConfigDebugger : IDisposable
         // GC.SuppressFinalize(this);
     }
 
-    /// <summary>
-    /// Builds and caches scripts if not already built for performance optimization.
-    /// </summary>
-    private async Task BuildScriptsIfNeeded()
-    {
-        if (_scriptsBuilt) return;
-
-        await Task.Run(() =>
-        {
-            // Build the C# script if in Stack or LoliCode mode
-            if (Config.Mode is ConfigMode.Stack or ConfigMode.LoliCode)
-            {
-                Config.CSharpScript = Config.Mode == ConfigMode.Stack
-                    ? Stack2CSharpTranspiler.Transpile(Config.Stack, Config.Settings, Options.StepByStep)
-                    : Loli2CSharpTranspiler.Transpile(Config.LoliCodeScript, Config.Settings, Options.StepByStep);
-
-                // Stacker is not currently available for the startup phase
-                Config.StartupCSharpScript = Loli2CSharpTranspiler.Transpile(Config.StartupLoliCodeScript, Config.Settings, Options.StepByStep);
-            }
-
-            var scriptBuilder = new ScriptBuilder();
-            _cachedScript = scriptBuilder.Build(Config.CSharpScript, Config.Settings.ScriptSettings, PluginRepo);
-
-            if (!string.IsNullOrWhiteSpace(Config.StartupCSharpScript))
-            {
-                _cachedStartupScript = scriptBuilder.Build(Config.StartupCSharpScript, Config.Settings.ScriptSettings, PluginRepo);
-            }
-
-            _scriptsBuilt = true;
-        }).ConfigureAwait(false);
-    }
 
     /// <summary>
     /// Thread-safe status change with performance optimization.
@@ -488,93 +390,15 @@ public partial class ConfigDebugger : IDisposable
             _stepper.WaitingForStep -= OnWaitingForStep;
         }
 
-        // Fixed: Always dispose browsers to prevent memory leaks
-        try
-        {
-            if (_lastPuppeteerBrowser != null)
-            {
-                _ = _lastPuppeteerBrowser.CloseAsync().ConfigureAwait(false);
-                _ = _lastPuppeteerBrowser.DisposeAsync();
-            }
-            _lastSeleniumBrowser?.Quit();
-            _lastSeleniumBrowser?.Dispose();
-            if (_lastPlaywrightBrowser != null)
-            {
-                _ = _lastPlaywrightBrowser.CloseAsync().ConfigureAwait(false);
-                _lastPlaywrightBrowser = null;
-            }
-            _lastPlaywrightInstance?.Dispose();
-        }
-        catch (Exception ex)
-        {
-            Logger.Log($"Error disposing browsers: {ex.Message}", LogColors.Tomato);
-        }
-        finally
-        {
-            _lastPuppeteerBrowser = null;
-            _lastSeleniumBrowser = null;
-        }
+        // Dispose browsers
+        _lastPuppeteerBrowser?.CloseAsync().ConfigureAwait(false);
+        _lastPuppeteerBrowser?.DisposeAsync();
+        _lastSeleniumBrowser?.Quit();
+        _lastSeleniumBrowser?.Dispose();
+        _lastPlaywrightBrowser?.CloseAsync().ConfigureAwait(false);
+        _lastPlaywrightInstance?.Dispose();
 
         GC.SuppressFinalize(this);
     }
 
-    [System.Text.RegularExpressions.GeneratedRegex(@"\((\d+),\d+\)")]
-    private static partial System.Text.RegularExpressions.Regex MyRegex();
-    [System.Text.RegularExpressions.GeneratedRegex(@"// LoliCode line (\d+):")]
-    private static partial System.Text.RegularExpressions.Regex MyRegex1();
-
-    // Optimized helper methods for error handling
-    private int FindLoliCodeLineNumber(string[] lines, int csharpLineNumber)
-    {
-        for (var i = Math.Min(csharpLineNumber, lines.Length - 1); i >= 0; i--)
-        {
-            var commentMatch = MyRegex1().Match(lines[i]);
-            if (commentMatch.Success && int.TryParse(commentMatch.Groups[1].Value, out var loliCodeLineNumber))
-            {
-                return loliCodeLineNumber;
-            }
-        }
-        return -1;
-    }
-
-    private static string ExtractConciseError(string message)
-    {
-        var errorIndex = message.IndexOf("error CS", StringComparison.Ordinal);
-        if (errorIndex >= 0)
-        {
-            return message[errorIndex..];
-        }
-
-        var colonIndex = message.LastIndexOf(':');
-        return colonIndex >= 0 ? message[(colonIndex + 1)..].Trim() : message;
-    }
-
-    private void LogProblematicLoliCodeLine(int loliCodeLineNumber)
-    {
-        if (string.IsNullOrEmpty(Config.LoliCodeScript) || loliCodeLineNumber <= 0)
-            return;
-
-        try
-        {
-            var loliCodeLines = Config.LoliCodeScript.Split('\n');
-            if (loliCodeLineNumber <= loliCodeLines.Length)
-            {
-                Logger.Log($"📍 {loliCodeLines[loliCodeLineNumber - 1].Trim()}", LogColors.Yellow);
-            }
-        }
-        catch { /* ignore failures */ }
-    }
-
-    private void LogSurroundingCSharpCode(string[] lines, int csharpLineNumber)
-    {
-        Logger.Log($"📝 Generated C# code around error (line {csharpLineNumber + 1}):", LogColors.Gray);
-        var start = Math.Max(0, csharpLineNumber - 2);
-        var end = Math.Min(lines.Length - 1, csharpLineNumber + 2);
-
-        for (var i = start; i <= end; i++)
-        {
-            var marker = i == csharpLineNumber ? ">>> " : "    ";
-            Logger.Log($"{marker}{i + 1:D3}: {lines[i].TrimEnd()}", LogColors.Gray);
-        }
-    }
 }

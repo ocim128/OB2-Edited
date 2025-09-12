@@ -33,7 +33,7 @@
 
         <Label Grid.Column="0" Grid.Row="0" Content="Location:" />
         <TextBox x:Name="locationTextbox" Grid.Column="1" Grid.Row="0" Margin="5" IsReadOnly="True" Style="{StaticResource MatchingTextBox}"/>
-        <iconPacks:PackIconRemixIcon Grid.Column="2" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Foreground="White" Kind="Folder2Fill" MouseDown="SearchInFolder" />
+        <ContentControl Grid.Column="2" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Content="{StaticResource Icon.FolderFill}" Foreground="White" MouseDown="SearchInFolder" />
         <Label Grid.Column="0" Grid.Row="1" Content="Name:" />
         <TextBox x:Name="nameTextbox" Grid.Column="1" Grid.Row="1" Grid.ColumnSpan="2" Margin="5" Style="{StaticResource MatchingTextBox}"/>
         <Label Grid.Column="0" Grid.Row="2" Content="Type:" />

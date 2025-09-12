@@ -11,11 +11,12 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Windows.Data;
 using OpenBullet2.Native.Infrastructure.DependencyInjection;
 
 namespace OpenBullet2.Native.ViewModels;
 
-public class ProxiesViewModel : ViewModelBase
+    public class ProxiesViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
 {
     private ObservableCollection<ProxyGroupEntity> proxyGroupsCollection;
     private ObservableCollection<ProxyEntity> proxiesCollection;
@@ -56,11 +57,90 @@ public class ProxiesViewModel : ViewModelBase
         }
     }
 
-    public int Total => ProxiesCollection.Count;
-    public int Working => ProxiesCollection.Count(static p => p.Status == ProxyWorkingStatus.Working);
-    public int NotWorking => ProxiesCollection.Count(static p => p.Status == ProxyWorkingStatus.NotWorking);
+    public int Total => ((CollectionView)CollectionViewSource.GetDefaultView(ProxiesCollection)).Count;
+    public int Working => ((CollectionView)CollectionViewSource.GetDefaultView(ProxiesCollection)).Cast<ProxyEntity>().Count(static p => p.Status == ProxyWorkingStatus.Working);
+    public int NotWorking => ((CollectionView)CollectionViewSource.GetDefaultView(ProxiesCollection)).Cast<ProxyEntity>().Count(static p => p.Status == ProxyWorkingStatus.NotWorking);
     public bool GroupIsValid => SelectedGroup != allGroup;
     public ProxyGroupEntity SelectedGroup { get; private set; }
+
+    private string searchString = string.Empty;
+    public string SearchString
+    {
+        get => searchString;
+        set
+        {
+            searchString = value;
+            OnPropertyChanged();
+            CollectionViewSource.GetDefaultView(ProxiesCollection).Refresh();
+            OnPropertyChanged(nameof(Total));
+        }
+    }
+
+    public IEnumerable<string> ProxyTypes
+    {
+        get
+        {
+            return new string[] { "All" }.Concat(
+                ProxiesCollection.Select(p => p.Type.ToString()).Distinct().OrderBy(t => t));
+        }
+    }
+
+    private string typeFilter = "All";
+    public string TypeFilter
+    {
+        get => typeFilter;
+        set
+        {
+            typeFilter = value;
+            OnPropertyChanged();
+            CollectionViewSource.GetDefaultView(ProxiesCollection).Refresh();
+            OnPropertyChanged(nameof(Total));
+        }
+    }
+
+    public IEnumerable<string> Countries
+    {
+        get
+        {
+            return new string[] { "All" }.Concat(
+                ProxiesCollection.Select(p => p.Country).Where(c => !string.IsNullOrEmpty(c)).Distinct().OrderBy(c => c));
+        }
+    }
+
+    private string countryFilter = "All";
+    public string CountryFilter
+    {
+        get => countryFilter;
+        set
+        {
+            countryFilter = value;
+            OnPropertyChanged();
+            CollectionViewSource.GetDefaultView(ProxiesCollection).Refresh();
+            OnPropertyChanged(nameof(Total));
+        }
+    }
+
+    public IEnumerable<string> Statuses
+    {
+        get
+        {
+            return new string[] { "All" }.Concat(
+                ProxiesCollection.Select(p => p.Status.ToString()).Distinct().OrderBy(s => s));
+        }
+    }
+
+    private string statusFilter = "All";
+    public string StatusFilter
+    {
+        get => statusFilter;
+        set
+        {
+            statusFilter = value;
+            OnPropertyChanged();
+            CollectionViewSource.GetDefaultView(ProxiesCollection).Refresh();
+            OnPropertyChanged(nameof(Total));
+        }
+    }
 
     public ProxiesViewModel()
     {
@@ -93,6 +173,28 @@ public class ProxiesViewModel : ViewModelBase
         await RefreshListAsync();
     }
 
+    public void HookFilters()
+    {
+        var view = (CollectionView)CollectionViewSource.GetDefaultView(ProxiesCollection);
+        view.Filter = ProxiesFilter;
+    }
+
+    private bool ProxiesFilter(object item)
+    {
+        var proxy = item as ProxyEntity;
+        
+        var searchOk = string.IsNullOrEmpty(searchString) || 
+                       proxy.Host.Contains(searchString, StringComparison.OrdinalIgnoreCase) ||
+                       proxy.Username.Contains(searchString, StringComparison.OrdinalIgnoreCase) ||
+                       proxy.Country.Contains(searchString, StringComparison.OrdinalIgnoreCase);
+        
+        var typeOk = typeFilter == "All" || proxy.Type.ToString() == typeFilter;
+        var countryOk = countryFilter == "All" || proxy.Country == countryFilter;
+        var statusOk = statusFilter == "All" || proxy.Status.ToString() == statusFilter;
+
+        return searchOk && typeOk && countryOk && statusOk;
+    }
+
     public async Task RefreshListAsync()
     {
         var items = SelectedGroup == allGroup
@@ -103,6 +205,10 @@ public class ProxiesViewModel : ViewModelBase
         OnPropertyChanged(nameof(Total));
         OnPropertyChanged(nameof(Working));
         OnPropertyChanged(nameof(NotWorking));
+        OnPropertyChanged(nameof(ProxyTypes));
+        OnPropertyChanged(nameof(Countries));
+        OnPropertyChanged(nameof(Statuses));
+        HookFilters();
     }
 
     public Task AddGroupAsync(ProxyGroupEntity group)

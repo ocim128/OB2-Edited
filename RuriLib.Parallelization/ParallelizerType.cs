@@ -11,11 +11,6 @@ public enum ParallelizerType
     TaskBased,
 
     /// <summary>
-    /// Uses threads to parallelize work.
-    /// </summary>
-    ThreadBased,
-
-    /// <summary>
     /// Uses Parallel.ForEachAsync to parallelize work.
     /// </summary>
     ParallelBased

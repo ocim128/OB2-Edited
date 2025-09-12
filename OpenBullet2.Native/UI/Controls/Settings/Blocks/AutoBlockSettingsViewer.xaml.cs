@@ -161,7 +161,7 @@ namespace OpenBullet2.Native.Controls
         }
     }
 
-    public class BlockSettingsViewerViewModel : ViewModelBase
+    public class BlockSettingsViewerViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
     {
         public BlockViewModel BlockVM { get; init; }
         public BlockInstance Block => BlockVM.Block;

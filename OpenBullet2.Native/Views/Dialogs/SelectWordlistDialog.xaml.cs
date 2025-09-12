@@ -38,16 +38,7 @@ namespace OpenBullet2.Native.Views.Dialogs
             InitializeComponent();
         }
 
-        private void UpdateSearch(object sender, KeyEventArgs e)
-        {
-            if (e.Key == Key.Enter)
-            {
-                vm.SearchString = filterTextbox.Text;
-            }
-        }
-
-        private void Search(object sender, RoutedEventArgs e) => vm.SearchString = filterTextbox.Text;
-
+        
         private void ItemHovered(object sender, SelectionChangedEventArgs e)
         {
             var items = e.AddedItems as IList<object>;
@@ -104,7 +95,7 @@ namespace OpenBullet2.Native.Views.Dialogs
         private void ShowNoWordlistSelectedError() => Alert.Error("No wordlist selected", "Please select a wordlist first!");
     }
 
-    public class SelectWordlistDialogViewModel : ViewModelBase
+    public class SelectWordlistDialogViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
     {
         private readonly WordlistsViewModel wordlistsViewModel;
         private readonly IWordlistRepository wordlistRepo;

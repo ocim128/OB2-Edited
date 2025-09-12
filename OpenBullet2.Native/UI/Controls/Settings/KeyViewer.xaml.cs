@@ -1,4 +1,4 @@
-﻿using OpenBullet2.Native.ViewModels;
+using OpenBullet2.Native.ViewModels;
 using RuriLib.Models.Blocks.Custom.Keycheck;
 using RuriLib.Models.Blocks.Settings;
 using RuriLib.Models.Conditions.Comparisons;
@@ -50,7 +50,7 @@ namespace OpenBullet2.Native.Controls
             };
     }
 
-    public class KeyViewerViewModel : ViewModelBase
+    public class KeyViewerViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
     {
         private readonly Key key;
 

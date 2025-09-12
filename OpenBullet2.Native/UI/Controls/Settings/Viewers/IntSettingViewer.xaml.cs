@@ -1,4 +1,4 @@
-﻿using OpenBullet2.Native.ViewModels;
+using OpenBullet2.Native.ViewModels;
 using RuriLib.Models.Blocks.Settings;
 using System;
 using System.Collections.Generic;
@@ -10,21 +10,21 @@ namespace OpenBullet2.Native.Controls
     /// <summary>
     /// Interaction logic for BlockSettingViewer.xaml
     /// </summary>
-    public partial class BoolSettingViewer : UserControl
+    public partial class IntSettingViewer : UserControl
     {
-        private BoolSettingViewerViewModel vm;
+        private IntSettingViewerViewModel vm;
 
         public BlockSetting Setting
         {
             get => vm?.Setting;
             set
             {
-                if (value.FixedSetting is not BoolSetting)
+                if (value.FixedSetting is not IntSetting)
                 {
                     throw new Exception("Invalid setting type for this UC");
                 }
 
-                vm = new BoolSettingViewerViewModel(value);
+                vm = new IntSettingViewerViewModel(value);
                 DataContext = vm;
 
                 tabControl.SelectedIndex = vm.Mode switch
@@ -43,7 +43,7 @@ namespace OpenBullet2.Native.Controls
             }
         }
 
-        public BoolSettingViewer()
+        public IntSettingViewer()
         {
             InitializeComponent();
         }
@@ -65,7 +65,7 @@ namespace OpenBullet2.Native.Controls
         }
     }
 
-    public class BoolSettingViewerViewModel : ViewModelBase
+    public class IntSettingViewerViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
     {
         public BlockSetting Setting { get; init; }
 
@@ -95,18 +95,18 @@ namespace OpenBullet2.Native.Controls
             }
         }
 
-        public bool Value
+        public int Value
         {
-            get => (Setting.FixedSetting as BoolSetting).Value;
+            get => (Setting.FixedSetting as IntSetting).Value;
             set
             {
-                var s = Setting.FixedSetting as BoolSetting;
+                var s = Setting.FixedSetting as IntSetting;
                 s.Value = value;
                 OnPropertyChanged();
             }
         }
 
-        public BoolSettingViewerViewModel(BlockSetting setting)
+        public IntSettingViewerViewModel(BlockSetting setting)
         {
             Setting = setting;
         }

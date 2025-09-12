@@ -1,4 +1,4 @@
-﻿using OpenBullet2.Native.ViewModels;
+using OpenBullet2.Native.ViewModels;
 using RuriLib.Models.Blocks.Settings;
 using System;
 using System.Collections.Generic;
@@ -10,21 +10,21 @@ namespace OpenBullet2.Native.Controls
     /// <summary>
     /// Interaction logic for BlockSettingViewer.xaml
     /// </summary>
-    public partial class FloatSettingViewer : UserControl
+    public partial class BoolSettingViewer : UserControl
     {
-        private FloatSettingViewerViewModel vm;
+        private BoolSettingViewerViewModel vm;
 
         public BlockSetting Setting
         {
             get => vm?.Setting;
             set
             {
-                if (value.FixedSetting is not FloatSetting)
+                if (value.FixedSetting is not BoolSetting)
                 {
                     throw new Exception("Invalid setting type for this UC");
                 }
 
-                vm = new FloatSettingViewerViewModel(value);
+                vm = new BoolSettingViewerViewModel(value);
                 DataContext = vm;
 
                 tabControl.SelectedIndex = vm.Mode switch
@@ -43,7 +43,7 @@ namespace OpenBullet2.Native.Controls
             }
         }
 
-        public FloatSettingViewer()
+        public BoolSettingViewer()
         {
             InitializeComponent();
         }
@@ -65,7 +65,7 @@ namespace OpenBullet2.Native.Controls
         }
     }
 
-    public class FloatSettingViewerViewModel : ViewModelBase
+    public class BoolSettingViewerViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
     {
         public BlockSetting Setting { get; init; }
 
@@ -95,18 +95,18 @@ namespace OpenBullet2.Native.Controls
             }
         }
 
-        public float Value
+        public bool Value
         {
-            get => (Setting.FixedSetting as FloatSetting).Value;
+            get => (Setting.FixedSetting as BoolSetting).Value;
             set
             {
-                var s = Setting.FixedSetting as FloatSetting;
+                var s = Setting.FixedSetting as BoolSetting;
                 s.Value = value;
                 OnPropertyChanged();
             }
         }
 
-        public FloatSettingViewerViewModel(BlockSetting setting)
+        public BoolSettingViewerViewModel(BlockSetting setting)
         {
             Setting = setting;
         }

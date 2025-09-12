@@ -8,7 +8,19 @@
     <PackageTags>proxy; proxies; http; socks; socks4; socks4a; socks5; tcpclient;</PackageTags>
     <Version>1.0.2</Version>
     <Authors>Ruri</Authors>
-    <GenerateDocumentationFile>True</GenerateDocumentationFile>
+    
+    <!-- Performance optimizations -->
+    <Optimize>true</Optimize>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <IncludeSymbols>false</IncludeSymbols>
+    <IncludeSource>false</IncludeSource>
+    <TrimUnusedDependencies>true</TrimUnusedDependencies>
+    <EnableTrimAnalyzer>false</EnableTrimAnalyzer>
+    <EnableNETAnalyzers>false</EnableNETAnalyzers>
+    <RunAnalyzersDuringBuild>false</RunAnalyzersDuringBuild>
+    <AnalysisLevel>none</AnalysisLevel>
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
   </PropertyGroup>
 
 </Project>

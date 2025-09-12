@@ -10,6 +10,7 @@ using OpenBullet2.Native.Views.Pages;
 using RuriLib.Models.Configs;
 using RuriLib.Models.Jobs;
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
@@ -23,6 +24,7 @@ using System.Windows.Input;
 using Newtonsoft.Json;
 using System.Media;
 using System.Windows.Threading;
+using Media = System.Windows.Media;
 
 namespace OpenBullet2.Native;
 
@@ -59,6 +61,28 @@ public partial class MainWindow : MetroWindow
 
     public Page CurrentPage { get; private set; }
 
+    // Centralized navigation mapping to eliminate duplication
+    private static readonly Dictionary<string, MainWindowPage> MenuNavigationMap = new()
+    {
+        ["menuOptionHome"] = MainWindowPage.Home,
+        ["menuOptionJobs"] = MainWindowPage.Jobs,
+        ["menuOptionMonitor"] = MainWindowPage.Monitor,
+        ["menuOptionProxies"] = MainWindowPage.Proxies,
+        ["menuOptionWordlists"] = MainWindowPage.Wordlists,
+        ["menuOptionConfigs"] = MainWindowPage.Configs,
+        ["menuOptionHits"] = MainWindowPage.Hits,
+        ["menuOptionPlugins"] = MainWindowPage.Plugins,
+        ["menuOptionSettings"] = MainWindowPage.OBSettings,
+        ["menuOptionRLSettings"] = MainWindowPage.RLSettings,
+        ["menuOptionAbout"] = MainWindowPage.About,
+        ["menuOptionMetadata"] = MainWindowPage.ConfigMetadata,
+        ["menuOptionReadme"] = MainWindowPage.ConfigReadme,
+        ["menuOptionStacker"] = MainWindowPage.ConfigStacker,
+        ["menuOptionLoliCode"] = MainWindowPage.ConfigLoliCode,
+        ["menuOptionConfigSettings"] = MainWindowPage.ConfigSettings,
+        ["menuOptionCSharpCode"] = MainWindowPage.ConfigCSharpCode
+    };
+
     // Public property to access the config editor page
     public ConfigEditor ConfigEditorPage => configEditorPage;
 
@@ -77,6 +101,7 @@ public partial class MainWindow : MetroWindow
         Loaded += OnWindowLoaded;
         SizeChanged += OnWindowSizeChanged;
         StateChanged += OnWindowStateChanged;
+        LocationChanged += OnWindowLocationChanged;
 
         // Command Bindings for Configs
         _ = CommandBindings.Add(new CommandBinding(CustomCommands.NewConfig, OnNewConfigExecuted, OnCanExecuteConfigCommand));
@@ -120,7 +145,7 @@ public partial class MainWindow : MetroWindow
         // Lazy initialization - pages created only when needed
         // This reduces initial memory usage and improves startup time
 
-        Title = "OpenBullet 2 - 0.3.3.6 [akunlama MOD]";
+        Title = "OpenBullet 2 - 0.3.3.9 [akunlama MOD]";
 
         // Initialize HotkeyService
         var hotkeyService = ServiceLocator.GetService<HotkeyService>();
@@ -136,21 +161,63 @@ public partial class MainWindow : MetroWindow
 
     private void OnWindowLoaded(object sender, RoutedEventArgs e)
     {
-        var workingArea = SystemParameters.WorkArea;
-        Width = Math.Min(1400, workingArea.Width * 0.9);
-        Height = Math.Min(900, workingArea.Height * 0.9);
-        Left = (workingArea.Width - Width) / 2;
-        Top = (workingArea.Height - Height) / 2;
+        var obSettingsService = ServiceLocator.GetService<OpenBulletSettingsService>();
+        var customizationSettings = obSettingsService.Settings.CustomizationSettings;
+
+        if (customizationSettings.RememberWindowState)
+        {
+            // Load saved window state
+            Width = Math.Max(MinWidth, customizationSettings.WindowWidth);
+            Height = Math.Max(MinHeight, customizationSettings.WindowHeight);
+
+            var workingArea = SystemParameters.WorkArea;
+
+            // Ensure window position is within screen bounds
+            Left = Math.Max(0, Math.Min(customizationSettings.WindowLeft, workingArea.Right - Width));
+            Top = Math.Max(0, Math.Min(customizationSettings.WindowTop, workingArea.Bottom - Height));
+
+            // Restore window state
+            WindowState = (WindowState)customizationSettings.WindowState;
+        }
+        else
+        {
+            // Use default sizing logic for new installations
+            var workingArea = SystemParameters.WorkArea;
+            var dpiScale = Media.VisualTreeHelper.GetDpi(this);
+
+            // Set desired window size
+            var baseWidth = 1000;
+            var baseHeight = 600;
+
+            // Set window size with better constraints
+            var maxWidth = workingArea.Width * 0.95;
+            var maxHeight = workingArea.Height * 0.95;
+
+            Width = Math.Max(MinWidth, Math.Min(baseWidth, maxWidth));
+            Height = Math.Max(MinHeight, Math.Min(baseHeight, maxHeight));
+
+            // Center window with better positioning
+            Left = Math.Max(0, (workingArea.Width - Width) / 2 + workingArea.Left);
+            Top = Math.Max(0, (workingArea.Height - Height) / 2 + workingArea.Top);
+
+            // Ensure window is fully visible on screen
+            if (Left + Width > workingArea.Right)
+                Left = workingArea.Right - Width;
+            if (Top + Height > workingArea.Bottom)
+                Top = workingArea.Bottom - Height;
+        }
     }
 
     private void OnWindowSizeChanged(object sender, SizeChangedEventArgs e)
     {
         UpdateConfigSubmenuPosition();
+        SaveWindowState();
     }
 
     private void OnWindowStateChanged(object sender, EventArgs e)
     {
         // Suspend/resume debugger updates during minimize/restore to improve performance
+        SaveWindowState();
         NotifyDebuggerWindowStateChanged(WindowState == WindowState.Minimized);
     }
 
@@ -169,6 +236,42 @@ public partial class MainWindow : MetroWindow
         {
             // Log error but don't crash the application
             System.Diagnostics.Debug.WriteLine($"Error notifying debugger of window state change: {ex.Message}");
+        }
+    }
+
+    private void OnWindowLocationChanged(object sender, EventArgs e)
+    {
+        SaveWindowState();
+    }
+
+    private void SaveWindowState()
+    {
+        try
+        {
+            var obSettingsService = ServiceLocator.GetService<OpenBulletSettingsService>();
+            var customizationSettings = obSettingsService.Settings.CustomizationSettings;
+
+            if (customizationSettings.RememberWindowState && WindowState != WindowState.Minimized)
+            {
+                // Only save size and position when not minimized
+                if (WindowState == WindowState.Normal)
+                {
+                    customizationSettings.WindowWidth = Width;
+                    customizationSettings.WindowHeight = Height;
+                    customizationSettings.WindowLeft = Left;
+                    customizationSettings.WindowTop = Top;
+                }
+
+                customizationSettings.WindowState = (int)WindowState;
+
+                // Save settings to disk
+                _ = Task.Run(() => obSettingsService.SaveAsync());
+            }
+        }
+        catch (Exception ex)
+        {
+            // Log error but don't crash the application
+            System.Diagnostics.Debug.WriteLine($"Error saving window state: {ex.Message}");
         }
     }
 
@@ -227,56 +330,38 @@ public partial class MainWindow : MetroWindow
 
     private void HandleOtherPageNavigation(MainWindowPage page)
     {
-        // Optimized page creation with immediate navigation
+        // Consolidated page navigation with consistent patterns
         switch (page)
         {
             case MainWindowPage.Home:
-                try
-                {
-                    homePage ??= new Home();
-                    ChangePage(homePage, menuOptionHome);
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Home page creation error: {ex.Message}");
-                    Alert.Exception(ex);
-                }
+                CreateAndNavigateToPage(() => new Home(), ref homePage, menuOptionHome);
                 break;
             case MainWindowPage.Monitor:
-                monitorPage ??= new();
-                ChangePage(monitorPage, menuOptionMonitor);
+                CreateAndNavigateToPage(() => new Monitor(), ref monitorPage, menuOptionMonitor);
                 break;
             case MainWindowPage.Proxies:
-                proxiesPage ??= new Proxies();
-                proxiesPage?.UpdateViewModel();
-                ChangePage(proxiesPage, menuOptionProxies);
+                CreateAndNavigateToPage(() => new Proxies(), ref proxiesPage, menuOptionProxies, updateViewModel: true);
                 break;
             case MainWindowPage.Wordlists:
-                wordlistsPage ??= new Wordlists();
-                ChangePage(wordlistsPage, menuOptionWordlists);
+                CreateAndNavigateToPage(() => new Wordlists(), ref wordlistsPage, menuOptionWordlists);
                 break;
             case MainWindowPage.Configs:
-                configsPage ??= new Configs();
-                configsPage?.UpdateViewModel();
-                ChangePage(configsPage, menuOptionConfigs);
+                CreateAndNavigateToPage(() => new Configs(), ref configsPage, menuOptionConfigs, updateViewModel: true);
                 break;
             case MainWindowPage.Hits:
-                hitsPage ??= new Hits();
-                hitsPage?.UpdateViewModel();
-                ChangePage(hitsPage, menuOptionHits);
+                CreateAndNavigateToPage(() => new Hits(), ref hitsPage, menuOptionHits, updateViewModel: true);
                 break;
             case MainWindowPage.Plugins:
-                pluginsPage ??= new Plugins();
-                ChangePage(pluginsPage, menuOptionPlugins);
+                CreateAndNavigateToPage(() => new Plugins(), ref pluginsPage, menuOptionPlugins);
                 break;
             case MainWindowPage.OBSettings:
-                obSettingsPage ??= new OBSettings();
-                ChangePage(obSettingsPage, menuOptionSettings);
+                CreateAndNavigateToPage(() => new OBSettings(), ref obSettingsPage, menuOptionSettings);
                 break;
             case MainWindowPage.RLSettings:
-                rlSettingsPage ??= new RLSettings();
-                ChangePage(rlSettingsPage, menuOptionRLSettings);
+                CreateAndNavigateToPage(() => new RLSettings(), ref rlSettingsPage, menuOptionRLSettings);
                 break;
+
+            // Config-related pages use separate methods for complex logic
             case MainWindowPage.About:
                 NavigateToAboutPage();
                 break;
@@ -298,9 +383,30 @@ public partial class MainWindow : MetroWindow
             case MainWindowPage.ConfigCSharpCode:
                 NavigateToConfigCSharpCodePage();
                 break;
+        }
+    }
 
-            default:
-                break;
+    // Helper method to consolidate repetitive page creation patterns
+    private void CreateAndNavigateToPage<T>(Func<T> pageFactory, ref T pageField, TextBlock menuLabel, bool updateViewModel = false)
+        where T : Page
+    {
+        try
+        {
+            pageField ??= pageFactory();
+
+            // Call UpdateViewModel if the page supports it and updateViewModel is true
+            if (updateViewModel)
+            {
+                var updateMethod = pageField?.GetType().GetMethod("UpdateViewModel", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+                updateMethod?.Invoke(pageField, null);
+            }
+
+            ChangePage(pageField, menuLabel);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"{typeof(T).Name} page creation error: {ex.Message}");
+            Alert.Exception(ex);
         }
     }
     private void NavigateToAboutPage()
@@ -406,28 +512,11 @@ public partial class MainWindow : MetroWindow
             return;
         }
 
-        var page = element?.Name switch
-        {
-            "menuOptionHome" => MainWindowPage.Home,
-            "menuOptionJobs" => MainWindowPage.Jobs,
-            "menuOptionMonitor" => MainWindowPage.Monitor,
-            "menuOptionProxies" => MainWindowPage.Proxies,
-            "menuOptionWordlists" => MainWindowPage.Wordlists,
-            "menuOptionConfigs" => MainWindowPage.Configs,
-            "menuOptionHits" => MainWindowPage.Hits,
-            "menuOptionPlugins" => MainWindowPage.Plugins,
-            "menuOptionSettings" => MainWindowPage.OBSettings,
-            "menuOptionRLSettings" => MainWindowPage.RLSettings,
-            "menuOptionAbout" => MainWindowPage.About,
-            "menuOptionMetadata" => MainWindowPage.ConfigMetadata,
-            "menuOptionReadme" => MainWindowPage.ConfigReadme,
-            "menuOptionStacker" => MainWindowPage.ConfigStacker,
-            "menuOptionLoliCode" => MainWindowPage.ConfigLoliCode,
-            "menuOptionConfigSettings" => MainWindowPage.ConfigSettings,
-            "menuOptionCSharpCode" => MainWindowPage.ConfigCSharpCode,
+        // Use centralized navigation mapping - eliminates code duplication
+        var page = MenuNavigationMap.TryGetValue(element?.Name ?? "", out var targetPage)
+            ? targetPage
+            : MainWindowPage.Home;
 
-            _ => MainWindowPage.Home
-        };
         NavigateTo(page);
     }
 
@@ -1365,7 +1454,7 @@ public partial class MainWindow : MetroWindow
     }
 }
 
-public class MainWindowViewModel : ViewModelBase
+public class MainWindowViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
 {
     private readonly JobManagerService jobManagerService;
     private readonly ConfigService configService;

@@ -75,11 +75,10 @@ public class ParallelBasedParallelizer<TInput, TOutput>(IEnumerable<TInput> work
     }
 
     /// <inheritdoc/>
-    public override Task ChangeDegreeOfParallelism(int newValue)
+    public async override Task ChangeDegreeOfParallelism(int newValue)
     {
-        base.ChangeDegreeOfParallelism(newValue).Wait();
+        await base.ChangeDegreeOfParallelism(newValue).ConfigureAwait(false);
         degreeOfParallelism = newValue;
-        return Task.CompletedTask;
     }
     #endregion
 

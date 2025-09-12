@@ -225,6 +225,73 @@
         <Setter Property="Height" Value="24" />
     </Style>
 
+    <!-- ========================================= -->
+    <!-- CENTRALIZED COLOR DEFINITIONS            -->
+    <!-- ========================================= -->
+    
+    <!-- Primary Blue Color -->
+    <SolidColorBrush x:Key="Icon.PrimaryBlue" Color="#3B82F6" />
+    <SolidColorBrush x:Key="Icon.SecondaryBlue" Color="#1E90FF" />
+    <SolidColorBrush x:Key="Icon.AccentGray" Color="#64748B" />
+    <SolidColorBrush x:Key="Icon.LightGray" Color="#94A3B8" />
+    
+    <!-- ========================================= -->
+    <!-- COMMON ICON + TEXT PATTERNS             -->
+    <!-- ========================================= -->
+    
+    <!-- Section Header with Icon Pattern -->
+    <Style x:Key="SectionHeader.WithIcon" TargetType="StackPanel">
+        <Setter Property="Orientation" Value="Horizontal" />
+        <Setter Property="Margin" Value="0,0,0,16" />
+    </Style>
+    
+    <!-- Section Header Icon Style -->
+    <Style x:Key="SectionHeader.Icon" TargetType="iconPacks:PackIconBoxIcons">
+        <Setter Property="Width" Value="24" />
+        <Setter Property="Height" Value="24" />
+        <Setter Property="Foreground" Value="{StaticResource Icon.SecondaryBlue}" />
+        <Setter Property="Margin" Value="0,0,12,0" />
+    </Style>
+    
+    <!-- Section Header Text Style -->
+    <Style x:Key="SectionHeader.Text" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="20" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="Foreground" Value="{StaticResource Icon.SecondaryBlue}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    
+    <!-- Dialog Header with Icon Pattern -->
+    <Style x:Key="DialogHeader.WithIcon" TargetType="StackPanel">
+        <Setter Property="Orientation" Value="Horizontal" />
+        <Setter Property="Margin" Value="0,0,0,28" />
+    </Style>
+    
+    <!-- Dialog Header Icon Style -->
+    <Style x:Key="DialogHeader.Icon" TargetType="ContentControl">
+        <Setter Property="Width" Value="28" />
+        <Setter Property="Height" Value="28" />
+        <Setter Property="Foreground" Value="{StaticResource Icon.PrimaryBlue}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Margin" Value="0,0,12,0" />
+    </Style>
+    
+    <!-- Button with Small Icon Pattern -->
+    <Style x:Key="Button.WithSmallIcon" TargetType="StackPanel">
+        <Setter Property="Orientation" Value="Horizontal" />
+    </Style>
+    
+    <!-- Small Button Icon Style -->
+    <Style x:Key="Button.SmallIcon" TargetType="iconPacks:PackIconBoxIcons">
+        <Setter Property="Width" Value="16" />
+        <Setter Property="Height" Value="16" />
+        <Setter Property="Margin" Value="0,0,6,0" />
+    </Style>
+    
+    <!-- ========================================= -->
+    <!-- ENHANCED ICON BUTTON STYLES             -->
+    <!-- ========================================= -->
+    
     <!-- Common Icon Combinations with Styles -->
     <Style x:Key="IconButton.Search" TargetType="Button" BasedOn="{StaticResource ModernButton}">
         <Setter Property="Content">
@@ -258,5 +325,82 @@
             </Setter.Value>
         </Setter>
     </Style>
+    
+    <!-- Success Button with Plus Icon -->
+    <Style x:Key="IconButton.AddSuccess" TargetType="Button">
+        <Setter Property="Background" Value="#10B981" />
+        <Setter Property="Foreground" Value="White" />
+        <Setter Property="BorderBrush" Value="#10B981" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Padding" Value="12,8" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Content">
+            <Setter.Value>
+                <StackPanel Style="{StaticResource Button.WithSmallIcon}">
+                    <iconPacks:PackIconBoxIcons Kind="RegularPlus" Style="{StaticResource Button.SmallIcon}" />
+                    <TextBlock VerticalAlignment="Center" Text="Simple" />
+                </StackPanel>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    
+    <!-- Success Button with Plus Icon for Regex -->
+    <Style x:Key="IconButton.AddRegexSuccess" TargetType="Button">
+        <Setter Property="Background" Value="#10B981" />
+        <Setter Property="Foreground" Value="White" />
+        <Setter Property="BorderBrush" Value="#10B981" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Padding" Value="12,8" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Content">
+            <Setter.Value>
+                <StackPanel Style="{StaticResource Button.WithSmallIcon}">
+                    <iconPacks:PackIconBoxIcons Kind="RegularPlus" Style="{StaticResource Button.SmallIcon}" />
+                    <TextBlock VerticalAlignment="Center" Text="Regex" />
+                </StackPanel>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    
+    <!-- ========================================= -->
+    <!-- SMART COLOR DEFINITIONS                  -->
+    <!-- ========================================= -->
+    
+    <!-- These can be used to replace hardcoded colors -->
+    <SolidColorBrush x:Key="Color.Primary" Color="#3B82F6" />
+    <SolidColorBrush x:Key="Color.Secondary" Color="#1E90FF" />
+    <SolidColorBrush x:Key="Color.Accent" Color="#64748B" />
+    <SolidColorBrush x:Key="Color.Light" Color="#94A3B8" />
+    <SolidColorBrush x:Key="Color.Success" Color="#10B981" />
+    <SolidColorBrush x:Key="Color.Warning" Color="#F59E0B" />
+    <SolidColorBrush x:Key="Color.Danger" Color="#EF4444" />
+    
+    <!-- Section Header Templates - Simplified -->
+    <DataTemplate x:Key="Template.SectionHeader.General">
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+            <iconPacks:PackIconBoxIcons Kind="RegularCog" Width="24" Height="24" 
+                                       Foreground="{StaticResource Icon.SecondaryBlue}" Margin="0,0,12,0"/>
+            <TextBlock Text="General Settings" FontSize="20" FontWeight="Bold" 
+                      Foreground="{StaticResource Icon.SecondaryBlue}" VerticalAlignment="Center"/>
+        </StackPanel>
+    </DataTemplate>
+    
+    <DataTemplate x:Key="Template.SectionHeader.Server">
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+            <iconPacks:PackIconBoxIcons Kind="RegularServer" Width="24" Height="24" 
+                                       Foreground="{StaticResource Icon.SecondaryBlue}" Margin="0,0,12,0"/>
+            <TextBlock Text="Proxy Settings" FontSize="20" FontWeight="Bold" 
+                      Foreground="{StaticResource Icon.SecondaryBlue}" VerticalAlignment="Center"/>
+        </StackPanel>
+    </DataTemplate>
+    
+    <DataTemplate x:Key="Template.SectionHeader.Data">
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+            <iconPacks:PackIconBoxIcons Kind="RegularData" Width="24" Height="24" 
+                                       Foreground="{StaticResource Icon.SecondaryBlue}" Margin="0,0,12,0"/>
+            <TextBlock Text="Data Settings" FontSize="20" FontWeight="Bold" 
+                      Foreground="{StaticResource Icon.SecondaryBlue}" VerticalAlignment="Center"/>
+        </StackPanel>
+    </DataTemplate>
 
 </ResourceDictionary>

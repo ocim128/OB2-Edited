@@ -45,15 +45,7 @@ public abstract class Parallelizer<TInput, TOutput> : IDisposable
     public float Progress
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get
-        {
-            var tot = totalAmount;
-            if (tot <= 0) return -1f;
-            // Use volatile read to avoid torn reads across threads
-            var proc = Volatile.Read(ref processed);
-            var value = (float)(proc + skip) / tot;
-            return value > 1f ? 1f : value;
-        }
+        get => totalAmount <= 0 ? -1f : Math.Min(1f, (float)(Volatile.Read(ref processed) + skip) / totalAmount);
     }
 
     /// <summary>
@@ -86,12 +78,9 @@ public abstract class Parallelizer<TInput, TOutput> : IDisposable
         {
             var cpm = CPM;
             var prog = Progress;
-            if (cpm <= 0 || prog < 0f) return DateTime.MaxValue;
-            var remaining = (double)totalAmount * (1d - prog);
-            var minutes = remaining / cpm;
-            return minutes < TimeSpan.MaxValue.TotalMinutes
-                ? StartTime + TimeSpan.FromMinutes(minutes)
-                : DateTime.MaxValue;
+            return cpm <= 0 || prog < 0f
+                ? DateTime.MaxValue
+                : StartTime + TimeSpan.FromMinutes(Math.Min(TimeSpan.MaxValue.TotalMinutes, (double)totalAmount * (1d - prog) / cpm));
         }
     }
 
@@ -282,16 +271,13 @@ public abstract class Parallelizer<TInput, TOutput> : IDisposable
         pauseToken = pauseTokenSource.Token;
 
         // Assign the task function
-        taskFunction = new Func<TInput, Task>(async item =>
+        taskFunction = async item =>
         {
-            if (softCTS.IsCancellationRequested)
-            {
-                return;
-            }
+            if (softCTS.IsCancellationRequested) return;
 
             try
             {
-                var workResult = await workFunction.Invoke(item, hardCTS.Token).ConfigureAwait(false);
+                var workResult = await workFunction(item, hardCTS.Token).ConfigureAwait(false);
                 OnNewResult(new ResultDetails<TInput, TOutput>(item, workResult));
                 hardCTS.Token.ThrowIfCancellationRequested();
             }
@@ -305,11 +291,10 @@ public abstract class Parallelizer<TInput, TOutput> : IDisposable
             }
             finally
             {
-                // Use TickCount64 to avoid 24.9-day wraparound issues
                 checkedTimestamps.Enqueue(Environment.TickCount64);
                 _ = Interlocked.Increment(ref processed);
             }
-        });
+        };
     }
     #endregion
 
@@ -328,8 +313,8 @@ public abstract class Parallelizer<TInput, TOutput> : IDisposable
         StartTime = DateTime.Now;
         EndTime = null;
 
-        // Clear the queue by dequeuing any existing items
-        while (checkedTimestamps.TryDequeue(out _)) { }
+        // Clear the queue efficiently
+        while (checkedTimestamps.TryDequeue(out _)) ;
 
         softCTS = new CancellationTokenSource();
         hardCTS = new CancellationTokenSource();
@@ -399,10 +384,9 @@ public abstract class Parallelizer<TInput, TOutput> : IDisposable
     /// <exception cref="RequiredStatusException"></exception>
     public virtual Task Abort()
     {
-        if (Status is not ParallelizerStatus.Running and not ParallelizerStatus.Paused and not ParallelizerStatus.Stopping
-            and not ParallelizerStatus.Pausing)
+        if (Status is not ParallelizerStatus.Running and not ParallelizerStatus.Paused and not ParallelizerStatus.Stopping)
         {
-            throw new RequiredStatusException([ParallelizerStatus.Running, ParallelizerStatus.Paused, ParallelizerStatus.Stopping, ParallelizerStatus.Pausing],
+            throw new RequiredStatusException([ParallelizerStatus.Running, ParallelizerStatus.Paused, ParallelizerStatus.Stopping],
             Status);
         }
 
@@ -458,10 +442,7 @@ public abstract class Parallelizer<TInput, TOutput> : IDisposable
     protected void UpdateCPM(long nowTicks)
     {
         // Attempt to update CPM without blocking; if another thread is updating, skip this tick
-        if (!Monitor.TryEnter(cpmLock))
-        {
-            return;
-        }
+        if (!Monitor.TryEnter(cpmLock)) return;
 
         try
         {
@@ -469,9 +450,7 @@ public abstract class Parallelizer<TInput, TOutput> : IDisposable
 
             // Dequeue timestamps older than the time window
             while (checkedTimestamps.TryPeek(out var timestamp) && nowTicks - timestamp >= windowMs)
-            {
                 checkedTimestamps.TryDequeue(out _);
-            }
 
             CPM = checkedTimestamps.Count;
         }
@@ -486,17 +465,9 @@ public abstract class Parallelizer<TInput, TOutput> : IDisposable
     /// </summary>
     public void Dispose()
     {
-        try
-        {
-            softCTS?.Dispose();
-        }
-        catch { }
-        try
-        {
-            hardCTS?.Dispose();
-        }
-        catch { }
-
+        // Dispose of managed resources
+        softCTS?.Dispose();
+        hardCTS?.Dispose();
         _updateTimer?.Dispose();
         stopwatch?.Stop();
         Status = ParallelizerStatus.Idle;

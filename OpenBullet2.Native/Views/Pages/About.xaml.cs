@@ -1,4 +1,4 @@
-﻿using OpenBullet2.Native.Helpers;
+using OpenBullet2.Native.Helpers;
 using OpenBullet2.Native.Views.Dialogs;
 using System.Windows;
 using System.Windows.Controls;

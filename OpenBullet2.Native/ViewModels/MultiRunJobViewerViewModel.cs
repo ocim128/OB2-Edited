@@ -29,7 +29,7 @@ using System.Windows.Media.Imaging;
 
 namespace OpenBullet2.Native.ViewModels;
 
-public class MultiRunJobViewerViewModel : ViewModelBase, IDisposable
+public class MultiRunJobViewerViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase, IDisposable
 {
     private readonly OpenBulletSettingsService obSettingsService;
     private readonly List<ProxyGroupEntity> proxyGroups;
@@ -564,7 +564,7 @@ public class MultiRunJobViewerViewModel : ViewModelBase, IDisposable
 }
 
 #region Other ViewModels
-public class BotViewModel(int index, BotData[] datas) : ViewModelBase
+public class BotViewModel(int index, BotData[] datas) : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
 {
     private readonly int index = index;
     private readonly BotData[] datas = datas;
@@ -584,7 +584,7 @@ public class BotViewModel(int index, BotData[] datas) : ViewModelBase
     }
 }
 
-public class HitViewModel(Hit hit) : ViewModelBase
+public class HitViewModel(Hit hit) : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
 {
     public Hit Hit { get; init; } = hit;
 

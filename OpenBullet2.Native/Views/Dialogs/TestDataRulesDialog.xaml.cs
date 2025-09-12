@@ -29,7 +29,7 @@ namespace OpenBullet2.Native.Views.Dialogs
         }
     }
 
-    public class TestDataRulesDialogViewModel : ViewModelBase
+    public class TestDataRulesDialogViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
     {
         public string WordlistType { get; init; }
         
@@ -107,7 +107,7 @@ namespace OpenBullet2.Native.Views.Dialogs
         }
     }
 
-    public class RegexValidationViewModel : ViewModelBase
+    public class RegexValidationViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
     {
         public bool Passed { get; set; }
         public string Result => Passed ? "Passed" : "Invalid";
@@ -120,7 +120,7 @@ namespace OpenBullet2.Native.Views.Dialogs
         }
     }
 
-    public class SliceViewModel : ViewModelBase
+    public class SliceViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
     {
         public string Name { get; set; }
         public string Value { get; set; }
@@ -132,7 +132,7 @@ namespace OpenBullet2.Native.Views.Dialogs
         }
     }
 
-    public class ResultViewModel : ViewModelBase
+    public class ResultViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
     {
         public bool Passed { get; set; }
         public string Text { get; set; }

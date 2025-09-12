@@ -4,7 +4,7 @@ using OpenBullet2.Native.Infrastructure.DependencyInjection;
 
 namespace OpenBullet2.Native.ViewModels
 {
-    public class ConfigReadmeViewModel : ViewModelBase
+    public class ConfigReadmeViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
     {
         private readonly ConfigService configService;
         private Config Config => configService.SelectedConfig;

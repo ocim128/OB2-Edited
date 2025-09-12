@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using System.Windows;
 
 namespace OpenBullet2.Native.Extensions
@@ -28,7 +29,7 @@ namespace OpenBullet2.Native.Extensions
             }
         }
 
-        public static void CopyToClipboard<T>(this IEnumerable<T> items, Func<T, string> mapping)
+        public static async Task CopyToClipboardAsync<T>(this IEnumerable<T> items, Func<T, string> mapping)
         {
             if (items is null) throw new ArgumentNullException(nameof(items));
             if (mapping is null) throw new ArgumentNullException(nameof(mapping));
@@ -68,10 +69,19 @@ namespace OpenBullet2.Native.Extensions
                     if ((uint)ex.ErrorCode != CLIPBRD_E_CANT_OPEN)
                         throw;
                     // backoff and retry
-                    System.Threading.Thread.Sleep(delayMs);
+                    await Task.Delay(delayMs).ConfigureAwait(false);
                     delayMs = Math.Min(delayMs * 2, 200);
                 }
             }
+        }
+
+        /// <summary>
+        /// Synchronous wrapper for CopyToClipboardAsync. Not recommended for use in async contexts.
+        /// </summary>
+        public static void CopyToClipboard<T>(this IEnumerable<T> items, Func<T, string> mapping)
+        {
+            // For backward compatibility, but this is a blocking call
+            CopyToClipboardAsync(items, mapping).GetAwaiter().GetResult();
         }
     }
 }

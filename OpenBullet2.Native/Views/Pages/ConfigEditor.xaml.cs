@@ -231,7 +231,7 @@ namespace OpenBullet2.Native.Views.Pages
         CSharp
     }
 
-    public class ConfigEditorViewModel : ViewModelBase
+    public class ConfigEditorViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
     {
         private readonly IConfigRepository configRepo;
         private readonly ConfigService configService;

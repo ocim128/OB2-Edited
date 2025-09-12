@@ -26,13 +26,7 @@
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="auto" />
             </Grid.ColumnDefinitions>
-            <TextBox x:Name="filterTextbox" HorizontalAlignment="Stretch" Grid.Column="0" Text="{Binding SearchString}" Margin="0 5 5 5" KeyDown="UpdateSearch" Style="{StaticResource MatchingTextBox}"/>
-            <Button Style="{StaticResource StyledButton}" x:Name="searchButton" Grid.Column="1" Click="Search" Margin="0 5 5 5" >
-                <StackPanel Orientation="Horizontal">
-                    <iconPacks:PackIconMaterialDesign Kind="Search" />
-                    <TextBlock VerticalAlignment="Center" Margin="5 0">Search</TextBlock>
-                </StackPanel>
-            </Button>
+            <TextBox x:Name="filterTextbox" HorizontalAlignment="Stretch" Grid.Column="0" Text="{Binding SearchString, UpdateSourceTrigger=PropertyChanged}" Margin="0 5 5 5" Style="{StaticResource MatchingTextBox}"/>
         </Grid>
         
         <ListView 

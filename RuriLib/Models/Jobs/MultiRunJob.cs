@@ -648,12 +648,9 @@ public class MultiRunJob(RuriLibSettingsService settings, PluginRepository plugi
         Status = status switch
         {
             ParallelizerStatus.Idle => JobStatus.Idle,
-            ParallelizerStatus.Starting => JobStatus.Starting,
             ParallelizerStatus.Running => JobStatus.Running,
-            ParallelizerStatus.Pausing => JobStatus.Pausing,
             ParallelizerStatus.Paused => JobStatus.Paused,
             ParallelizerStatus.Stopping => JobStatus.Stopping,
-            ParallelizerStatus.Resuming => JobStatus.Resuming,
             _ => throw new NotImplementedException()
         };
 

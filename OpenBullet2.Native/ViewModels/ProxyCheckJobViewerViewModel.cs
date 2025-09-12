@@ -1,4 +1,4 @@
-﻿using RuriLib.Models.Jobs;
+using RuriLib.Models.Jobs;
 using RuriLib.Models.Jobs.StartConditions;
 using RuriLib.Models.Proxies;
 using RuriLib.Parallelization.Models;
@@ -9,7 +9,7 @@ using System.Windows.Media;
 
 namespace OpenBullet2.Native.ViewModels
 {
-    public class ProxyCheckJobViewerViewModel : ViewModelBase, IDisposable
+    public class ProxyCheckJobViewerViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase, IDisposable
     {
         private readonly Timer secondsTicker;
 

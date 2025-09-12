@@ -33,22 +33,14 @@ public class RLHttpClient(ProxyClient proxyClient = null) : IDisposable
 {
     // High-performance connection pool with concurrent access using configuration
     private static readonly ConcurrentDictionary<string, ConnectionPoolEntry> _connectionPool = new();
-    private static readonly Timer _poolCleanupTimer = new(CleanupConnectionPool, null, 
-        TimeSpan.FromMinutes(HttpPerformanceConfig.PoolCleanupIntervalMinutes), 
-        TimeSpan.FromMinutes(HttpPerformanceConfig.PoolCleanupIntervalMinutes));
-    
+    private static Timer _poolCleanupTimer;
+
     // Memory optimization with ArrayPool
     private static readonly ArrayPool<byte> _bufferPool = ArrayPool<byte>.Shared;
-    
+
     // Current connection state
-    private TcpClient tcpClient;
-    private Stream connectionCommonStream;
-    private NetworkStream connectionNetworkStream;
-    private string lastConnectedHost;
-    private int lastConnectedPort;
-    private bool lastConnectionWasSecure;
     private DateTime lastUsed = DateTime.UtcNow;
-    
+
     // Connection pool entry for efficient reuse
     private sealed class ConnectionPoolEntry
     {
@@ -56,7 +48,7 @@ public class RLHttpClient(ProxyClient proxyClient = null) : IDisposable
         public DateTime LastAccessed { get; set; } = DateTime.UtcNow;
         public int ActiveConnections;
     }
-    
+
     private sealed class PooledConnection : IDisposable
     {
         public TcpClient TcpClient { get; set; }
@@ -66,10 +58,10 @@ public class RLHttpClient(ProxyClient proxyClient = null) : IDisposable
         public bool IsSecure { get; set; }
         public string Host { get; set; }
         public int Port { get; set; }
-        
-        public bool IsValid => TcpClient?.Connected == true && 
+
+        public bool IsValid => TcpClient?.Connected == true &&
                               (DateTime.UtcNow - LastUsed).TotalMinutes < HttpPerformanceConfig.ConnectionTimeoutMinutes;
-        
+
         public void Dispose()
         {
             TcpClient?.Close();
@@ -77,13 +69,13 @@ public class RLHttpClient(ProxyClient proxyClient = null) : IDisposable
             NetworkStream?.Dispose();
         }
     }
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void CleanupConnectionPool(object state)
     {
         var cutoff = DateTime.UtcNow.AddMinutes(-HttpPerformanceConfig.ConnectionTimeoutMinutes);
         var keysToRemove = new List<string>();
-        
+
         foreach (var kvp in _connectionPool)
         {
             var entry = kvp.Value;
@@ -92,7 +84,7 @@ public class RLHttpClient(ProxyClient proxyClient = null) : IDisposable
                 keysToRemove.Add(kvp.Key);
                 continue;
             }
-            
+
             // Clean up expired connections within the entry
             var validConnections = new List<PooledConnection>();
             while (entry.Connections.TryDequeue(out var conn))
@@ -107,13 +99,13 @@ public class RLHttpClient(ProxyClient proxyClient = null) : IDisposable
                     Interlocked.Decrement(ref entry.ActiveConnections);
                 }
             }
-            
+
             foreach (var conn in validConnections)
             {
                 entry.Connections.Enqueue(conn);
             }
         }
-        
+
         foreach (var key in keysToRemove)
         {
             if (_connectionPool.TryRemove(key, out var entry))
@@ -136,6 +128,11 @@ public class RLHttpClient(ProxyClient proxyClient = null) : IDisposable
     /// Gets the raw bytes of all the requests that were sent.
     /// </summary>
     public List<byte[]> RawRequests { get; } = [];
+    
+    /// <summary>
+    /// Maximum number of raw requests to keep in memory to prevent memory leaks.
+    /// </summary>
+    private const int MaxRawRequestsToKeep = 100;
 
     /// <summary>
     /// Allow automatic redirection on 3xx reply.
@@ -222,50 +219,50 @@ public class RLHttpClient(ProxyClient proxyClient = null) : IDisposable
     {
         var redirectCount = 0;
         var currentRequest = request;
-        
+
         // Pre-allocate for performance
         var redirectHeaders = new Dictionary<string, string>(16, StringComparer.OrdinalIgnoreCase);
-        
+
         while (redirectCount <= MaxNumberOfRedirects)
         {
             var response = await SendSingleAsync(currentRequest, cancellationToken).ConfigureAwait(false);
-            
+
             if (!AllowAutoRedirect || !IsRedirectStatusCode(response.StatusCode))
             {
                 return response;
             }
-            
+
             if (++redirectCount > MaxNumberOfRedirects)
             {
                 return response;
             }
-            
+
             if (!response.Headers.TryGetValue("Location", out var location) || string.IsNullOrEmpty(location))
             {
                 return response;
             }
-            
+
             var redirectUri = new Uri(currentRequest.Uri, location);
-            
+
             // Change method to GET for non-307 redirects
             var newMethod = response.StatusCode == HttpStatusCode.TemporaryRedirect ? currentRequest.Method : HttpMethod.Get;
-            
+
             // Reuse dictionary for better performance
             redirectHeaders.Clear();
             foreach (var header in currentRequest.Headers)
             {
                 redirectHeaders[header.Key] = header.Value;
             }
-            
+
             // Update Host header for new domain
             if (!string.Equals(redirectUri.Host, currentRequest.Uri.Host, StringComparison.OrdinalIgnoreCase))
             {
                 redirectHeaders["Host"] = redirectUri.Host;
-                
+
                 // Clear cookies for different domain
                 redirectHeaders.Remove("Cookie");
             }
-            
+
             currentRequest = new HttpRequest
             {
                 Uri = redirectUri,
@@ -275,7 +272,7 @@ public class RLHttpClient(ProxyClient proxyClient = null) : IDisposable
                 Content = newMethod == HttpMethod.Get ? null : currentRequest.Content
             };
         }
-        
+
         return await SendSingleAsync(currentRequest, cancellationToken).ConfigureAwait(false);
     }
 
@@ -292,7 +289,7 @@ public class RLHttpClient(ProxyClient proxyClient = null) : IDisposable
     {
         var poolKey = GetPoolKey(request.Uri.Host, request.Uri.Port, request.Uri.Scheme == "https");
         var pooledConnection = await GetPooledConnectionAsync(poolKey, request.Uri.Host, request.Uri.Port, request.Uri.Scheme == "https", cancellationToken).ConfigureAwait(false);
-        
+
         try
         {
             await SendDataAsync(request, pooledConnection.CommonStream, cancellationToken).ConfigureAwait(false);
@@ -327,7 +324,7 @@ public class RLHttpClient(ProxyClient proxyClient = null) : IDisposable
     {
         var entry = _connectionPool.GetOrAdd(poolKey, _ => new ConnectionPoolEntry());
         entry.LastAccessed = DateTime.UtcNow;
-        
+
         // Try to get an existing connection
         while (entry.Connections.TryDequeue(out var connection))
         {
@@ -336,18 +333,18 @@ public class RLHttpClient(ProxyClient proxyClient = null) : IDisposable
                 connection.LastUsed = DateTime.UtcNow;
                 return connection;
             }
-            
+
             connection.Dispose();
             Interlocked.Decrement(ref entry.ActiveConnections);
         }
-        
+
         // Create new connection if under limit
         if (entry.ActiveConnections < HttpPerformanceConfig.MaxConnectionsPerHost)
         {
             Interlocked.Increment(ref entry.ActiveConnections);
             return await CreateNewConnectionAsync(host, port, isSecure, cancellationToken).ConfigureAwait(false);
         }
-        
+
         // Wait and retry if at limit
         await Task.Delay(10, cancellationToken).ConfigureAwait(false);
         return await GetPooledConnectionAsync(poolKey, host, port, isSecure, cancellationToken).ConfigureAwait(false);
@@ -358,30 +355,30 @@ public class RLHttpClient(ProxyClient proxyClient = null) : IDisposable
         var tcpClient = await ProxyClient.ConnectAsync(host, port, null, cancellationToken).ConfigureAwait(false);
         var networkStream = tcpClient.GetStream();
         Stream commonStream = networkStream;
-        
+
         if (isSecure)
         {
             try
             {
                 var sslStream = new SslStream(networkStream, false, ServerCertificateCustomValidationCallback);
-                
+
                 var sslOptions = new SslClientAuthenticationOptions
                 {
                     TargetHost = host,
                     EnabledSslProtocols = SslProtocols,
                     CertificateRevocationCheckMode = CertRevocationMode
                 };
-                
+
                 if (CertRevocationMode != X509RevocationMode.Online)
                 {
                     sslOptions.RemoteCertificateValidationCallback = static (_, _, _, _) => true;
                 }
-                
+
                 if (UseCustomCipherSuites && !RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 {
                     sslOptions.CipherSuitesPolicy = new CipherSuitesPolicy(AllowedCipherSuites);
                 }
-                
+
                 await sslStream.AuthenticateAsClientAsync(sslOptions, cancellationToken).ConfigureAwait(false);
                 commonStream = sslStream;
             }
@@ -391,7 +388,7 @@ public class RLHttpClient(ProxyClient proxyClient = null) : IDisposable
                 throw new ProxyException("Failed SSL connect");
             }
         }
-        
+
         return new PooledConnection
         {
             TcpClient = tcpClient,
@@ -428,7 +425,17 @@ public class RLHttpClient(ProxyClient proxyClient = null) : IDisposable
 
         await stream.WriteAsync(buffer.AsMemory(0, buffer.Length), cancellationToken).ConfigureAwait(false);
 
-        RawRequests.Add(buffer);
+        // Add to RawRequests with memory limit to prevent leaks
+        lock (RawRequests)
+        {
+            RawRequests.Add(buffer);
+            
+            // Remove oldest requests if we exceed the limit
+            while (RawRequests.Count > MaxRawRequestsToKeep)
+            {
+                RawRequests.RemoveAt(0);
+            }
+        }
     }
 
     private Task<HttpResponse> ReceiveDataAsync(HttpRequest request, Stream stream,
@@ -438,116 +445,43 @@ public class RLHttpClient(ProxyClient proxyClient = null) : IDisposable
         return new HttpResponseBuilder().GetResponseAsync(request, pipeReader, ReadResponseContent, cancellationToken);
     }
 
-    private async Task CreateConnection(HttpRequest request, CancellationToken cancellationToken)
-    {
-        var uri = request.Uri;
-        var isSecure = uri.Scheme.Equals("https", StringComparison.OrdinalIgnoreCase);
-
-        // Check if we can reuse the existing connection
-        if (CanReuseConnection(uri.Host, uri.Port, isSecure))
-        {
-            return;
-        }
-
-        // Dispose of any previous connection
-        await DisposeConnectionAsync().ConfigureAwait(false);
-
-        // Get the stream from the proxies TcpClient
-        tcpClient = await ProxyClient.ConnectAsync(uri.Host, uri.Port, null, cancellationToken);
-        connectionNetworkStream = tcpClient.GetStream();
-
-        // If https, set up a TLS stream
-        if (isSecure)
-        {
-            try
-            {
-                var sslStream = new SslStream(connectionNetworkStream, false, ServerCertificateCustomValidationCallback);
-
-                var sslOptions = new SslClientAuthenticationOptions
-                {
-                    TargetHost = uri.Host,
-                    EnabledSslProtocols = SslProtocols,
-                    CertificateRevocationCheckMode = CertRevocationMode
-                };
-
-                if (CertRevocationMode != X509RevocationMode.Online)
-                {
-                    sslOptions.RemoteCertificateValidationCallback =
-                        static (_, _, _, _) => true;
-                }
-
-                if (UseCustomCipherSuites && !RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                {
-                    sslOptions.CipherSuitesPolicy = new CipherSuitesPolicy(AllowedCipherSuites);
-                }
-
-                connectionCommonStream = sslStream;
-                await sslStream.AuthenticateAsClientAsync(sslOptions, cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                if (ex is IOException or AuthenticationException)
-                {
-                    throw new ProxyException("Failed SSL connect");
-                }
-
-                throw;
-            }
-        }
-        else
-        {
-            connectionCommonStream = connectionNetworkStream;
-        }
-
-        // Store connection details for reuse
-        lastConnectedHost = uri.Host;
-        lastConnectedPort = uri.Port;
-        lastConnectionWasSecure = isSecure;
-    }
-
-    private bool CanReuseConnection(string host, int port, bool isSecure)
-    {
-        // Check if we have an existing connection
-        if (tcpClient == null || connectionCommonStream == null)
-            return false;
-
-        // Check if the connection is still alive
-        if (!tcpClient.Connected)
-            return false;
-
-        // Check if the host, port, and security match
-        return string.Equals(lastConnectedHost, host, StringComparison.OrdinalIgnoreCase) &&
-               lastConnectedPort == port &&
-               lastConnectionWasSecure == isSecure;
-    }
-
-    private async Task DisposeConnectionAsync()
-    {
-        tcpClient?.Close();
-
-        if (connectionCommonStream is not null)
-        {
-            await connectionCommonStream.DisposeAsync().ConfigureAwait(false);
-        }
-
-        if (connectionNetworkStream is not null)
-        {
-            await connectionNetworkStream.DisposeAsync().ConfigureAwait(false);
-        }
-
-        tcpClient = null;
-        connectionCommonStream = null;
-        connectionNetworkStream = null;
-        lastConnectedHost = null;
-        lastConnectedPort = 0;
-        lastConnectionWasSecure = false;
-    }
 
     /// <inheritdoc/>
     public void Dispose()
     {
-        tcpClient?.Dispose();
-        connectionCommonStream?.Dispose();
-        connectionNetworkStream?.Dispose();
+        // Clean up any resources owned by this instance
+        // Note: Static connection pool is shared and cleaned up separately
+    }
+    
+    /// <summary>
+    /// Static constructor to initialize cleanup timer for connection pool
+    /// </summary>
+    static RLHttpClient()
+    {
+        _poolCleanupTimer = new Timer(CleanupConnectionPool, null,
+            TimeSpan.FromMinutes(HttpPerformanceConfig.PoolCleanupIntervalMinutes),
+            TimeSpan.FromMinutes(HttpPerformanceConfig.PoolCleanupIntervalMinutes));
+    }
+    
+    /// <summary>
+    /// Clean up all static resources to prevent memory leaks
+    /// </summary>
+    public static void CleanupStaticResources()
+    {
+        lock (_connectionPool)
+        {
+            _poolCleanupTimer?.Dispose();
+            _poolCleanupTimer = null;
+            
+            foreach (var entry in _connectionPool.Values)
+            {
+                while (entry.Connections.TryDequeue(out var conn))
+                {
+                    conn?.Dispose();
+                }
+            }
+            
+            _connectionPool.Clear();
+        }
     }
 }

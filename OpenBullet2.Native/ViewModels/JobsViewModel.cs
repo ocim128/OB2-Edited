@@ -17,7 +17,7 @@ using OpenBullet2.Native.Infrastructure.DependencyInjection;
 
 namespace OpenBullet2.Native.ViewModels;
 
-public class JobsViewModel : ViewModelBase
+public class JobsViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
 {
     private readonly IJobRepository jobRepo;
     private readonly JobManagerService jobManager;
@@ -218,7 +218,7 @@ public class JobsViewModel : ViewModelBase
     };
 }
 
-public class JobViewModel(Job job) : ViewModelBase
+public class JobViewModel(Job job) : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
 {
     public Job Job { get; init; } = job;
 

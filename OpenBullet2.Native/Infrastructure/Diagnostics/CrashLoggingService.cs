@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Management;
 using System.Reflection;
@@ -11,13 +12,41 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Threading;
 using Microsoft.Win32;
 
 namespace OpenBullet2.Native.Infrastructure.Diagnostics
 {
     /// <summary>
-    /// Comprehensive crash logging service that captures detailed system information,
-    /// stack traces, and application state for thorough crash analysis.
+    /// Defines the severity levels for diagnostic logging
+    /// </summary>
+    public enum LogSeverity
+    {
+        Debug = 0,
+        Info = 1,
+        Warning = 2,
+        Error = 3,
+        Critical = 4
+    }
+
+    /// <summary>
+    /// Configuration for crash logging behavior
+    /// </summary>
+    public class CrashLoggingConfig
+    {
+        public LogSeverity MinimumLogLevel { get; set; } = LogSeverity.Error;
+        public long MaxLogFileSizeBytes { get; set; } = 5 * 1024 * 1024; // 5MB
+        public int MaxLogFiles { get; set; } = 10;
+        public int LogRetentionDays { get; set; } = 30;
+        public bool EnableCompression { get; set; } = true;
+        public bool IncludeSystemInfo { get; set; } = true;
+        public bool IncludeEnvironmentVars { get; set; } = false;
+        public bool IncludeLoadedAssemblies { get; set; } = false;
+    }
+
+    /// <summary>
+    /// Optimized crash logging service with severity-based filtering, log rotation,
+    /// and compression to minimize disk space usage while maintaining actionable information.
     /// </summary>
     public sealed class CrashLoggingService
     {
@@ -25,6 +54,7 @@ namespace OpenBullet2.Native.Infrastructure.Diagnostics
         private readonly string _crashDir;
         private readonly string _systemInfoCache;
         private readonly object _lockObject = new object();
+        private readonly CrashLoggingConfig _config;
         private static readonly Lazy<CrashLoggingService> _instance = new Lazy<CrashLoggingService>(() => new CrashLoggingService());
         
         public static CrashLoggingService Instance => _instance.Value;
@@ -32,6 +62,7 @@ namespace OpenBullet2.Native.Infrastructure.Diagnostics
         private CrashLoggingService()
         {
             _sessionId = Guid.NewGuid().ToString("N")[..12];
+            _config = new CrashLoggingConfig();
             
             try
             {
@@ -40,19 +71,27 @@ namespace OpenBullet2.Native.Infrastructure.Diagnostics
                 var logsRoot = Path.Combine(userDataPath, "Logs");
                 _crashDir = Path.Combine(logsRoot, "Crashes");
                 Directory.CreateDirectory(_crashDir);
+                
+                // Clean up old logs on startup
+                CleanupOldLogs();
             }
             catch
             {
                 _crashDir = AppDomain.CurrentDomain.BaseDirectory;
             }
             
-            // Pre-cache system information to avoid delays during crash logging
-            _systemInfoCache = CacheSystemInformation();
+            // Pre-cache system information only if enabled to reduce memory usage
+            _systemInfoCache = _config.IncludeSystemInfo ? CacheSystemInformation() : string.Empty;
         }
         
         public void LogCrash(Exception exception, string source, string context = null, bool isTerminating = false)
         {
-            if (exception == null) return;
+            LogCrash(exception, source, context, isTerminating, DetermineSeverity(exception, isTerminating));
+        }
+        
+        public void LogCrash(Exception exception, string source, string context, bool isTerminating, LogSeverity severity)
+        {
+            if (exception == null || severity < _config.MinimumLogLevel) return;
             
             lock (_lockObject)
             {
@@ -60,22 +99,36 @@ namespace OpenBullet2.Native.Infrastructure.Diagnostics
                 {
                     var crashId = Guid.NewGuid().ToString("N")[..8];
                     var timestamp = DateTime.Now;
-                    var fileName = $"crash-{timestamp:yyyyMMdd-HHmmss}-{crashId}.log";
+                    var fileName = $"crash-{severity.ToString().ToLower()}-{timestamp:yyyyMMdd-HHmmss}-{crashId}.log";
                     var filePath = Path.Combine(_crashDir, fileName);
                     
-                    var crashReport = BuildCrashReport(exception, source, context, isTerminating, crashId, timestamp);
+                    // Check if we need to rotate logs before writing
+                    RotateLogsIfNeeded();
                     
-                    File.WriteAllText(filePath, crashReport, Encoding.UTF8);
+                    var crashReport = BuildCrashReport(exception, source, context, isTerminating, crashId, timestamp, severity);
                     
-                    // Also write to a latest crash file for quick access
-                    var latestPath = Path.Combine(_crashDir, "latest-crash.log");
-                    File.WriteAllText(latestPath, crashReport, Encoding.UTF8);
+                    // Write compressed or uncompressed based on config
+                    if (_config.EnableCompression && severity < LogSeverity.Critical)
+                    {
+                        WriteCompressedLog(filePath + ".gz", crashReport);
+                    }
+                    else
+                    {
+                        File.WriteAllText(filePath, crashReport, Encoding.UTF8);
+                    }
+                    
+                    // Only write latest crash file for critical/error level issues
+                    if (severity >= LogSeverity.Error)
+                    {
+                        var latestPath = Path.Combine(_crashDir, "latest-crash.log");
+                        File.WriteAllText(latestPath, crashReport, Encoding.UTF8);
+                    }
                     
                     // Log to debug output for immediate visibility
-                    Debug.WriteLine($"CRASH LOGGED: {crashId} - {exception.GetType().Name}: {exception.Message}");
+                    Debug.WriteLine($"CRASH LOGGED [{severity}]: {crashId} - {exception.GetType().Name}: {exception.Message}");
                     
-                    // Try to generate crash dump for severe crashes
-                    if (isTerminating || IsSevereException(exception))
+                    // Try to generate crash dump only for severe crashes
+                    if (isTerminating || severity >= LogSeverity.Critical || IsSevereException(exception))
                     {
                         TryGenerateCrashDump(exception, source, context, crashId);
                     }
@@ -97,54 +150,53 @@ namespace OpenBullet2.Native.Infrastructure.Diagnostics
             }
         }
         
-        private string BuildCrashReport(Exception exception, string source, string context, bool isTerminating, string crashId, DateTime timestamp)
+        private string BuildCrashReport(Exception exception, string source, string context, bool isTerminating, string crashId, DateTime timestamp, LogSeverity severity)
         {
             var report = new StringBuilder();
             
-            // Header
-            report.AppendLine("═══════════════════════════════════════════════════════════════════════════════");
-            report.AppendLine("                           OPENBULLET2 CRASH REPORT");
-            report.AppendLine("═══════════════════════════════════════════════════════════════════════════════");
+            // Compact header for space efficiency
+            report.AppendLine($"=== OPENBULLET2 CRASH REPORT [{severity}] ===");
+            
+            // Essential crash metadata only
+            report.AppendLine($"ID: {crashId} | Session: {_sessionId} | Time: {timestamp:yyyy-MM-dd HH:mm:ss.fff}");
+            report.AppendLine($"Source: {source} | Context: {context ?? "<none>"} | Terminating: {isTerminating}");
+            report.AppendLine($"Thread: {Thread.CurrentThread.ManagedThreadId} ({Thread.CurrentThread.Name ?? "unnamed"})");
             report.AppendLine();
             
-            // Crash metadata
-            report.AppendLine("=== CRASH METADATA ===");
-            report.AppendLine($"Crash ID: {crashId}");
-            report.AppendLine($"Session ID: {_sessionId}");
-            report.AppendLine($"Timestamp: {timestamp:yyyy-MM-dd HH:mm:ss.fff} ({timestamp:o})");
-            report.AppendLine($"Source: {source}");
-            report.AppendLine($"Context: {context ?? "<none>"}");
-            report.AppendLine($"Terminating: {isTerminating}");
-            report.AppendLine($"Thread ID: {Thread.CurrentThread.ManagedThreadId}");
-            report.AppendLine($"Thread Name: {Thread.CurrentThread.Name ?? "<unnamed>"}");
-            report.AppendLine($"Is Background Thread: {Thread.CurrentThread.IsBackground}");
-            report.AppendLine($"Is Thread Pool Thread: {Thread.CurrentThread.IsThreadPoolThread}");
-            report.AppendLine();
+            // System information only if enabled and for higher severity
+            if (_config.IncludeSystemInfo && severity >= LogSeverity.Error)
+            {
+                report.AppendLine(_systemInfoCache);
+            }
             
-            // System information (cached)
-            report.AppendLine(_systemInfoCache);
+            // Application state for critical issues only
+            if (severity >= LogSeverity.Critical)
+            {
+                AppendApplicationState(report);
+                AppendMemoryInformation(report);
+            }
             
-            // Current application state
-            AppendApplicationState(report);
-            
-            // Memory information
-            AppendMemoryInformation(report);
-            
-            // Exception details
+            // Exception details (always included as this is essential)
             AppendExceptionDetails(report, exception);
             
-            // Loaded assemblies
-            AppendLoadedAssemblies(report);
+            // Optional detailed information based on config and severity
+            if (_config.IncludeLoadedAssemblies && severity >= LogSeverity.Critical)
+            {
+                AppendLoadedAssemblies(report);
+            }
             
-            // Environment variables
-            AppendEnvironmentVariables(report);
+            if (_config.IncludeEnvironmentVars && severity >= LogSeverity.Critical)
+            {
+                AppendEnvironmentVariables(report);
+            }
             
-            // Recent log entries (if available)
-            AppendRecentLogEntries(report);
+            // Recent log entries only for critical issues
+            if (severity >= LogSeverity.Critical)
+            {
+                AppendRecentLogEntries(report);
+            }
             
-            report.AppendLine("═══════════════════════════════════════════════════════════════════════════════");
-            report.AppendLine($"                        END OF CRASH REPORT ({crashId})");
-            report.AppendLine("═══════════════════════════════════════════════════════════════════════════════");
+            report.AppendLine($"=== END CRASH REPORT ({crashId}) ===");
             
             return report.ToString();
         }
@@ -292,27 +344,33 @@ namespace OpenBullet2.Native.Infrastructure.Diagnostics
                 report.AppendLine("=== EXCEPTION DETAILS ===");
                 
                 var exceptions = FlattenExceptions(exception).ToList();
-                for (int i = 0; i < exceptions.Count; i++)
+                var maxExceptions = Math.Min(exceptions.Count, 3); // Limit to 3 exceptions to save space
+                
+                for (int i = 0; i < maxExceptions; i++)
                 {
                     var (ex, depth) = exceptions[i];
                     var prefix = depth == 0 ? "PRIMARY" : $"INNER[{depth}]";
                     
                     report.AppendLine($"--- {prefix} EXCEPTION ---");
-                    report.AppendLine($"Type: {ex.GetType().FullName}");
-                    report.AppendLine($"Assembly: {ex.GetType().Assembly.FullName}");
+                    report.AppendLine($"Type: {ex.GetType().Name}"); // Use Name instead of FullName for brevity
                     report.AppendLine($"Message: {ex.Message}");
-                    report.AppendLine($"Source: {ex.Source ?? "<unknown>"}");
-                    report.AppendLine($"HelpLink: {ex.HelpLink ?? "<none>"}");
-                    report.AppendLine($"HResult: 0x{ex.HResult:X8} ({ex.HResult})");
                     
-                    if (ex.Data != null && ex.Data.Count > 0)
+                    if (!string.IsNullOrEmpty(ex.Source))
+                        report.AppendLine($"Source: {ex.Source}");
+                    
+                    report.AppendLine($"HResult: 0x{ex.HResult:X8}");
+                    
+                    // Only include exception data if it's small
+                    if (ex.Data != null && ex.Data.Count > 0 && ex.Data.Count <= 5)
                     {
                         report.AppendLine("Data:");
                         foreach (var key in ex.Data.Keys)
                         {
                             try
                             {
-                                report.AppendLine($"  {key}: {ex.Data[key]}");
+                                var value = ex.Data[key]?.ToString();
+                                if (value?.Length <= 100) // Limit data value length
+                                    report.AppendLine($"  {key}: {value}");
                             }
                             catch
                             {
@@ -321,16 +379,32 @@ namespace OpenBullet2.Native.Infrastructure.Diagnostics
                         }
                     }
                     
-                    report.AppendLine("Stack Trace:");
-                    if (!string.IsNullOrEmpty(ex.StackTrace))
+                    // Only include stack trace for primary exception or if very short
+                    if (!string.IsNullOrEmpty(ex.StackTrace) && (depth == 0 || ex.StackTrace.Length < 500))
                     {
-                        report.AppendLine(ex.StackTrace);
+                        report.AppendLine("Stack Trace:");
+                        // Truncate very long stack traces
+                        if (ex.StackTrace.Length > 2000)
+                        {
+                            report.AppendLine(ex.StackTrace.Substring(0, 2000));
+                            report.AppendLine("... (truncated)");
+                        }
+                        else
+                        {
+                            report.AppendLine(ex.StackTrace);
+                        }
                     }
-                    else
+                    else if (string.IsNullOrEmpty(ex.StackTrace) && depth == 0)
                     {
-                        report.AppendLine("<no stack trace available>");
+                        report.AppendLine("Stack Trace: <no stack trace available>");
                     }
                     
+                    report.AppendLine();
+                }
+                
+                if (exceptions.Count > maxExceptions)
+                {
+                    report.AppendLine($"... and {exceptions.Count - maxExceptions} more inner exceptions (truncated)");
                     report.AppendLine();
                 }
             }
@@ -349,10 +423,12 @@ namespace OpenBullet2.Native.Infrastructure.Diagnostics
                 report.AppendLine("=== LOADED ASSEMBLIES ===");
                 
                 var assemblies = AppDomain.CurrentDomain.GetAssemblies()
+                    .Where(a => !a.IsDynamic) // Skip dynamic assemblies to reduce noise
                     .OrderBy(a => a.GetName().Name)
-                    .ToList();
+                    .Take(50) // Limit to first 50 assemblies
+                    .ToArray();
                 
-                report.AppendLine($"Total Count: {assemblies.Count}");
+                report.AppendLine($"Showing {assemblies.Length} assemblies (non-dynamic, limited)");
                 report.AppendLine();
                 
                 foreach (var assembly in assemblies)
@@ -360,15 +436,31 @@ namespace OpenBullet2.Native.Infrastructure.Diagnostics
                     try
                     {
                         var name = assembly.GetName();
-                        var location = string.IsNullOrEmpty(assembly.Location) ? "<dynamic>" : assembly.Location;
-                        report.AppendLine($"{name.Name} v{name.Version} - {location}");
+                        var location = "<unknown>";
+                        
+                        try
+                        {
+                            location = Path.GetFileName(assembly.Location); // Just filename, not full path
+                        }
+                        catch
+                        {
+                            // Ignore location access errors
+                        }
+                        
+                        // Compact format: Name Version [Location]
+                        report.AppendLine($"{name.Name} {name.Version} [{location}]");
                     }
                     catch (Exception ex)
                     {
-                        report.AppendLine($"<Failed to get assembly info: {ex.Message}>");
+                        report.AppendLine($"<Error: {ex.Message}>");
                     }
                 }
                 
+                var totalAssemblies = AppDomain.CurrentDomain.GetAssemblies().Length;
+                if (totalAssemblies > assemblies.Length)
+                {
+                    report.AppendLine($"... and {totalAssemblies - assemblies.Length} more assemblies (truncated)");
+                }
                 report.AppendLine();
             }
             catch (Exception ex)
@@ -384,26 +476,52 @@ namespace OpenBullet2.Native.Infrastructure.Diagnostics
             {
                 report.AppendLine("=== ENVIRONMENT VARIABLES ===");
                 
-                var variables = Environment.GetEnvironmentVariables()
-                    .Cast<System.Collections.DictionaryEntry>()
-                    .OrderBy(kvp => kvp.Key.ToString())
-                    .ToList();
-                
-                foreach (var variable in variables)
+                var sensitiveKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
                 {
-                    var key = variable.Key.ToString();
-                    var value = variable.Value?.ToString() ?? "<null>";
-                    
-                    // Mask sensitive information
-                    if (key.ToUpperInvariant().Contains("PASSWORD") || 
-                        key.ToUpperInvariant().Contains("SECRET") ||
-                        key.ToUpperInvariant().Contains("TOKEN") ||
-                        key.ToUpperInvariant().Contains("KEY"))
+                    "PASSWORD", "PWD", "SECRET", "KEY", "TOKEN", "AUTH", "CREDENTIAL",
+                    "API_KEY", "PRIVATE_KEY", "CONNECTION_STRING", "CONNECTIONSTRING"
+                };
+                
+                // Filter to only relevant environment variables
+                var relevantKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    "PATH", "PROCESSOR_ARCHITECTURE", "PROCESSOR_IDENTIFIER", "NUMBER_OF_PROCESSORS",
+                    "OS", "COMPUTERNAME", "USERNAME", "USERDOMAIN", "USERPROFILE",
+                    "TEMP", "TMP", "WINDIR", "SYSTEMROOT", "PROGRAMFILES", "PROGRAMDATA",
+                    "DOTNET_ROOT", "ASPNETCORE_ENVIRONMENT", "ENVIRONMENT"
+                };
+                
+                var envVars = Environment.GetEnvironmentVariables()
+                    .Cast<System.Collections.DictionaryEntry>()
+                    .Where(kvp => relevantKeys.Contains(kvp.Key.ToString()) || 
+                                 kvp.Key.ToString().StartsWith("OPENBULLET", StringComparison.OrdinalIgnoreCase))
+                    .OrderBy(kvp => kvp.Key.ToString())
+                    .Take(20) // Limit to 20 most relevant variables
+                    .ToArray();
+                
+                foreach (var envVar in envVars)
+                {
+                    try
                     {
-                        value = "<masked>";
+                        var key = envVar.Key.ToString();
+                        var value = envVar.Value?.ToString() ?? "<null>";
+                        
+                        // Mask sensitive values
+                        if (sensitiveKeys.Any(sensitive => key.Contains(sensitive, StringComparison.OrdinalIgnoreCase)))
+                        {
+                            value = "<masked>";
+                        }
+                        else if (value.Length > 100) // Limit value length
+                        {
+                            value = value.Substring(0, 100) + "...";
+                        }
+                        
+                        report.AppendLine($"{key}={value}");
                     }
-                    
-                    report.AppendLine($"{key}={value}");
+                    catch (Exception ex)
+                    {
+                        report.AppendLine($"<Error: {ex.Message}>");
+                    }
                 }
                 
                 report.AppendLine();
@@ -556,31 +674,111 @@ namespace OpenBullet2.Native.Infrastructure.Diagnostics
         
         public string GetSessionId() => _sessionId;
         
-        public void CleanupOldCrashLogs(int maxDays = 30)
+        private void CleanupOldLogs()
         {
             try
             {
-                var cutoffDate = DateTime.Now.AddDays(-maxDays);
-                var files = Directory.GetFiles(_crashDir, "crash-*.log")
+                if (!Directory.Exists(_crashDir))
+                    return;
+
+                var cutoffDate = DateTime.Now.AddDays(-_config.LogRetentionDays);
+                var files = Directory.GetFiles(_crashDir, "*.log")
+                    .Concat(Directory.GetFiles(_crashDir, "*.gz"))
                     .Where(f => File.GetCreationTime(f) < cutoffDate)
-                    .ToList();
-                
+                    .ToArray();
+
                 foreach (var file in files)
                 {
                     try
                     {
                         File.Delete(file);
+                        Debug.WriteLine($"Deleted old log: {Path.GetFileName(file)}");
                     }
-                    catch
+                    catch (Exception ex)
                     {
-                        // Ignore individual file deletion failures
+                        Debug.WriteLine($"Failed to delete old log {Path.GetFileName(file)}: {ex.Message}");
                     }
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                // Ignore cleanup failures
+                Debug.WriteLine($"Error during log cleanup: {ex.Message}");
             }
+        }
+
+        private void RotateLogsIfNeeded()
+        {
+            try
+            {
+                if (!Directory.Exists(_crashDir))
+                    return;
+
+                var logFiles = Directory.GetFiles(_crashDir, "*.log")
+                    .OrderBy(f => File.GetCreationTime(f))
+                    .ToArray();
+
+                if (logFiles.Length >= _config.MaxLogFiles)
+                {
+                    var filesToDelete = logFiles.Take(logFiles.Length - _config.MaxLogFiles + 1);
+                    foreach (var file in filesToDelete)
+                    {
+                        try
+                        {
+                            File.Delete(file);
+                            Debug.WriteLine($"Rotated out log file: {Path.GetFileName(file)}");
+                        }
+                        catch (Exception ex)
+                        {
+                            Debug.WriteLine($"Failed to rotate log file {Path.GetFileName(file)}: {ex.Message}");
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error during log rotation: {ex.Message}");
+            }
+        }
+
+        private void WriteCompressedLog(string filePath, string content)
+        {
+            try
+            {
+                using (var fileStream = new FileStream(filePath, FileMode.Create))
+                using (var gzipStream = new GZipStream(fileStream, CompressionMode.Compress))
+                using (var writer = new StreamWriter(gzipStream, Encoding.UTF8))
+                {
+                    writer.Write(content);
+                }
+                Debug.WriteLine($"Compressed log written: {Path.GetFileName(filePath)}");
+            }
+            catch (Exception ex)
+            {
+                // Fallback to uncompressed if compression fails
+                var uncompressedPath = filePath.Replace(".gz", "");
+                File.WriteAllText(uncompressedPath, content, Encoding.UTF8);
+                Debug.WriteLine($"Compression failed, wrote uncompressed: {ex.Message}");
+            }
+        }
+
+        private LogSeverity DetermineSeverity(Exception exception, bool isTerminating)
+        {
+            if (isTerminating || IsSevereException(exception))
+                return LogSeverity.Critical;
+            
+            return exception switch
+            {
+                ArgumentException => LogSeverity.Warning,
+                InvalidOperationException => LogSeverity.Error,
+                NotSupportedException => LogSeverity.Warning,
+                NotImplementedException => LogSeverity.Warning,
+                _ => LogSeverity.Error
+            };
+        }
+
+        public void CleanupOldCrashLogs(int maxDays = 30)
+        {
+            CleanupOldLogs();
         }
     }
 }

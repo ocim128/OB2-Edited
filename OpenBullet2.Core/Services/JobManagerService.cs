@@ -32,31 +32,43 @@ public class JobManagerService : IDisposable
 
     public JobManagerService(IServiceScopeFactory scopeFactory, JobFactoryService jobFactory)
     {
-        using var scope = scopeFactory.CreateScope();
-        var jobRepo = scope.ServiceProvider.GetRequiredService<IJobRepository>();
-
-        // Restore jobs from the database
-        var entities = jobRepo.GetAll().Include(j => j.Owner).ToList();
-        var jsonSettings = new JsonSerializerSettings { TypeNameHandling = TypeNameHandling.Auto };
-
-        foreach (var entity in entities)
-        {
-            // Convert old namespaces to support old databases
-            if (entity.JobOptions.Contains("OpenBullet2.Models") || entity.JobOptions.Contains(", OpenBullet2\""))
-            {
-                entity.JobOptions = entity.JobOptions
-                    .Replace("OpenBullet2.Models", "OpenBullet2.Core.Models")
-                    .Replace(", OpenBullet2\"", ", OpenBullet2.Core\"");
-
-                jobRepo.UpdateAsync(entity).Wait();
-            }
-
-            var options = JsonConvert.DeserializeObject<JobOptionsWrapper>(entity.JobOptions, jsonSettings).Options;
-            var job = jobFactory.FromOptions(entity.Id, entity.Owner == null ? 0 : entity.Owner.Id, options);
-            AddJob(job);
-        }
-
         _scopeFactory = scopeFactory;
+        _ = InitializeJobsAsync(scopeFactory, jobFactory);
+    }
+
+    private async Task InitializeJobsAsync(IServiceScopeFactory scopeFactory, JobFactoryService jobFactory)
+    {
+        try
+        {
+            using var scope = scopeFactory.CreateScope();
+            var jobRepo = scope.ServiceProvider.GetRequiredService<IJobRepository>();
+
+            // Restore jobs from the database
+            var entities = jobRepo.GetAll().Include(j => j.Owner).ToList();
+            var jsonSettings = new JsonSerializerSettings { TypeNameHandling = TypeNameHandling.Auto };
+
+            foreach (var entity in entities)
+            {
+                // Convert old namespaces to support old databases
+                if (entity.JobOptions.Contains("OpenBullet2.Models") || entity.JobOptions.Contains(", OpenBullet2\""))
+                {
+                    entity.JobOptions = entity.JobOptions
+                        .Replace("OpenBullet2.Models", "OpenBullet2.Core.Models")
+                        .Replace(", OpenBullet2\"", ", OpenBullet2.Core\"");
+
+                    await jobRepo.UpdateAsync(entity).ConfigureAwait(false);
+                }
+
+                var options = JsonConvert.DeserializeObject<JobOptionsWrapper>(entity.JobOptions, jsonSettings).Options;
+                var job = jobFactory.FromOptions(entity.Id, entity.Owner == null ? 0 : entity.Owner.Id, options);
+                AddJob(job);
+            }
+        }
+        catch (Exception ex)
+        {
+            // Log the error but don't crash the application
+            Console.WriteLine($"Failed to initialize jobs: {ex.Message}");
+        }
     }
 
     public void AddJob(Job job)

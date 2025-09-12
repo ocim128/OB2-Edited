@@ -1,4 +1,4 @@
-﻿using OpenBullet2.Native.ViewModels;
+using OpenBullet2.Native.ViewModels;
 using RuriLib.Models.Blocks.Settings;
 using System;
 using System.Collections.Generic;
@@ -10,21 +10,21 @@ namespace OpenBullet2.Native.Controls
     /// <summary>
     /// Interaction logic for BlockSettingViewer.xaml
     /// </summary>
-    public partial class IntSettingViewer : UserControl
+    public partial class FloatSettingViewer : UserControl
     {
-        private IntSettingViewerViewModel vm;
+        private FloatSettingViewerViewModel vm;
 
         public BlockSetting Setting
         {
             get => vm?.Setting;
             set
             {
-                if (value.FixedSetting is not IntSetting)
+                if (value.FixedSetting is not FloatSetting)
                 {
                     throw new Exception("Invalid setting type for this UC");
                 }
 
-                vm = new IntSettingViewerViewModel(value);
+                vm = new FloatSettingViewerViewModel(value);
                 DataContext = vm;
 
                 tabControl.SelectedIndex = vm.Mode switch
@@ -43,7 +43,7 @@ namespace OpenBullet2.Native.Controls
             }
         }
 
-        public IntSettingViewer()
+        public FloatSettingViewer()
         {
             InitializeComponent();
         }
@@ -65,7 +65,7 @@ namespace OpenBullet2.Native.Controls
         }
     }
 
-    public class IntSettingViewerViewModel : ViewModelBase
+    public class FloatSettingViewerViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
     {
         public BlockSetting Setting { get; init; }
 
@@ -95,18 +95,18 @@ namespace OpenBullet2.Native.Controls
             }
         }
 
-        public int Value
+        public float Value
         {
-            get => (Setting.FixedSetting as IntSetting).Value;
+            get => (Setting.FixedSetting as FloatSetting).Value;
             set
             {
-                var s = Setting.FixedSetting as IntSetting;
+                var s = Setting.FixedSetting as FloatSetting;
                 s.Value = value;
                 OnPropertyChanged();
             }
         }
 
-        public IntSettingViewerViewModel(BlockSetting setting)
+        public FloatSettingViewerViewModel(BlockSetting setting)
         {
             Setting = setting;
         }

@@ -6,7 +6,6 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
-using System.Windows.Media.Animation;
 using MahApps.Metro.IconPacks;
 
 namespace OpenBullet2.Native.Controls
@@ -197,11 +196,7 @@ namespace OpenBullet2.Native.Controls
 
             NotificationOverlay.Visibility = Visibility.Visible;
 
-            // Create fade-in animation
-            var fadeIn = new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(300));
-            NotificationWindow.BeginAnimation(UIElement.OpacityProperty, fadeIn);
-
-            // Auto-dismiss after 4 seconds with fade-out (like Ctrl+Alt+Q plugin)
+            // Auto-dismiss after 4 seconds without animation
             var timer = new System.Windows.Threading.DispatcherTimer
             {
                 Interval = TimeSpan.FromSeconds(4)
@@ -209,30 +204,20 @@ namespace OpenBullet2.Native.Controls
             timer.Tick += (s, e) =>
             {
                 timer.Stop();
-                var fadeOut = new DoubleAnimation(1, 0, TimeSpan.FromMilliseconds(300));
-                fadeOut.Completed += (sender, args) =>
-                {
-                    NotificationOverlay.Visibility = Visibility.Collapsed;
-                };
-                NotificationWindow.BeginAnimation(UIElement.OpacityProperty, fadeOut);
+                NotificationOverlay.Visibility = Visibility.Collapsed;
             };
             timer.Start();
         }
 
         private void CloseNotification_Click(object sender, RoutedEventArgs e)
         {
-            // Create fade-out animation when clicked
-            var fadeOut = new DoubleAnimation(1, 0, TimeSpan.FromMilliseconds(300));
-            fadeOut.Completed += (s, args) =>
-            {
-                NotificationOverlay.Visibility = Visibility.Collapsed;
-            };
-            NotificationWindow.BeginAnimation(UIElement.OpacityProperty, fadeOut);
+            // Close immediately without animation
+            NotificationOverlay.Visibility = Visibility.Collapsed;
         }
 
     }
 
-    public class CreateMultipleConstantViewerViewModel : ViewModelBase
+    public class CreateMultipleConstantViewerViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
     {
         public BlockViewModel BlockVM { get; init; }
 

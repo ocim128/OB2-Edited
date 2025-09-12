@@ -37,7 +37,6 @@ namespace RuriLib.Parallelization
         {
             await base.Pause().ConfigureAwait(false);
 
-            Status = ParallelizerStatus.Pausing;
             // To pause, we just wait for all current tasks to finish by acquiring all semaphore slots.
             for (var i = 0; i < degreeOfParallelism; i++)
             {
@@ -51,7 +50,6 @@ namespace RuriLib.Parallelization
         {
             await base.Resume().ConfigureAwait(false);
 
-            Status = ParallelizerStatus.Resuming;
             // To resume, we release all the acquired slots.
             _semaphore.Release(degreeOfParallelism);
             Status = ParallelizerStatus.Running;
@@ -79,9 +77,9 @@ namespace RuriLib.Parallelization
         }
 
         /// <inheritdoc/>
-        public override Task ChangeDegreeOfParallelism(int newValue)
+        public async override Task ChangeDegreeOfParallelism(int newValue)
         {
-            base.ChangeDegreeOfParallelism(newValue).Wait();
+            await base.ChangeDegreeOfParallelism(newValue).ConfigureAwait(false);
 
             var diff = newValue - degreeOfParallelism;
             degreeOfParallelism = newValue;
@@ -94,11 +92,9 @@ namespace RuriLib.Parallelization
             {
                 for (var i = 0; i < -diff; i++)
                 {
-                    _semaphore.WaitAsync(CancellationToken.None).ConfigureAwait(false);
+                    await _semaphore.WaitAsync(CancellationToken.None).ConfigureAwait(false);
                 }
             }
-
-            return Task.CompletedTask;
         }
 
         private async Task RunAsync()

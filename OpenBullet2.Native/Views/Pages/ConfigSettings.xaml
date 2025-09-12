@@ -26,10 +26,7 @@
             <!-- General Section -->
             <Border Background="#C0353535" CornerRadius="12" Padding="20" Margin="0,0,0,16">
                 <StackPanel>
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
-                        <iconPacks:PackIconBoxIcons Kind="RegularCog" Width="24" Height="24" Foreground="#FF1E90FF" Margin="0,0,12,0"/>
-                        <TextBlock Text="General Settings" FontSize="20" FontWeight="Bold" Foreground="#FF1E90FF" VerticalAlignment="Center"/>
-                    </StackPanel>
+                    <ContentPresenter ContentTemplate="{StaticResource Template.SectionHeader.General}" />
                         <!-- General Settings Form -->
     <Grid>
                             <Grid.ColumnDefinitions>
@@ -73,10 +70,7 @@
                 <!-- Modern Section: Proxies -->
                 <Border Background="#C0353535" CornerRadius="12" Padding="20" Margin="0,0,0,16">
                     <StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
-                            <iconPacks:PackIconBoxIcons Kind="RegularServer" Width="24" Height="24" Foreground="#FF1E90FF" Margin="0,0,12,0"/>
-                            <TextBlock Text="Proxy Settings" FontSize="20" FontWeight="Bold" Foreground="#FF1E90FF" VerticalAlignment="Center"/>
-                        </StackPanel>
+                        <ContentPresenter ContentTemplate="{StaticResource Template.SectionHeader.Server}" />
                         <!-- Proxy Settings Form -->
                         <Grid>
                             <Grid.ColumnDefinitions>
@@ -118,10 +112,7 @@
                 <!-- Modern Section: Data -->
                 <Border Background="#C0353535" CornerRadius="12" Padding="20" Margin="0,0,0,16">
                     <StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
-                            <iconPacks:PackIconBoxIcons Kind="RegularData" Width="24" Height="24" Foreground="#FF1E90FF" Margin="0,0,12,0"/>
-                            <TextBlock Text="Data Settings" FontSize="20" FontWeight="Bold" Foreground="#FF1E90FF" VerticalAlignment="Center"/>
-                        </StackPanel>
+                        <ContentPresenter ContentTemplate="{StaticResource Template.SectionHeader.Data}" />
                     <!-- Data Settings -->
                     <StackPanel Margin="0,0,0,16">
                         <TextBlock Text="Allowed wordlist types:" FontWeight="SemiBold" Foreground="#FF1E90FF" Margin="0,0,0,8"/>

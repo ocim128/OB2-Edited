@@ -56,7 +56,7 @@ namespace OpenBullet2.Native.Controls
         }
     }
 
-    public class KeychainViewerViewModel : ViewModelBase
+    public class KeychainViewerViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
     {
         private readonly RuriLibSettingsService rlSettingsService;
         private readonly Keychain keychain;

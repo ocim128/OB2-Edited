@@ -80,7 +80,7 @@ namespace OpenBullet2.Native.Views.Dialogs
         }
     }
 
-    public class AddBlockDialogViewModel : ViewModelBase
+    public class AddBlockDialogViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
     {
         private readonly VolatileSettingsService volatileSettings;
 

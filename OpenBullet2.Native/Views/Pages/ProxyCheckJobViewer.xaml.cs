@@ -48,92 +48,34 @@ namespace OpenBullet2.Native.Views.Pages
 
         private async void Start(object sender, RoutedEventArgs e)
         {
-            try
+            await Alert.SafeExecuteAsync(async () =>
             {
                 Application.Current.Dispatcher.Invoke(() => jobLog.Clear());
                 jobLog.BufferSize = obSettingsService.Settings.GeneralSettings.LogBufferSize;
                 await vm.Start();
-            }
-            catch (Exception ex)
-            {
-                Alert.Exception(ex);
-            }
+            }, "starting proxy check job");
         }
 
         private async void Stop(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                await vm.Stop();
-            }
-            catch (Exception ex)
-            {
-                Alert.Exception(ex);
-            }
-        }
+            => await Alert.SafeExecuteAsync(() => vm.Stop(), "stopping proxy check job");
 
         private async void Pause(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                await vm.Pause();
-            }
-            catch (Exception ex)
-            {
-                Alert.Exception(ex);
-            }
-        }
+            => await Alert.SafeExecuteAsync(() => vm.Pause(), "pausing proxy check job");
 
         private async void Resume(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                await vm.Resume();
-            }
-            catch (Exception ex)
-            {
-                Alert.Exception(ex);
-            }
-        }
+            => await Alert.SafeExecuteAsync(() => vm.Resume(), "resuming proxy check job");
 
         private async void Abort(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                await vm.Abort();
-            }
-            catch (Exception ex)
-            {
-                Alert.Exception(ex);
-            }
-        }
+            => await Alert.SafeExecuteAsync(() => vm.Abort(), "aborting proxy check job");
 
         private void SkipWait(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                vm.SkipWait();
-            }
-            catch (Exception ex)
-            {
-                Alert.Exception(ex);
-            }
-        }
+            => Alert.SafeExecute(() => vm.SkipWait(), "skipping wait");
 
         private void ChangeBots(object sender, MouseButtonEventArgs e)
             => new MainDialog(new ChangeBotsDialog(this, vm.Job.Bots), "Change bots").ShowDialog();
 
         public async void ChangeBots(int newValue)
-        {
-            try
-            {
-                await vm.ChangeBotsAsync(newValue);
-            }
-            catch (Exception ex)
-            {
-                Alert.Exception(ex);
-            }
-        }
+            => await Alert.SafeExecuteAsync(() => vm.ChangeBotsAsync(newValue), "changing bot count");
 
         private void OnResultMessage(object sender, string message, Color color)
             => Application.Current.Dispatcher.Invoke(() =>

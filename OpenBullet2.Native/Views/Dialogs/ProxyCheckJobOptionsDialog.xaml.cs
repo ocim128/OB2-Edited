@@ -42,7 +42,7 @@ namespace OpenBullet2.Native.Views.Dialogs
         }
     }
 
-    public class ProxyCheckJobOptionsViewModel : ViewModelBase
+    public class ProxyCheckJobOptionsViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
     {
         private readonly IProxyGroupRepository proxyGroupRepo;
         private readonly JobFactoryService jobFactory;

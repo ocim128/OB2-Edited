@@ -172,7 +172,7 @@ namespace OpenBullet2.Native.Views.Dialogs
         }
     }
 
-    public class MultiRunJobOptionsViewModel : ViewModelBase
+    public class MultiRunJobOptionsViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
     {
         private readonly IRecordRepository recordRepo;
         private readonly IWordlistRepository wordlistRepo;
@@ -661,7 +661,7 @@ namespace OpenBullet2.Native.Views.Dialogs
     }
 
     #region Data Pool ViewModels
-    public class DataPoolOptionsViewModel : ViewModelBase
+    public class DataPoolOptionsViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
     {
         public DataPoolOptions Options { get; init; }
 
@@ -859,7 +859,7 @@ namespace OpenBullet2.Native.Views.Dialogs
     #endregion
 
     #region Proxy Sources ViewModels
-    public class ProxySourceOptionsViewModel : ViewModelBase
+    public class ProxySourceOptionsViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
     {
         public ProxySourceOptions Options { get; init; }
 

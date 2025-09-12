@@ -30,7 +30,6 @@ public static class ParallelizerFactory<TInput, TOutput>
         return type switch
         {
             ParallelizerType.TaskBased => new TaskBasedParallelizer<TInput, TOutput>(workItems, workFunction, degreeOfParallelism, totalAmount, skip, maxDegreeOfParallelism),
-            ParallelizerType.ThreadBased => new ThreadBasedParallelizer<TInput, TOutput>(workItems, workFunction, degreeOfParallelism, totalAmount, skip, maxDegreeOfParallelism),
             ParallelizerType.ParallelBased => new ParallelBasedParallelizer<TInput, TOutput>(workItems, workFunction, degreeOfParallelism, totalAmount, skip, maxDegreeOfParallelism),
             _ => throw new NotImplementedException(),
         };

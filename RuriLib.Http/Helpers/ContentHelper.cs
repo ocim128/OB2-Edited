@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace RuriLib.Http.Helpers
@@ -6,7 +7,7 @@ namespace RuriLib.Http.Helpers
     static internal class ContentHelper
     {
         //https://github.com/dotnet/corefx/blob/3e72ee5971db5d0bd46606fa672969adde29e307/src/System.Net.Http/src/System/Net/Http/Headers/KnownHeaders.cs
-        private static readonly string[] contentHeaders = new []
+        private static readonly HashSet<string> contentHeaders = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
             "Last-Modified",
             "Expires",
@@ -20,6 +21,6 @@ namespace RuriLib.Http.Helpers
             "Allow"
         };
 
-        public static bool IsContentHeader(string name) => contentHeaders.Any(h => h.Equals(name, StringComparison.OrdinalIgnoreCase));
+        public static bool IsContentHeader(string name) => !string.IsNullOrEmpty(name) && contentHeaders.Contains(name);
     }
 }

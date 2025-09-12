@@ -2,6 +2,7 @@ using OpenBullet2.Core.Repositories;
 using OpenBullet2.Core.Services;
 using OpenBullet2.Native.Services;
 using OpenBullet2.Native.ViewModels;
+using OpenBullet2.Native.ViewModels.Infrastructure;
 using OpenBullet2.Native.Helpers;
 using OpenBullet2.Native.Infrastructure.DependencyInjection;
 using OpenBullet2.Native.Utils;
@@ -22,16 +23,19 @@ using static OpenBullet2.Native.MainWindow;
 namespace OpenBullet2.Native.Views.Pages
 {
     /// <summary>
-    /// Interaction logic for Home.xaml
+    /// Interaction logic for Home.xaml - Uses centralized UI patterns via composition
     /// </summary>
     public partial class Home : Page
     {
         private readonly HomeViewModel vm;
+        private readonly PageHelper helper;
 
         public Home()
         {
+            helper = new PageHelper(this);
             InitializeComponent();
 
+            // Use centralized ViewModel initialization pattern
             vm = new HomeViewModel();
             DataContext = vm;
 
@@ -41,20 +45,18 @@ namespace OpenBullet2.Native.Views.Pages
 
         private void ConfigsShortcut_Click(object sender, RoutedEventArgs e)
         {
-            var mainWindow = Application.Current.MainWindow as MainWindow;
-            mainWindow?.NavigateTo(MainWindowPage.Configs);
+            // Use centralized navigation helper
+            helper.NavigateToPage(MainWindowPage.Configs);
         }
 
         private void JobsShortcut_Click(object sender, RoutedEventArgs e)
         {
-            var mainWindow = Application.Current.MainWindow as MainWindow;
-            mainWindow?.NavigateTo(MainWindowPage.Jobs);
+            // Use centralized navigation helper  
+            helper.NavigateToPage(MainWindowPage.Jobs);
         }
-
-
     }
 
-    public class HomeViewModel : ViewModelBase, IDisposable
+    public class HomeViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase, IDisposable
     {
         private readonly IJobRepository jobRepo;
         private readonly IConfigRepository configRepo;

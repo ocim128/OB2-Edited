@@ -31,13 +31,9 @@
             </Grid.RowDefinitions>
 
             <!-- Header Section -->
-            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,24">
-                <iconPacks:PackIconMaterial Kind="FileDocumentOutline"
-                                            Width="28"
-                                            Height="28"
-                                            Foreground="#3B82F6"
-                                            VerticalAlignment="Center"
-                                            Margin="0,0,12,0"/>
+            <StackPanel Grid.Row="0" Style="{StaticResource DialogHeader.WithIcon}">
+                <ContentControl Content="{StaticResource Icon.FileOutline}"
+                               Style="{StaticResource DialogHeader.Icon}"/>
                 <StackPanel>
                     <TextBlock Text="Create New Config"
                                FontFamily="Segoe UI"
@@ -56,11 +52,11 @@
             <!-- Name Field -->
             <StackPanel Grid.Row="1" Margin="0,0,0,16">
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                    <iconPacks:PackIconMaterial Kind="TagOutline" 
-                                                Width="16" Height="16" 
-                                                Foreground="#64748B"
-                                                VerticalAlignment="Center" 
-                                                Margin="0,0,8,0" />
+                    <ContentControl Content="{StaticResource Icon.TagOutline}" 
+                                   Width="16" Height="16" 
+                                   Foreground="#64748B"
+                                   VerticalAlignment="Center" 
+                                   Margin="0,0,8,0" />
                     <TextBlock Text="Configuration Name"
                                FontFamily="Segoe UI"
                                FontSize="13"
@@ -87,11 +83,11 @@
             <!-- Category Field -->
             <StackPanel Grid.Row="2" Margin="0,0,0,16">
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                    <iconPacks:PackIconMaterial Kind="FolderOutline" 
-                                                Width="16" Height="16" 
-                                                Foreground="#64748B"
-                                                VerticalAlignment="Center" 
-                                                Margin="0,0,8,0" />
+                    <ContentControl Content="{StaticResource Icon.FolderOutline}" 
+                                   Width="16" Height="16" 
+                                   Foreground="#64748B"
+                                   VerticalAlignment="Center" 
+                                   Margin="0,0,8,0" />
                     <TextBlock Text="Category"
                                FontFamily="Segoe UI"
                                FontSize="13"
@@ -116,11 +112,11 @@
             <!-- Author Field -->
             <StackPanel Grid.Row="3" Margin="0,0,0,24">
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                    <iconPacks:PackIconMaterial Kind="AccountOutline" 
-                                                Width="16" Height="16" 
-                                                Foreground="#64748B"
-                                                VerticalAlignment="Center" 
-                                                Margin="0,0,8,0" />
+                    <ContentControl Content="{StaticResource Icon.Account}" 
+                                   Width="16" Height="16" 
+                                   Foreground="#64748B"
+                                   VerticalAlignment="Center" 
+                                   Margin="0,0,8,0" />
                     <TextBlock Text="Author"
                                FontFamily="Segoe UI"
                                FontSize="13"
@@ -160,10 +156,10 @@
                         FontWeight="SemiBold"
                         Click="Accept">
                     <StackPanel Orientation="Horizontal">
-                        <iconPacks:PackIconMaterial Kind="Plus" 
-                                                    Width="16" Height="16" 
-                                                    VerticalAlignment="Center"
-                                                    Margin="0,0,6,0"/>
+                        <ContentControl Content="{StaticResource Icon.Plus}" 
+                                       Width="16" Height="16" 
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,6,0"/>
                         <TextBlock Text="Create Config" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Button>

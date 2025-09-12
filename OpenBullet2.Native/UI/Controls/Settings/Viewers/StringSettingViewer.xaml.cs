@@ -3,7 +3,6 @@ using RuriLib.Models.Blocks.Settings;
 using RuriLib.Models.Blocks.Settings.Interpolated;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -11,23 +10,23 @@ using System.Windows.Input;
 namespace OpenBullet2.Native.Controls
 {
     /// <summary>
-    /// Interaction logic for BlockSettingViewer.xaml
+    /// Interaction logic for StringSettingViewer.xaml
     /// </summary>
-    public partial class ListOfStringsSettingViewer : UserControl
+    public partial class StringSettingViewer : UserControl
     {
-        private ListOfStringsSettingViewerViewModel vm;
+        private StringSettingViewerViewModel vm;
 
         public BlockSetting Setting
         {
             get => vm?.Setting;
             set
             {
-                if (value.FixedSetting is not ListOfStringsSetting)
+                if (value.FixedSetting is not StringSetting)
                 {
                     throw new Exception("Invalid setting type for this UC");
                 }
 
-                vm = new ListOfStringsSettingViewerViewModel(value);
+                vm = new StringSettingViewerViewModel(value);
                 DataContext = vm;
 
                 tabControl.SelectedIndex = vm.Mode switch
@@ -48,7 +47,7 @@ namespace OpenBullet2.Native.Controls
             }
         }
 
-        public ListOfStringsSettingViewer()
+        public StringSettingViewer()
         {
             InitializeComponent();
         }
@@ -57,6 +56,7 @@ namespace OpenBullet2.Native.Controls
         private void VariableMode(object sender, RoutedEventArgs e)
         {
             vm.Mode = SettingInputMode.Variable;
+            vm.VariableName = vm.InterpValue;
             tabControl.SelectedIndex = 0;
             buttonTabControl.SelectedIndex = 0;
         }
@@ -65,7 +65,7 @@ namespace OpenBullet2.Native.Controls
         private void ConstantMode(object sender, RoutedEventArgs e)
         {
             vm.Mode = SettingInputMode.Fixed;
-            vm.Value = vm.InterpValue;
+            vm.Value = vm.VariableName;
             tabControl.SelectedIndex = 1;
             buttonTabControl.SelectedIndex = 1;
         }
@@ -88,17 +88,21 @@ namespace OpenBullet2.Native.Controls
         }
     }
 
-    public class ListOfStringsSettingViewerViewModel : ViewModelBase
+    public class StringSettingViewerViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
     {
         public BlockSetting Setting { get; init; }
 
+        private StringSetting FixedSetting => Setting.FixedSetting as StringSetting;
+        private InterpolatedStringSetting InterpolatedSetting => Setting.InterpolatedSetting as InterpolatedStringSetting;
+
         public string Name => Setting.ReadableName;
-
         public string Description => Setting.Description;
-
         public IEnumerable<string> Suggestions => Utils.Suggestions.GetInputVariableSuggestions(Setting);
 
         public bool CanSwitchToInterpolatedMode => Mode == SettingInputMode.Fixed && Value.Contains('<') && Value.Contains('>');
+        public bool MultiLine => FixedSetting.MultiLine;
+        public VerticalAlignment VerticalAlignment => MultiLine ? VerticalAlignment.Top : VerticalAlignment.Center;
+        public int Height => MultiLine ? 100 : 30;
 
         public SettingInputMode Mode
         {
@@ -121,49 +125,30 @@ namespace OpenBullet2.Native.Controls
             }
         }
 
-        private string interpValue;
         public string InterpValue
         {
-            get => interpValue;
+            get => InterpolatedSetting.Value;
             set
             {
-                interpValue = value;
-                var s = Setting.InterpolatedSetting as InterpolatedListOfStringsSetting;
-                s.Value = value?.Split(Environment.NewLine, StringSplitOptions.None).ToList();
+                InterpolatedSetting.Value = value;
                 OnPropertyChanged();
             }
         }
 
-        private string value;
         public string Value
         {
-            get => value;
+            get => FixedSetting.Value;
             set
             {
-                this.value = value;
-                var s = Setting.FixedSetting as ListOfStringsSetting;
-                s.Value = value?.Split(Environment.NewLine, StringSplitOptions.None).ToList();
+                FixedSetting.Value = value;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(CanSwitchToInterpolatedMode));
             }
         }
 
-        public ListOfStringsSettingViewerViewModel(BlockSetting setting)
+        public StringSettingViewerViewModel(BlockSetting setting)
         {
             Setting = setting;
-
-            if (Setting.InputMode == SettingInputMode.Fixed)
-            {
-                var s = Setting.FixedSetting as ListOfStringsSetting;
-                value = s.Value is null ? string.Empty : string.Join(Environment.NewLine, s.Value);
-                interpValue = string.Empty;
-            }
-            else if (Setting.InputMode == SettingInputMode.Interpolated)
-            {
-                var s = Setting.InterpolatedSetting as InterpolatedListOfStringsSetting;
-                interpValue = s.Value is null ? string.Empty : string.Join(Environment.NewLine, s.Value);
-                value = string.Empty;
-            }
         }
     }
 }

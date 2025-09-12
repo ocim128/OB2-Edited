@@ -1,4 +1,4 @@
-﻿namespace OpenBullet2.Native.DTOs
+namespace OpenBullet2.Native.DTOs
 {
     public class ConfigForCreationDto
     {

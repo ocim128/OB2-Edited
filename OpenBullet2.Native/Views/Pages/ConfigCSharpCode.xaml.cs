@@ -87,7 +87,7 @@ namespace OpenBullet2.Native.Views.Pages
             startupEditorContainer.Visibility == Visibility.Collapsed ? Visibility.Visible : Visibility.Collapsed;
     }
 
-    public class ConfigCSharpCodeViewModel : ViewModelBase
+    public class ConfigCSharpCodeViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
     {
         private readonly ConfigService configService;
         private readonly OpenBulletSettingsService obSettingsService;

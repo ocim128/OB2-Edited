@@ -120,16 +120,7 @@ namespace OpenBullet2.Native.Views.Pages
             }
         }
 
-        private void UpdateSearch(object sender, System.Windows.Input.KeyEventArgs e)
-        {
-            if (e.Key == System.Windows.Input.Key.Enter)
-            {
-                vm.SearchString = filterTextbox.Text;
-            }
-        }
-
-        private void Search(object sender, RoutedEventArgs e) => vm.SearchString = filterTextbox.Text;
-
+        
         public async Task AddWordlist(WordlistEntity wordlist)
         {
             try

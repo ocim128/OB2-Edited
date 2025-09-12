@@ -18,7 +18,7 @@ using OpenBullet2.Native.Infrastructure.DependencyInjection;
 
 namespace OpenBullet2.Native.ViewModels
 {
-    public class ConfigsViewModel : ViewModelBase
+    public class ConfigsViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
     {
         private readonly ConfigService configService;
         private readonly IConfigRepository configRepo;
@@ -219,7 +219,7 @@ namespace OpenBullet2.Native.ViewModels
             .Metadata.Name.Contains(searchString, StringComparison.OrdinalIgnoreCase);
     } // Closing ConfigsViewModel class
 
-    public class ConfigViewModel : ViewModelBase
+    public class ConfigViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
     {
         public Config Config { get; init; }
 

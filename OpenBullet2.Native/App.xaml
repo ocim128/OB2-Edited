@@ -7,44 +7,41 @@
              xmlns:converters="clr-namespace:OpenBullet2.Native.Converters">
     <Application.Resources>
         <ResourceDictionary>
-            <!-- Modern Color Scheme -->
-            <SolidColorBrush x:Key="ThemeMain" Color="#3B82F6" />
-            <SolidColorBrush x:Key="BackgroundMain" Color="#0F172A" />
-            <SolidColorBrush x:Key="BackgroundSecondary" Color="#1E293B" />
-            <SolidColorBrush x:Key="BackgroundInput" Color="#1E293B" />
-            <SolidColorBrush x:Key="ForegroundMain" Color="#F8FAFC" />
-            <SolidColorBrush x:Key="ForegroundInput" Color="#F8FAFC" />
-            <SolidColorBrush x:Key="ForegroundGood" Color="#10B981"/>
-            <SolidColorBrush x:Key="ForegroundBad" Color="#EF4444"/>
-            <SolidColorBrush x:Key="ForegroundCustom" Color="#F59E0B"/>
-            <SolidColorBrush x:Key="ForegroundRetry" Color="#F59E0B"/>
+            <!-- FLUENT DESIGN SYSTEM COLORS - Performance Optimized -->
+            <SolidColorBrush x:Key="ThemeMain" Color="#0078D4" />
+            <SolidColorBrush x:Key="BackgroundMain" Color="#0C0C0C" />
+            <SolidColorBrush x:Key="BackgroundSecondary" Color="#1A1A1A" />
+            <SolidColorBrush x:Key="BackgroundInput" Color="#202020" />
+            <SolidColorBrush x:Key="ForegroundMain" Color="#FFFFFF" />
+            <SolidColorBrush x:Key="ForegroundInput" Color="#FFFFFF" />
+            <SolidColorBrush x:Key="ForegroundGood" Color="#00CC6A"/>
+            <SolidColorBrush x:Key="ForegroundBad" Color="#FF4444"/>
+            <SolidColorBrush x:Key="ForegroundCustom" Color="#FF8C00"/>
+            <SolidColorBrush x:Key="ForegroundRetry" Color="#FF8C00"/>
             <SolidColorBrush x:Key="ForegroundBanned" Color="#8B5CF6"/>
-            <SolidColorBrush x:Key="ForegroundToCheck" Color="#06B6D4"/>
-            <SolidColorBrush x:Key="ForegroundMenuSelected" Color="#3B82F6"/>
-            <SolidColorBrush x:Key="Headers" Color="#F8FAFC" />
+            <SolidColorBrush x:Key="ForegroundToCheck" Color="#40E0D0"/>
+            <SolidColorBrush x:Key="ForegroundMenuSelected" Color="#0078D4"/>
+            <SolidColorBrush x:Key="Headers" Color="#FFFFFF" />
 
             <!-- BoolToTextWrappingConverter -->
             <converters:BoolToTextWrappingConverter x:Key="BoolToWrap" />
 
-            <!-- Border Colors -->
-            <SolidColorBrush x:Key="BorderLight" Color="#475569"/>
-            <Color x:Key="BorderLightColor">#475569</Color>
-            <Color x:Key="BorderDarkColor">#1E293B</Color>
+            <!-- PERFORMANCE-OPTIMIZED BUTTON COLORS -->
+            <SolidColorBrush x:Key="SuccessButton" Color="#00CC6A"/>
+            <SolidColorBrush x:Key="PrimaryButton" Color="#0078D4"/>
+            <SolidColorBrush x:Key="WarningButton" Color="#FF8C00"/>
+            <SolidColorBrush x:Key="DangerButton" Color="#FF4444"/>
+            <SolidColorBrush x:Key="ForegroundButton" Color="#FFFFFF"/>
+            <SolidColorBrush x:Key="BackgroundButton" Color="#333333"/>
 
-            <SolidColorBrush x:Key="SuccessButton" Color="#065F46"/>
-            <SolidColorBrush x:Key="PrimaryButton" Color="#1E40AF"/>
-            <SolidColorBrush x:Key="WarningButton" Color="#92400E"/>
-            <SolidColorBrush x:Key="DangerButton" Color="#991B1B"/>
-            <SolidColorBrush x:Key="ForegroundButton" Color="#F8FAFC"/>
-            <SolidColorBrush x:Key="BackgroundButton" Color="#374151"/>
-
-            <!-- Standard Drop Shadow Effect -->
+            <!-- OPTIMIZED DROP SHADOW FOR PERFORMANCE -->
             <DropShadowEffect x:Key="DropShadowEffect" 
                               Color="#000000" 
                               Direction="270" 
-                              ShadowDepth="3" 
-                              Opacity="0.3" 
-                              BlurRadius="8"/>
+                              ShadowDepth="2" 
+                              Opacity="0.15" 
+                              BlurRadius="6"
+                              RenderingBias="Performance"/>
 
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="pack://application:,,,/MahApps.Metro;component/Styles/Controls.xaml" />
@@ -122,7 +119,7 @@
                         <Setter Property="mah:ControlsHelper.MouseOverBorderBrush" Value="{DynamicResource MahApps.Brushes.Button.Border.MouseOver}" />
                     </Style>
 
-                    <!-- BUILTIN TYPES - Enhanced for Crystal Clear Text -->
+                    <!-- PERFORMANCE-OPTIMIZED TEXTBLOCK STYLE -->
                     <Style TargetType="{x:Type TextBlock}" BasedOn="{StaticResource MahApps.Styles.TextBlock}">
                         <Setter Property="Foreground" Value="{DynamicResource ForegroundMain}"/>
                         <Setter Property="FontFamily" Value="Segoe UI"/>

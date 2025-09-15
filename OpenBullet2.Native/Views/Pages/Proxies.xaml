@@ -54,7 +54,8 @@
                   ItemsSource="{Binding Path=ProxyGroupsCollection}"
                   DisplayMemberPath="Name"
                   SelectedValuePath="Id"
-                  SelectedValue="{Binding Path=SelectedGroupId, Mode=TwoWay}" />
+                  SelectedValue="{Binding Path=SelectedGroupId, Mode=TwoWay}"
+                  Style="{StaticResource CleanComboBox}" />
         </StackPanel>
         </Border>
 
@@ -92,9 +93,9 @@
         </Button>
             <Separator Width="20" Background="Transparent" />
             <TextBox x:Name="searchTextbox" Text="{Binding SearchString, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,8,0" Width="150" Style="{StaticResource MatchingTextBox}" ToolTip="Search in host, username, country"/>
-            <ComboBox ItemsSource="{Binding ProxyTypes}" SelectedItem="{Binding TypeFilter}" Margin="0,0,8,0" Width="120" Style="{StaticResource MatchingComboBox}" ToolTip="Filter by proxy type"/>
-            <ComboBox ItemsSource="{Binding Countries}" SelectedItem="{Binding CountryFilter}" Margin="0,0,8,0" Width="120" Style="{StaticResource MatchingComboBox}" ToolTip="Filter by country"/>
-            <ComboBox ItemsSource="{Binding Statuses}" SelectedItem="{Binding StatusFilter}" Margin="0,0,8,0" Width="120" Style="{StaticResource MatchingComboBox}" ToolTip="Filter by status"/>
+            <ComboBox ItemsSource="{Binding ProxyTypes}" SelectedItem="{Binding TypeFilter}" Margin="0,0,8,0" Width="120" Style="{StaticResource CleanComboBox}" ToolTip="Filter by proxy type"/>
+            <ComboBox ItemsSource="{Binding Countries}" SelectedItem="{Binding CountryFilter}" Margin="0,0,8,0" Width="120" Style="{StaticResource CleanComboBox}" ToolTip="Filter by country"/>
+            <ComboBox ItemsSource="{Binding Statuses}" SelectedItem="{Binding StatusFilter}" Margin="0,0,8,0" Width="120" Style="{StaticResource CleanComboBox}" ToolTip="Filter by status"/>
             <TextBlock FontWeight="Bold" VerticalAlignment="Center" Margin="10 0 0 0">Total:</TextBlock>
             <TextBlock Text="{Binding Total}" VerticalAlignment="Center" Margin="5 0 0 0" />
             <TextBlock FontWeight="Bold" Foreground="{DynamicResource ForegroundGood}" VerticalAlignment="Center" Margin="10 0 0 0">Working:</TextBlock>

@@ -159,8 +159,37 @@ namespace OpenBullet2.Native.ViewModels;
     {
         if (!initialized)
         {
-            await RefreshGroupsAsync();
-            initialized = true;
+            try
+            {
+                System.Diagnostics.Debug.WriteLine("ProxiesViewModel: Starting initialization");
+                await RefreshGroupsAsync();
+                initialized = true;
+                System.Diagnostics.Debug.WriteLine("ProxiesViewModel: Initialization completed successfully");
+            }
+            catch (Exception ex)
+            {
+                var errorDetails = $"ProxiesViewModel initialization failed: {ex.GetType().Name} - {ex.Message}";
+                if (ex.InnerException != null)
+                {
+                    errorDetails += $" | Inner: {ex.InnerException.GetType().Name} - {ex.InnerException.Message}";
+                }
+                
+                System.Diagnostics.Debug.WriteLine(errorDetails);
+                System.Diagnostics.Debug.WriteLine($"Full ProxiesViewModel error: {ex}");
+                
+                // Log to crash system
+                try
+                {
+                    OpenBullet2.Native.Infrastructure.Diagnostics.CrashLoggingService.Instance.LogCrash(
+                        ex, 
+                        "ProxiesViewModel.InitializeAsync", 
+                        "Failed to initialize ProxiesViewModel during page navigation", 
+                        false);
+                }
+                catch { /* Ignore logging errors */ }
+                
+                throw; // Re-throw so the UI can handle it
+            }
         }
     }
 
@@ -197,18 +226,58 @@ namespace OpenBullet2.Native.ViewModels;
 
     public async Task RefreshListAsync()
     {
-        var items = SelectedGroup == allGroup
-            ? await proxyRepo.GetAll().ToListAsync()
-            : await proxyRepo.GetAll().Include(p => p.Group).Where(p => p.Group.Id == SelectedGroup.Id).ToListAsync();
+        try
+        {
+            System.Diagnostics.Debug.WriteLine("ProxiesViewModel: Starting RefreshListAsync");
+            var items = SelectedGroup == allGroup
+                ? await proxyRepo.GetAll().ToListAsync()
+                : await proxyRepo.GetAll().Include(p => p.Group).Where(p => p.Group.Id == SelectedGroup.Id).ToListAsync();
 
-        ProxiesCollection = new ObservableCollection<ProxyEntity>(items);
-        OnPropertyChanged(nameof(Total));
-        OnPropertyChanged(nameof(Working));
-        OnPropertyChanged(nameof(NotWorking));
-        OnPropertyChanged(nameof(ProxyTypes));
-        OnPropertyChanged(nameof(Countries));
-        OnPropertyChanged(nameof(Statuses));
-        HookFilters();
+            System.Diagnostics.Debug.WriteLine($"ProxiesViewModel: Loaded {items.Count} proxies from repository");
+            
+            ProxiesCollection = new ObservableCollection<ProxyEntity>(items);
+            OnPropertyChanged(nameof(Total));
+            OnPropertyChanged(nameof(Working));
+            OnPropertyChanged(nameof(NotWorking));
+            OnPropertyChanged(nameof(ProxyTypes));
+            OnPropertyChanged(nameof(Countries));
+            OnPropertyChanged(nameof(Statuses));
+            HookFilters();
+            System.Diagnostics.Debug.WriteLine("ProxiesViewModel: RefreshListAsync completed successfully");
+        }
+        catch (Exception ex)
+        {
+            var errorDetails = $"ProxiesViewModel RefreshListAsync failed: {ex.GetType().Name} - {ex.Message}";
+            if (ex.InnerException != null)
+            {
+                errorDetails += $" | Inner: {ex.InnerException.GetType().Name} - {ex.InnerException.Message}";
+            }
+            
+            System.Diagnostics.Debug.WriteLine(errorDetails);
+            System.Diagnostics.Debug.WriteLine($"Full RefreshListAsync error: {ex}");
+            
+            // Log database access failures
+            try
+            {
+                OpenBullet2.Native.Infrastructure.Diagnostics.CrashLoggingService.Instance.LogCrash(
+                    ex, 
+                    "ProxiesViewModel.RefreshListAsync", 
+                    $"Failed to refresh proxies list from database. SelectedGroup: {SelectedGroup?.Name ?? "null"}", 
+                    false);
+            }
+            catch { /* Ignore logging errors */ }
+            
+            // Initialize with empty collection to prevent further UI errors
+            ProxiesCollection = new ObservableCollection<ProxyEntity>();
+            OnPropertyChanged(nameof(Total));
+            OnPropertyChanged(nameof(Working));
+            OnPropertyChanged(nameof(NotWorking));
+            OnPropertyChanged(nameof(ProxyTypes));
+            OnPropertyChanged(nameof(Countries));
+            OnPropertyChanged(nameof(Statuses));
+            
+            throw; // Re-throw so calling code can handle it
+        }
     }
 
     public Task AddGroupAsync(ProxyGroupEntity group)

@@ -47,7 +47,6 @@ namespace OpenBullet2.Native.Infrastructure.Diagnostics
             try
             {
                 Directory.CreateDirectory(_dumpDirectory);
-                StartupDiagnosticsService.Instance?.LogCheckpoint("CrashDumpService", $"Initialized dump directory: {_dumpDirectory}");
             }
             catch (Exception ex)
             {
@@ -72,7 +71,7 @@ namespace OpenBullet2.Native.Infrastructure.Diagnostics
                     var dumpFileName = $"OpenBullet2_Crash_{timestamp}_{context.Replace(" ", "_")}.dmp";
                     var dumpPath = Path.Combine(_dumpDirectory, dumpFileName);
                     
-                    StartupDiagnosticsService.Instance?.LogCheckpoint("CrashDump", $"Generating crash dump: {dumpFileName}");
+
                     
                     bool success = false;
                     
@@ -90,19 +89,16 @@ namespace OpenBullet2.Native.Infrastructure.Diagnostics
                         // Also generate a companion text file with crash details
                         GenerateCrashReport(dumpPath + ".txt", exception, context);
                         
-                        StartupDiagnosticsService.Instance?.LogCheckpoint("CrashDump", $"Crash dump generated successfully: {dumpPath}");
                         return dumpPath;
                     }
                     else
                     {
-                        StartupDiagnosticsService.Instance?.LogCheckpoint("CrashDump", "Failed to generate crash dump");
                         return null;
                     }
                 }
                 catch (Exception ex)
                 {
                     Debug.WriteLine($"Error generating crash dump: {ex.Message}");
-                    StartupDiagnosticsService.Instance?.LogCheckpoint("CrashDump", $"Error generating crash dump: {ex.Message}");
                     return null;
                 }
             }
@@ -159,8 +155,6 @@ namespace OpenBullet2.Native.Infrastructure.Diagnostics
                         var textFile = file.FullName + ".txt";
                         if (File.Exists(textFile))
                             File.Delete(textFile);
-                        
-                        StartupDiagnosticsService.Instance?.LogCheckpoint("CrashDump.Cleanup", $"Deleted old dump: {file.Name}");
                     }
                     catch (Exception ex)
                     {

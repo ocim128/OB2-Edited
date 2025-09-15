@@ -51,26 +51,57 @@ namespace OpenBullet2.Native.Views.Pages
 
         public Hits()
         {
-            vm = ServiceLocator.GetService<ViewModelsService>().Hits;
-            DataContext = vm;
-            _ = vm.InitializeAsync();
-
-            InitializeComponent();
-            window = ServiceLocator.GetService<MainWindow>();
-            configService = ServiceLocator.GetService<ConfigService>();
-            rlSettingsService = ServiceLocator.GetService<RuriLibSettingsService>();
-            obSettingsService = ServiceLocator.GetService<OpenBulletSettingsService>();
-            var env = ServiceLocator.GetService<RuriLibSettingsService>().Environment;
-
-            // HACK: Hardcoded stuff
-            var menu = (ContextMenu)Resources["ItemContextMenu"];
-            var copyMenu = (MenuItem)menu.Items[0];
-            var saveMenu = (MenuItem)menu.Items[1];
-
-            foreach (var format in env.ExportFormats.Select(f => f.Format))
+            try
             {
-                AddCopyMenuItem(format, copyMenu);
-                AddSaveMenuItem(format, saveMenu);
+                System.Diagnostics.Debug.WriteLine("Hits: Starting page construction");
+                vm = ServiceLocator.GetService<ViewModelsService>().Hits;
+                DataContext = vm;
+                
+                System.Diagnostics.Debug.WriteLine("Hits: Initializing ViewModel");
+                _ = vm.InitializeAsync();
+
+                InitializeComponent();
+                window = ServiceLocator.GetService<MainWindow>();
+                configService = ServiceLocator.GetService<ConfigService>();
+                rlSettingsService = ServiceLocator.GetService<RuriLibSettingsService>();
+                obSettingsService = ServiceLocator.GetService<OpenBulletSettingsService>();
+                var env = ServiceLocator.GetService<RuriLibSettingsService>().Environment;
+
+                // HACK: Hardcoded stuff
+                var menu = (ContextMenu)Resources["ItemContextMenu"];
+                var copyMenu = (MenuItem)menu.Items[0];
+                var saveMenu = (MenuItem)menu.Items[1];
+
+                foreach (var format in env.ExportFormats.Select(f => f.Format))
+                {
+                    AddCopyMenuItem(format, copyMenu);
+                    AddSaveMenuItem(format, saveMenu);
+                }
+                System.Diagnostics.Debug.WriteLine("Hits: Page construction completed successfully");
+            }
+            catch (Exception ex)
+            {
+                var errorDetails = $"Hits page constructor failed: {ex.GetType().Name} - {ex.Message}";
+                if (ex.InnerException != null)
+                {
+                    errorDetails += $" | Inner: {ex.InnerException.GetType().Name} - {ex.InnerException.Message}";
+                }
+                
+                System.Diagnostics.Debug.WriteLine(errorDetails);
+                System.Diagnostics.Debug.WriteLine($"Full Hits constructor error: {ex}");
+                
+                // Log page construction failures
+                try
+                {
+                    OpenBullet2.Native.Infrastructure.Diagnostics.CrashLoggingService.Instance.LogCrash(
+                        ex, 
+                        "Hits.Constructor", 
+                        "Failed to construct Hits page during navigation", 
+                        false);
+                }
+                catch { /* Ignore logging errors */ }
+                
+                throw; // Re-throw so navigation can handle it
             }
         }
 

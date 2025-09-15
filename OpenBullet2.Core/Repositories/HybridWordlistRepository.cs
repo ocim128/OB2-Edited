@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using OpenBullet2.Core.Entities;
 using System;
 using System.IO;
@@ -16,21 +17,43 @@ namespace OpenBullet2.Core.Repositories;
 public class HybridWordlistRepository : IWordlistRepository
 {
     private readonly string baseFolder;
-    private readonly ApplicationDbContext context;
+    private readonly IServiceScopeFactory _scopeFactory;
+    private IServiceScope _getAllScope;
 
-    public HybridWordlistRepository(ApplicationDbContext context, string baseFolder)
+    public HybridWordlistRepository(IServiceScopeFactory scopeFactory, string baseFolder)
     {
-        this.context = context;
+        _scopeFactory = scopeFactory;
         this.baseFolder = baseFolder;
         Directory.CreateDirectory(baseFolder);
+    }
+
+    private ApplicationDbContext CreateDbContext()
+    {
+        var scope = _scopeFactory.CreateScope();
+        return scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    }
+
+    private (ApplicationDbContext context, IServiceScope scope) CreateDbContextWithScope()
+    {
+        var scope = _scopeFactory.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        return (context, scope);
     }
 
     /// <inheritdoc/>
     public async Task AddAsync(WordlistEntity entity, CancellationToken cancellationToken = default)
     {
-        // Save it to the DB
-        context.Add(entity);
-        await context.SaveChangesAsync(cancellationToken);
+        var (context, scope) = CreateDbContextWithScope();
+        try
+        {
+            // Save it to the DB
+            context.Add(entity);
+            await context.SaveChangesAsync(cancellationToken);
+        }
+        finally
+        {
+            scope.Dispose();
+        }
     }
 
     /// <inheritdoc/>
@@ -55,21 +78,46 @@ public class HybridWordlistRepository : IWordlistRepository
 
     /// <inheritdoc/>
     public IQueryable<WordlistEntity> GetAll()
-        => context.Wordlists;
+    {
+        // Dispose any existing scope to prevent memory leaks
+        _getAllScope?.Dispose();
+
+        var (context, scope) = CreateDbContextWithScope();
+        _getAllScope = scope;
+        return context.Wordlists;
+    }
 
     /// <inheritdoc/>
     public async Task<WordlistEntity> GetAsync(
         int id, CancellationToken cancellationToken = default)
-        => await GetAll().Include(w => w.Owner)
-        .FirstOrDefaultAsync(e => e.Id == id, cancellationToken: cancellationToken)
-        .ConfigureAwait(false);
+    {
+        var (context, scope) = CreateDbContextWithScope();
+        try
+        {
+            return await context.Wordlists.Include(w => w.Owner)
+                .FirstOrDefaultAsync(e => e.Id == id, cancellationToken: cancellationToken)
+                .ConfigureAwait(false);
+        }
+        finally
+        {
+            scope.Dispose();
+        }
+    }
 
     /// <inheritdoc/>
     public async Task UpdateAsync(WordlistEntity entity, CancellationToken cancellationToken = default)
     {
-        context.Entry(entity).State = EntityState.Modified;
-        context.Update(entity);
-        await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        var (context, scope) = CreateDbContextWithScope();
+        try
+        {
+            context.Entry(entity).State = EntityState.Modified;
+            context.Update(entity);
+            await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            scope.Dispose();
+        }
     }
 
     /// <inheritdoc/>
@@ -79,17 +127,36 @@ public class HybridWordlistRepository : IWordlistRepository
         if (deleteFile && File.Exists(entity.FileName))
             File.Delete(entity.FileName);
 
-        context.Remove(entity);
-        await context.SaveChangesAsync(cancellationToken);
+        var (context, scope) = CreateDbContextWithScope();
+        try
+        {
+            context.Remove(entity);
+            await context.SaveChangesAsync(cancellationToken);
+        }
+        finally
+        {
+            scope.Dispose();
+        }
     }
 
     /// <inheritdoc/>
-    public void Purge() => _ = context.Database.ExecuteSqlRaw($"DELETE FROM {nameof(ApplicationDbContext.Wordlists)}");
+    public void Purge()
+    {
+        var (context, scope) = CreateDbContextWithScope();
+        try
+        {
+            _ = context.Database.ExecuteSqlRaw($"DELETE FROM {nameof(ApplicationDbContext.Wordlists)}");
+        }
+        finally
+        {
+            scope.Dispose();
+        }
+    }
 
     /// <inheritdoc/>
     public void Dispose()
     {
+        _getAllScope?.Dispose();
         GC.SuppressFinalize(this);
-        context?.Dispose();
     }
 }

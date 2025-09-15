@@ -9,19 +9,18 @@
         xmlns:converters="clr-namespace:OpenBullet2.Native.Converters"
         mc:Ignorable="d"
         Title="OpenBullet 2 - 0.3.3.8 [Akunlama MOD]" 
-        MinWidth="800" MinHeight="600"
-        Background="{DynamicResource BackgroundMain}"
-        BorderThickness="1"
-        BorderBrush="#FF1E1E1E"
-        GlowBrush="#FF3A82F7"
+        MinWidth="900" MinHeight="650"
+        Background="{StaticResource Modern.BackgroundMain}"
+        BorderThickness="0"
+        GlowBrush="{StaticResource Modern.ThemeMain}"
         ResizeMode="CanResizeWithGrip"
-        WindowTitleBrush="#FF0F0F0F"
-        NonActiveWindowTitleBrush="#FF0A0A0A"
-        WindowTransitionsEnabled="False"
+        WindowTitleBrush="{StaticResource Modern.BackgroundSecondary}"
+        NonActiveWindowTitleBrush="{StaticResource Modern.BackgroundMain}"
+        WindowTransitionsEnabled="True"
         WindowStartupLocation="CenterScreen"
         WindowState="Normal"
         TitleCharacterCasing="Normal"
-        TitleForeground="#FFCCCCCC"
+        TitleForeground="{StaticResource Modern.ForegroundMain}"
         TitleAlignment="Left"
         ShowMinButton="True"
         ShowMaxRestoreButton="True"
@@ -29,21 +28,27 @@
         Icon="/Images/logohq_square_padded.png"
         UseLayoutRounding="True"
         SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display"
+        TextOptions.TextRenderingMode="ClearType"
+        RenderOptions.BitmapScalingMode="HighQuality"
         SizeChanged="OnWindowSizeChanged"
         Loaded="OnWindowLoaded">
 
 
 
-    <!-- Simplified Title Bar -->
+    <!-- Enhanced Title Bar with Fluent Design -->
     <mah:MetroWindow.TitleTemplate>
         <DataTemplate>
-            <TextBlock Text="{Binding}" 
-                      FontFamily="Segoe UI" 
-                      FontSize="12" 
-                      FontWeight="Medium" 
-                      Foreground="#FFCCCCCC" 
-                      VerticalAlignment="Center" 
-                      Margin="8,0,0,0"/>
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <TextBlock Text="{Binding}" 
+                          FontFamily="Segoe UI" 
+                          FontSize="13" 
+                          FontWeight="Medium" 
+                          Foreground="{StaticResource Modern.ForegroundMain}" 
+                          VerticalAlignment="Center"
+                          TextOptions.TextFormattingMode="Display"
+                          TextOptions.TextRenderingMode="ClearType"/>
+            </StackPanel>
         </DataTemplate>
     </mah:MetroWindow.TitleTemplate>
 
@@ -76,125 +81,87 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <!-- Optimized Navigation Header -->
+        <!-- Enhanced Navigation Header with Fluent Design -->
         <Border x:Name="NavigationHeader"
                 Grid.Row="0" 
-                Background="#FF1E1E1E" 
-                CornerRadius="8" 
-                BorderBrush="#FF2E2E2E" 
-                BorderThickness="1">
+                Background="{StaticResource Modern.BackgroundSecondary}" 
+                CornerRadius="0,0,12,12" 
+                BorderBrush="{StaticResource Modern.BorderMain}" 
+                BorderThickness="0,0,0,1"
+                Effect="{StaticResource Modern.Shadow.Small}">
             <StackPanel x:Name="topMenu" 
                         Orientation="Horizontal" 
-                        VerticalAlignment="Center">
+                        VerticalAlignment="Center"
+                        Margin="16,8">
                     <StackPanel.Resources>
-                        <!-- Enhanced Navigation Menu Style with Smooth Animations -->
+                        <!-- Enhanced Navigation Menu Style with Fluent Design -->
                         <Style TargetType="TextBlock">
                             <Setter Property="FontWeight" Value="Medium" />
-                            <Setter Property="Foreground" Value="#FFCCCCCC" />
+                            <Setter Property="Foreground" Value="{StaticResource Modern.ForegroundSecondary}" />
                             <Setter Property="FontFamily" Value="Segoe UI" />
                             <Setter Property="VerticalAlignment" Value="Center" />
-                            <Setter Property="Margin" Value="15,8" />
-                            <Setter Property="Padding" Value="12,10" />
-                            <Setter Property="FontSize" Value="12" />
+                            <Setter Property="Margin" Value="4,0" />
+                            <Setter Property="Padding" Value="16,12" />
+                            <Setter Property="FontSize" Value="13" />
                             <Setter Property="Cursor" Value="Hand" />
                             <Setter Property="Background" Value="Transparent" />
+                            <Setter Property="UseLayoutRounding" Value="True" />
+                            <Setter Property="SnapsToDevicePixels" Value="True" />
+                            <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
+                            <Setter Property="TextOptions.TextRenderingMode" Value="ClearType" />
                             <Setter Property="RenderTransform">
                                 <Setter.Value>
                                     <ScaleTransform ScaleX="1" ScaleY="1" />
                                 </Setter.Value>
                             </Setter>
                             <Setter Property="RenderTransformOrigin" Value="0.5,0.5" />
-                            <Setter Property="Effect">
-                                <Setter.Value>
-                                    <DropShadowEffect BlurRadius="0" Opacity="0" ShadowDepth="2" Direction="270" Color="#3A82F7" />
-                                </Setter.Value>
-                            </Setter>
                             <Style.Triggers>
-                                <!-- Enhanced Hover state with smooth animations -->
+                                <!-- Smooth hover animation -->
                                 <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Foreground" Value="{StaticResource Modern.ForegroundMain}" />
+                                    <Setter Property="Background" Value="{StaticResource Modern.BackgroundHover}" />
                                     <Trigger.EnterActions>
                                         <BeginStoryboard>
                                             <Storyboard>
-                                                <ColorAnimation Storyboard.TargetProperty="(TextBlock.Background).(SolidColorBrush.Color)"
-                                                               To="#FF3A82F7" Duration="0:0:0.15">
-                                                    <ColorAnimation.EasingFunction>
-                                                        <QuadraticEase EasingMode="EaseOut" />
-                                                    </ColorAnimation.EasingFunction>
-                                                </ColorAnimation>
-                                                <ColorAnimation Storyboard.TargetProperty="(TextBlock.Foreground).(SolidColorBrush.Color)"
-                                                               To="#FFFFFFFF" Duration="0:0:0.15">
-                                                    <ColorAnimation.EasingFunction>
-                                                        <QuadraticEase EasingMode="EaseOut" />
-                                                    </ColorAnimation.EasingFunction>
-                                                </ColorAnimation>
                                                 <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
-                                                                To="1.02" Duration="0:0:0.15">
+                                                                To="1.05" Duration="0:0:0.1">
                                                     <DoubleAnimation.EasingFunction>
-                                                        <QuadraticEase EasingMode="EaseOut" />
+                                                        <CubicEase EasingMode="EaseOut" />
                                                     </DoubleAnimation.EasingFunction>
                                                 </DoubleAnimation>
                                                 <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
-                                                                To="1.02" Duration="0:0:0.15">
+                                                                To="1.05" Duration="0:0:0.1">
                                                     <DoubleAnimation.EasingFunction>
-                                                        <QuadraticEase EasingMode="EaseOut" />
+                                                        <CubicEase EasingMode="EaseOut" />
                                                     </DoubleAnimation.EasingFunction>
                                                 </DoubleAnimation>
-                                                <DoubleAnimation Storyboard.TargetProperty="(UIElement.Effect).(DropShadowEffect.BlurRadius)"
-                                                                To="8" Duration="0:0:0.15" />
-                                                <DoubleAnimation Storyboard.TargetProperty="(UIElement.Effect).(DropShadowEffect.Opacity)"
-                                                                To="0.4" Duration="0:0:0.15" />
                                             </Storyboard>
                                         </BeginStoryboard>
                                     </Trigger.EnterActions>
                                     <Trigger.ExitActions>
                                         <BeginStoryboard>
                                             <Storyboard>
-                                                <ColorAnimation Storyboard.TargetProperty="(TextBlock.Background).(SolidColorBrush.Color)"
-                                                               To="Transparent" Duration="0:0:0.2">
-                                                    <ColorAnimation.EasingFunction>
-                                                        <QuadraticEase EasingMode="EaseOut" />
-                                                    </ColorAnimation.EasingFunction>
-                                                </ColorAnimation>
-                                                <ColorAnimation Storyboard.TargetProperty="(TextBlock.Foreground).(SolidColorBrush.Color)"
-                                                               To="#FFCCCCCC" Duration="0:0:0.2">
-                                                    <ColorAnimation.EasingFunction>
-                                                        <QuadraticEase EasingMode="EaseOut" />
-                                                    </ColorAnimation.EasingFunction>
-                                                </ColorAnimation>
                                                 <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
-                                                                To="1" Duration="0:0:0.2">
+                                                                To="1" Duration="0:0:0.15">
                                                     <DoubleAnimation.EasingFunction>
-                                                        <QuadraticEase EasingMode="EaseOut" />
+                                                        <CubicEase EasingMode="EaseOut" />
                                                     </DoubleAnimation.EasingFunction>
                                                 </DoubleAnimation>
                                                 <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
-                                                                To="1" Duration="0:0:0.2">
+                                                                To="1" Duration="0:0:0.15">
                                                     <DoubleAnimation.EasingFunction>
-                                                        <QuadraticEase EasingMode="EaseOut" />
+                                                        <CubicEase EasingMode="EaseOut" />
                                                     </DoubleAnimation.EasingFunction>
                                                 </DoubleAnimation>
-                                                <DoubleAnimation Storyboard.TargetProperty="(UIElement.Effect).(DropShadowEffect.BlurRadius)"
-                                                                To="0" Duration="0:0:0.2" />
-                                                <DoubleAnimation Storyboard.TargetProperty="(UIElement.Effect).(DropShadowEffect.Opacity)"
-                                                                To="0" Duration="0:0:0.2" />
                                             </Storyboard>
                                         </BeginStoryboard>
                                     </Trigger.ExitActions>
                                 </Trigger>
 
-                                <!-- Selected state with enhanced visual feedback -->
+                                <!-- Selected state with modern accent color -->
                                 <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource Self}}" Value="Selected">
-                                    <Setter Property="Foreground" Value="{DynamicResource ForegroundMenuSelected}" />
-                                    <Setter Property="Background">
-                                        <Setter.Value>
-                                            <SolidColorBrush Color="#FF2563EB" Opacity="0.8" />
-                                        </Setter.Value>
-                                    </Setter>
-                                    <Setter Property="Effect">
-                                        <Setter.Value>
-                                            <DropShadowEffect BlurRadius="6" Opacity="0.3" ShadowDepth="2" Direction="270" Color="#2563EB" />
-                                        </Setter.Value>
-                                    </Setter>
+                                    <Setter Property="Foreground" Value="{StaticResource Modern.TextOnAccent}" />
+                                    <Setter Property="Background" Value="{StaticResource Modern.ThemeMain}" />
                                 </DataTrigger>
 
                                 <!-- When selected AND hovered, maintain enhanced appearance -->
@@ -203,12 +170,8 @@
                                         <Condition Property="IsMouseOver" Value="True" />
                                         <Condition Property="Tag" Value="Selected" />
                                     </MultiTrigger.Conditions>
-                                    <Setter Property="Foreground" Value="#FFFFFFFF" />
-                                    <Setter Property="Background">
-                                        <Setter.Value>
-                                            <SolidColorBrush Color="#FF3A82F7" />
-                                        </Setter.Value>
-                                    </Setter>
+                                    <Setter Property="Foreground" Value="{StaticResource Modern.TextOnAccent}" />
+                                    <Setter Property="Background" Value="{StaticResource Modern.ThemeSecondary}" />
                                 </MultiTrigger>
                             </Style.Triggers>
                         </Style>

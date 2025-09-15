@@ -8,14 +8,16 @@
       mc:Ignorable="d" 
       d:DesignHeight="450" d:DesignWidth="800"
       KeyDown="PageKeyDown"
-      MinWidth="300"
+      MinWidth="400"
+      MaxWidth="800"
       Background="{DynamicResource BackgroundSecondary}"
       Title="Alert">
 
     <Border Padding="20">
         <StackPanel 
-        MaxWidth="600"
-        HorizontalAlignment="Center">
+            MinWidth="380"
+            MaxWidth="760"
+            HorizontalAlignment="Center">
             <iconPacks:PackIconOcticons 
                 x:Name="icon"
                 Margin="0 30 0 0"
@@ -36,6 +38,25 @@
                 Foreground="Gainsboro"
                 />
 
+            <ScrollViewer
+                x:Name="messageScrollViewer"
+                Margin="0 20 0 30"
+                MaxHeight="300"
+                VerticalScrollBarVisibility="Auto"
+                HorizontalScrollBarVisibility="Disabled"
+                Visibility="Collapsed">
+                <TextBlock
+                    x:Name="messageScrollable"
+                    FontSize="14"
+                    Text="Success"
+                    TextWrapping="Wrap"
+                    HorizontalAlignment="Left"
+                    TextAlignment="Left"
+                    Foreground="Gainsboro"
+                    Padding="10"
+                    />
+            </ScrollViewer>
+            
             <TextBlock
                 x:Name="message"
                 Margin="0 20 0 30"

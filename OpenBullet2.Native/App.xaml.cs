@@ -47,17 +47,7 @@ public partial class App : Application
     {
         Trace("App constructor START");
 
-        // Initialize startup diagnostics as early as possible
-        try
-        {
-            var startupDiagnostics = StartupDiagnosticsService.Instance;
-            startupDiagnostics.LogCheckpoint("App.Constructor", "Application constructor started");
-            startupDiagnostics.LogSystemInformation();
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"Failed to initialize startup diagnostics: {ex.Message}");
-        }
+        // Startup diagnostics removed
 
         // Legacy handlers kept for backward compatibility; centralized handler is initialized in OnStartup.
         Dispatcher.UnhandledException += OnDispatcherUnhandledException;
@@ -67,11 +57,7 @@ public partial class App : Application
         // Get the directory where the executable is located
         var appDirectory = AppDomain.CurrentDomain.BaseDirectory;
 
-        try
-        {
-            StartupDiagnosticsService.Instance.LogCheckpoint("App.Constructor", $"Application directory: {appDirectory}");
-        }
-        catch { }
+
 
         // Create UserData directory in the executable's directory
         var userDataPath = Path.Combine(appDirectory, "UserData");
@@ -84,25 +70,17 @@ public partial class App : Application
             File.WriteAllText(testFile, "test");
             File.Delete(testFile);
 
-            StartupDiagnosticsService.Instance.LogCheckpoint("App.Constructor", "UserData directory write test successful");
+
         }
         catch (UnauthorizedAccessException ex)
         {
-            try
-            {
-                StartupDiagnosticsService.Instance.LogCheckpoint("App.Constructor", $"UserData directory write test failed: {ex.Message}");
-            }
-            catch { }
+
             throw new InvalidOperationException($"UserData directory '{userDataPath}' is not writable. Please check folder permissions.");
         }
 
         Trace($"UserDataPath: {userDataPath}");
 
-        try
-        {
-            StartupDiagnosticsService.Instance.LogCheckpoint("App.Constructor", "Starting configuration build");
-        }
-        catch { }
+
 
         var builder = new ConfigurationBuilder()
             .SetBasePath(appDirectory)
@@ -111,12 +89,7 @@ public partial class App : Application
 
         Trace("Configuration built");
 
-        try
-        {
-            StartupDiagnosticsService.Instance.LogCheckpoint("App.Constructor", "Configuration built successfully");
-            StartupDiagnosticsService.Instance.VerifyResource("appsettings.json", Path.Combine(appDirectory, "appsettings.json"));
-        }
-        catch { }
+
 
         var serviceCollection = new ServiceCollection();
         serviceCollection.AddTransient(_ => _config);
@@ -126,11 +99,7 @@ public partial class App : Application
 
         Trace("ServiceProvider built");
 
-        try
-        {
-            StartupDiagnosticsService.Instance.LogCheckpoint("App.Constructor", "ServiceProvider built and ServiceLocator initialized");
-        }
-        catch { }
+
 
         // Apply critical optimizations immediately for faster startup (config-driven)
         try
@@ -154,11 +123,7 @@ public partial class App : Application
         {
             try
             {
-                try
-                {
-                    StartupDiagnosticsService.Instance.LogCheckpoint("App.BackgroundInit", "Starting background initialization");
-                }
-                catch { }
+
 
                 // Priority 1: Essential network optimizations
                 ServicePointManager.DefaultConnectionLimit = Math.Max(ServicePointManager.DefaultConnectionLimit, Environment.ProcessorCount * 4);
@@ -168,41 +133,25 @@ public partial class App : Application
                 if (_startupCts.IsCancellationRequested) return;
 
                 // Priority 2: Database migration (critical for app functionality)
-                try
-                {
-                    StartupDiagnosticsService.Instance.LogCheckpoint("App.BackgroundInit", "Starting database migration");
-                }
-                catch { }
+
 
                 using var scope = _serviceProvider.CreateScope();
                 var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
                 await dbContext.Database.MigrateAsync().ConfigureAwait(false);
                 Trace("Database migration completed");
 
-                try
-                {
-                    StartupDiagnosticsService.Instance.LogCheckpoint("App.BackgroundInit", "Database migration completed successfully");
-                }
-                catch { }
+
 
                 if (_startupCts.IsCancellationRequested) return;
 
                 // Priority 3: Load configurations (needed for UI)
-                try
-                {
-                    StartupDiagnosticsService.Instance.LogCheckpoint("App.BackgroundInit", "Starting configuration reload");
-                }
-                catch { }
+
 
                 var configService = _serviceProvider.GetRequiredService<ConfigService>();
                 await configService.ReloadConfigsAsync().ConfigureAwait(false);
                 Trace("Configuration loaded successfully");
 
-                try
-                {
-                    StartupDiagnosticsService.Instance.LogCheckpoint("App.BackgroundInit", "Configuration reload completed successfully");
-                }
-                catch { }
+
 
                 if (_startupCts.IsCancellationRequested) return;
 
@@ -213,30 +162,18 @@ public partial class App : Application
                 ThreadPool.SetMaxThreads(Environment.ProcessorCount * 4, Environment.ProcessorCount * 2);
 
                 // Initialize remaining services lazily
-                try
-                {
-                    StartupDiagnosticsService.Instance.LogCheckpoint("App.BackgroundInit", "Initializing remaining services lazily");
-                }
-                catch { }
+
 
                 AutocompletionProvider.Init();
                 // Services are now lazy-loaded on first access, reducing startup memory footprint
                 Trace("Lazy initialization setup completed");
 
-                try
-                {
-                    StartupDiagnosticsService.Instance.LogCheckpoint("App.BackgroundInit", "Background initialization completed successfully");
-                }
-                catch { }
+
             }
             catch (OperationCanceledException)
             {
                 // App is shutting down; ignore
-                try
-                {
-                    StartupDiagnosticsService.Instance.LogCheckpoint("App.BackgroundInit", "Background initialization cancelled");
-                }
-                catch { }
+
             }
             catch (Exception ex)
             {
@@ -244,7 +181,6 @@ public partial class App : Application
 
                 try
                 {
-                    StartupDiagnosticsService.Instance.LogCheckpoint("App.BackgroundInit", $"Background initialization failed: {ex.Message}");
                     CrashLoggingService.Instance.LogCrash(ex, "App.BackgroundInit", "Background initialization failure", false);
                 }
                 catch { }
@@ -281,7 +217,7 @@ public partial class App : Application
 
         services.AddDbContext<ApplicationDbContext>(options =>
             options.UseSqlite(absoluteDbPath,
-            b => b.MigrationsAssembly("OpenBullet2.Core")), ServiceLifetime.Transient);
+            b => b.MigrationsAssembly("OpenBullet2.Core")), ServiceLifetime.Scoped);
 
         // Repositories
         services.AddSingleton<IProxyRepository, DbProxyRepository>();
@@ -294,7 +230,7 @@ public partial class App : Application
             new DiskConfigRepository(service.GetService<RuriLibSettingsService>(),
             Path.Combine(userDataPath, "Configs")));
         services.AddSingleton<IWordlistRepository>(service =>
-            new HybridWordlistRepository(service.GetService<ApplicationDbContext>(),
+            new HybridWordlistRepository(service.GetRequiredService<IServiceScopeFactory>(),
             Path.Combine(userDataPath, "Wordlists")));
 
         // Critical services (loaded immediately)
@@ -341,7 +277,7 @@ public partial class App : Application
         // Initialize enhanced centralized exception handling with comprehensive crash logging
         try
         {
-            StartupDiagnosticsService.Instance.LogCheckpoint("App.OnStartup", "Initializing enhanced exception handling");
+
 
             var appDirectory = AppDomain.CurrentDomain.BaseDirectory;
             var userDataPath = System.IO.Path.Combine(appDirectory, "UserData");
@@ -353,7 +289,7 @@ public partial class App : Application
             geh.Initialize();
             Resources["GlobalExceptionHandler"] = geh;
 
-            StartupDiagnosticsService.Instance.LogCheckpoint("App.OnStartup", "Enhanced exception handling initialized successfully");
+
         }
         catch (Exception gehEx)
         {
@@ -361,7 +297,6 @@ public partial class App : Application
 
             try
             {
-                StartupDiagnosticsService.Instance.LogCheckpoint("App.OnStartup", $"Exception handling initialization failed: {gehEx.Message}");
                 CrashLoggingService.Instance.LogCrash(gehEx, "App.OnStartup", "GlobalExceptionHandler initialization failure", false);
             }
             catch { }

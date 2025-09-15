@@ -44,12 +44,10 @@ namespace OpenBullet2.Native.Infrastructure.Diagnostics
             {
                 // Log the error for diagnostics
                 CrashLoggingService.Instance.LogCrash(error, context, "Error recovery attempt", false);
-                StartupDiagnosticsService.Instance.LogCheckpoint(context, $"Error recovery initiated: {error.GetType().Name}");
                 
                 // Check if we should throttle error notifications
                 if (ShouldThrottleError(context))
                 {
-                    StartupDiagnosticsService.Instance.LogCheckpoint(context, "Error notification throttled due to frequency");
                     return false;
                 }
                 
@@ -62,7 +60,6 @@ namespace OpenBullet2.Native.Infrastructure.Diagnostics
                         recoverySuccessful = recoveryAction();
                         if (recoverySuccessful)
                         {
-                            StartupDiagnosticsService.Instance.LogCheckpoint(context, "Recovery action successful");
                             ResetErrorCount(context);
                             return true;
                         }
@@ -328,7 +325,6 @@ namespace OpenBullet2.Native.Infrastructure.Diagnostics
             try
             {
                 // Attempt to verify database connection and recreate if needed
-                StartupDiagnosticsService.Instance.LogCheckpoint("Database.Recovery", "Attempting database recovery");
                 
                 // This would need to be implemented based on your specific database setup
                 // For now, just return false to indicate recovery wasn't possible
@@ -344,8 +340,6 @@ namespace OpenBullet2.Native.Infrastructure.Diagnostics
         {
             try
             {
-                StartupDiagnosticsService.Instance.LogCheckpoint("Configuration.Recovery", "Attempting configuration recovery");
-                
                 // Check if appsettings.json exists and is readable
                 var appDirectory = AppDomain.CurrentDomain.BaseDirectory;
                 var configPath = Path.Combine(appDirectory, "appsettings.json");
@@ -369,8 +363,6 @@ namespace OpenBullet2.Native.Infrastructure.Diagnostics
         {
             try
             {
-                StartupDiagnosticsService.Instance.LogCheckpoint("Services.Recovery", "Attempting services recovery");
-                
                 // This would need to be implemented based on your specific service architecture
                 // For now, just return false to indicate recovery wasn't possible
                 return false;

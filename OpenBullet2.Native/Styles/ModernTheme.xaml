@@ -11,6 +11,7 @@
     <!-- Modern Color Palette -->
     <SolidColorBrush x:Key="Modern.ThemeMain" Color="#3B82F6" />
     <SolidColorBrush x:Key="Modern.ThemeAccent" Color="#8B5CF6" />
+    <SolidColorBrush x:Key="Modern.ThemeSecondary" Color="#2563EB" />
     
     <!-- Background Colors -->
     <SolidColorBrush x:Key="Modern.BackgroundMain" Color="#0F172A" />
@@ -19,6 +20,7 @@
     <SolidColorBrush x:Key="Modern.BackgroundInput" Color="#1E293B" />
     <SolidColorBrush x:Key="Modern.BackgroundCard" Color="#1E293B" />
     <SolidColorBrush x:Key="Modern.BackgroundElevated" Color="#374151" />
+    <SolidColorBrush x:Key="Modern.BackgroundHover" Color="#374151" />
     
     <!-- Foreground Colors -->
     <SolidColorBrush x:Key="Modern.ForegroundMain" Color="#F8FAFC" />
@@ -26,6 +28,7 @@
     <SolidColorBrush x:Key="Modern.ForegroundMuted" Color="#94A3B8" />
     <SolidColorBrush x:Key="Modern.ForegroundInput" Color="#F8FAFC" />
     <SolidColorBrush x:Key="Modern.TextSecondary" Color="#94A3B8" />
+    <SolidColorBrush x:Key="Modern.TextOnAccent" Color="#FFFFFF" />
     
     <!-- Semantic Colors -->
     <SolidColorBrush x:Key="Modern.Success" Color="#10B981" />
@@ -39,6 +42,39 @@
     <SolidColorBrush x:Key="Modern.BorderInput" Color="#475569" />
     <SolidColorBrush x:Key="Modern.BorderFocus" Color="#3B82F6" />
     <SolidColorBrush x:Key="Modern.BorderHover" Color="#64748B" />
+
+    <!-- ================================================================ -->
+    <!-- PERFORMANCE-OPTIMIZED DROP SHADOW EFFECTS -->
+    <!-- ================================================================ -->
+    
+    <!-- Performance-Optimized Drop Shadow Effects -->
+    <DropShadowEffect x:Key="Modern.Shadow.Small" 
+                      Color="#000000" 
+                      Direction="270" 
+                      ShadowDepth="2" 
+                      Opacity="0.15" 
+                      BlurRadius="4"
+                      RenderingBias="Performance" />
+                      
+    <DropShadowEffect x:Key="Modern.Shadow.Medium" 
+                      Color="#000000" 
+                      Direction="270" 
+                      ShadowDepth="4" 
+                      Opacity="0.2" 
+                      BlurRadius="8"
+                      RenderingBias="Performance" />
+                      
+    <DropShadowEffect x:Key="Modern.Shadow.Large" 
+                      Color="#000000" 
+                      Direction="270" 
+                      ShadowDepth="6" 
+                      Opacity="0.25" 
+                      BlurRadius="12"
+                      RenderingBias="Performance" />
+
+    <!-- ================================================================ -->
+    <!-- MODERN BUTTON STYLES -->
+    <!-- ================================================================ -->
 
     <!-- Optimized Modern Button Styles with Enhanced Depth -->
     <Style x:Key="ModernButton" TargetType="{x:Type Button}" BasedOn="{StaticResource MahApps.Styles.Button}">
@@ -196,11 +232,12 @@
         </Style.Triggers>
     </Style>
 
-    <!-- Modern Danger Button -->
+    <!-- FLUENT DANGER BUTTON -->
     <Style x:Key="ModernDangerButton" TargetType="{x:Type Button}" BasedOn="{StaticResource ModernButton}">
         <Setter Property="Background" Value="{StaticResource Modern.Error}" />
         <Setter Property="BorderBrush" Value="{StaticResource Modern.Error}" />
         <Setter Property="Foreground" Value="White" />
+        <Setter Property="FontWeight" Value="Medium" />
         <Style.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
                 <Setter Property="Background" Value="#DC2626" />
@@ -212,6 +249,10 @@
             </Trigger>
         </Style.Triggers>
     </Style>
+
+    <!-- ================================================================ -->
+    <!-- PERFORMANCE-OPTIMIZED INPUT CONTROLS -->
+    <!-- ================================================================ -->
 
     <!-- Modern TextBox Style -->
     <Style x:Key="ModernTextBox" TargetType="{x:Type TextBox}" BasedOn="{StaticResource MahApps.Styles.TextBox}">

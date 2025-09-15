@@ -390,23 +390,131 @@ public partial class MainWindow : MetroWindow
     private void CreateAndNavigateToPage<T>(Func<T> pageFactory, ref T pageField, TextBlock menuLabel, bool updateViewModel = false)
         where T : Page
     {
+        var pageTypeName = typeof(T).Name;
         try
         {
-            pageField ??= pageFactory();
+            System.Diagnostics.Debug.WriteLine($"Starting navigation to {pageTypeName}");
+            
+            // Enhanced logging for page creation
+            if (pageField == null)
+            {
+                System.Diagnostics.Debug.WriteLine($"Creating new instance of {pageTypeName}");
+                try
+                {
+                    pageField = pageFactory();
+                    System.Diagnostics.Debug.WriteLine($"Successfully created {pageTypeName}");
+                }
+                catch (Exception createEx)
+                {
+                    // Enhanced error logging for page creation failures
+                    var errorDetails = $"Failed to create {pageTypeName}: {createEx.GetType().Name} - {createEx.Message}";
+                    if (createEx.InnerException != null)
+                    {
+                        errorDetails += $" | Inner: {createEx.InnerException.GetType().Name} - {createEx.InnerException.Message}";
+                    }
+                    
+                    System.Diagnostics.Debug.WriteLine(errorDetails);
+                    
+                    // Log to crash system for better debugging
+                    try
+                    {
+                        var geh = Resources["GlobalExceptionHandler"] as Infrastructure.Diagnostics.GlobalExceptionHandler;
+                        if (geh != null)
+                        {
+                            Infrastructure.Diagnostics.CrashLoggingService.Instance.LogCrash(
+                                createEx, 
+                                $"MainWindow.CreateAndNavigateToPage<{pageTypeName}>", 
+                                $"Page creation failed during navigation to {pageTypeName}. Menu: {menuLabel?.Name ?? "Unknown"}", 
+                                false);
+                        }
+                    }
+                    catch { /* Ignore logging errors */ }
+                    
+                    throw; // Re-throw to be caught by outer try-catch
+                }
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"Reusing existing instance of {pageTypeName}");
+            }
 
             // Call UpdateViewModel if the page supports it and updateViewModel is true
             if (updateViewModel)
             {
-                var updateMethod = pageField?.GetType().GetMethod("UpdateViewModel", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
-                updateMethod?.Invoke(pageField, null);
+                System.Diagnostics.Debug.WriteLine($"Updating ViewModel for {pageTypeName}");
+                try
+                {
+                    var updateMethod = pageField?.GetType().GetMethod("UpdateViewModel", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+                    if (updateMethod != null)
+                    {
+                        updateMethod.Invoke(pageField, null);
+                        System.Diagnostics.Debug.WriteLine($"Successfully updated ViewModel for {pageTypeName}");
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine($"No UpdateViewModel method found for {pageTypeName}");
+                    }
+                }
+                catch (Exception updateEx)
+                {
+                    var errorDetails = $"Failed to update ViewModel for {pageTypeName}: {updateEx.GetType().Name} - {updateEx.Message}";
+                    if (updateEx.InnerException != null)
+                    {
+                        errorDetails += $" | Inner: {updateEx.InnerException.GetType().Name} - {updateEx.InnerException.Message}";
+                    }
+                    
+                    System.Diagnostics.Debug.WriteLine(errorDetails);
+                    
+                    // Log ViewModel update failures
+                    try
+                    {
+                        Infrastructure.Diagnostics.CrashLoggingService.Instance.LogCrash(
+                            updateEx, 
+                            $"MainWindow.UpdateViewModel<{pageTypeName}>", 
+                            $"ViewModel update failed for {pageTypeName}. Menu: {menuLabel?.Name ?? "Unknown"}", 
+                            false);
+                    }
+                    catch { /* Ignore logging errors */ }
+                    
+                    throw; // Re-throw to be caught by outer try-catch
+                }
             }
 
+            System.Diagnostics.Debug.WriteLine($"Calling ChangePage for {pageTypeName}");
             ChangePage(pageField, menuLabel);
+            System.Diagnostics.Debug.WriteLine($"Successfully navigated to {pageTypeName}");
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"{typeof(T).Name} page creation error: {ex.Message}");
-            Alert.Exception(ex);
+            var errorDetails = $"Navigation to {pageTypeName} failed: {ex.GetType().Name} - {ex.Message}";
+            if (ex.InnerException != null)
+            {
+                errorDetails += $" | Inner: {ex.InnerException.GetType().Name} - {ex.InnerException.Message}";
+            }
+            
+            System.Diagnostics.Debug.WriteLine(errorDetails);
+            System.Diagnostics.Debug.WriteLine($"Full stack trace: {ex}");
+            
+            // Enhanced crash logging with full context
+            try
+            {
+                Infrastructure.Diagnostics.CrashLoggingService.Instance.LogCrash(
+                    ex, 
+                    $"MainWindow.CreateAndNavigateToPage<{pageTypeName}>", 
+                    $"Complete navigation failure for {pageTypeName}. Menu: {menuLabel?.Name ?? "Unknown"}, UpdateViewModel: {updateViewModel}", 
+                    false);
+            }
+            catch { /* Ignore logging errors */ }
+            
+            // Show enhanced error message to user
+            var userMessage = $"Failed to open {pageTypeName} page.\n\nError: {ex.Message}";
+            if (ex.InnerException != null)
+            {
+                userMessage += $"\n\nInner Error: {ex.InnerException.Message}";
+            }
+            userMessage += $"\n\nCheck the crash logs in UserData/Logs/Crashes for detailed information.";
+            
+            Alert.Error("Navigation Error", userMessage);
         }
     }
     private void NavigateToAboutPage()
@@ -522,26 +630,56 @@ public partial class MainWindow : MetroWindow
 
     private void ChangePage(Page newPage, TextBlock newLabel)
     {
-        CurrentPage = newPage;
-        mainFrame.Content = newPage;
-
-        // Optimized label selection - only update if different from current
-        if (newLabel != currentSelectedLabel)
+        try
         {
-            if (currentSelectedLabel != null)
-            {
-                // Clear previous selection visual state
-                currentSelectedLabel.Tag = null;
-            }
+            System.Diagnostics.Debug.WriteLine($"ChangePage: Setting page to {newPage?.GetType().Name ?? "null"}");
+            CurrentPage = newPage;
+            mainFrame.Content = newPage;
 
-            if (newLabel != null)
+            // Optimized label selection - only update if different from current
+            if (newLabel != currentSelectedLabel)
             {
-                // Mark as selected. XAML style triggers will update Foreground accordingly
-                newLabel.Tag = "Selected";
-                currentSelectedLabel = newLabel;
+                if (currentSelectedLabel != null)
+                {
+                    // Clear previous selection visual state
+                    currentSelectedLabel.Tag = null;
+                }
+
+                if (newLabel != null)
+                {
+                    // Mark as selected. XAML style triggers will update Foreground accordingly
+                    newLabel.Tag = "Selected";
+                    currentSelectedLabel = newLabel;
+                }
             }
+            vm.IsLoading = false;
+            System.Diagnostics.Debug.WriteLine($"ChangePage: Successfully changed to {newPage?.GetType().Name ?? "null"}");
         }
-        vm.IsLoading = false;
+        catch (Exception ex)
+        {
+            var errorDetails = $"ChangePage failed for {newPage?.GetType().Name ?? "unknown"}: {ex.GetType().Name} - {ex.Message}";
+            if (ex.InnerException != null)
+            {
+                errorDetails += $" | Inner: {ex.InnerException.GetType().Name} - {ex.InnerException.Message}";
+            }
+            
+            System.Diagnostics.Debug.WriteLine(errorDetails);
+            System.Diagnostics.Debug.WriteLine($"Full ChangePage error: {ex}");
+            
+            // Log navigation failures
+            try
+            {
+                Infrastructure.Diagnostics.CrashLoggingService.Instance.LogCrash(
+                    ex, 
+                    "MainWindow.ChangePage", 
+                    $"Failed to change page to {newPage?.GetType().Name ?? "unknown"}. Label: {newLabel?.Name ?? "Unknown"}", 
+                    false);
+            }
+            catch { /* Ignore logging errors */ }
+            
+            vm.IsLoading = false;
+            throw; // Re-throw so calling code can handle it
+        }
     }
 
     private void OnCanExecuteConfigCommand(object sender, CanExecuteRoutedEventArgs e) => e.CanExecute = CurrentPage == configsPage ||

@@ -89,9 +89,6 @@ namespace OpenBullet2.Native.Infrastructure.Diagnostics
                     _isMonitoring = false;
                     
                     LogEvent("Assembly loading monitoring stopped", AssemblyLoadEventType.MonitoringStopped);
-                    
-                    // Generate summary report
-                    GenerateSummaryReport();
                 }
                 catch (Exception ex)
                 {
@@ -347,74 +344,7 @@ namespace OpenBullet2.Native.Infrastructure.Diagnostics
             }
         }
         
-        private void GenerateSummaryReport()
-        {
-            try
-            {
-                var summaryPath = Path.ChangeExtension(_logPath, ".summary.log");
-                var report = new StringBuilder();
-                
-                report.AppendLine("═══════════════════════════════════════════════════════════════════════════════");
-                report.AppendLine("                        ASSEMBLY LOADING SUMMARY REPORT");
-                report.AppendLine("═══════════════════════════════════════════════════════════════════════════════");
-                report.AppendLine();
-                
-                report.AppendLine($"Monitoring Session: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
-                report.AppendLine($"Total Events: {_loadEvents.Count}");
-                report.AppendLine($"Total Failures: {_failures.Count}");
-                report.AppendLine();
-                
-                // Event type summary
-                var eventsByType = _loadEvents.GroupBy(e => e.EventType)
-                    .ToDictionary(g => g.Key, g => g.Count());
-                
-                report.AppendLine("=== EVENT SUMMARY ===");
-                foreach (var kvp in eventsByType.OrderBy(kvp => kvp.Key.ToString()))
-                {
-                    report.AppendLine($"{kvp.Key}: {kvp.Value}");
-                }
-                report.AppendLine();
-                
-                // Failure details
-                if (_failures.Any())
-                {
-                    report.AppendLine("=== ASSEMBLY LOAD FAILURES ===");
-                    foreach (var failure in _failures.Values.OrderBy(f => f.Timestamp))
-                    {
-                        report.AppendLine($"Assembly: {failure.AssemblyName}");
-                        report.AppendLine($"Requested by: {failure.RequestingAssembly}");
-                        report.AppendLine($"Time: {failure.Timestamp:yyyy-MM-dd HH:mm:ss.fff}");
-                        report.AppendLine($"Duration: {failure.Duration.TotalMilliseconds:F1}ms");
-                        report.AppendLine($"Error: {failure.ErrorMessage}");
-                        
-                        if (failure.Exception != null)
-                        {
-                            report.AppendLine($"Exception: {failure.Exception.GetType().Name}: {failure.Exception.Message}");
-                        }
-                        
-                        report.AppendLine();
-                    }
-                }
-                
-                // Write all events to the summary
-                report.AppendLine("=== DETAILED EVENT LOG ===");
-                foreach (var loadEvent in _loadEvents.OrderBy(e => e.Timestamp))
-                {
-                    report.AppendLine($"[{loadEvent.Timestamp:yyyy-MM-dd HH:mm:ss.fff}] [{loadEvent.ThreadId:D3}] {loadEvent.EventType}: {loadEvent.Message}");
-                }
-                
-                report.AppendLine();
-                report.AppendLine("═══════════════════════════════════════════════════════════════════════════════");
-                report.AppendLine("                           END OF SUMMARY REPORT");
-                report.AppendLine("═══════════════════════════════════════════════════════════════════════════════");
-                
-                File.WriteAllText(summaryPath, report.ToString(), Encoding.UTF8);
-            }
-            catch (Exception ex)
-            {
-                LogEvent($"Failed to generate summary report: {ex.Message}", AssemblyLoadEventType.MonitoringError);
-            }
-        }
+
         
         public bool HasFailures => _failures.Any();
         

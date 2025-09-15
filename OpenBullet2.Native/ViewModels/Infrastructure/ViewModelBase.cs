@@ -228,15 +228,42 @@ namespace OpenBullet2.Native.ViewModels.Infrastructure
         /// </summary>
         public static void HandleUIException(Exception ex, string operation = "UI operation")
         {
-            System.Diagnostics.Debug.WriteLine($"UI Exception in {operation}: {ex}");
+            var errorDetails = $"UI Exception in {operation}: {ex.GetType().Name} - {ex.Message}";
+            if (ex.InnerException != null)
+            {
+                errorDetails += $" | Inner: {ex.InnerException.GetType().Name} - {ex.InnerException.Message}";
+            }
+            
+            System.Diagnostics.Debug.WriteLine(errorDetails);
+            System.Diagnostics.Debug.WriteLine($"Full UI Exception: {ex}");
+            
+            // Enhanced crash logging for UI exceptions
+            try
+            {
+                OpenBullet2.Native.Infrastructure.Diagnostics.CrashLoggingService.Instance.LogCrash(
+                    ex, 
+                    $"ViewModelBase.HandleUIException", 
+                    $"UI exception during {operation}", 
+                    false);
+            }
+            catch { /* Ignore logging errors */ }
+            
             try
             {
                 Alert.HandleException(ex, operation);
             }
-            catch
+            catch (Exception alertEx)
             {
                 // Fallback if Alert.HandleException fails
-                MessageBox.Show($"An error occurred: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                System.Diagnostics.Debug.WriteLine($"Alert.HandleException failed: {alertEx.Message}");
+                var userMessage = $"An error occurred during {operation}: {ex.Message}";
+                if (ex.InnerException != null)
+                {
+                    userMessage += $"\n\nInner Error: {ex.InnerException.Message}";
+                }
+                userMessage += "\n\nCheck the crash logs in UserData/Logs/Crashes for detailed information.";
+                
+                MessageBox.Show(userMessage, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 

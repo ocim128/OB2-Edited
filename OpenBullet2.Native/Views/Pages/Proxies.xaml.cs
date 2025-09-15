@@ -35,11 +35,42 @@ public partial class Proxies : Page
 
     public Proxies()
     {
-        vm = ServiceLocator.GetService<ViewModelsService>().Proxies;
-        DataContext = vm;
-        _ = vm.InitializeAsync();
+        try
+        {
+            System.Diagnostics.Debug.WriteLine("Proxies: Starting page construction");
+            vm = ServiceLocator.GetService<ViewModelsService>().Proxies;
+            DataContext = vm;
+            
+            System.Diagnostics.Debug.WriteLine("Proxies: Initializing ViewModel");
+            _ = vm.InitializeAsync();
 
-        InitializeComponent();
+            InitializeComponent();
+            System.Diagnostics.Debug.WriteLine("Proxies: Page construction completed successfully");
+        }
+        catch (Exception ex)
+        {
+            var errorDetails = $"Proxies page constructor failed: {ex.GetType().Name} - {ex.Message}";
+            if (ex.InnerException != null)
+            {
+                errorDetails += $" | Inner: {ex.InnerException.GetType().Name} - {ex.InnerException.Message}";
+            }
+            
+            System.Diagnostics.Debug.WriteLine(errorDetails);
+            System.Diagnostics.Debug.WriteLine($"Full Proxies constructor error: {ex}");
+            
+            // Log page construction failures
+            try
+            {
+                OpenBullet2.Native.Infrastructure.Diagnostics.CrashLoggingService.Instance.LogCrash(
+                    ex, 
+                    "Proxies.Constructor", 
+                    "Failed to construct Proxies page during navigation", 
+                    false);
+            }
+            catch { /* Ignore logging errors */ }
+            
+            throw; // Re-throw so navigation can handle it
+        }
     }
 
     private void AddGroup(object sender, RoutedEventArgs e)

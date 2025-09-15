@@ -102,8 +102,37 @@ namespace OpenBullet2.Native.ViewModels
         {
             if (!initialized)
             {
-                await RefreshListAsync();
-                initialized = true;
+                try
+                {
+                    System.Diagnostics.Debug.WriteLine("HitsViewModel: Starting initialization");
+                    await RefreshListAsync();
+                    initialized = true;
+                    System.Diagnostics.Debug.WriteLine("HitsViewModel: Initialization completed successfully");
+                }
+                catch (Exception ex)
+                {
+                    var errorDetails = $"HitsViewModel initialization failed: {ex.GetType().Name} - {ex.Message}";
+                    if (ex.InnerException != null)
+                    {
+                        errorDetails += $" | Inner: {ex.InnerException.GetType().Name} - {ex.InnerException.Message}";
+                    }
+                    
+                    System.Diagnostics.Debug.WriteLine(errorDetails);
+                    System.Diagnostics.Debug.WriteLine($"Full HitsViewModel error: {ex}");
+                    
+                    // Log to crash system
+                    try
+                    {
+                        OpenBullet2.Native.Infrastructure.Diagnostics.CrashLoggingService.Instance.LogCrash(
+                            ex, 
+                            "HitsViewModel.InitializeAsync", 
+                            "Failed to initialize HitsViewModel during page navigation", 
+                            false);
+                    }
+                    catch { /* Ignore logging errors */ }
+                    
+                    throw; // Re-throw so the UI can handle it
+                }
             }
         }
 
@@ -129,18 +158,48 @@ namespace OpenBullet2.Native.ViewModels
         {
             try
             {
+                System.Diagnostics.Debug.WriteLine("HitsViewModel: Starting RefreshListAsync");
                 // TODO: Make this not fail when hits are being written and we try to read them!
                 // A.k.a. make this use another repo, not the singleton, and refresh it when new hits come in
                 var items = await hitRepo.GetAll().ToListAsync();
+                System.Diagnostics.Debug.WriteLine($"HitsViewModel: Loaded {items.Count} hits from repository");
+                
                 HitsCollection = new ObservableCollection<HitEntity>(items);
                 OnPropertyChanged(nameof(Total));
                 OnPropertyChanged(nameof(ConfigNames));
                 OnPropertyChanged(nameof(HitTypes));
                 HookFilters();
+                System.Diagnostics.Debug.WriteLine("HitsViewModel: RefreshListAsync completed successfully");
             }
-            catch
+            catch (Exception ex)
             {
-
+                var errorDetails = $"HitsViewModel RefreshListAsync failed: {ex.GetType().Name} - {ex.Message}";
+                if (ex.InnerException != null)
+                {
+                    errorDetails += $" | Inner: {ex.InnerException.GetType().Name} - {ex.InnerException.Message}";
+                }
+                
+                System.Diagnostics.Debug.WriteLine(errorDetails);
+                System.Diagnostics.Debug.WriteLine($"Full RefreshListAsync error: {ex}");
+                
+                // Log database access failures
+                try
+                {
+                    OpenBullet2.Native.Infrastructure.Diagnostics.CrashLoggingService.Instance.LogCrash(
+                        ex, 
+                        "HitsViewModel.RefreshListAsync", 
+                        "Failed to refresh hits list from database", 
+                        false);
+                }
+                catch { /* Ignore logging errors */ }
+                
+                // Initialize with empty collection to prevent further UI errors
+                HitsCollection = new ObservableCollection<HitEntity>();
+                OnPropertyChanged(nameof(Total));
+                OnPropertyChanged(nameof(ConfigNames));
+                OnPropertyChanged(nameof(HitTypes));
+                
+                throw; // Re-throw so calling code can handle it
             }
         }
 

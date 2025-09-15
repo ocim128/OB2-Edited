@@ -19,30 +19,39 @@
     <Page.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
         
-        <!-- Color Resources for Consistency -->
-        <SolidColorBrush x:Key="PrimaryBackground" Color="#FF0F0F0F"/>
+        <!-- FLUENT DESIGN COLOR RESOURCES -->
+        <SolidColorBrush x:Key="PrimaryBackground" Color="#FF0C0C0C"/>
         <SolidColorBrush x:Key="SecondaryBackground" Color="#FF1A1A1A"/>
         <SolidColorBrush x:Key="TertiaryBackground" Color="#FF252525"/>
-        <SolidColorBrush x:Key="AccentBlue" Color="#FF3B82F6"/>
-        <SolidColorBrush x:Key="AccentGreen" Color="#FF10B981"/>
-        <SolidColorBrush x:Key="AccentOrange" Color="#FFF59E0B"/>
-        <SolidColorBrush x:Key="AccentRed" Color="#FFEF4444"/>
+        <SolidColorBrush x:Key="AccentBlue" Color="#FF0078D4"/>
+        <SolidColorBrush x:Key="AccentGreen" Color="#FF00CC6A"/>
+        <SolidColorBrush x:Key="AccentOrange" Color="#FFFF8C00"/>
+        <SolidColorBrush x:Key="AccentRed" Color="#FFFF4444"/>
         <SolidColorBrush x:Key="TextPrimary" Color="#FFFFFF"/>
-        <SolidColorBrush x:Key="TextSecondary" Color="#FFE5E7EB"/>
-        <SolidColorBrush x:Key="TextMuted" Color="#FF9CA3AF"/>
+        <SolidColorBrush x:Key="TextSecondary" Color="#FFE1E1E1"/>
+        <SolidColorBrush x:Key="TextMuted" Color="#FFADADAD"/>
         
-        <!-- Enhanced Typography Styles -->
+        <!-- FLUENT DESIGN TYPOGRAPHY -->
         <Style x:Key="HeaderTextStyle" TargetType="TextBlock">
-            <Setter Property="FontFamily" Value="Segoe UI Semibold"/>
-            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontSize" Value="15"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
+            <Setter Property="UseLayoutRounding" Value="True"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
+            <Setter Property="TextOptions.TextRenderingMode" Value="ClearType"/>
         </Style>
         
         <Style x:Key="SubHeaderTextStyle" TargetType="TextBlock">
             <Setter Property="FontFamily" Value="Segoe UI"/>
             <Setter Property="FontSize" Value="12"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontWeight" Value="Medium"/>
             <Setter Property="Foreground" Value="{StaticResource TextSecondary}"/>
+            <Setter Property="UseLayoutRounding" Value="True"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
+            <Setter Property="TextOptions.TextRenderingMode" Value="ClearType"/>
         </Style>
         
         <Style x:Key="BodyTextStyle" TargetType="TextBlock">
@@ -70,22 +79,24 @@
             </Setter>
         </Style>
 
-        <!-- Enhanced ScrollBar Style -->
+        <!-- PERFORMANCE-OPTIMIZED SCROLL BAR -->
         <Style x:Key="ModernScrollBar" TargetType="{x:Type ScrollBar}">
             <Setter Property="Background" Value="{StaticResource TertiaryBackground}"/>
-            <Setter Property="Width" Value="10"/>
+            <Setter Property="Width" Value="8"/>
             <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="UseLayoutRounding" Value="True"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="{x:Type ScrollBar}">
                         <Grid>
-                            <Border Background="{TemplateBinding Background}" CornerRadius="5"/>
+                            <Border Background="{TemplateBinding Background}" CornerRadius="4"/>
                             <Track x:Name="PART_Track" IsDirectionReversed="True">
                                 <Track.Thumb>
                                     <Thumb Background="{StaticResource AccentBlue}" BorderThickness="0">
                                         <Thumb.Template>
                                             <ControlTemplate TargetType="{x:Type Thumb}">
-                                                <Border Background="{TemplateBinding Background}" CornerRadius="5" Opacity="0.7"/>
+                                                <Border Background="{TemplateBinding Background}" CornerRadius="4" Opacity="0.8"/>
                                             </ControlTemplate>
                                         </Thumb.Template>
                                     </Thumb>
@@ -184,7 +195,7 @@
         </ContextMenu>
     </Page.Resources>
 
-    <Grid Margin="8">
+    <Grid Margin="12">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -194,7 +205,7 @@
         
         <Grid.Background>
             <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                <GradientStop Color="#FF0F0F0F" Offset="0"/>
+                <GradientStop Color="#FF0C0C0C" Offset="0"/>
                 <GradientStop Color="#FF1A1A1A" Offset="1"/>
             </LinearGradientBrush>
         </Grid.Background>
@@ -543,16 +554,18 @@
                     ItemsSource="{Binding BotsCollection}"
                     SelectionMode="Extended"
                     BorderThickness="0"
-                    Margin="4"
+                    Margin="6"
                     VirtualizingPanel.IsVirtualizing="True"
                     VirtualizingPanel.VirtualizationMode="Recycling"
                     VirtualizingPanel.ScrollUnit="Item"
                     VirtualizingPanel.CacheLengthUnit="Item"
-                    VirtualizingPanel.CacheLength="40,40"
+                    VirtualizingPanel.CacheLength="20,20"
                     ScrollViewer.CanContentScroll="True"
                     ScrollViewer.IsDeferredScrollingEnabled="True"
                     ScrollViewer.HorizontalScrollBarVisibility="Auto"
                     ScrollViewer.VerticalScrollBarVisibility="Auto"
+                    UseLayoutRounding="True"
+                    SnapsToDevicePixels="True"
                     ContextMenu="{StaticResource botsContextMenu}">
                 <!-- Align Headers to the Left -->
                 <ListView.Resources>
@@ -690,16 +703,18 @@
                     ItemsSource="{Binding HitsCollection}"
                     SelectionMode="Extended"
                     BorderThickness="0"
-                    Margin="4"
+                    Margin="6"
                     VirtualizingPanel.IsVirtualizing="True"
                     VirtualizingPanel.VirtualizationMode="Recycling"
                     VirtualizingPanel.ScrollUnit="Item"
                     VirtualizingPanel.CacheLengthUnit="Item"
-                    VirtualizingPanel.CacheLength="30,30"
+                    VirtualizingPanel.CacheLength="15,15"
                     ScrollViewer.CanContentScroll="True"
                     ScrollViewer.IsDeferredScrollingEnabled="True"
                     ScrollViewer.HorizontalScrollBarVisibility="Auto"
                     ScrollViewer.VerticalScrollBarVisibility="Auto"
+                    UseLayoutRounding="True"
+                    SnapsToDevicePixels="True"
                     ContextMenu="{StaticResource hitsContextMenu}">
                     <!-- Align Headers to the Left -->
                     <ListView.Resources>
@@ -790,86 +805,153 @@
 
                 <!-- Performance Metrics -->
                 <StackPanel Grid.Column="0">
-                    <TextBlock Text="Performance" FontSize="12" FontWeight="SemiBold" Foreground="#FF10B981" Margin="0,0,0,4"/>
-                    <Grid>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                        </Grid.RowDefinitions>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        
-                        <TextBlock Grid.Row="0" Grid.Column="0" Text="CPM:" FontSize="10" Foreground="#FFD1D5DB" VerticalAlignment="Center" Margin="0,0,6,2"/>
-                        <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Job.CPM}" FontSize="11" FontWeight="SemiBold" Foreground="#FF3B82F6" VerticalAlignment="Center" Margin="0,0,0,2"/>
-                        
-                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Elapsed:" FontSize="10" Foreground="#FFD1D5DB" VerticalAlignment="Center" Margin="0,0,6,2"/>
-                        <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Job.ElapsedString}" FontSize="10" Foreground="#FFFBBF24" VerticalAlignment="Center" Margin="0,0,0,2"/>
-                        
-                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Remaining:" FontSize="10" Foreground="#FFD1D5DB" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                        <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Job.RemainingString}" FontSize="10" Foreground="#FF10B981" VerticalAlignment="Center"/>
-                    </Grid>
+                    <TextBlock Text="Performance" FontSize="14" FontWeight="Bold" Foreground="#FF10B981" Margin="0,0,0,8"/>
+                    <Border Background="#80374151" CornerRadius="8" Padding="12">
+                        <Border.Effect>
+                            <DropShadowEffect Color="Black" BlurRadius="3" ShadowDepth="1" Opacity="0.2"/>
+                        </Border.Effect>
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <!-- CPM -->
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="CPM:" FontSize="11" FontWeight="Medium" Foreground="#FFE5E7EB" VerticalAlignment="Center" Margin="0,0,8,4"/>
+                            <Border Grid.Row="0" Grid.Column="1" Background="#FF1E40AF" CornerRadius="4" Padding="6,2" Margin="0,0,0,4">
+                                <TextBlock Text="{Binding Job.CPM}" FontSize="12" FontWeight="Bold" Foreground="White" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                            </Border>
+                            
+                            <!-- Elapsed -->
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Elapsed:" FontSize="11" FontWeight="Medium" Foreground="#FFE5E7EB" VerticalAlignment="Center" Margin="0,0,8,4"/>
+                            <Border Grid.Row="1" Grid.Column="1" Background="#FFB45309" CornerRadius="4" Padding="6,2" Margin="0,0,0,4">
+                                <TextBlock Text="{Binding Job.ElapsedString}" FontSize="11" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                            </Border>
+                            
+                            <!-- Remaining -->
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Remaining:" FontSize="11" FontWeight="Medium" Foreground="#FFE5E7EB" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <Border Grid.Row="2" Grid.Column="1" Background="#FF047857" CornerRadius="4" Padding="6,2">
+                                <TextBlock Text="{Binding Job.RemainingString}" FontSize="11" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                            </Border>
+                        </Grid>
+                    </Border>
                 </StackPanel>
 
                 <!-- Results Statistics -->
                 <StackPanel Grid.Column="1" Margin="20,0">
-                    <TextBlock Text="Results Overview" FontSize="12" FontWeight="SemiBold" Foreground="#FF10B981" Margin="0,0,0,4"/>
-                    <WrapPanel Orientation="Horizontal">
-                        <Border Background="#FF065F46" CornerRadius="6" Padding="6,3" Margin="0,0,4,2">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="Hits:" FontSize="9" Foreground="#FFD1D5DB" VerticalAlignment="Center" Margin="0,0,2,0"/>
-                                <TextBlock Text="{Binding Job.DataHits}" FontSize="10" FontWeight="SemiBold" Foreground="#FF10B981" VerticalAlignment="Center"/>
+                    <TextBlock Text="Results Overview" FontSize="14" FontWeight="Bold" Foreground="#FF10B981" Margin="0,0,0,8"/>
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="1*"/>
+                            <ColumnDefinition Width="1*"/>
+                            <ColumnDefinition Width="1*"/>
+                            <ColumnDefinition Width="1*"/>
+                        </Grid.ColumnDefinitions>
+                        
+                        <!-- Top Row -->
+                        <!-- Hits -->
+                        <Border Grid.Row="0" Grid.Column="0" Background="#FF047857" CornerRadius="8" Padding="8,6" Margin="0,0,2,2">
+                            <Border.Effect>
+                                <DropShadowEffect Color="Black" BlurRadius="2" ShadowDepth="1" Opacity="0.3"/>
+                            </Border.Effect>
+                            <StackPanel>
+                                <TextBlock Text="HITS" FontSize="9" FontWeight="Bold" Foreground="#FFD1FAE5" HorizontalAlignment="Center" Margin="0,0,0,2"/>
+                                <TextBlock Text="{Binding Job.DataHits}" FontSize="16" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center"/>
                             </StackPanel>
                         </Border>
-                        <Border Background="#FF7C3AED" CornerRadius="6" Padding="6,3" Margin="0,0,4,2">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="Custom:" FontSize="9" Foreground="#FFD1D5DB" VerticalAlignment="Center" Margin="0,0,2,0"/>
-                                <TextBlock Text="{Binding Job.DataCustom}" FontSize="10" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center"/>
+                        
+                        <!-- Custom -->
+                        <Border Grid.Row="0" Grid.Column="1" Background="#FF7C3AED" CornerRadius="8" Padding="8,6" Margin="2,0,2,2">
+                            <Border.Effect>
+                                <DropShadowEffect Color="Black" BlurRadius="2" ShadowDepth="1" Opacity="0.3"/>
+                            </Border.Effect>
+                            <StackPanel>
+                                <TextBlock Text="CUSTOM" FontSize="9" FontWeight="Bold" Foreground="#FFE9D5FF" HorizontalAlignment="Center" Margin="0,0,0,2"/>
+                                <TextBlock Text="{Binding Job.DataCustom}" FontSize="16" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center"/>
                             </StackPanel>
                         </Border>
-                        <Border Background="#FFFBBF24" CornerRadius="6" Padding="6,3" Margin="0,0,4,2">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="ToCheck:" FontSize="9" Foreground="#FF1F2937" VerticalAlignment="Center" Margin="0,0,2,0"/>
-                                <TextBlock Text="{Binding Job.DataToCheck}" FontSize="10" FontWeight="SemiBold" Foreground="#FF1F2937" VerticalAlignment="Center"/>
+                        
+                        <!-- ToCheck -->
+                        <Border Grid.Row="0" Grid.Column="2" Background="#FFCA8A04" CornerRadius="8" Padding="8,6" Margin="2,0,2,2">
+                            <Border.Effect>
+                                <DropShadowEffect Color="Black" BlurRadius="2" ShadowDepth="1" Opacity="0.3"/>
+                            </Border.Effect>
+                            <StackPanel>
+                                <TextBlock Text="TO CHECK" FontSize="9" FontWeight="Bold" Foreground="#FFFEF3C7" HorizontalAlignment="Center" Margin="0,0,0,2"/>
+                                <TextBlock Text="{Binding Job.DataToCheck}" FontSize="16" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center"/>
                             </StackPanel>
                         </Border>
-                        <Border Background="#FF3B82F6" CornerRadius="6" Padding="6,3" Margin="0,0,4,2">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="Retried:" FontSize="9" Foreground="#FFD1D5DB" VerticalAlignment="Center" Margin="0,0,2,0"/>
-                                <TextBlock Text="{Binding Job.DataRetried}" FontSize="10" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center"/>
+                        
+                        <!-- Retried -->
+                        <Border Grid.Row="0" Grid.Column="3" Background="#FF2563EB" CornerRadius="8" Padding="8,6" Margin="2,0,0,2">
+                            <Border.Effect>
+                                <DropShadowEffect Color="Black" BlurRadius="2" ShadowDepth="1" Opacity="0.3"/>
+                            </Border.Effect>
+                            <StackPanel>
+                                <TextBlock Text="RETRIED" FontSize="9" FontWeight="Bold" Foreground="#FFDBEAFE" HorizontalAlignment="Center" Margin="0,0,0,2"/>
+                                <TextBlock Text="{Binding Job.DataRetried}" FontSize="16" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center"/>
                             </StackPanel>
                         </Border>
-                        <Border Background="#FFEF4444" CornerRadius="6" Padding="6,3" Margin="0,0,4,2">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="Banned:" FontSize="9" Foreground="#FFD1D5DB" VerticalAlignment="Center" Margin="0,0,2,0"/>
-                                <TextBlock Text="{Binding Job.DataBanned}" FontSize="10" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center"/>
+                        
+                        <!-- Bottom Row -->
+                        <!-- Banned -->
+                        <Border Grid.Row="1" Grid.Column="0" Background="#FFDC2626" CornerRadius="8" Padding="8,6" Margin="0,2,2,0">
+                            <Border.Effect>
+                                <DropShadowEffect Color="Black" BlurRadius="2" ShadowDepth="1" Opacity="0.3"/>
+                            </Border.Effect>
+                            <StackPanel>
+                                <TextBlock Text="BANNED" FontSize="9" FontWeight="Bold" Foreground="#FFFECACA" HorizontalAlignment="Center" Margin="0,0,0,2"/>
+                                <TextBlock Text="{Binding Job.DataBanned}" FontSize="16" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center"/>
                             </StackPanel>
                         </Border>
-                        <Border Background="#FFDC2626" CornerRadius="6" Padding="6,3" Margin="0,0,4,2">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="Fail:" FontSize="9" Foreground="#FFD1D5DB" VerticalAlignment="Center" Margin="0,0,2,0"/>
-                                <TextBlock Text="{Binding Job.DataFails}" FontSize="10" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center"/>
+                        
+                        <!-- Failed -->
+                        <Border Grid.Row="1" Grid.Column="1" Background="#FFB91C1C" CornerRadius="8" Padding="8,6" Margin="2,2,2,0">
+                            <Border.Effect>
+                                <DropShadowEffect Color="Black" BlurRadius="2" ShadowDepth="1" Opacity="0.3"/>
+                            </Border.Effect>
+                            <StackPanel>
+                                <TextBlock Text="FAILED" FontSize="9" FontWeight="Bold" Foreground="#FFFECACA" HorizontalAlignment="Center" Margin="0,0,0,2"/>
+                                <TextBlock Text="{Binding Job.DataFails}" FontSize="16" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center"/>
                             </StackPanel>
                         </Border>
-                        <Border Background="#FF991B1B" CornerRadius="6" Padding="6,3" Margin="0,0,0,2">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="Error:" FontSize="9" Foreground="#FFD1D5DB" VerticalAlignment="Center" Margin="0,0,2,0"/>
-                                <TextBlock Text="{Binding Job.DataErrors}" FontSize="10" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center"/>
+                        
+                        <!-- Error -->
+                        <Border Grid.Row="1" Grid.Column="2" Background="#FF991B1B" CornerRadius="8" Padding="8,6" Margin="2,2,2,0">
+                            <Border.Effect>
+                                <DropShadowEffect Color="Black" BlurRadius="2" ShadowDepth="1" Opacity="0.3"/>
+                            </Border.Effect>
+                            <StackPanel>
+                                <TextBlock Text="ERROR" FontSize="9" FontWeight="Bold" Foreground="#FFFECACA" HorizontalAlignment="Center" Margin="0,0,0,2"/>
+                                <TextBlock Text="{Binding Job.DataErrors}" FontSize="16" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center"/>
                             </StackPanel>
                         </Border>
-                    </WrapPanel>
+                        
+                        <!-- Spacer for alignment -->
+                        <Border Grid.Row="1" Grid.Column="3" Visibility="Hidden"/>
+                    </Grid>
                 </StackPanel>
 
                 <!-- Progress Summary -->
                 <StackPanel Grid.Column="2" HorizontalAlignment="Right">
-                    <TextBlock Text="Progress" FontSize="12" FontWeight="SemiBold" Foreground="#FF10B981" Margin="0,0,0,4" HorizontalAlignment="Right"/>
-                    <Border Background="#FF374151" CornerRadius="8" Padding="8,6">
+                    <TextBlock Text="Progress" FontSize="14" FontWeight="Bold" Foreground="#FF10B981" Margin="0,0,0,8" HorizontalAlignment="Right"/>
+                    <Border Background="#FF1F2937" CornerRadius="12" Padding="16,12" MinWidth="120">
                         <Border.Effect>
-                            <DropShadowEffect Color="Black" BlurRadius="4" ShadowDepth="1" Opacity="0.3"/>
+                            <DropShadowEffect Color="Black" BlurRadius="6" ShadowDepth="2" Opacity="0.4"/>
                         </Border.Effect>
-                        <TextBlock Text="{Binding Job.ProgressString}" FontSize="12" FontWeight="Bold" Foreground="#FF3B82F6" HorizontalAlignment="Center"/>
+                        <StackPanel>
+                            <TextBlock Text="COMPLETION" FontSize="10" FontWeight="Bold" Foreground="#FFD1D5DB" HorizontalAlignment="Center" Margin="0,0,0,4"/>
+                            <TextBlock Text="{Binding Job.ProgressString}" FontSize="18" FontWeight="Bold" Foreground="#FF60A5FA" HorizontalAlignment="Center"/>
+                        </StackPanel>
                     </Border>
                 </StackPanel>
             </Grid>

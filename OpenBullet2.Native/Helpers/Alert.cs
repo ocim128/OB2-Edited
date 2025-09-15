@@ -146,7 +146,26 @@ namespace OpenBullet2.Native.Helpers
         }
 
         private static void ShowAlert(AlertType type, string title, string message)
-            => Application.Current.Dispatcher.Invoke(() => new MainDialog(new AlertDialog(type, title, message), title).ShowDialog());
+        {
+            Application.Current.Dispatcher.Invoke(() => 
+            {
+                var alertDialog = new AlertDialog(type, title, message);
+                
+                // Calculate appropriate dialog size based on message length
+                int width = 450; // Default width
+                int height = 300; // Default height
+                
+                if (message.Length > 200 || message.Contains("\n"))
+                {
+                    // Longer messages need more space
+                    width = Math.Min(800, Math.Max(450, message.Length * 2));
+                    height = Math.Min(600, Math.Max(300, message.Split('\n').Length * 30 + 200));
+                }
+                
+                var dialog = new MainDialog(alertDialog, title, width, height);
+                dialog.ShowDialog();
+            });
+        }
 
         private static void ShowModernNotification(string title, string message)
         {

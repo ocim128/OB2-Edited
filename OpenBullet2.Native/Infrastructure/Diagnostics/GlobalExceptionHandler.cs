@@ -23,7 +23,6 @@ namespace OpenBullet2.Native.Infrastructure.Diagnostics
         private readonly long _maxFileBytes;
         private readonly int _maxRollFiles;
         private bool _isInitialized;
-        private StartupDiagnosticsService _startupDiagnostics;
         private AssemblyLoadingMonitor _assemblyMonitor;
 
         public GlobalExceptionHandler(string logsRoot, long maxFileBytes = 2 * 1024 * 1024, int maxRollFiles = 5)
@@ -48,20 +47,15 @@ namespace OpenBullet2.Native.Infrastructure.Diagnostics
                 try { Directory.CreateDirectory(AppDomain.CurrentDomain.BaseDirectory); } catch { }
             }
 
-            // Initialize enhanced diagnostics services
+            // Initialize assembly loading monitoring
             try
             {
-                _startupDiagnostics = StartupDiagnosticsService.Instance;
-                _startupDiagnostics.LogCheckpoint("GlobalExceptionHandler.Initialize", "Starting enhanced exception handling initialization");
-                
                 _assemblyMonitor = AssemblyLoadingMonitor.Instance;
                 _assemblyMonitor.StartMonitoring();
-                
-                _startupDiagnostics.LogCheckpoint("GlobalExceptionHandler.Initialize", "Assembly loading monitoring started");
             }
             catch (Exception ex)
             {
-                SafeWrite("startup", $"Failed to initialize enhanced diagnostics: {ex.Message}");
+                SafeWrite("startup", $"Failed to initialize assembly loading monitoring: {ex.Message}");
             }
 
             AppDomain.CurrentDomain.UnhandledException += OnDomainUnhandledException;
@@ -70,12 +64,6 @@ namespace OpenBullet2.Native.Infrastructure.Diagnostics
 
             _isInitialized = true;
             SafeWrite("startup", "Enhanced GlobalExceptionHandler initialized with comprehensive crash logging");
-            
-            try
-            {
-                _startupDiagnostics?.LogCheckpoint("GlobalExceptionHandler.Initialize", "Exception handlers registered successfully");
-            }
-            catch { }
         }
 
         public void Dispose()
@@ -86,11 +74,9 @@ namespace OpenBullet2.Native.Infrastructure.Diagnostics
                 Dispatcher.CurrentDispatcher.UnhandledException -= OnDispatcherUnhandledException;
                 TaskScheduler.UnobservedTaskException -= OnUnobservedTaskException;
                 
-                // Stop enhanced diagnostics services
+                // Stop assembly loading monitoring
                 _assemblyMonitor?.StopMonitoring();
                 _assemblyMonitor?.ReportToGlobalHandler();
-                
-                _startupDiagnostics?.LogCheckpoint("GlobalExceptionHandler.Dispose", "Exception handling services disposed");
             }
             catch { /* ignore */ }
         }

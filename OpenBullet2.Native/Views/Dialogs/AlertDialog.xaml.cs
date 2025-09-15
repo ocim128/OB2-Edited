@@ -18,7 +18,21 @@ namespace OpenBullet2.Native.Views.Dialogs
             InitializeComponent();
 
             this.title.Text = title;
-            this.message.Text = message;
+            
+            // Check message length and use appropriate display method
+            if (message.Length > 200 || message.Contains("\n"))
+            {
+                // Long message - use scrollable text block
+                this.message.Visibility = Visibility.Collapsed;
+                this.messageScrollViewer.Visibility = Visibility.Visible;
+                this.messageScrollable.Text = message;
+            }
+            else
+            {
+                // Short message - use regular text block
+                this.message.Text = message;
+                this.messageScrollViewer.Visibility = Visibility.Collapsed;
+            }
 
             icon.Kind = type switch
             {

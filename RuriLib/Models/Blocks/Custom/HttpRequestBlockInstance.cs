@@ -1,4 +1,4 @@
-﻿using RuriLib.Exceptions;
+using RuriLib.Exceptions;
 using RuriLib.Extensions;
 using RuriLib.Helpers.CSharp;
 using RuriLib.Helpers.LoliCode;

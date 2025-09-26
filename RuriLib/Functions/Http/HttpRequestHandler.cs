@@ -1,4 +1,4 @@
-﻿using RuriLib.Functions.Http.Options;
+using RuriLib.Functions.Http.Options;
 using RuriLib.Models.Blocks.Custom.HttpRequest.Multipart;
 using RuriLib.Models.Bots;
 using System;

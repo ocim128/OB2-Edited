@@ -237,7 +237,7 @@ public partial class App : Application
         services.AddSingleton<VolatileSettingsService>();
         services.AddSingleton<ViewModelsService>();
         services.AddSingleton<ConfigService>();
-        
+
         // Non-critical services (lazy loaded for performance)
         services.AddSingleton<Lazy<ProxyReloadService>>(provider => new Lazy<ProxyReloadService>(() => provider.GetRequiredService<ProxyReloadService>()));
         services.AddSingleton<Lazy<ProxyCheckOutputFactory>>(provider => new Lazy<ProxyCheckOutputFactory>(() => provider.GetRequiredService<ProxyCheckOutputFactory>()));
@@ -247,7 +247,7 @@ public partial class App : Application
         services.AddSingleton<Lazy<HitStorageService>>(provider => new Lazy<HitStorageService>(() => provider.GetRequiredService<HitStorageService>()));
         services.AddSingleton<Lazy<DataPoolFactoryService>>(provider => new Lazy<DataPoolFactoryService>(() => provider.GetRequiredService<DataPoolFactoryService>()));
         services.AddSingleton<Lazy<ProxySourceFactoryService>>(provider => new Lazy<ProxySourceFactoryService>(() => provider.GetRequiredService<ProxySourceFactoryService>()));
-        
+
         // Actual service registrations for lazy services
         services.AddSingleton<ProxyReloadService>();
         services.AddSingleton<ProxyCheckOutputFactory>();

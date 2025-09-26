@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using RuriLib.Helpers;
+using RuriLib.Functions.Http;
 
 using RuriLib.Logging;
 using RuriLib.Models.Bots;
@@ -88,6 +89,8 @@ public class BotExecutionCoordinator
         var botData = input.BotData;
         var maxRetries = 100; // Allow more retries for ERROR/RETRY statuses
         var retryCount = 0;
+        Exception lastCachedException = null;
+        bool cachedIsNetworkException = false;
 
         while (retryCount < maxRetries)
         {
@@ -95,10 +98,23 @@ public class BotExecutionCoordinator
 
             var result = await ExecuteSingleAttemptAsync(input, outputVariables, cancellationToken);
 
+            // Cache network exception check to avoid multiple calls for same exception
+            bool isNetworkException = false;
+            if (result.LastException != null)
+            {
+                if (!ReferenceEquals(result.LastException, lastCachedException))
+                {
+                    // New exception - update cache
+                    lastCachedException = result.LastException;
+                    cachedIsNetworkException = NetworkExceptionHelper.IsNetworkException(result.LastException);
+                }
+                isNetworkException = cachedIsNetworkException;
+            }
+
             if (ShouldRetry(result.Status, botData, input.Job))
             {
                 retryCount++;
-                await HandleRetryAsync(botData, result.Status, input.Job);
+                await HandleRetryAsync(botData, result.Status, input.Job, isNetworkException, retryCount);
                 continue;
             }
 
@@ -107,6 +123,11 @@ public class BotExecutionCoordinator
                 retryCount++;
                 if (HandleBanOrError(botData, input.Job))
                 {
+                    // Use the same delay logic as HandleRetryAsync to avoid duplication
+                    int delayMs = isNetworkException
+                        ? NetworkExceptionHelper.CalculateBackoffDelay(retryCount - 1)
+                        : FixedRetryDelayMs;
+                    await Task.Delay(delayMs, cancellationToken);
                     continue; // Retry
                 }
             }
@@ -123,6 +144,7 @@ public class BotExecutionCoordinator
         Dictionary<string, object> outputVariables, CancellationToken cancellationToken)
     {
         var botData = input.BotData;
+        var lastException = (Exception)null;
 
         try
         {
@@ -134,7 +156,8 @@ public class BotExecutionCoordinator
             if (_proxyManager != null && !await _proxyManager.TryGetProxyAsync(botData, input.ProxyPool, cancellationToken))
             {
                 botData.STATUS = BotStatus.Error;
-                return new ExecutionResult { Status = botData.STATUS, OutputVariables = outputVariables };
+                lastException = new Exception("Failed to get proxy");
+                return new ExecutionResult { Status = botData.STATUS, OutputVariables = outputVariables, LastException = lastException };
             }
 
             LogBotStart(botData, input.Job.Config.Mode);
@@ -151,6 +174,7 @@ public class BotExecutionCoordinator
         catch (Exception ex)
         {
             botData.STATUS = BotStatus.Error;
+            lastException = ex;
             botData.Logger.Log($"[{botData.ExecutionInfo}] {ex.GetType().Name}: {ex.Message}", LogColors.Tomato);
             input.Job.Statistics.IncrementErrors();
         }
@@ -160,7 +184,7 @@ public class BotExecutionCoordinator
             _proxyManager?.ReleaseProxy(botData, input.ProxyPool);
         }
 
-        return new ExecutionResult { Status = botData.STATUS, OutputVariables = outputVariables };
+        return new ExecutionResult { Status = botData.STATUS, OutputVariables = outputVariables, LastException = lastException };
     }
 
     private static bool ShouldRetry(string status, BotData botData, MultiRunJob job)
@@ -179,13 +203,42 @@ public class BotExecutionCoordinator
         return true;
     }
 
-    private static async Task HandleRetryAsync(BotData botData, string status, MultiRunJob job)
+    // Cache fixed delay value to avoid repeated allocations
+    private const int FixedRetryDelayMs = 100;
+
+    // Cache common backoff delays to avoid repeated calculations
+    private static readonly int[] CachedBackoffDelays = new int[20];
+
+    static BotExecutionCoordinator()
+    {
+        // Pre-calculate common backoff delays for performance
+        for (int i = 0; i < CachedBackoffDelays.Length; i++)
+        {
+            CachedBackoffDelays[i] = NetworkExceptionHelper.CalculateBackoffDelay(i);
+        }
+    }
+
+    private static async Task HandleRetryAsync(BotData botData, string status, MultiRunJob job, bool isNetworkException, int retryCount)
     {
         job.DebugLog($"RETRY ({botData.Line.Data})({botData.Proxy})");
         job.Statistics.IncrementRetried();
 
-        // Small delay to prevent tight retry loops
-        await Task.Delay(100);
+        // Calculate delay based on whether it's a network exception
+        int delayMs;
+        if (isNetworkException)
+        {
+            // Use cached delay for common retry counts, calculate for higher counts
+            var retryIndex = retryCount - 1;
+            delayMs = retryIndex < CachedBackoffDelays.Length
+                ? CachedBackoffDelays[retryIndex]
+                : NetworkExceptionHelper.CalculateBackoffDelay(retryIndex);
+        }
+        else
+        {
+            delayMs = FixedRetryDelayMs;
+        }
+
+        await Task.Delay(delayMs);
     }
 
     private static bool ShouldHandleBanOrError(string status, BotData botData, MultiRunJob job)
@@ -262,5 +315,6 @@ public class BotExecutionCoordinator
     {
         public string Status { get; set; }
         public Dictionary<string, object> OutputVariables { get; set; }
+        public Exception LastException { get; set; }
     }
 }

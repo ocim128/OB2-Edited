@@ -1,4 +1,4 @@
-﻿using RuriLib.Http;
+using RuriLib.Http;
 using RuriLib.Models.Proxies;
 using RuriLib.Proxies;
 using RuriLib.Proxies.Clients;
@@ -52,7 +52,7 @@ namespace RuriLib.Functions.Http
         public static HttpClient GetHttpClient(Proxy proxy, HttpOptions options, CookieContainer cookieContainer)
         {
             var handler = GetHttpMessageHandler(proxy, options, cookieContainer);
-            
+
             return new HttpClient(handler)
             {
                 Timeout = options.ReadWriteTimeout

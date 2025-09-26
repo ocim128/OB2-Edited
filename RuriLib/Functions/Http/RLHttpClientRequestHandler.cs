@@ -14,13 +14,13 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using System.Buffers;
-
 using RuriLib.Functions.Conversion;
 
 namespace RuriLib.Functions.Http
@@ -34,6 +34,29 @@ namespace RuriLib.Functions.Http
         private static readonly Timer _cleanupTimer = new(CleanupExpiredClients, null, TimeSpan.FromMinutes(2), TimeSpan.FromMinutes(2));
         private const int MaxClientsPerKey = 8;
         private const int ClientTimeoutMinutes = 3;
+
+        // Fast-path check for common network exceptions to avoid full recursive check
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool IsLikelyNetworkException(Exception ex)
+        {
+            if (ex == null)
+                return false;
+
+            // Fast path for most common network exceptions (single type check)
+            // Use type comparison for better performance in hot paths
+            var exType = ex.GetType();
+            if (exType == typeof(HttpRequestException) ||
+                exType == typeof(WebException) ||
+                exType == typeof(SocketException) ||
+                exType == typeof(TimeoutException))
+                return true;
+
+            // Only do the full check for less common exceptions
+            if (exType == typeof(OperationCanceledException) || exType == typeof(IOException))
+                return NetworkExceptionHelper.IsNetworkException(ex);
+
+            return false;
+        }
 
         // Memory optimization pools
         private static readonly ArrayPool<byte> _bufferPool = ArrayPool<byte>.Shared;
@@ -152,30 +175,38 @@ namespace RuriLib.Functions.Http
         {
             var cutoff = DateTime.UtcNow.AddMinutes(-ClientTimeoutMinutes);
             var keysToRemove = new List<string>();
+            var validClientsBuffer = new List<PooledClient>(MaxClientsPerKey);
 
             foreach (var kvp in _clientPool)
             {
                 var poolEntry = kvp.Value;
+                validClientsBuffer.Clear();
 
-                // Clean expired clients from the pool
-                var validClients = new List<PooledClient>();
+                // Clean expired clients from the pool - batch process for efficiency
+                int expiredCount = 0;
                 while (poolEntry.Clients.TryDequeue(out var client))
                 {
                     if (client.IsValid)
                     {
-                        validClients.Add(client);
+                        validClientsBuffer.Add(client);
                     }
                     else
                     {
                         client.Dispose();
-                        Interlocked.Decrement(ref poolEntry.ActiveClients);
+                        expiredCount++;
                     }
                 }
 
-                // Re-enqueue valid clients
-                foreach (var client in validClients)
+                // Update active client count in batch
+                if (expiredCount > 0)
                 {
-                    poolEntry.Clients.Enqueue(client);
+                    Interlocked.Add(ref poolEntry.ActiveClients, -expiredCount);
+                }
+
+                // Re-enqueue valid clients in batch
+                for (int i = 0; i < validClientsBuffer.Count; i++)
+                {
+                    poolEntry.Clients.Enqueue(validClientsBuffer[i]);
                 }
 
                 // Mark pool entry for removal if unused and empty
@@ -185,7 +216,7 @@ namespace RuriLib.Functions.Http
                 }
             }
 
-            // Remove expired pool entries
+            // Remove expired pool entries in batch
             foreach (var key in keysToRemove)
             {
                 if (_clientPool.TryRemove(key, out var poolEntry))
@@ -281,10 +312,11 @@ namespace RuriLib.Functions.Http
 
                 await LogHttpResponseData(data, response, request, options).ConfigureAwait(false);
             }
-            catch
+            catch (Exception ex) when (IsLikelyNetworkException(ex))
             {
                 LogHttpRequestData(data, request);
-                throw;
+                data.Logger.Log($"Network exception detected: {ex.GetType().Name} - {ex.Message}", LogColors.Orange);
+                throw; // Re-throw to be caught by the retry logic
             }
             finally
             {
@@ -326,10 +358,11 @@ namespace RuriLib.Functions.Http
                 LogHttpRequestData(data, request);
                 await LogHttpResponseData(data, response, request, options).ConfigureAwait(false);
             }
-            catch
+            catch (Exception ex) when (IsLikelyNetworkException(ex))
             {
                 LogHttpRequestData(data, request);
-                throw;
+                data.Logger.Log($"Network exception detected: {ex.GetType().Name} - {ex.Message}", LogColors.Orange);
+                throw; // Re-throw to be caught by the retry logic
             }
             finally
             {
@@ -372,10 +405,11 @@ namespace RuriLib.Functions.Http
                 LogHttpRequestData(data, request);
                 await LogHttpResponseData(data, response, request, options).ConfigureAwait(false);
             }
-            catch
+            catch (Exception ex) when (IsLikelyNetworkException(ex))
             {
                 LogHttpRequestData(data, request);
-                throw;
+                data.Logger.Log($"Network exception detected: {ex.GetType().Name} - {ex.Message}", LogColors.Orange);
+                throw; // Re-throw to be caught by the retry logic
             }
             finally
             {
@@ -453,10 +487,11 @@ namespace RuriLib.Functions.Http
                 LogHttpRequestData(data, request, options.Boundary, options.Contents);
                 await LogHttpResponseData(data, response, request, options).ConfigureAwait(false);
             }
-            catch
+            catch (Exception ex) when (IsLikelyNetworkException(ex))
             {
                 LogHttpRequestData(data, request, options.Boundary, options.Contents);
-                throw;
+                data.Logger.Log($"Network exception detected: {ex.GetType().Name} - {ex.Message}", LogColors.Orange);
+                throw; // Re-throw to be caught by the retry logic
             }
             finally
             {

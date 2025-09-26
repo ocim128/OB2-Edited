@@ -1,4 +1,4 @@
-﻿using RuriLib.Extensions;
+using RuriLib.Extensions;
 using RuriLib.Helpers;
 using RuriLib.Models.Proxies.ProxySources;
 using System;
@@ -163,7 +163,7 @@ namespace RuriLib.Models.Proxies
                 await asyncLocker.Acquire(typeof(ProxyPool), nameof(ProxyPool.ReloadAllAsync), cancellationToken).ConfigureAwait(false);
                 var currentTry = 0;
                 var currentBackoff = minBackoff;
-                
+
                 // For a maximum of 'maxReloadTries' times
                 while (currentTry < maxReloadTries)
                 {

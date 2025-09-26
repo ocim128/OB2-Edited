@@ -19,7 +19,7 @@ namespace OpenBullet2.Native.UI.Constants
         }
 
         /// <summary>
-        /// Window size constants based on actual usage in ModernMainWindow.xaml
+        /// Window size constants for application windows
         /// </summary>
         public static class WindowSizes
         {

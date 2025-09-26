@@ -26,6 +26,9 @@ namespace RuriLib.Blocks.Playwright.Page
 
             var response = await page.GotoAsync(url, options);
 
+            // Switch to main frame after navigation
+            data.SetObject("playwrightFrame", page.MainFrame);
+
             // Provide richer logging information (status code when available)
             var statusInfo = response != null ? $" | Status: {response.Status}" : string.Empty;
             data.Logger.Log($"Navigated to {url}{statusInfo}", LogColors.MediumPurple);
@@ -37,6 +40,8 @@ namespace RuriLib.Blocks.Playwright.Page
             LogMethodStart(data, "Reloading page");
             var page = GetPage(data);
             await page.ReloadAsync(CreatePageOptions<PageReloadOptions>(timeoutSeconds));
+            // Switch to main frame after reload
+            data.SetObject("playwrightFrame", page.MainFrame);
             data.Logger.Log("Reloaded the page", LogColors.MediumPurple);
         }
 
@@ -46,6 +51,8 @@ namespace RuriLib.Blocks.Playwright.Page
             LogMethodStart(data, "Going back in history");
             var page = GetPage(data);
             await page.GoBackAsync(CreatePageOptions<PageGoBackOptions>(timeoutSeconds));
+            // Switch to main frame after navigation
+            data.SetObject("playwrightFrame", page.MainFrame);
             data.Logger.Log("Went back in history", LogColors.MediumPurple);
         }
 
@@ -55,6 +62,8 @@ namespace RuriLib.Blocks.Playwright.Page
             LogMethodStart(data, "Going forward in history");
             var page = GetPage(data);
             await page.GoForwardAsync(CreatePageOptions<PageGoForwardOptions>(timeoutSeconds));
+            // Switch to main frame after navigation
+            data.SetObject("playwrightFrame", page.MainFrame);
             data.Logger.Log("Went forward in history", LogColors.MediumPurple);
         }
 
@@ -63,8 +72,8 @@ namespace RuriLib.Blocks.Playwright.Page
         {
             data.Logger.LogHeader();
 
-            var page = GetPage(data);
-            var url = page.Url;
+            var frame = GetFrame(data);
+            var url = frame.Url;
             data.SetObject(variableName, url);
 
             data.Logger.Log($"Got URL: {url}", LogColors.MediumPurple);
@@ -75,8 +84,8 @@ namespace RuriLib.Blocks.Playwright.Page
         {
             data.Logger.LogHeader();
 
-            var page = GetPage(data);
-            var title = await page.TitleAsync();
+            var frame = GetFrame(data);
+            var title = await frame.TitleAsync();
             data.SetObject(variableName, title);
 
             data.Logger.Log($"Got title: {title}", LogColors.MediumPurple);
@@ -87,8 +96,8 @@ namespace RuriLib.Blocks.Playwright.Page
         {
             data.Logger.LogHeader();
 
-            var page = GetPage(data);
-            var source = await page.ContentAsync();
+            var frame = GetFrame(data);
+            var source = await frame.ContentAsync();
             data.SetObject(variableName, source);
 
             data.Logger.Log($"Got page source ({source.Length} characters)", LogColors.MediumPurple);
@@ -123,8 +132,8 @@ namespace RuriLib.Blocks.Playwright.Page
         public static async Task PlaywrightWaitForLoad(BotData data, int timeoutSeconds = 30)
         {
             LogMethodStart(data, "Waiting for page to load");
-            var page = GetPage(data);
-            await page.WaitForLoadStateAsync(LoadState.Load, CreateWaitOptions(timeoutSeconds));
+            var frame = GetFrame(data);
+            await frame.WaitForLoadStateAsync(LoadState.Load, new FrameWaitForLoadStateOptions { Timeout = timeoutSeconds * 1000 });
             data.Logger.Log("Page loaded", LogColors.MediumPurple);
         }
 
@@ -132,8 +141,8 @@ namespace RuriLib.Blocks.Playwright.Page
         public static async Task PlaywrightWaitForNetworkIdle(BotData data, int timeoutSeconds = 30)
         {
             LogMethodStart(data, "Waiting for network to be idle");
-            var page = GetPage(data);
-            await page.WaitForLoadStateAsync(LoadState.NetworkIdle, CreateWaitOptions(timeoutSeconds));
+            var frame = GetFrame(data);
+            await frame.WaitForLoadStateAsync(LoadState.NetworkIdle, new FrameWaitForLoadStateOptions { Timeout = timeoutSeconds * 1000 });
             data.Logger.Log("Network is idle", LogColors.MediumPurple);
         }
 
@@ -142,8 +151,8 @@ namespace RuriLib.Blocks.Playwright.Page
         {
             data.Logger.LogHeader();
 
-            var page = GetPage(data);
-            var response = await page.EvaluateAsync(expression);
+            var frame = GetFrame(data);
+            var response = await frame.EvaluateAsync(expression);
 
             var json = response != null ? response.ToString() : "undefined";
 
@@ -151,6 +160,12 @@ namespace RuriLib.Blocks.Playwright.Page
             data.Logger.Log($"Got result: {json}", LogColors.MediumPurple);
 
             return json;
+        }
+
+        private static IFrame GetFrame(BotData data)
+        {
+            var frame = data.TryGetObject<IFrame>("playwrightFrame");
+            return frame ?? GetPage(data).MainFrame;
         }
 
         [Block("Sets the viewport size", name = "Set Viewport")]
@@ -173,6 +188,16 @@ namespace RuriLib.Blocks.Playwright.Page
             await page.SetExtraHTTPHeadersAsync(new Dictionary<string, string> { { "User-Agent", userAgent } });
 
             data.Logger.Log($"Set user agent: {userAgent}", LogColors.MediumPurple);
+        }
+
+        [Block("Switches to the main frame of the page", name = "Switch to Main Frame")]
+        public static void PlaywrightSwitchToMainFrame(BotData data)
+        {
+            data.Logger.LogHeader();
+
+            var page = GetPage(data);
+            data.SetObject("playwrightFrame", page.MainFrame);
+            data.Logger.Log("Switched to main frame", LogColors.MediumPurple);
         }
 
         private static IPage GetPage(BotData data)

@@ -34,14 +34,7 @@
             <SolidColorBrush x:Key="ForegroundButton" Color="#FFFFFF"/>
             <SolidColorBrush x:Key="BackgroundButton" Color="#333333"/>
 
-            <!-- OPTIMIZED DROP SHADOW FOR PERFORMANCE -->
-            <DropShadowEffect x:Key="DropShadowEffect" 
-                              Color="#000000" 
-                              Direction="270" 
-                              ShadowDepth="2" 
-                              Opacity="0.15" 
-                              BlurRadius="6"
-                              RenderingBias="Performance"/>
+            <!-- Shadow effects removed for modern flat design -->
 
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="pack://application:,,,/MahApps.Metro;component/Styles/Controls.xaml" />

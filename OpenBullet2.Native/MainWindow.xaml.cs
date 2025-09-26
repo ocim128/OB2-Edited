@@ -37,9 +37,10 @@ public partial class MainWindow : MetroWindow
 
     private bool hoveringConfigsMenuOption;
     private bool hoveringConfigSubmenu;
-    private TextBlock currentSelectedLabel; // Track current selected label for optimization
+    private Button currentSelectedButton; // Track current selected button for optimization
 
-    private readonly TextBlock[] labels;
+    private readonly Button[] labels;
+    private readonly Button[] navigationButtons; // Modern navigation buttons array
 
     private Home homePage;
     private Jobs jobsPage;
@@ -74,6 +75,7 @@ public partial class MainWindow : MetroWindow
         ["menuOptionPlugins"] = MainWindowPage.Plugins,
         ["menuOptionSettings"] = MainWindowPage.OBSettings,
         ["menuOptionRLSettings"] = MainWindowPage.RLSettings,
+        ["menuOptionCheckUpdate"] = MainWindowPage.CheckUpdate,
         ["menuOptionAbout"] = MainWindowPage.About,
         ["menuOptionMetadata"] = MainWindowPage.ConfigMetadata,
         ["menuOptionReadme"] = MainWindowPage.ConfigReadme,
@@ -123,6 +125,7 @@ public partial class MainWindow : MetroWindow
         labels =
         [
             menuOptionAbout,
+            menuOptionCheckUpdate,
             menuOptionConfigs,
             menuOptionConfigSettings,
             menuOptionCSharpCode,
@@ -132,14 +135,30 @@ public partial class MainWindow : MetroWindow
             menuOptionLoliCode,
             menuOptionMetadata,
             menuOptionMonitor,
+            menuOptionRLSettings,
             menuOptionSettings,
             menuOptionPlugins,
             menuOptionProxies,
             menuOptionReadme,
-            menuOptionRLSettings,
             menuOptionStacker,
-            menuOptionUpdate,
             menuOptionWordlists
+        ];
+
+        // Initialize navigation buttons array for modern menu
+        navigationButtons =
+        [
+            menuOptionHome,
+            menuOptionJobs,
+            menuOptionMonitor,
+            menuOptionProxies,
+            menuOptionWordlists,
+            menuOptionConfigs,
+            menuOptionHits,
+            menuOptionPlugins,
+            menuOptionSettings,
+            menuOptionRLSettings,
+            menuOptionCheckUpdate,
+            menuOptionAbout
         ];
 
         // Lazy initialization - pages created only when needed
@@ -361,6 +380,7 @@ public partial class MainWindow : MetroWindow
                 CreateAndNavigateToPage(() => new RLSettings(), ref rlSettingsPage, menuOptionRLSettings);
                 break;
 
+
             // Config-related pages use separate methods for complex logic
             case MainWindowPage.About:
                 NavigateToAboutPage();
@@ -387,7 +407,7 @@ public partial class MainWindow : MetroWindow
     }
 
     // Helper method to consolidate repetitive page creation patterns
-    private void CreateAndNavigateToPage<T>(Func<T> pageFactory, ref T pageField, TextBlock menuLabel, bool updateViewModel = false)
+    private void CreateAndNavigateToPage<T>(Func<T> pageFactory, ref T pageField, Button menuButton, bool updateViewModel = false)
         where T : Page
     {
         var pageTypeName = typeof(T).Name;
@@ -424,7 +444,7 @@ public partial class MainWindow : MetroWindow
                             Infrastructure.Diagnostics.CrashLoggingService.Instance.LogCrash(
                                 createEx, 
                                 $"MainWindow.CreateAndNavigateToPage<{pageTypeName}>", 
-                                $"Page creation failed during navigation to {pageTypeName}. Menu: {menuLabel?.Name ?? "Unknown"}", 
+                                $"Page creation failed during navigation to {pageTypeName}. Menu: {menuButton?.Name ?? "Unknown"}", 
                                 false);
                         }
                     }
@@ -471,7 +491,7 @@ public partial class MainWindow : MetroWindow
                         Infrastructure.Diagnostics.CrashLoggingService.Instance.LogCrash(
                             updateEx, 
                             $"MainWindow.UpdateViewModel<{pageTypeName}>", 
-                            $"ViewModel update failed for {pageTypeName}. Menu: {menuLabel?.Name ?? "Unknown"}", 
+                            $"ViewModel update failed for {pageTypeName}. Menu: {menuButton?.Name ?? "Unknown"}", 
                             false);
                     }
                     catch { /* Ignore logging errors */ }
@@ -481,7 +501,7 @@ public partial class MainWindow : MetroWindow
             }
 
             System.Diagnostics.Debug.WriteLine($"Calling ChangePage for {pageTypeName}");
-            ChangePage(pageField, menuLabel);
+            ChangePage(pageField, menuButton);
             System.Diagnostics.Debug.WriteLine($"Successfully navigated to {pageTypeName}");
         }
         catch (Exception ex)
@@ -499,10 +519,10 @@ public partial class MainWindow : MetroWindow
             try
             {
                 Infrastructure.Diagnostics.CrashLoggingService.Instance.LogCrash(
-                    ex, 
-                    $"MainWindow.CreateAndNavigateToPage<{pageTypeName}>", 
-                    $"Complete navigation failure for {pageTypeName}. Menu: {menuLabel?.Name ?? "Unknown"}, UpdateViewModel: {updateViewModel}", 
-                    false);
+                        ex, 
+                        $"MainWindow.CreateAndNavigateToPage<{pageTypeName}>", 
+                        $"Complete navigation failure for {pageTypeName}. Menu: {menuButton?.Name ?? "Unknown"}, UpdateViewModel: {updateViewModel}", 
+                        false);
             }
             catch { /* Ignore logging errors */ }
             
@@ -560,7 +580,7 @@ public partial class MainWindow : MetroWindow
     }
 
 
-    private void HandleConfigEditorNavigation(ConfigEditorSection section, TextBlock menuOption)
+    private void HandleConfigEditorNavigation(ConfigEditorSection section, Button menuButton)
     {
         if (vm.Config != null && (vm.Config.Mode is ConfigMode.Stack or ConfigMode.LoliCode || (section == ConfigEditorSection.CSharp && vm.Config.Mode == ConfigMode.CSharp)))
         {
@@ -569,7 +589,7 @@ public partial class MainWindow : MetroWindow
                 configEditorPage = new ConfigEditor();
             }
             configEditorPage.NavigateTo(section);
-            ChangePage(configEditorPage, menuOption);
+            ChangePage(configEditorPage, menuButton);
 
             // Update UI to ensure buttons are visible
             configEditorPage.UpdateUI();
@@ -608,48 +628,55 @@ public partial class MainWindow : MetroWindow
         jobsPage.EditJob(jobVM);
     }
 
-    // Consolidated navigation handler - reduced from 18 individual methods
-    private void HandleNavigation(object sender, MouseEventArgs e)
+    // Modern navigation handler for button clicks
+    private void HandleNavigationClick(object sender, RoutedEventArgs e)
     {
-        var element = sender as FrameworkElement;
-
+        var button = sender as Button;
+        
         // Handle update check separately
-        if (element?.Name == "menuOptionUpdate")
+        if (button?.Name == "menuOptionCheckUpdate")
         {
             CheckForUpdates();
             return;
         }
 
-        // Use centralized navigation mapping - eliminates code duplication
-        var page = MenuNavigationMap.TryGetValue(element?.Name ?? "", out var targetPage)
-            ? targetPage
-            : MainWindowPage.Home;
-
-        NavigateTo(page);
+        // Use Tag property for navigation mapping - more reliable for buttons
+        if (button?.Tag != null && Enum.TryParse<MainWindowPage>(button.Tag.ToString(), out var targetPage))
+        {
+            NavigateTo(targetPage);
+        }
+        else
+        {
+            // Fallback to name-based mapping for compatibility
+            var page = MenuNavigationMap.TryGetValue(button?.Name ?? "", out var fallbackPage)
+                ? fallbackPage
+                : MainWindowPage.Home;
+            NavigateTo(page);
+        }
     }
 
-    private void ChangePage(Page newPage, TextBlock newLabel)
+    private void ChangePage(Page newPage, Button newButton)
     {
         try
         {
             System.Diagnostics.Debug.WriteLine($"ChangePage: Setting page to {newPage?.GetType().Name ?? "null"}");
             CurrentPage = newPage;
-            mainFrame.Content = newPage;
+            MainFrame.Content = newPage;
 
-            // Optimized label selection - only update if different from current
-            if (newLabel != currentSelectedLabel)
+            // Optimized button selection - only update if different from current
+            if (newButton != currentSelectedButton)
             {
-                if (currentSelectedLabel != null)
+                if (currentSelectedButton != null)
                 {
                     // Clear previous selection visual state
-                    currentSelectedLabel.Tag = null;
+                    currentSelectedButton.Tag = null;
                 }
 
-                if (newLabel != null)
+                if (newButton != null)
                 {
-                    // Mark as selected. XAML style triggers will update Foreground accordingly
-                    newLabel.Tag = "Selected";
-                    currentSelectedLabel = newLabel;
+                    // Mark as selected. XAML style triggers will update appearance accordingly
+                    newButton.Tag = "Selected";
+                    currentSelectedButton = newButton;
                 }
             }
             vm.IsLoading = false;
@@ -672,7 +699,7 @@ public partial class MainWindow : MetroWindow
                 Infrastructure.Diagnostics.CrashLoggingService.Instance.LogCrash(
                     ex, 
                     "MainWindow.ChangePage", 
-                    $"Failed to change page to {newPage?.GetType().Name ?? "unknown"}. Label: {newLabel?.Name ?? "Unknown"}", 
+                    $"Failed to change page to {newPage?.GetType().Name ?? "unknown"}. Button: {newButton?.Name ?? "Unknown"}", 
                     false);
             }
             catch { /* Ignore logging errors */ }
@@ -1662,5 +1689,6 @@ public enum MainWindowPage
     Plugins = 14,
     OBSettings = 15,
     RLSettings = 16,
-    About = 17
+    CheckUpdate = 17,
+    About = 18
 }

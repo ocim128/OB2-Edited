@@ -5,6 +5,7 @@ using RuriLib.Models.Bots;
 using RuriLib.Models.Settings;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -15,7 +16,7 @@ namespace RuriLib.Blocks.Playwright.Browser
     {
         [Block("Opens a new playwright browser", name = "Open Browser")]
         public static async Task PlaywrightOpenBrowser(BotData data, PlaywrightBrowserType? browserType = null,
-            bool? headless = null, string[] extraArgs = null, string firefoxProfilePath = null)
+            bool? headless = null, string[] extraArgs = null, string firefoxProfilePath = null, string extensionPath = null, string firefoxAddonPath = null)
         {
             data.Logger.LogHeader();
 
@@ -36,10 +37,43 @@ namespace RuriLib.Blocks.Playwright.Browser
             var actualHeadless = headless ?? provider.Headless;
             var actualExtraArgs = extraArgs ?? provider.ExtraArgs;
 
+            // Handle extension loading for Chromium browsers
+            var finalArgs = actualExtraArgs?.ToList() ?? new List<string>();
+            if (!string.IsNullOrEmpty(extensionPath))
+            {
+                if (actualBrowserType == PlaywrightBrowserType.Chromium)
+                {
+                    finalArgs.Add($"--disable-extensions-except={extensionPath}");
+                    finalArgs.Add($"--load-extension={extensionPath}");
+                    data.Logger.Log($"Loading Chromium extension from: {extensionPath}", LogColors.MediumPurple);
+                }
+                else
+                {
+                    data.Logger.Log($"⚠️ Extension path specified but browser type is {actualBrowserType}. Extensions are only supported with Chromium browsers.", LogColors.Orange);
+                }
+            }
+
+            // Validate Firefox addon path
+            if (!string.IsNullOrEmpty(firefoxAddonPath))
+            {
+                if (actualBrowserType != PlaywrightBrowserType.Firefox)
+                {
+                    data.Logger.Log($"⚠️ Firefox addon path specified but browser type is {actualBrowserType}. Firefox addons are only supported with Firefox browsers.", LogColors.Orange);
+                }
+                else if (string.IsNullOrEmpty(firefoxProfilePath))
+                {
+                    // Create a temporary profile path for addon installation
+                    firefoxProfilePath = Path.Combine(Path.GetTempPath(), "firefox_temp_profile_" + Guid.NewGuid().ToString("N")[..8]);
+                    Directory.CreateDirectory(firefoxProfilePath);
+                    data.SetObject("playwright.tempFirefoxProfile", firefoxProfilePath);
+                    data.Logger.Log($"📁 Created temporary Firefox profile for addon installation: {firefoxProfilePath}", LogColors.Yellow);
+                }
+            }
+
             var launchOptions = new BrowserTypeLaunchOptions
             {
                 Headless = actualHeadless,
-                Args = actualExtraArgs,
+                Args = finalArgs.ToArray(),
                 Timeout = provider.TimeoutMilliseconds
             };
 
@@ -54,14 +88,21 @@ namespace RuriLib.Blocks.Playwright.Browser
 
             try
             {
-                // Use persistent context for Firefox profile, regular launch otherwise
+                // Use persistent context for Firefox profile or Chromium extensions
                 if (actualBrowserType == PlaywrightBrowserType.Firefox && !string.IsNullOrEmpty(firefoxProfilePath))
                 {
                     data.Logger.Log($"Using Firefox profile: {firefoxProfilePath}", LogColors.MediumPurple);
+                    
+                    // Handle Firefox addon installation
+                    if (!string.IsNullOrEmpty(firefoxAddonPath))
+                    {
+                        await InstallFirefoxAddon(firefoxProfilePath, firefoxAddonPath, data);
+                    }
+                    
                     var persistentOptions = new BrowserTypeLaunchPersistentContextOptions
                     {
                         Headless = actualHeadless,
-                        Args = actualExtraArgs,
+                        Args = finalArgs.ToArray(),
                         Timeout = provider.TimeoutMilliseconds,
                         ExecutablePath = launchOptions.ExecutablePath
                     };
@@ -70,9 +111,25 @@ namespace RuriLib.Blocks.Playwright.Browser
                     // For persistent contexts, we don't need to set the browser object as it may be null
                     // The context itself contains all necessary functionality
                 }
+                else if (actualBrowserType == PlaywrightBrowserType.Chromium && !string.IsNullOrEmpty(extensionPath))
+                {
+                    // Use persistent context for Chromium extensions - this is required for extensions to work properly
+                    data.Logger.Log($"Using persistent context for Chromium extension: {extensionPath}", LogColors.MediumPurple);
+                    var tempUserDataDir = Path.Combine(Path.GetTempPath(), "playwright-chromium-" + Guid.NewGuid().ToString());
+                    data.SetObject("playwright.tempChromiumUserData", tempUserDataDir);
+                    var persistentOptions = new BrowserTypeLaunchPersistentContextOptions
+                    {
+                        Headless = actualHeadless,
+                        Args = finalArgs.ToArray(),
+                        Timeout = provider.TimeoutMilliseconds,
+                        ExecutablePath = launchOptions.ExecutablePath
+                    };
+                    context = await playwright.Chromium.LaunchPersistentContextAsync(tempUserDataDir, persistentOptions);
+                    data.SetObject("playwrightContext", context);
+                }
                 else
                 {
-                    // For non-Firefox browsers or Firefox without profile, use regular launch
+                    // For regular browsers without special requirements, use regular launch
                     browser = await LaunchBrowserWithRetry(playwright, actualBrowserType, launchOptions, data);
                 }
             }
@@ -87,7 +144,7 @@ namespace RuriLib.Blocks.Playwright.Browser
                     var fallbackPersistentOptions = new BrowserTypeLaunchPersistentContextOptions
                     {
                         Headless = actualHeadless,
-                        Args = actualExtraArgs,
+                        Args = finalArgs.ToArray(),
                         Timeout = provider.TimeoutMilliseconds
                         // ExecutablePath is intentionally omitted to use built-in Firefox
                     };
@@ -224,11 +281,42 @@ namespace RuriLib.Blocks.Playwright.Browser
                 data.SetObject("playwright.realBrowserProcessId", null);
             }
 
+            // Clean up temporary directories
+            var tempFirefoxProfile = data.TryGetObject<string>("playwright.tempFirefoxProfile");
+            if (!string.IsNullOrEmpty(tempFirefoxProfile) && Directory.Exists(tempFirefoxProfile))
+            {
+                try
+                {
+                    Directory.Delete(tempFirefoxProfile, true);
+                    data.Logger.Log($"🗑️ Cleaned up temporary Firefox profile: {tempFirefoxProfile}", LogColors.Yellow);
+                }
+                catch (Exception ex)
+                {
+                    data.Logger.Log($"⚠️ Failed to delete temporary Firefox profile {tempFirefoxProfile}: {ex.Message}", LogColors.Orange);
+                }
+            }
+
+            var tempChromiumUserData = data.TryGetObject<string>("playwright.tempChromiumUserData");
+            if (!string.IsNullOrEmpty(tempChromiumUserData) && Directory.Exists(tempChromiumUserData))
+            {
+                try
+                {
+                    Directory.Delete(tempChromiumUserData, true);
+                    data.Logger.Log($"🗑️ Cleaned up temporary Chromium user data: {tempChromiumUserData}", LogColors.Yellow);
+                }
+                catch (Exception ex)
+                {
+                    data.Logger.Log($"⚠️ Failed to delete temporary Chromium user data {tempChromiumUserData}: {ex.Message}", LogColors.Orange);
+                }
+            }
+
             // Clear browser-related objects
-            data.SetObject("playwright", null);
-            data.SetObject("playwrightContext", null);
-            data.SetObject("playwrightPage", null);
-            data.SetObject("playwrightInstance", null);
+            data.Objects.Remove("playwright");
+            data.Objects.Remove("playwrightContext");
+            data.Objects.Remove("playwrightPage");
+            data.Objects.Remove("playwrightInstance");
+            data.Objects.Remove("playwright.tempFirefoxProfile");
+            data.Objects.Remove("playwright.tempChromiumUserData");
 
             data.Logger.Log("Browser closed successfully!", LogColors.MediumPurple);
         }
@@ -360,6 +448,95 @@ namespace RuriLib.Blocks.Playwright.Browser
             data.Logger.Log($"   - Verify browser executable path is correct", LogColors.Yellow);
             data.Logger.Log($"   - Check if browser supports automation", LogColors.Yellow);
             data.Logger.Log($"   - Try using Playwright's built-in browsers", LogColors.Yellow);
+        }
+
+        private static async Task InstallFirefoxAddon(string profilePath, string addonPath, BotData data)
+        {
+            try
+            {
+                // Ensure the profile extensions directory exists
+                var extensionsDir = Path.Combine(profilePath, "extensions");
+                if (!Directory.Exists(extensionsDir))
+                {
+                    Directory.CreateDirectory(extensionsDir);
+                    data.Logger.Log($"Created extensions directory: {extensionsDir}", LogColors.MediumPurple);
+                }
+
+                // Handle single file or directory with multiple .xpi files
+                if (File.Exists(addonPath) && Path.GetExtension(addonPath).ToLower() == ".xpi")
+                {
+                    // Single .xpi file
+                    var originalFileName = Path.GetFileName(addonPath);
+                    var properFileName = GenerateProperAddonFileName(originalFileName);
+                    var destinationPath = Path.Combine(extensionsDir, properFileName);
+                    File.Copy(addonPath, destinationPath, true);
+                    
+                    if (originalFileName != properFileName)
+                    {
+                        data.Logger.Log($"Renamed addon from '{originalFileName}' to '{properFileName}' for proper Firefox recognition", LogColors.MediumPurple);
+                    }
+                    data.Logger.Log($"Installed Firefox addon: {properFileName}", LogColors.Green);
+                }
+                else if (Directory.Exists(addonPath))
+                {
+                    // Directory containing .xpi files
+                    var xpiFiles = Directory.GetFiles(addonPath, "*.xpi", SearchOption.TopDirectoryOnly);
+                    if (xpiFiles.Length == 0)
+                    {
+                        data.Logger.Log($"⚠️ No .xpi files found in directory: {addonPath}", LogColors.Orange);
+                        return;
+                    }
+
+                    foreach (var xpiFile in xpiFiles)
+                    {
+                        var originalFileName = Path.GetFileName(xpiFile);
+                        var properFileName = GenerateProperAddonFileName(originalFileName);
+                        var destinationPath = Path.Combine(extensionsDir, properFileName);
+                        File.Copy(xpiFile, destinationPath, true);
+                        
+                        if (originalFileName != properFileName)
+                        {
+                            data.Logger.Log($"Renamed addon from '{originalFileName}' to '{properFileName}' for proper Firefox recognition", LogColors.MediumPurple);
+                        }
+                        data.Logger.Log($"Installed Firefox addon: {properFileName}", LogColors.Green);
+                    }
+                }
+                else
+                {
+                    data.Logger.Log($"⚠️ Firefox addon path not found or invalid: {addonPath}", LogColors.Orange);
+                }
+            }
+            catch (Exception ex)
+            {
+                data.Logger.Log($"❌ Failed to install Firefox addon: {ex.Message}", LogColors.Red);
+            }
+        }
+
+        private static string GenerateProperAddonFileName(string originalFileName)
+        {
+            // Check if the filename already follows the proper format (starts with addon@ and contains domain)
+            var nameWithoutExtension = Path.GetFileNameWithoutExtension(originalFileName);
+            
+            // If it already starts with addon@ and contains domain, keep it as is
+            if (nameWithoutExtension.StartsWith("addon@") && nameWithoutExtension.Contains("."))
+            {
+                return originalFileName;
+            }
+            
+            // Generate a proper addon filename starting with addon@
+            // Convert filename to format: addon@originalname.com.xpi
+            var cleanName = nameWithoutExtension.ToLower()
+                .Replace(" ", "")
+                .Replace("-", "")
+                .Replace("_", "");
+            
+            // Ensure the name is valid for domain format
+            if (string.IsNullOrEmpty(cleanName))
+            {
+                cleanName = "extension";
+            }
+            
+            return $"addon@{cleanName}.com.xpi";
         }
     }
 }

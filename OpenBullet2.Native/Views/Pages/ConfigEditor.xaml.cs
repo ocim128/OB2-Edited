@@ -55,7 +55,7 @@ namespace OpenBullet2.Native.Views.Pages
             // Create debugger only (essential for initial load)
             debugger = new();
             debuggerFrame.Content = debugger;
-            
+
             // Set up GridSplitter event handlers for better performance
             SetupGridSplitterEvents();
 
@@ -166,7 +166,7 @@ namespace OpenBullet2.Native.Views.Pages
                 }
             }
         }
-        
+
         /// <summary>
         /// Sets up GridSplitter event handlers to optimize debugger performance during resize operations.
         /// </summary>
@@ -180,7 +180,7 @@ namespace OpenBullet2.Native.Views.Pages
                 gridSplitter.DragCompleted += OnGridSplitterDragCompleted;
             }
         }
-        
+
         /// <summary>
         /// Handles GridSplitter drag start to suspend debugger updates.
         /// </summary>
@@ -192,7 +192,7 @@ namespace OpenBullet2.Native.Views.Pages
                 debugger.SetResizing(true);
             }
         }
-        
+
         /// <summary>
         /// Handles GridSplitter drag completion to resume debugger updates.
         /// </summary>
@@ -204,7 +204,7 @@ namespace OpenBullet2.Native.Views.Pages
                 debugger.SetResizing(false);
             }
         }
-        
+
         /// <summary>
         /// Helper method to find a child of a specific type in the visual tree.
         /// </summary>
@@ -215,7 +215,7 @@ namespace OpenBullet2.Native.Views.Pages
                 var child = VisualTreeHelper.GetChild(parent, i);
                 if (child is T result)
                     return result;
-                
+
                 var childOfChild = FindVisualChild<T>(child);
                 if (childOfChild != null)
                     return childOfChild;

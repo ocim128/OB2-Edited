@@ -128,7 +128,7 @@ public class RLHttpClient(ProxyClient proxyClient = null) : IDisposable
     /// Gets the raw bytes of all the requests that were sent.
     /// </summary>
     public List<byte[]> RawRequests { get; } = [];
-    
+
     /// <summary>
     /// Maximum number of raw requests to keep in memory to prevent memory leaks.
     /// </summary>
@@ -429,7 +429,7 @@ public class RLHttpClient(ProxyClient proxyClient = null) : IDisposable
         lock (RawRequests)
         {
             RawRequests.Add(buffer);
-            
+
             // Remove oldest requests if we exceed the limit
             while (RawRequests.Count > MaxRawRequestsToKeep)
             {
@@ -452,7 +452,7 @@ public class RLHttpClient(ProxyClient proxyClient = null) : IDisposable
         // Clean up any resources owned by this instance
         // Note: Static connection pool is shared and cleaned up separately
     }
-    
+
     /// <summary>
     /// Static constructor to initialize cleanup timer for connection pool
     /// </summary>
@@ -462,7 +462,7 @@ public class RLHttpClient(ProxyClient proxyClient = null) : IDisposable
             TimeSpan.FromMinutes(HttpPerformanceConfig.PoolCleanupIntervalMinutes),
             TimeSpan.FromMinutes(HttpPerformanceConfig.PoolCleanupIntervalMinutes));
     }
-    
+
     /// <summary>
     /// Clean up all static resources to prevent memory leaks
     /// </summary>
@@ -472,7 +472,7 @@ public class RLHttpClient(ProxyClient proxyClient = null) : IDisposable
         {
             _poolCleanupTimer?.Dispose();
             _poolCleanupTimer = null;
-            
+
             foreach (var entry in _connectionPool.Values)
             {
                 while (entry.Connections.TryDequeue(out var conn))
@@ -480,7 +480,7 @@ public class RLHttpClient(ProxyClient proxyClient = null) : IDisposable
                     conn?.Dispose();
                 }
             }
-            
+
             _connectionPool.Clear();
         }
     }

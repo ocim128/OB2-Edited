@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 
 namespace RuriLib.Functions.Http.Options
 {
@@ -23,7 +23,7 @@ namespace RuriLib.Functions.Http.Options
         public bool DisableCookieParsing { get; set; } = false;
         public bool DisableHeaderParsing { get; set; } = false;
         public bool ReadResponseContent { get; set; } = true;
-        
+
         /// <summary>
         /// Whether to allow HTTPS to HTTP redirects. This is disabled by default for security reasons.
         /// When enabled, the handler will manually follow HTTPS to HTTP redirects.

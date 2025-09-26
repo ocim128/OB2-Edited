@@ -37,12 +37,12 @@ internal class HttpResponseBuilder : IDisposable
     private static readonly ArrayPool<byte> _bufferPool = ArrayPool<byte>.Shared;
     private static readonly ConcurrentQueue<StringBuilder> _stringBuilderPool = new();
     private static readonly ConcurrentQueue<Dictionary<string, string>> _headerDictionaryPool = new();
-    
+
     // Pre-compiled byte sequences for performance
     private static readonly ReadOnlyMemory<byte> CrLf = "\r\n"u8.ToArray();
     private static readonly ReadOnlyMemory<byte> DoubleCrLf = "\r\n\r\n"u8.ToArray();
     private static readonly ReadOnlyMemory<byte> ChunkedEndMarker = "0\r\n\r\n"u8.ToArray();
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static StringBuilder GetPooledStringBuilder()
     {
@@ -53,7 +53,7 @@ internal class HttpResponseBuilder : IDisposable
         }
         return new StringBuilder(256);
     }
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void ReturnStringBuilder(StringBuilder sb)
     {
@@ -62,7 +62,7 @@ internal class HttpResponseBuilder : IDisposable
             _stringBuilderPool.Enqueue(sb);
         }
     }
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Dictionary<string, string> GetPooledHeaderDictionary()
     {
@@ -73,7 +73,7 @@ internal class HttpResponseBuilder : IDisposable
         }
         return new Dictionary<string, string>(16, StringComparer.OrdinalIgnoreCase);
     }
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void ReturnHeaderDictionary(Dictionary<string, string> dict)
     {
@@ -275,7 +275,7 @@ internal class HttpResponseBuilder : IDisposable
     {
         var sequenceReader = new SequenceReader<byte>(buff);
         var sb = GetPooledStringBuilder();
-        
+
         try
         {
             while (sequenceReader.TryReadTo(out ReadOnlySpan<byte> Line, CRLF, true))
@@ -314,34 +314,34 @@ internal class HttpResponseBuilder : IDisposable
 
         // Use pooled StringBuilder for efficient string building
         var sb = GetPooledStringBuilder();
-        
+
         try
         {
             // Parse header name with manual trimming to avoid allocations
             var headerNameSpan = header[..separatorPos];
             var nameStart = 0;
             var nameEnd = headerNameSpan.Length - 1;
-            
+
             while (nameStart <= nameEnd && headerNameSpan[nameStart] == ' ') nameStart++;
             while (nameEnd >= nameStart && headerNameSpan[nameEnd] == ' ') nameEnd--;
-            
+
             if (nameStart > nameEnd) return;
-            
+
             sb.Clear();
             for (int i = nameStart; i <= nameEnd; i++)
             {
                 sb.Append((char)headerNameSpan[i]);
             }
             var headerName = sb.ToString();
-            
+
             // Parse header value with manual trimming
             var headerValueSpan = header[(separatorPos + 1)..];
             var valueStart = 0;
             var valueEnd = headerValueSpan.Length - 1;
-            
+
             while (valueStart <= valueEnd && headerValueSpan[valueStart] == ' ') valueStart++;
             while (valueEnd >= valueStart && headerValueSpan[valueEnd] == ' ') valueEnd--;
-            
+
             sb.Clear();
             if (valueStart <= valueEnd)
             {

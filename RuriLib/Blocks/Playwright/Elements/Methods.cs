@@ -15,11 +15,11 @@ namespace RuriLib.Blocks.Playwright.Elements
         public static async Task PlaywrightClickElement(BotData data, FindElementBy findBy, string identifier, int index = 0, int timeoutSeconds = 30)
         {
             LogMethodStart(data, $"Clicking element: {findBy} {identifier}");
-            var page = GetPage(data);
+            var frame = GetFrame(data);
 
             if (findBy == FindElementBy.XPath)
             {
-                var elements = await page.Locator("xpath=" + identifier).AllAsync();
+                var elements = await frame.Locator("xpath=" + identifier).AllAsync();
                 if (elements.Count <= index)
                     throw new Exception($"Expected at least {index + 1} elements to be found but {elements.Count} were found");
                 await elements[index].ClickAsync(CreateElementOptions<LocatorClickOptions>(timeoutSeconds));
@@ -27,7 +27,7 @@ namespace RuriLib.Blocks.Playwright.Elements
             else
             {
                 var selector = BuildSelector(findBy, identifier);
-                var elements = await page.Locator(selector).AllAsync();
+                var elements = await frame.Locator(selector).AllAsync();
                 if (elements.Count <= index)
                     throw new Exception($"Expected at least {index + 1} elements to be found but {elements.Count} were found");
                 await elements[index].ClickAsync(CreateElementOptions<LocatorClickOptions>(timeoutSeconds));
@@ -71,11 +71,11 @@ namespace RuriLib.Blocks.Playwright.Elements
         public static async Task PlaywrightFillElement(BotData data, FindElementBy findBy, string identifier, string text, int index = 0, int timeoutSeconds = 30)
         {
             LogMethodStart(data, $"Filling element: {findBy} {identifier}");
-            var page = GetPage(data);
+            var frame = GetFrame(data);
 
             if (findBy == FindElementBy.XPath)
             {
-                var elements = await page.Locator("xpath=" + identifier).AllAsync();
+                var elements = await frame.Locator("xpath=" + identifier).AllAsync();
                 if (elements.Count <= index)
                     throw new Exception($"Expected at least {index + 1} elements to be found but {elements.Count} were found");
                 await elements[index].FillAsync(text, CreateElementOptions<LocatorFillOptions>(timeoutSeconds));
@@ -83,7 +83,7 @@ namespace RuriLib.Blocks.Playwright.Elements
             else
             {
                 var selector = BuildSelector(findBy, identifier);
-                var elements = await page.Locator(selector).AllAsync();
+                var elements = await frame.Locator(selector).AllAsync();
                 if (elements.Count <= index)
                     throw new Exception($"Expected at least {index + 1} elements to be found but {elements.Count} were found");
                 await elements[index].FillAsync(text, CreateElementOptions<LocatorFillOptions>(timeoutSeconds));
@@ -96,8 +96,8 @@ namespace RuriLib.Blocks.Playwright.Elements
         public static async Task PlaywrightClearElement(BotData data, string selector, int timeoutSeconds = 30)
         {
             LogMethodStart(data, $"Clearing element: {selector}");
-            var page = GetPage(data);
-            await page.FillAsync(selector, "", CreateElementOptions<PageFillOptions>(timeoutSeconds));
+            var frame = GetFrame(data);
+            await frame.FillAsync(selector, "", CreateElementOptions<FrameFillOptions>(timeoutSeconds));
             data.Logger.Log($"Cleared element: {selector}", LogColors.Tomato);
         }
 
@@ -105,8 +105,8 @@ namespace RuriLib.Blocks.Playwright.Elements
         public static async Task PlaywrightGetText(BotData data, string selector, string variableName = "text", int timeoutSeconds = 30)
         {
             LogMethodStart(data, $"Getting text from element: {selector}");
-            var page = GetPage(data);
-            var element = await page.WaitForSelectorAsync(selector, CreateWaitOptions(timeoutSeconds));
+            var frame = GetFrame(data);
+            var element = await frame.WaitForSelectorAsync(selector, new FrameWaitForSelectorOptions { Timeout = timeoutSeconds * 1000 });
             var text = await element.TextContentAsync();
             data.SetObject(variableName, text ?? "");
             data.Logger.Log($"Got text from {selector}: {text}", LogColors.Tomato);
@@ -116,12 +116,12 @@ namespace RuriLib.Blocks.Playwright.Elements
         public static async Task PlaywrightGetInnerText(BotData data, FindElementBy findBy, string identifier, string variableName = "innerText", int index = 0, int timeoutSeconds = 30)
         {
             LogMethodStart(data, $"Getting inner text from element: {findBy} {identifier}");
-            var page = GetPage(data);
+            var frame = GetFrame(data);
             string innerText;
 
             if (findBy == FindElementBy.XPath)
             {
-                var elements = await page.Locator("xpath=" + identifier).AllAsync();
+                var elements = await frame.Locator("xpath=" + identifier).AllAsync();
                 if (elements.Count <= index)
                     throw new Exception($"Expected at least {index + 1} elements to be found but {elements.Count} were found");
                 innerText = await elements[index].InnerTextAsync(CreateElementOptions<LocatorInnerTextOptions>(timeoutSeconds));
@@ -129,7 +129,7 @@ namespace RuriLib.Blocks.Playwright.Elements
             else
             {
                 var selector = BuildSelector(findBy, identifier);
-                var elements = await page.Locator(selector).AllAsync();
+                var elements = await frame.Locator(selector).AllAsync();
                 if (elements.Count <= index)
                     throw new Exception($"Expected at least {index + 1} elements to be found but {elements.Count} were found");
                 innerText = await elements[index].InnerTextAsync(CreateElementOptions<LocatorInnerTextOptions>(timeoutSeconds));
@@ -143,8 +143,8 @@ namespace RuriLib.Blocks.Playwright.Elements
         public static async Task PlaywrightGetInnerHTML(BotData data, string selector, string variableName = "innerHTML", int timeoutSeconds = 30)
         {
             LogMethodStart(data, $"Getting inner HTML from element: {selector}");
-            var page = GetPage(data);
-            var innerHTML = await page.InnerHTMLAsync(selector, CreateElementOptions<PageInnerHTMLOptions>(timeoutSeconds));
+            var frame = GetFrame(data);
+            var innerHTML = await frame.InnerHTMLAsync(selector, new FrameInnerHTMLOptions { Timeout = timeoutSeconds * 1000 });
             data.SetObject(variableName, innerHTML);
             data.Logger.Log($"Got inner HTML from {selector} ({innerHTML?.Length ?? 0} characters)", LogColors.Tomato);
         }
@@ -155,7 +155,7 @@ namespace RuriLib.Blocks.Playwright.Elements
         {
             data.Logger.LogHeader();
 
-            var page = GetPage(data);
+            var frame = GetFrame(data);
             string elemScript;
             if (findBy == FindElementBy.XPath)
             {
@@ -167,7 +167,7 @@ namespace RuriLib.Blocks.Playwright.Elements
                 elemScript = $"document.querySelectorAll('{selector}')[{index}]";
             }
             var script = $"{elemScript}.{attributeName};";
-            var value = await page.EvaluateAsync<string>(script);
+            var value = await frame.EvaluateAsync<string>(script);
 
             data.Logger.Log($"Got value {value} of attribute {attributeName} by executing {script}", LogColors.Tomato);
             return value;
@@ -178,8 +178,8 @@ namespace RuriLib.Blocks.Playwright.Elements
         {
             data.Logger.LogHeader();
 
-            var page = GetPage(data);
-            await page.EvaluateAsync($"document.querySelector('{selector}').setAttribute('{attributeName}', '{value}')");
+            var frame = GetFrame(data);
+            await frame.EvaluateAsync($"document.querySelector('{selector}').setAttribute('{attributeName}', '{value}')");
 
             data.Logger.Log($"Set attribute '{attributeName}' to '{value}' on element: {selector}", LogColors.Tomato);
         }
@@ -188,20 +188,20 @@ namespace RuriLib.Blocks.Playwright.Elements
         public static async Task PlaywrightElementExists(BotData data, FindElementBy findBy, string identifier, string variableName = "exists", int index = 0, int timeoutSeconds = 5)
         {
             LogMethodStart(data, $"Checking if element exists: {findBy} {identifier}");
-            var page = GetPage(data);
+            var frame = GetFrame(data);
             bool exists = false;
 
             try
             {
                 if (findBy == FindElementBy.XPath)
                 {
-                    var elements = await page.Locator("xpath=" + identifier).AllAsync();
+                    var elements = await frame.Locator("xpath=" + identifier).AllAsync();
                     exists = elements.Count > index;
                 }
                 else
                 {
                     var selector = BuildSelector(findBy, identifier);
-                    var elements = await page.Locator(selector).AllAsync();
+                    var elements = await frame.Locator(selector).AllAsync();
                     exists = elements.Count > index;
                 }
             }
@@ -218,16 +218,16 @@ namespace RuriLib.Blocks.Playwright.Elements
         public static async Task PlaywrightWaitForElement(BotData data, FindElementBy findBy, string identifier, int index = 0, int timeoutSeconds = 30)
         {
             LogMethodStart(data, $"Waiting for element: {findBy} {identifier}");
-            var page = GetPage(data);
+            var frame = GetFrame(data);
 
             if (findBy == FindElementBy.XPath)
             {
-                await page.Locator("xpath=" + identifier).Nth(index).WaitForAsync(CreateElementOptions<LocatorWaitForOptions>(timeoutSeconds));
+                await frame.Locator("xpath=" + identifier).Nth(index).WaitForAsync(CreateElementOptions<LocatorWaitForOptions>(timeoutSeconds));
             }
             else
             {
                 var selector = BuildSelector(findBy, identifier);
-                await page.Locator(selector).Nth(index).WaitForAsync(CreateElementOptions<LocatorWaitForOptions>(timeoutSeconds));
+                await frame.Locator(selector).Nth(index).WaitForAsync(CreateElementOptions<LocatorWaitForOptions>(timeoutSeconds));
             }
 
             data.Logger.Log($"Element appeared: {findBy} {identifier} at index {index}", LogColors.Tomato);
@@ -238,8 +238,8 @@ namespace RuriLib.Blocks.Playwright.Elements
         {
             data.Logger.LogHeader();
 
-            var page = GetPage(data);
-            await page.HoverAsync(selector, new PageHoverOptions { Timeout = timeoutSeconds * 1000 });
+            var frame = GetFrame(data);
+            await frame.HoverAsync(selector, new FrameHoverOptions { Timeout = timeoutSeconds * 1000 });
 
             data.Logger.Log($"Hovered over element: {selector}", LogColors.Tomato);
         }
@@ -249,8 +249,8 @@ namespace RuriLib.Blocks.Playwright.Elements
         {
             data.Logger.LogHeader();
 
-            var page = GetPage(data);
-            await page.DblClickAsync(selector, new PageDblClickOptions { Timeout = timeoutSeconds * 1000 });
+            var frame = GetFrame(data);
+            await frame.DblClickAsync(selector, new FrameDblClickOptions { Timeout = timeoutSeconds * 1000 });
 
             data.Logger.Log($"Double clicked element: {selector}", LogColors.Tomato);
         }
@@ -260,8 +260,8 @@ namespace RuriLib.Blocks.Playwright.Elements
         {
             data.Logger.LogHeader();
 
-            var page = GetPage(data);
-            await page.ClickAsync(selector, new PageClickOptions
+            var frame = GetFrame(data);
+            await frame.ClickAsync(selector, new FrameClickOptions
             {
                 Timeout = timeoutSeconds * 1000,
                 Button = MouseButton.Right
@@ -275,8 +275,8 @@ namespace RuriLib.Blocks.Playwright.Elements
         {
             data.Logger.LogHeader();
 
-            var page = GetPage(data);
-            await page.SelectOptionAsync(selector, value, new PageSelectOptionOptions { Timeout = timeoutSeconds * 1000 });
+            var frame = GetFrame(data);
+            await frame.SelectOptionAsync(selector, value, new FrameSelectOptionOptions { Timeout = timeoutSeconds * 1000 });
 
             data.Logger.Log($"Selected option '{value}' from dropdown: {selector}", LogColors.Tomato);
         }
@@ -286,8 +286,8 @@ namespace RuriLib.Blocks.Playwright.Elements
         {
             data.Logger.LogHeader();
 
-            var page = GetPage(data);
-            await page.CheckAsync(selector, new PageCheckOptions { Timeout = timeoutSeconds * 1000 });
+            var frame = GetFrame(data);
+            await frame.CheckAsync(selector, new FrameCheckOptions { Timeout = timeoutSeconds * 1000 });
 
             data.Logger.Log($"Checked element: {selector}", LogColors.Tomato);
         }
@@ -297,8 +297,8 @@ namespace RuriLib.Blocks.Playwright.Elements
         {
             data.Logger.LogHeader();
 
-            var page = GetPage(data);
-            await page.UncheckAsync(selector, new PageUncheckOptions { Timeout = timeoutSeconds * 1000 });
+            var frame = GetFrame(data);
+            await frame.UncheckAsync(selector, new FrameUncheckOptions { Timeout = timeoutSeconds * 1000 });
 
             data.Logger.Log($"Unchecked element: {selector}", LogColors.Tomato);
         }
@@ -308,8 +308,8 @@ namespace RuriLib.Blocks.Playwright.Elements
         {
             data.Logger.LogHeader();
 
-            var page = GetPage(data);
-            await page.FocusAsync(selector, new PageFocusOptions { Timeout = timeoutSeconds * 1000 });
+            var frame = GetFrame(data);
+            await frame.FocusAsync(selector, new FrameFocusOptions { Timeout = timeoutSeconds * 1000 });
 
             data.Logger.Log($"Focused on element: {selector}", LogColors.Tomato);
         }
@@ -318,11 +318,11 @@ namespace RuriLib.Blocks.Playwright.Elements
         public static async Task PlaywrightPressKey(BotData data, FindElementBy findBy, string identifier, string key, int index = 0, int timeoutSeconds = 30)
         {
             LogMethodStart(data, $"Pressing key '{key}' on element: {findBy} {identifier}");
-            var page = GetPage(data);
+            var frame = GetFrame(data);
 
             if (findBy == FindElementBy.XPath)
             {
-                var elements = await page.Locator("xpath=" + identifier).AllAsync();
+                var elements = await frame.Locator("xpath=" + identifier).AllAsync();
                 if (elements.Count <= index)
                     throw new Exception($"Expected at least {index + 1} elements to be found but {elements.Count} were found");
                 await elements[index].PressAsync(key, new LocatorPressOptions { Timeout = timeoutSeconds * 1000 });
@@ -330,7 +330,7 @@ namespace RuriLib.Blocks.Playwright.Elements
             else
             {
                 var selector = BuildSelector(findBy, identifier);
-                var elements = await page.Locator(selector).AllAsync();
+                var elements = await frame.Locator(selector).AllAsync();
                 if (elements.Count <= index)
                     throw new Exception($"Expected at least {index + 1} elements to be found but {elements.Count} were found");
                 await elements[index].PressAsync(key, new LocatorPressOptions { Timeout = timeoutSeconds * 1000 });
@@ -339,10 +339,46 @@ namespace RuriLib.Blocks.Playwright.Elements
             data.Logger.Log($"Pressed key '{key}' on element: {findBy} {identifier} at index {index}", LogColors.Tomato);
         }
 
+        [Block("Switches to a different iframe", name = "Switch to Frame")]
+        public static async Task PlaywrightSwitchToFrame(BotData data, FindElementBy findBy, string identifier, int index = 0, int timeoutSeconds = 30)
+        {
+            LogMethodStart(data, $"Switching to iframe: {findBy} {identifier}");
+            var page = GetPage(data);
+
+            IFrame frame;
+            if (findBy == FindElementBy.XPath)
+            {
+                var elementHandle = await page.QuerySelectorAsync($"xpath={identifier}");
+                if (elementHandle == null)
+                    throw new Exception($"Element not found: {findBy} {identifier}");
+                frame = await elementHandle.ContentFrameAsync();
+            }
+            else
+            {
+                var selector = BuildSelector(findBy, identifier);
+                var elementHandle = await page.QuerySelectorAsync(selector);
+                if (elementHandle == null)
+                    throw new Exception($"Element not found: {findBy} {identifier}");
+                frame = await elementHandle.ContentFrameAsync();
+            }
+
+            if (frame == null)
+                throw new Exception("The specified element is not a frame or iframe");
+
+            data.SetObject("playwrightFrame", frame);
+            data.Logger.Log($"Switched to iframe: {findBy} {identifier}", LogColors.Tomato);
+        }
+
         private static IPage GetPage(BotData data)
         {
             var page = data.TryGetObject<IPage>("playwrightPage");
             return page ?? throw new Exception("No page available. Use the 'New Page' block first");
+        }
+
+        private static IFrame GetFrame(BotData data)
+        {
+            var frame = data.TryGetObject<IFrame>("playwrightFrame");
+            return frame ?? GetPage(data).MainFrame;
         }
 
         private static void LogMethodStart(BotData data, string action)

@@ -1,4 +1,4 @@
-﻿using RuriLib.Functions.Http;
+using RuriLib.Functions.Http;
 using RuriLib.Functions.Http.Options;
 using RuriLib.Models.Blocks.Parameters;
 using RuriLib.Models.Blocks.Settings;

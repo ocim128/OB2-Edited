@@ -16,7 +16,7 @@
         ResizeMode="CanResizeWithGrip"
         WindowTitleBrush="{StaticResource Modern.BackgroundSecondary}"
         NonActiveWindowTitleBrush="{StaticResource Modern.BackgroundMain}"
-        WindowTransitionsEnabled="True"
+        WindowTransitionsEnabled="False"
         WindowStartupLocation="CenterScreen"
         WindowState="Normal"
         TitleCharacterCasing="Normal"
@@ -81,240 +81,98 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <!-- Enhanced Navigation Header with Fluent Design -->
+        <!-- Modern Navigation Header - Minimal and Fluent -->
         <Border x:Name="NavigationHeader"
                 Grid.Row="0" 
                 Background="{StaticResource Modern.BackgroundSecondary}" 
-                CornerRadius="0,0,12,12" 
                 BorderBrush="{StaticResource Modern.BorderMain}" 
-                BorderThickness="0,0,0,1"
-                Effect="{StaticResource Modern.Shadow.Small}">
+                BorderThickness="0,0,0,1">
             <StackPanel x:Name="topMenu" 
                         Orientation="Horizontal" 
                         VerticalAlignment="Center"
-                        Margin="16,8">
-                    <StackPanel.Resources>
-                        <!-- Enhanced Navigation Menu Style with Fluent Design -->
-                        <Style TargetType="TextBlock">
-                            <Setter Property="FontWeight" Value="Medium" />
-                            <Setter Property="Foreground" Value="{StaticResource Modern.ForegroundSecondary}" />
-                            <Setter Property="FontFamily" Value="Segoe UI" />
-                            <Setter Property="VerticalAlignment" Value="Center" />
-                            <Setter Property="Margin" Value="4,0" />
-                            <Setter Property="Padding" Value="16,12" />
-                            <Setter Property="FontSize" Value="13" />
-                            <Setter Property="Cursor" Value="Hand" />
-                            <Setter Property="Background" Value="Transparent" />
-                            <Setter Property="UseLayoutRounding" Value="True" />
-                            <Setter Property="SnapsToDevicePixels" Value="True" />
-                            <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
-                            <Setter Property="TextOptions.TextRenderingMode" Value="ClearType" />
-                            <Setter Property="RenderTransform">
-                                <Setter.Value>
-                                    <ScaleTransform ScaleX="1" ScaleY="1" />
-                                </Setter.Value>
-                            </Setter>
-                            <Setter Property="RenderTransformOrigin" Value="0.5,0.5" />
-                            <Style.Triggers>
-                                <!-- Smooth hover animation -->
-                                <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter Property="Foreground" Value="{StaticResource Modern.ForegroundMain}" />
-                                    <Setter Property="Background" Value="{StaticResource Modern.BackgroundHover}" />
-                                    <Trigger.EnterActions>
-                                        <BeginStoryboard>
-                                            <Storyboard>
-                                                <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
-                                                                To="1.05" Duration="0:0:0.1">
-                                                    <DoubleAnimation.EasingFunction>
-                                                        <CubicEase EasingMode="EaseOut" />
-                                                    </DoubleAnimation.EasingFunction>
-                                                </DoubleAnimation>
-                                                <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
-                                                                To="1.05" Duration="0:0:0.1">
-                                                    <DoubleAnimation.EasingFunction>
-                                                        <CubicEase EasingMode="EaseOut" />
-                                                    </DoubleAnimation.EasingFunction>
-                                                </DoubleAnimation>
-                                            </Storyboard>
-                                        </BeginStoryboard>
-                                    </Trigger.EnterActions>
-                                    <Trigger.ExitActions>
-                                        <BeginStoryboard>
-                                            <Storyboard>
-                                                <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
-                                                                To="1" Duration="0:0:0.15">
-                                                    <DoubleAnimation.EasingFunction>
-                                                        <CubicEase EasingMode="EaseOut" />
-                                                    </DoubleAnimation.EasingFunction>
-                                                </DoubleAnimation>
-                                                <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
-                                                                To="1" Duration="0:0:0.15">
-                                                    <DoubleAnimation.EasingFunction>
-                                                        <CubicEase EasingMode="EaseOut" />
-                                                    </DoubleAnimation.EasingFunction>
-                                                </DoubleAnimation>
-                                            </Storyboard>
-                                        </BeginStoryboard>
-                                    </Trigger.ExitActions>
-                                </Trigger>
-
-                                <!-- Selected state with modern accent color -->
-                                <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource Self}}" Value="Selected">
-                                    <Setter Property="Foreground" Value="{StaticResource Modern.TextOnAccent}" />
-                                    <Setter Property="Background" Value="{StaticResource Modern.ThemeMain}" />
-                                </DataTrigger>
-
-                                <!-- When selected AND hovered, maintain enhanced appearance -->
-                                <MultiTrigger>
-                                    <MultiTrigger.Conditions>
-                                        <Condition Property="IsMouseOver" Value="True" />
-                                        <Condition Property="Tag" Value="Selected" />
-                                    </MultiTrigger.Conditions>
-                                    <Setter Property="Foreground" Value="{StaticResource Modern.TextOnAccent}" />
-                                    <Setter Property="Background" Value="{StaticResource Modern.ThemeSecondary}" />
-                                </MultiTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </StackPanel.Resources>
+                        Margin="24,12">
+                    <!-- Using styles from ModernTheme.xaml for better performance -->
                 
-                    <!-- Navigation Menu Items with Enhanced Tooltips -->
-                    <TextBlock x:Name="menuOptionHome" Text="HOME" MouseDown="HandleNavigation">
-                        <TextBlock.ToolTip>
-                            <ToolTip>
-                                <StackPanel>
-                                    <TextBlock Text="Home Dashboard" FontWeight="SemiBold" Margin="0,0,0,4" />
-                                    <TextBlock Text="View system overview, performance metrics, and quick actions" FontSize="12" Opacity="0.8" TextWrapping="Wrap" />
-                                    <TextBlock Text="Shortcut: Ctrl+1" FontSize="11" FontStyle="Italic" Opacity="0.6" Margin="0,4,0,0" />
-                                </StackPanel>
-                            </ToolTip>
-                        </TextBlock.ToolTip>
-                    </TextBlock>
-                    <TextBlock x:Name="menuOptionJobs" Text="JOBS" MouseDown="HandleNavigation">
-                        <TextBlock.ToolTip>
-                            <ToolTip>
-                                <StackPanel>
-                                    <TextBlock Text="Job Management" FontWeight="SemiBold" Margin="0,0,0,4" />
-                                    <TextBlock Text="Create, configure, and manage checking jobs" FontSize="12" Opacity="0.8" TextWrapping="Wrap" />
-                                    <TextBlock Text="Shortcut: Ctrl+2" FontSize="11" FontStyle="Italic" Opacity="0.6" Margin="0,4,0,0" />
-                                </StackPanel>
-                            </ToolTip>
-                        </TextBlock.ToolTip>
-                    </TextBlock>
-                    <TextBlock x:Name="menuOptionMonitor" Text="MONITOR" MouseDown="HandleNavigation">
-                        <TextBlock.ToolTip>
-                            <ToolTip>
-                                <StackPanel>
-                                    <TextBlock Text="Live Monitoring" FontWeight="SemiBold" Margin="0,0,0,4" />
-                                    <TextBlock Text="Monitor running jobs in real-time with detailed statistics" FontSize="12" Opacity="0.8" TextWrapping="Wrap" />
-                                    <TextBlock Text="Shortcut: Ctrl+3" FontSize="11" FontStyle="Italic" Opacity="0.6" Margin="0,4,0,0" />
-                                </StackPanel>
-                            </ToolTip>
-                        </TextBlock.ToolTip>
-                    </TextBlock>
-                    <TextBlock x:Name="menuOptionProxies" Text="PROXIES" MouseDown="HandleNavigation">
-                        <TextBlock.ToolTip>
-                            <ToolTip>
-                                <StackPanel>
-                                    <TextBlock Text="Proxy Management" FontWeight="SemiBold" Margin="0,0,0,4" />
-                                    <TextBlock Text="Import, test, and manage proxy lists for your jobs" FontSize="12" Opacity="0.8" TextWrapping="Wrap" />
-                                    <TextBlock Text="Shortcut: Ctrl+4" FontSize="11" FontStyle="Italic" Opacity="0.6" Margin="0,4,0,0" />
-                                </StackPanel>
-                            </ToolTip>
-                        </TextBlock.ToolTip>
-                    </TextBlock>
-                    <TextBlock x:Name="menuOptionWordlists" Text="WORDLISTS" MouseDown="HandleNavigation">
-                        <TextBlock.ToolTip>
-                            <ToolTip>
-                                <StackPanel>
-                                    <TextBlock Text="Wordlist Library" FontWeight="SemiBold" Margin="0,0,0,4" />
-                                    <TextBlock Text="Manage username, password, and custom wordlists" FontSize="12" Opacity="0.8" TextWrapping="Wrap" />
-                                    <TextBlock Text="Shortcut: Ctrl+5" FontSize="11" FontStyle="Italic" Opacity="0.6" Margin="0,4,0,0" />
-                                </StackPanel>
-                            </ToolTip>
-                        </TextBlock.ToolTip>
-                    </TextBlock>
-                    <TextBlock x:Name="menuOptionConfigs" Text="CONFIGS" MouseDown="HandleNavigation" MouseEnter="ConfigsMenuOptionMouseEnter" MouseLeave="ConfigsMenuOptionMouseLeave">
-                        <TextBlock.ToolTip>
-                            <ToolTip>
-                                <StackPanel>
-                                    <TextBlock Text="Configuration Editor" FontWeight="SemiBold" Margin="0,0,0,4" />
-                                    <TextBlock Text="Browse, edit, and create automation configurations" FontSize="12" Opacity="0.8" TextWrapping="Wrap" />
-                                    <TextBlock Text="Hover to see editor options • Shortcut: Ctrl+6" FontSize="11" FontStyle="Italic" Opacity="0.6" Margin="0,4,0,0" />
-                                </StackPanel>
-                            </ToolTip>
-                        </TextBlock.ToolTip>
-                    </TextBlock>
-                    <TextBlock x:Name="menuOptionHits" Text="HITS" MouseDown="HandleNavigation">
-                        <TextBlock.ToolTip>
-                            <ToolTip>
-                                <StackPanel>
-                                    <TextBlock Text="Successful Results" FontWeight="SemiBold" Margin="0,0,0,4" />
-                                    <TextBlock Text="View and export successful hits from your jobs" FontSize="12" Opacity="0.8" TextWrapping="Wrap" />
-                                    <TextBlock Text="Shortcut: Ctrl+7" FontSize="11" FontStyle="Italic" Opacity="0.6" Margin="0,4,0,0" />
-                                </StackPanel>
-                            </ToolTip>
-                        </TextBlock.ToolTip>
-                    </TextBlock>
-                    <TextBlock x:Name="menuOptionPlugins" Text="PLUGINS" MouseDown="HandleNavigation">
-                        <TextBlock.ToolTip>
-                            <ToolTip>
-                                <StackPanel>
-                                    <TextBlock Text="Plugin Manager" FontWeight="SemiBold" Margin="0,0,0,4" />
-                                    <TextBlock Text="Install and manage plugins to extend functionality" FontSize="12" Opacity="0.8" TextWrapping="Wrap" />
-                                    <TextBlock Text="Shortcut: Ctrl+8" FontSize="11" FontStyle="Italic" Opacity="0.6" Margin="0,4,0,0" />
-                                </StackPanel>
-                            </ToolTip>
-                        </TextBlock.ToolTip>
-                    </TextBlock>
-                    <TextBlock x:Name="menuOptionSettings" Text="SETTINGS" MouseDown="HandleNavigation">
-                        <TextBlock.ToolTip>
-                            <ToolTip>
-                                <StackPanel>
-                                    <TextBlock Text="Application Settings" FontWeight="SemiBold" Margin="0,0,0,4" />
-                                    <TextBlock Text="Configure OpenBullet preferences and behaviors" FontSize="12" Opacity="0.8" TextWrapping="Wrap" />
-                                    <TextBlock Text="Shortcut: Ctrl+9" FontSize="11" FontStyle="Italic" Opacity="0.6" Margin="0,4,0,0" />
-                                </StackPanel>
-                            </ToolTip>
-                        </TextBlock.ToolTip>
-                    </TextBlock>
-                    <TextBlock x:Name="menuOptionRLSettings" Text="RL SETTINGS" MouseDown="HandleNavigation">
-                        <TextBlock.ToolTip>
-                            <ToolTip>
-                                <StackPanel>
-                                    <TextBlock Text="RuriLib Settings" FontWeight="SemiBold" Margin="0,0,0,4" />
-                                    <TextBlock Text="Advanced engine configuration and performance tuning" FontSize="12" Opacity="0.8" TextWrapping="Wrap" />
-                                    <TextBlock Text="Shortcut: Ctrl+0" FontSize="11" FontStyle="Italic" Opacity="0.6" Margin="0,4,0,0" />
-                                </StackPanel>
-                            </ToolTip>
-                        </TextBlock.ToolTip>
-                    </TextBlock>
-                    <TextBlock x:Name="menuOptionAbout" Text="ABOUT" MouseDown="HandleNavigation">
-                        <TextBlock.ToolTip>
-                            <ToolTip>
-                                <StackPanel>
-                                    <TextBlock Text="About OpenBullet" FontWeight="SemiBold" Margin="0,0,0,4" />
-                                    <TextBlock Text="View version information, credits, and license details" FontSize="12" Opacity="0.8" TextWrapping="Wrap" />
-                                </StackPanel>
-                            </ToolTip>
-                        </TextBlock.ToolTip>
-                    </TextBlock>
-                    <TextBlock x:Name="menuOptionUpdate" Text="CHECK UPDATES" MouseDown="HandleNavigation">
-                        <TextBlock.ToolTip>
-                            <ToolTip>
-                                <StackPanel>
-                                    <TextBlock Text="Update Manager" FontWeight="SemiBold" Margin="0,0,0,4" />
-                                    <TextBlock Text="Check for and install application updates" FontSize="12" Opacity="0.8" TextWrapping="Wrap" />
-                                </StackPanel>
-                            </ToolTip>
-                        </TextBlock.ToolTip>
-                    </TextBlock>
+                    <!-- Navigation Menu Items -->
+                    <Button x:Name="menuOptionHome" Style="{StaticResource ModernButton}" Click="HandleNavigationClick" Tag="Home" ToolTip="Home Dashboard (Ctrl+1)">
+                        <StackPanel Orientation="Horizontal">
+                            <iconPacks:PackIconMaterial Kind="Home" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="Home"/>
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="menuOptionJobs" Style="{StaticResource ModernButton}" Click="HandleNavigationClick" Tag="Jobs" ToolTip="Job Management (Ctrl+2)">
+                        <StackPanel Orientation="Horizontal">
+                            <iconPacks:PackIconMaterial Kind="PlayBox" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="Jobs"/>
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="menuOptionMonitor" Style="{StaticResource ModernButton}" Click="HandleNavigationClick" Tag="Monitor" ToolTip="Live Monitoring (Ctrl+3)">
+                        <StackPanel Orientation="Horizontal">
+                            <iconPacks:PackIconMaterial Kind="Monitor" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="Monitor"/>
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="menuOptionProxies" Style="{StaticResource ModernButton}" Click="HandleNavigationClick" Tag="Proxies" ToolTip="Proxy Management (Ctrl+4)">
+                        <StackPanel Orientation="Horizontal">
+                            <iconPacks:PackIconMaterial Kind="ServerNetwork" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="Proxies"/>
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="menuOptionWordlists" Style="{StaticResource ModernButton}" Click="HandleNavigationClick" Tag="Wordlists" ToolTip="Wordlist Library (Ctrl+5)">
+                        <StackPanel Orientation="Horizontal">
+                            <iconPacks:PackIconMaterial Kind="FileDocument" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="Wordlists"/>
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="menuOptionConfigs" Style="{StaticResource ModernButton}" Click="HandleNavigationClick" Tag="Configs" MouseEnter="ConfigsMenuOptionMouseEnter" MouseLeave="ConfigsMenuOptionMouseLeave" ToolTip="Configuration Editor (Ctrl+6)">
+                        <StackPanel Orientation="Horizontal">
+                            <iconPacks:PackIconMaterial Kind="CodeJson" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="Configs"/>
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="menuOptionHits" Style="{StaticResource ModernButton}" Click="HandleNavigationClick" Tag="Hits" ToolTip="Successful Results (Ctrl+7)">
+                        <StackPanel Orientation="Horizontal">
+                            <iconPacks:PackIconMaterial Kind="Target" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="Hits"/>
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="menuOptionPlugins" Style="{StaticResource ModernButton}" Click="HandleNavigationClick" Tag="Plugins" ToolTip="Plugin Manager (Ctrl+8)">
+                        <StackPanel Orientation="Horizontal">
+                            <iconPacks:PackIconMaterial Kind="Puzzle" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="Plugins"/>
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="menuOptionSettings" Style="{StaticResource ModernButton}" Click="HandleNavigationClick" Tag="OBSettings" ToolTip="Application Settings (Ctrl+9)">
+                        <StackPanel Orientation="Horizontal">
+                            <iconPacks:PackIconMaterial Kind="Cog" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="Settings"/>
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="menuOptionRLSettings" Style="{StaticResource ModernButton}" Click="HandleNavigationClick" Tag="RLSettings" ToolTip="RuriLib Settings">
+                        <StackPanel Orientation="Horizontal">
+                            <iconPacks:PackIconMaterial Kind="Wrench" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="RL Settings"/>
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="menuOptionCheckUpdate" Style="{StaticResource ModernButton}" Click="HandleNavigationClick" Tag="CheckUpdate" ToolTip="Check for Updates">
+                        <StackPanel Orientation="Horizontal">
+                            <iconPacks:PackIconMaterial Kind="Update" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="Check Update"/>
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="menuOptionAbout" Style="{StaticResource ModernButton}" Click="HandleNavigationClick" Tag="About" ToolTip="About OpenBullet">
+                        <StackPanel Orientation="Horizontal">
+                            <iconPacks:PackIconMaterial Kind="Information" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="About"/>
+                        </StackPanel>
+                    </Button>
             </StackPanel>
         </Border>
 
         <!-- Modern Config Submenu -->
         <Border x:Name="configSubmenu"
-                Background="#FF1E1E1E"
-                BorderBrush="#FF2E2E2E"
+                Background="{StaticResource Modern.BackgroundCard}"
+                BorderBrush="{StaticResource Modern.BorderMain}"
                 BorderThickness="1"
                 CornerRadius="8"
                 Grid.Row="0" Grid.RowSpan="2"
@@ -326,35 +184,29 @@
                 Visibility="Collapsed"
                 MouseEnter="ConfigSubmenuMouseEnter"
                 MouseLeave="ConfigSubmenuMouseLeave"
-                Padding="12">
+                Padding="8">
             <StackPanel>
-                <StackPanel.Resources>
-                    <!-- Submenu Item Style -->
-                    <Style TargetType="TextBlock" x:Key="SubmenuItemStyle">
-                        <Setter Property="FontWeight" Value="Normal" />
-                        <Setter Property="Foreground" Value="#FFCCCCCC" />
-                        <Setter Property="FontFamily" Value="Segoe UI" />
-                        <Setter Property="FontSize" Value="11" />
-                        <Setter Property="Margin" Value="0,2" />
-                        <Setter Property="Padding" Value="8,6" />
-                        <Setter Property="Cursor" Value="Hand" />
-                        <Setter Property="Background" Value="Transparent" />
-                        <Style.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#FF3A82F7" />
-                                <Setter Property="Foreground" Value="White" />
-                            </Trigger>
-                        </Style.Triggers>
-                    </Style>
-                </StackPanel.Resources>
+                <!-- Using ModernButton style from ModernTheme.xaml -->
                 
                 <!-- Config Editor Menu Items -->
-                <TextBlock x:Name="menuOptionMetadata" Text="📝 Metadata" Style="{StaticResource SubmenuItemStyle}" MouseDown="HandleNavigation" ToolTipService.ToolTip="Edit config metadata"/>
-                <TextBlock x:Name="menuOptionReadme" Text="📄 Readme" Style="{StaticResource SubmenuItemStyle}" MouseDown="HandleNavigation" ToolTipService.ToolTip="Edit config readme"/>
-                <TextBlock x:Name="menuOptionStacker" Text="🔧 Stacker" Style="{StaticResource SubmenuItemStyle}" MouseDown="HandleNavigation" ToolTipService.ToolTip="Edit config stacker"/>
-                <TextBlock x:Name="menuOptionLoliCode" Text="💻 LoliCode" Style="{StaticResource SubmenuItemStyle}" MouseDown="HandleNavigation" ToolTipService.ToolTip="Edit config LoliCode"/>
-                <TextBlock x:Name="menuOptionConfigSettings" Text="⚙️ Settings" Style="{StaticResource SubmenuItemStyle}" MouseDown="HandleNavigation" ToolTipService.ToolTip="Edit config settings"/>
-                <TextBlock x:Name="menuOptionCSharpCode" Text="🔷 C# Code" Style="{StaticResource SubmenuItemStyle}" MouseDown="HandleNavigation" ToolTipService.ToolTip="Edit config C# code"/>
+                <Button x:Name="menuOptionMetadata" Style="{StaticResource ModernButton}" Click="HandleNavigationClick" Tag="ConfigMetadata" ToolTip="Metadata" FontSize="12" Padding="12,8" Margin="0,1" HorizontalContentAlignment="Left">
+                    <TextBlock Text="Metadata"/>
+                </Button>
+                <Button x:Name="menuOptionReadme" Style="{StaticResource ModernButton}" Click="HandleNavigationClick" Tag="ConfigReadme" ToolTip="Readme" FontSize="12" Padding="12,8" Margin="0,1" HorizontalContentAlignment="Left">
+                    <TextBlock Text="Readme"/>
+                </Button>
+                <Button x:Name="menuOptionStacker" Style="{StaticResource ModernButton}" Click="HandleNavigationClick" Tag="ConfigStacker" ToolTip="Stacker" FontSize="12" Padding="12,8" Margin="0,1" HorizontalContentAlignment="Left">
+                    <TextBlock Text="Stacker"/>
+                </Button>
+                <Button x:Name="menuOptionLoliCode" Style="{StaticResource ModernButton}" Click="HandleNavigationClick" Tag="ConfigLoliCode" ToolTip="LoliCode" FontSize="12" Padding="12,8" Margin="0,1" HorizontalContentAlignment="Left">
+                    <TextBlock Text="LoliCode"/>
+                </Button>
+                <Button x:Name="menuOptionConfigSettings" Style="{StaticResource ModernButton}" Click="HandleNavigationClick" Tag="ConfigSettings" ToolTip="Settings" FontSize="12" Padding="12,8" Margin="0,1" HorizontalContentAlignment="Left">
+                    <TextBlock Text="Settings"/>
+                </Button>
+                <Button x:Name="menuOptionCSharpCode" Style="{StaticResource ModernButton}" Click="HandleNavigationClick" Tag="ConfigCSharpCode" ToolTip="C# Code" FontSize="12" Padding="12,8" Margin="0,1" HorizontalContentAlignment="Left">
+                    <TextBlock Text="C# Code"/>
+                </Button>
             </StackPanel>
         </Border>
         
@@ -368,48 +220,11 @@
                 ClipToBounds="True">
             <Grid>
                 <!-- Main content frame with smooth transitions -->
-                <Frame x:Name="mainFrame" 
+                <Frame x:Name="MainFrame" 
                        NavigationUIVisibility="Hidden" 
-                       Background="Transparent"
-                       BorderThickness="0"
-                       RenderTransformOrigin="0.5,0.5">
-                    <Frame.RenderTransform>
-                        <TransformGroup>
-                            <TranslateTransform x:Name="MainFrameTranslate" X="0" Y="0" />
-                            <ScaleTransform x:Name="MainFrameScale" ScaleX="1" ScaleY="1" />
-                        </TransformGroup>
-                    </Frame.RenderTransform>
-                </Frame>
+                       Background="Transparent" />
                 
-                <!-- Enhanced loading overlay with smooth animations -->
-                <Border x:Name="LoadingOverlay" 
-                        Background="#80000000"
-                        Opacity="0"
-                        IsHitTestVisible="False"
-                        CornerRadius="8">
-                    <Border.RenderTransform>
-                        <ScaleTransform ScaleX="1" ScaleY="1" />
-                    </Border.RenderTransform>
-                    <Grid>
-                        <Border Background="{StaticResource Modern.BackgroundCard}"
-                                CornerRadius="12"
-                                Padding="32,24"
-                                HorizontalAlignment="Center"
-                                VerticalAlignment="Center"
-                                Effect="{StaticResource DropShadowEffect}">
-                            <StackPanel Orientation="Horizontal">
-                                <mah:ProgressRing IsActive="True" 
-                                                 Width="24" Height="24"
-                                                 Foreground="{StaticResource Modern.ThemeMain}"
-                                                 Margin="0,0,12,0" />
-                                <TextBlock Text="Loading..." 
-                                          Style="{StaticResource ModernBodyText}"
-                                          FontWeight="Medium"
-                                          VerticalAlignment="Center" />
-                            </StackPanel>
-                        </Border>
-                    </Grid>
-                </Border>
+                <!-- Simplified loading indicator -->
             </Grid>
         </Border>
 

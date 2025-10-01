@@ -125,7 +125,7 @@
     </Page.Resources>
 
     <!-- Modern Jobs Management Layout -->
-    <Grid Background="Transparent" Margin="32,24">
+    <Grid Background="Transparent" Margin="16,12">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -156,7 +156,7 @@
                 </StackPanel>
 
                 <!-- Modern Search Box with Better UX -->
-                <Border Grid.Column="1" Style="{StaticResource ModernSearchBox}" Margin="32,0" VerticalAlignment="Center">
+                <Border Grid.Column="1" Style="{StaticResource ModernSearchBox}" Margin="16,0" VerticalAlignment="Center">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>

@@ -692,7 +692,7 @@
                         </Grid>
                         
                         <!-- Ignore HTTPS Errors -->
-                        <Grid>
+                        <Grid Margin="0,0,0,16">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="auto"/>
                                 <ColumnDefinition Width="*"/>
@@ -701,6 +701,24 @@
                             <TextBlock Grid.Column="0" Text="Ignore HTTPS Errors:" Foreground="White" FontSize="14" Margin="0,0,16,0" VerticalAlignment="Center"/>
                             <CheckBox Grid.Column="1" IsChecked="{Binding PlaywrightIgnoreHTTPSErrors}"
                                       VerticalAlignment="Center"/>
+                        </Grid>
+                        
+                        <!-- CAPTCHA Solving Settings -->
+                        <Border Background="#FF2A2A2A" CornerRadius="6" Padding="12" Margin="0,0,0,16">
+
+                        </Border>
+                        
+                        <!-- Extra Args -->
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <TextBlock Grid.Column="0" Text="Extra Arguments:" Foreground="White" FontSize="14" Margin="0,0,16,0" VerticalAlignment="Center"/>
+                            <TextBox Grid.Column="1" Text="{Binding PlaywrightExtraArgs}"
+                                     Background="#FF333333" Foreground="White" BorderBrush="#FF1E90FF" BorderThickness="1" Padding="8"
+                                     Width="500" HorizontalAlignment="Left"/>
                         </Grid>
                     </StackPanel>
                 </Border>

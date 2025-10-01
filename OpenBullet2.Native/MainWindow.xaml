@@ -9,7 +9,7 @@
         xmlns:converters="clr-namespace:OpenBullet2.Native.Converters"
         mc:Ignorable="d"
         Title="OpenBullet 2 - 0.3.3.8 [Akunlama MOD]" 
-        MinWidth="900" MinHeight="650"
+        MinWidth="800" MinHeight="600"
         Background="{StaticResource Modern.BackgroundMain}"
         BorderThickness="0"
         GlowBrush="{StaticResource Modern.ThemeMain}"
@@ -55,6 +55,126 @@
     <!-- Custom Window Button Styles -->
     <!-- Removed duplicate button styles - using ModernTheme.xaml styles for better performance -->
 
+    <Window.Resources>
+        <!-- Responsive Design Resources -->
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+        
+        <!-- Converters -->
+        <converters:LessThanConverter x:Key="LessThanConverter" />
+        
+        <!-- Responsive Navigation Styles -->
+        <Style x:Key="ResponsiveNavButton" TargetType="Button" BasedOn="{StaticResource ModernButton}">
+            <Setter Property="Margin" Value="2,0" />
+            <Setter Property="Padding" Value="8,6" />
+            <Style.Triggers>
+                <!-- Hide text on smaller windows -->
+                <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=ActualWidth, Converter={StaticResource LessThanConverter}, ConverterParameter=1000}" Value="True">
+                    <Setter Property="Width" Value="40" />
+                    <Setter Property="Padding" Value="8" />
+                </DataTrigger>
+                <!-- Compact mode for medium windows -->
+                <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=ActualWidth, Converter={StaticResource LessThanConverter}, ConverterParameter=1200}" Value="True">
+                    <Setter Property="Padding" Value="6,4" />
+                    <Setter Property="Margin" Value="1,0" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        
+        <!-- Responsive Text Style -->
+        <Style x:Key="ResponsiveNavText" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Style.Triggers>
+                <!-- Hide text on very small windows -->
+                <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=ActualWidth, Converter={StaticResource LessThanConverter}, ConverterParameter=1000}" Value="True">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                </DataTrigger>
+                <!-- Smaller font on medium windows -->
+                <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=ActualWidth, Converter={StaticResource LessThanConverter}, ConverterParameter=1200}" Value="True">
+                    <Setter Property="FontSize" Value="12" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        
+        <!-- Responsive Icon Style -->
+        <Style x:Key="ResponsiveNavIcon" TargetType="iconPacks:PackIconMaterial">
+            <Setter Property="Width" Value="16" />
+            <Setter Property="Height" Value="16" />
+            <Setter Property="Margin" Value="0,0,8,0" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Style.Triggers>
+                <!-- Larger icons when text is hidden -->
+                <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=ActualWidth, Converter={StaticResource LessThanConverter}, ConverterParameter=1000}" Value="True">
+                    <Setter Property="Width" Value="20" />
+                    <Setter Property="Height" Value="20" />
+                    <Setter Property="Margin" Value="0" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        
+        <!-- Responsive Container Styles -->
+        <Style x:Key="ResponsiveStackPanel" TargetType="StackPanel">
+            <Setter Property="Margin" Value="10" />
+            <Style.Triggers>
+                <!-- Smaller margins on smaller windows -->
+                <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=ActualWidth, Converter={StaticResource LessThanConverter}, ConverterParameter=1000}" Value="True">
+                    <Setter Property="Margin" Value="5" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=ActualWidth, Converter={StaticResource LessThanConverter}, ConverterParameter=1200}" Value="True">
+                    <Setter Property="Margin" Value="8" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        
+        <!-- Responsive Grid Style -->
+        <Style x:Key="ResponsiveGrid" TargetType="Grid">
+            <Setter Property="Margin" Value="15" />
+            <Style.Triggers>
+                <!-- Smaller margins on smaller windows -->
+                <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=ActualWidth, Converter={StaticResource LessThanConverter}, ConverterParameter=1000}" Value="True">
+                    <Setter Property="Margin" Value="8" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=ActualWidth, Converter={StaticResource LessThanConverter}, ConverterParameter=1200}" Value="True">
+                    <Setter Property="Margin" Value="12" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        
+        <!-- Responsive Content Text Style -->
+        <Style x:Key="ResponsiveContentText" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="Margin" Value="5" />
+            <Style.Triggers>
+                <!-- Smaller font on smaller windows -->
+                <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=ActualWidth, Converter={StaticResource LessThanConverter}, ConverterParameter=1000}" Value="True">
+                    <Setter Property="FontSize" Value="12" />
+                    <Setter Property="Margin" Value="3" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=ActualWidth, Converter={StaticResource LessThanConverter}, ConverterParameter=1200}" Value="True">
+                    <Setter Property="FontSize" Value="13" />
+                    <Setter Property="Margin" Value="4" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        
+        <!-- Responsive Border Style -->
+        <Style x:Key="ResponsiveBorder" TargetType="Border">
+            <Setter Property="Padding" Value="10" />
+            <Setter Property="Margin" Value="5" />
+            <Style.Triggers>
+                <!-- Smaller padding on smaller windows -->
+                <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=ActualWidth, Converter={StaticResource LessThanConverter}, ConverterParameter=1000}" Value="True">
+                    <Setter Property="Padding" Value="5" />
+                    <Setter Property="Margin" Value="2" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=ActualWidth, Converter={StaticResource LessThanConverter}, ConverterParameter=1200}" Value="True">
+                    <Setter Property="Padding" Value="8" />
+                    <Setter Property="Margin" Value="3" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+
     <Window.InputBindings>
         <KeyBinding Command="{x:Static local:CustomCommands.NewConfig}" Gesture="CTRL+N" />
         <KeyBinding Command="{x:Static local:CustomCommands.OpenConfig}" Gesture="CTRL+O" />
@@ -74,7 +194,7 @@
     </Window.InputBindings>
 
     <!-- Responsive Layout Grid -->
-    <Grid x:Name="Root">
+    <Grid x:Name="Root" Style="{StaticResource ResponsiveGrid}">
 
         <Grid.RowDefinitions>
             <RowDefinition x:Name="TopNavRow" Height="Auto" />
@@ -90,80 +210,81 @@
             <StackPanel x:Name="topMenu" 
                         Orientation="Horizontal" 
                         VerticalAlignment="Center"
-                        Margin="24,12">
+                        Style="{StaticResource ResponsiveStackPanel}">
                     <!-- Using styles from ModernTheme.xaml for better performance -->
+                    <!-- Reduced margins for better responsiveness on smaller screens -->
                 
                     <!-- Navigation Menu Items -->
-                    <Button x:Name="menuOptionHome" Style="{StaticResource ModernButton}" Click="HandleNavigationClick" Tag="Home" ToolTip="Home Dashboard (Ctrl+1)">
+                    <Button x:Name="menuOptionHome" Style="{StaticResource ResponsiveNavButton}" Click="HandleNavigationClick" Tag="Home" ToolTip="Home Dashboard (Ctrl+1)">
                         <StackPanel Orientation="Horizontal">
-                            <iconPacks:PackIconMaterial Kind="Home" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                            <TextBlock Text="Home"/>
+                            <iconPacks:PackIconMaterial Kind="Home" Style="{StaticResource ResponsiveNavIcon}"/>
+                            <TextBlock Text="Home" Style="{StaticResource ResponsiveNavText}"/>
                         </StackPanel>
                     </Button>
-                    <Button x:Name="menuOptionJobs" Style="{StaticResource ModernButton}" Click="HandleNavigationClick" Tag="Jobs" ToolTip="Job Management (Ctrl+2)">
+                    <Button x:Name="menuOptionJobs" Style="{StaticResource ResponsiveNavButton}" Click="HandleNavigationClick" Tag="Jobs" ToolTip="Job Management (Ctrl+2)">
                         <StackPanel Orientation="Horizontal">
-                            <iconPacks:PackIconMaterial Kind="PlayBox" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                            <TextBlock Text="Jobs"/>
+                            <iconPacks:PackIconMaterial Kind="PlayBox" Style="{StaticResource ResponsiveNavIcon}"/>
+                            <TextBlock Text="Jobs" Style="{StaticResource ResponsiveNavText}"/>
                         </StackPanel>
                     </Button>
-                    <Button x:Name="menuOptionMonitor" Style="{StaticResource ModernButton}" Click="HandleNavigationClick" Tag="Monitor" ToolTip="Live Monitoring (Ctrl+3)">
+                    <Button x:Name="menuOptionMonitor" Style="{StaticResource ResponsiveNavButton}" Click="HandleNavigationClick" Tag="Monitor" ToolTip="Live Monitoring (Ctrl+3)">
                         <StackPanel Orientation="Horizontal">
-                            <iconPacks:PackIconMaterial Kind="Monitor" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                            <TextBlock Text="Monitor"/>
+                            <iconPacks:PackIconMaterial Kind="Monitor" Style="{StaticResource ResponsiveNavIcon}"/>
+                            <TextBlock Text="Monitor" Style="{StaticResource ResponsiveNavText}"/>
                         </StackPanel>
                     </Button>
-                    <Button x:Name="menuOptionProxies" Style="{StaticResource ModernButton}" Click="HandleNavigationClick" Tag="Proxies" ToolTip="Proxy Management (Ctrl+4)">
+                    <Button x:Name="menuOptionProxies" Style="{StaticResource ResponsiveNavButton}" Click="HandleNavigationClick" Tag="Proxies" ToolTip="Proxy Management (Ctrl+4)">
                         <StackPanel Orientation="Horizontal">
-                            <iconPacks:PackIconMaterial Kind="ServerNetwork" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                            <TextBlock Text="Proxies"/>
+                            <iconPacks:PackIconMaterial Kind="ServerNetwork" Style="{StaticResource ResponsiveNavIcon}"/>
+                            <TextBlock Text="Proxies" Style="{StaticResource ResponsiveNavText}"/>
                         </StackPanel>
                     </Button>
-                    <Button x:Name="menuOptionWordlists" Style="{StaticResource ModernButton}" Click="HandleNavigationClick" Tag="Wordlists" ToolTip="Wordlist Library (Ctrl+5)">
+                    <Button x:Name="menuOptionWordlists" Style="{StaticResource ResponsiveNavButton}" Click="HandleNavigationClick" Tag="Wordlists" ToolTip="Wordlist Library (Ctrl+5)">
                         <StackPanel Orientation="Horizontal">
-                            <iconPacks:PackIconMaterial Kind="FileDocument" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                            <TextBlock Text="Wordlists"/>
+                            <iconPacks:PackIconMaterial Kind="FileDocument" Style="{StaticResource ResponsiveNavIcon}"/>
+                            <TextBlock Text="Wordlists" Style="{StaticResource ResponsiveNavText}"/>
                         </StackPanel>
                     </Button>
-                    <Button x:Name="menuOptionConfigs" Style="{StaticResource ModernButton}" Click="HandleNavigationClick" Tag="Configs" MouseEnter="ConfigsMenuOptionMouseEnter" MouseLeave="ConfigsMenuOptionMouseLeave" ToolTip="Configuration Editor (Ctrl+6)">
+                    <Button x:Name="menuOptionConfigs" Style="{StaticResource ResponsiveNavButton}" Click="HandleNavigationClick" Tag="Configs" MouseEnter="ConfigsMenuOptionMouseEnter" MouseLeave="ConfigsMenuOptionMouseLeave" ToolTip="Configuration Editor (Ctrl+6)">
                         <StackPanel Orientation="Horizontal">
-                            <iconPacks:PackIconMaterial Kind="CodeJson" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                            <TextBlock Text="Configs"/>
+                            <iconPacks:PackIconMaterial Kind="CodeJson" Style="{StaticResource ResponsiveNavIcon}"/>
+                            <TextBlock Text="Configs" Style="{StaticResource ResponsiveNavText}"/>
                         </StackPanel>
                     </Button>
-                    <Button x:Name="menuOptionHits" Style="{StaticResource ModernButton}" Click="HandleNavigationClick" Tag="Hits" ToolTip="Successful Results (Ctrl+7)">
+                    <Button x:Name="menuOptionHits" Style="{StaticResource ResponsiveNavButton}" Click="HandleNavigationClick" Tag="Hits" ToolTip="Successful Results (Ctrl+7)">
                         <StackPanel Orientation="Horizontal">
-                            <iconPacks:PackIconMaterial Kind="Target" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                            <TextBlock Text="Hits"/>
+                            <iconPacks:PackIconMaterial Kind="Target" Style="{StaticResource ResponsiveNavIcon}"/>
+                            <TextBlock Text="Hits" Style="{StaticResource ResponsiveNavText}"/>
                         </StackPanel>
                     </Button>
-                    <Button x:Name="menuOptionPlugins" Style="{StaticResource ModernButton}" Click="HandleNavigationClick" Tag="Plugins" ToolTip="Plugin Manager (Ctrl+8)">
+                    <Button x:Name="menuOptionPlugins" Style="{StaticResource ResponsiveNavButton}" Click="HandleNavigationClick" Tag="Plugins" ToolTip="Plugin Manager (Ctrl+8)">
                         <StackPanel Orientation="Horizontal">
-                            <iconPacks:PackIconMaterial Kind="Puzzle" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                            <TextBlock Text="Plugins"/>
+                            <iconPacks:PackIconMaterial Kind="Puzzle" Style="{StaticResource ResponsiveNavIcon}"/>
+                            <TextBlock Text="Plugins" Style="{StaticResource ResponsiveNavText}"/>
                         </StackPanel>
                     </Button>
-                    <Button x:Name="menuOptionSettings" Style="{StaticResource ModernButton}" Click="HandleNavigationClick" Tag="OBSettings" ToolTip="Application Settings (Ctrl+9)">
+                    <Button x:Name="menuOptionSettings" Style="{StaticResource ResponsiveNavButton}" Click="HandleNavigationClick" Tag="OBSettings" ToolTip="Application Settings (Ctrl+9)">
                         <StackPanel Orientation="Horizontal">
-                            <iconPacks:PackIconMaterial Kind="Cog" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                            <TextBlock Text="Settings"/>
+                            <iconPacks:PackIconMaterial Kind="Cog" Style="{StaticResource ResponsiveNavIcon}"/>
+                            <TextBlock Text="Settings" Style="{StaticResource ResponsiveNavText}"/>
                         </StackPanel>
                     </Button>
-                    <Button x:Name="menuOptionRLSettings" Style="{StaticResource ModernButton}" Click="HandleNavigationClick" Tag="RLSettings" ToolTip="RuriLib Settings">
+                    <Button x:Name="menuOptionRLSettings" Style="{StaticResource ResponsiveNavButton}" Click="HandleNavigationClick" Tag="RLSettings" ToolTip="RuriLib Settings">
                         <StackPanel Orientation="Horizontal">
-                            <iconPacks:PackIconMaterial Kind="Wrench" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                            <TextBlock Text="RL Settings"/>
+                            <iconPacks:PackIconMaterial Kind="Wrench" Style="{StaticResource ResponsiveNavIcon}"/>
+                            <TextBlock Text="RL Settings" Style="{StaticResource ResponsiveNavText}"/>
                         </StackPanel>
                     </Button>
-                    <Button x:Name="menuOptionCheckUpdate" Style="{StaticResource ModernButton}" Click="HandleNavigationClick" Tag="CheckUpdate" ToolTip="Check for Updates">
+                    <Button x:Name="menuOptionCheckUpdate" Style="{StaticResource ResponsiveNavButton}" Click="HandleNavigationClick" Tag="CheckUpdate" ToolTip="Check for Updates">
                         <StackPanel Orientation="Horizontal">
-                            <iconPacks:PackIconMaterial Kind="Update" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                            <TextBlock Text="Check Update"/>
+                            <iconPacks:PackIconMaterial Kind="Update" Style="{StaticResource ResponsiveNavIcon}"/>
+                            <TextBlock Text="Check Update" Style="{StaticResource ResponsiveNavText}"/>
                         </StackPanel>
                     </Button>
-                    <Button x:Name="menuOptionAbout" Style="{StaticResource ModernButton}" Click="HandleNavigationClick" Tag="About" ToolTip="About OpenBullet">
+                    <Button x:Name="menuOptionAbout" Style="{StaticResource ResponsiveNavButton}" Click="HandleNavigationClick" Tag="About" ToolTip="About OpenBullet">
                         <StackPanel Orientation="Horizontal">
-                            <iconPacks:PackIconMaterial Kind="Information" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                            <TextBlock Text="About"/>
+                            <iconPacks:PackIconMaterial Kind="Information" Style="{StaticResource ResponsiveNavIcon}"/>
+                            <TextBlock Text="About" Style="{StaticResource ResponsiveNavText}"/>
                         </StackPanel>
                     </Button>
             </StackPanel>
@@ -184,28 +305,46 @@
                 Visibility="Collapsed"
                 MouseEnter="ConfigSubmenuMouseEnter"
                 MouseLeave="ConfigSubmenuMouseLeave"
-                Padding="8">
+                Style="{StaticResource ResponsiveBorder}">
             <StackPanel>
                 <!-- Using ModernButton style from ModernTheme.xaml -->
                 
                 <!-- Config Editor Menu Items -->
-                <Button x:Name="menuOptionMetadata" Style="{StaticResource ModernButton}" Click="HandleNavigationClick" Tag="ConfigMetadata" ToolTip="Metadata" FontSize="12" Padding="12,8" Margin="0,1" HorizontalContentAlignment="Left">
-                    <TextBlock Text="Metadata"/>
+                <Button x:Name="menuOptionMetadata" Style="{StaticResource ResponsiveNavButton}" Click="HandleNavigationClick" Tag="ConfigMetadata" ToolTip="Metadata" FontSize="12" Padding="12,8" Margin="0,1" HorizontalContentAlignment="Left">
+                    <StackPanel Orientation="Horizontal">
+                        <iconPacks:PackIconMaterial Kind="Information" Style="{StaticResource ResponsiveNavIcon}"/>
+                        <TextBlock Text="Metadata" Style="{StaticResource ResponsiveNavText}"/>
+                    </StackPanel>
                 </Button>
-                <Button x:Name="menuOptionReadme" Style="{StaticResource ModernButton}" Click="HandleNavigationClick" Tag="ConfigReadme" ToolTip="Readme" FontSize="12" Padding="12,8" Margin="0,1" HorizontalContentAlignment="Left">
-                    <TextBlock Text="Readme"/>
+                <Button x:Name="menuOptionReadme" Style="{StaticResource ResponsiveNavButton}" Click="HandleNavigationClick" Tag="ConfigReadme" ToolTip="Readme" FontSize="12" Padding="12,8" Margin="0,1" HorizontalContentAlignment="Left">
+                    <StackPanel Orientation="Horizontal">
+                        <iconPacks:PackIconMaterial Kind="FileDocument" Style="{StaticResource ResponsiveNavIcon}"/>
+                        <TextBlock Text="Readme" Style="{StaticResource ResponsiveNavText}"/>
+                    </StackPanel>
                 </Button>
-                <Button x:Name="menuOptionStacker" Style="{StaticResource ModernButton}" Click="HandleNavigationClick" Tag="ConfigStacker" ToolTip="Stacker" FontSize="12" Padding="12,8" Margin="0,1" HorizontalContentAlignment="Left">
-                    <TextBlock Text="Stacker"/>
+                <Button x:Name="menuOptionStacker" Style="{StaticResource ResponsiveNavButton}" Click="HandleNavigationClick" Tag="ConfigStacker" ToolTip="Stacker" FontSize="12" Padding="12,8" Margin="0,1" HorizontalContentAlignment="Left">
+                    <StackPanel Orientation="Horizontal">
+                        <iconPacks:PackIconMaterial Kind="LayersTriple" Style="{StaticResource ResponsiveNavIcon}"/>
+                        <TextBlock Text="Stacker" Style="{StaticResource ResponsiveNavText}"/>
+                    </StackPanel>
                 </Button>
-                <Button x:Name="menuOptionLoliCode" Style="{StaticResource ModernButton}" Click="HandleNavigationClick" Tag="ConfigLoliCode" ToolTip="LoliCode" FontSize="12" Padding="12,8" Margin="0,1" HorizontalContentAlignment="Left">
-                    <TextBlock Text="LoliCode"/>
+                <Button x:Name="menuOptionLoliCode" Style="{StaticResource ResponsiveNavButton}" Click="HandleNavigationClick" Tag="ConfigLoliCode" ToolTip="LoliCode" FontSize="12" Padding="12,8" Margin="0,1" HorizontalContentAlignment="Left">
+                    <StackPanel Orientation="Horizontal">
+                        <iconPacks:PackIconMaterial Kind="CodeBraces" Style="{StaticResource ResponsiveNavIcon}"/>
+                        <TextBlock Text="LoliCode" Style="{StaticResource ResponsiveNavText}"/>
+                    </StackPanel>
                 </Button>
-                <Button x:Name="menuOptionConfigSettings" Style="{StaticResource ModernButton}" Click="HandleNavigationClick" Tag="ConfigSettings" ToolTip="Settings" FontSize="12" Padding="12,8" Margin="0,1" HorizontalContentAlignment="Left">
-                    <TextBlock Text="Settings"/>
+                <Button x:Name="menuOptionConfigSettings" Style="{StaticResource ResponsiveNavButton}" Click="HandleNavigationClick" Tag="ConfigSettings" ToolTip="Settings" FontSize="12" Padding="12,8" Margin="0,1" HorizontalContentAlignment="Left">
+                    <StackPanel Orientation="Horizontal">
+                        <iconPacks:PackIconMaterial Kind="Cog" Style="{StaticResource ResponsiveNavIcon}"/>
+                        <TextBlock Text="Settings" Style="{StaticResource ResponsiveNavText}"/>
+                    </StackPanel>
                 </Button>
-                <Button x:Name="menuOptionCSharpCode" Style="{StaticResource ModernButton}" Click="HandleNavigationClick" Tag="ConfigCSharpCode" ToolTip="C# Code" FontSize="12" Padding="12,8" Margin="0,1" HorizontalContentAlignment="Left">
-                    <TextBlock Text="C# Code"/>
+                <Button x:Name="menuOptionCSharpCode" Style="{StaticResource ResponsiveNavButton}" Click="HandleNavigationClick" Tag="ConfigCSharpCode" ToolTip="C# Code" FontSize="12" Padding="12,8" Margin="0,1" HorizontalContentAlignment="Left">
+                    <StackPanel Orientation="Horizontal">
+                        <iconPacks:PackIconMaterial Kind="LanguageCsharp" Style="{StaticResource ResponsiveNavIcon}"/>
+                        <TextBlock Text="C# Code" Style="{StaticResource ResponsiveNavText}"/>
+                    </StackPanel>
                 </Button>
             </StackPanel>
         </Border>
@@ -217,7 +356,8 @@
                 CornerRadius="8" 
                 BorderBrush="#FF333333"
                 BorderThickness="1"
-                ClipToBounds="True">
+                ClipToBounds="True"
+                Style="{StaticResource ResponsiveBorder}">
             <Grid>
                 <!-- Main content frame with smooth transitions -->
                 <Frame x:Name="MainFrame" 

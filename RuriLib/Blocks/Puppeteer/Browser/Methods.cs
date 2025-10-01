@@ -1,4 +1,4 @@
-﻿using Yove.Proxy;
+using Yove.Proxy;
 using PuppeteerSharp;
 using RuriLib.Attributes;
 using RuriLib.Logging;

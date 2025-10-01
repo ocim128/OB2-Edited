@@ -41,9 +41,12 @@ namespace OpenBullet2.Native.Views.Pages.Shared
         private bool _isWindowMinimized;
         private readonly Dictionary<int, System.Drawing.Color> _originalTextColors = new();
         private bool _isSearching;
+        private bool _scrollingDisabled;
         private bool _areTabButtonsVisible = false;
         private bool _areOptionsVisible = false;
         private bool _areStackerControlsVisible = false;
+        private int _currentBlockIndex = -1;
+        private List<int> _blockPositions = new List<int>();
         #endregion
 
         #region Constructor
@@ -114,6 +117,15 @@ namespace OpenBullet2.Native.Views.Pages.Shared
         private void SetupEventHandlers()
         {
             SizeChanged += OnDebuggerSizeChanged;
+        }
+
+        /// <summary>
+        /// Sets up keyboard shortcuts for the debugger.
+        /// </summary>
+        private void SetupKeyboardShortcuts()
+        {
+            // Keyboard shortcuts are already handled in OnDebuggerKeyDown
+            // No additional setup needed
         }
         #endregion
 
@@ -294,7 +306,8 @@ namespace OpenBullet2.Native.Views.Pages.Shared
         /// </summary>
         private void HandleAutoScroll()
         {
-            if (_viewModel.Indices.Length == 0 && _viewModel.IsAutoScrollEnabled)
+            // Double-check auto-scroll is enabled and not explicitly disabled
+            if (!_scrollingDisabled && _viewModel?.IsAutoScrollEnabled == true && _viewModel.Indices.Length == 0)
             {
                 logRTB.SelectionStart = logRTB.TextLength;
                 logRTB.ScrollToCaret();
@@ -373,7 +386,8 @@ namespace OpenBullet2.Native.Views.Pages.Shared
         /// </summary>
         private void HandleAutoScrollAfterTrim()
         {
-            if (_viewModel.IsAutoScrollEnabled)
+            // Double-check auto-scroll is enabled and not explicitly disabled
+            if (!_scrollingDisabled && _viewModel?.IsAutoScrollEnabled == true)
             {
                 logRTB.SelectionStart = logRTB.TextLength;
                 logRTB.ScrollToCaret();
@@ -550,6 +564,166 @@ namespace OpenBullet2.Native.Views.Pages.Shared
         {
             _viewModel.ClearLog();
         }
+
+        /// <summary>
+        /// Navigates to the previous block in the log.
+        /// </summary>
+        private void PreviousBlock(object sender, RoutedEventArgs e)
+        {
+            NavigateToBlock(-1);
+        }
+
+        /// <summary>
+        /// Navigates to the next block in the log.
+        /// </summary>
+        private void NextBlock(object sender, RoutedEventArgs e)
+        {
+            NavigateToBlock(1);
+        }
+
+        /// <summary>
+        /// Navigates to a block in the specified direction.
+        /// </summary>
+        /// <param name="direction">-1 for previous, 1 for next</param>
+        private void NavigateToBlock(int direction)
+        {
+            try
+            {
+                UpdateBlockPositions();
+
+                if (_blockPositions.Count == 0)
+                {
+                    return; // No blocks found
+                }
+
+                // Find current position in log
+                int currentPosition = logRTB.SelectionStart;
+                int targetIndex = -1;
+
+                if (direction == 1) // Next block
+                {
+                    // Find the first block after current position
+                    for (int i = 0; i < _blockPositions.Count; i++)
+                    {
+                        if (_blockPositions[i] > currentPosition)
+                        {
+                            targetIndex = i;
+                            break;
+                        }
+                    }
+
+                    // If no block found after current position, wrap to first block
+                    if (targetIndex == -1 && _blockPositions.Count > 0)
+                    {
+                        targetIndex = 0;
+                    }
+                }
+                else // Previous block
+                {
+                    // Find the last block before current position
+                    for (int i = _blockPositions.Count - 1; i >= 0; i--)
+                    {
+                        if (_blockPositions[i] < currentPosition)
+                        {
+                            targetIndex = i;
+                            break;
+                        }
+                    }
+
+                    // If no block found before current position, wrap to last block
+                    if (targetIndex == -1 && _blockPositions.Count > 0)
+                    {
+                        targetIndex = _blockPositions.Count - 1;
+                    }
+                }
+
+                // Navigate to the target block
+                if (targetIndex >= 0 && targetIndex < _blockPositions.Count)
+                {
+                    _currentBlockIndex = targetIndex;
+                    ScrollToPosition(_blockPositions[targetIndex]);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error navigating to block: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Updates the list of block positions in the log.
+        /// </summary>
+        private void UpdateBlockPositions()
+        {
+            _blockPositions.Clear();
+
+            try
+            {
+                string logText = logRTB.Text;
+                if (string.IsNullOrEmpty(logText))
+                {
+                    return;
+                }
+
+                // Look for block headers with pattern ">> BlockName (caller) <<"
+                var lines = logText.Split(new[] { '\r', '\n' }, StringSplitOptions.None);
+                int position = 0;
+
+                for (int i = 0; i < lines.Length; i++)
+                {
+                    string line = lines[i].Trim();
+
+                    // Check if this line is a block header
+                    if (line.StartsWith(">>") && line.EndsWith("<<") && line.Contains("("))
+                    {
+                        _blockPositions.Add(position);
+                    }
+
+                    // Add length of current line plus newline characters
+                    position += lines[i].Length;
+                    if (i < lines.Length - 1) // Don't add newline after last line
+                    {
+                        position += Environment.NewLine.Length;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error updating block positions: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Scrolls to a specific position in the log.
+        /// </summary>
+        /// <param name="position">The character position to scroll to</param>
+        private void ScrollToPosition(int position)
+        {
+            try
+            {
+                if (position >= 0 && position < logRTB.Text.Length)
+                {
+                    // Select the block header line for visual feedback
+                    logRTB.Select(position, 0);
+                    logRTB.ScrollToCaret();
+
+                    // Find the end of the line to select the entire header
+                    int lineEnd = logRTB.Text.IndexOf('\n', position);
+                    if (lineEnd == -1)
+                    {
+                        lineEnd = logRTB.Text.Length;
+                    }
+
+                    // Select the entire block header line
+                    logRTB.Select(position, lineEnd - position);
+                    logRTB.ScrollToCaret();
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error scrolling to position: {ex.Message}");
+            }
+        }
         #endregion
 
         #region Control Actions
@@ -664,6 +838,9 @@ namespace OpenBullet2.Native.Views.Pages.Shared
         private void ToggleAutoScroll(object sender, RoutedEventArgs e)
         {
             _viewModel.ToggleAutoScroll();
+
+            // Set scrolling disabled flag when auto-scroll is turned off
+            _scrollingDisabled = !_viewModel.IsAutoScrollEnabled;
         }
 
         /// <summary>

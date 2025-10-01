@@ -466,6 +466,32 @@
                                                                     Width="14"
                                                                     Height="14" />
                                     </Button>
+                                    <!-- Previous Block Button -->
+                                    <Button Click="PreviousBlock"
+                                            Style="{StaticResource ReadableTabButton}"
+                                            Width="34"
+                                            Height="34"
+                                            Margin="0,0,8,0"
+                                            Background="#0EA5E9"
+                                            Foreground="#F8FAFC"
+                                            ToolTip="Previous Block (Ctrl+Up)">
+                                        <iconPacks:PackIconUnicons Kind="AngleDoubleLeft"
+                                                                   Width="14"
+                                                                   Height="14" />
+                                    </Button>
+                                    <!-- Next Block Button -->
+                                    <Button Click="NextBlock"
+                                            Style="{StaticResource ReadableTabButton}"
+                                            Width="34"
+                                            Height="34"
+                                            Margin="0,0,8,0"
+                                            Background="#0EA5E9"
+                                            Foreground="#F8FAFC"
+                                            ToolTip="Next Block (Ctrl+Down)">
+                                        <iconPacks:PackIconUnicons Kind="AngleDoubleRight"
+                                                                   Width="14"
+                                                                   Height="14" />
+                                    </Button>
                                     <!-- Clear Log Button -->
                                     <Button Click="ClearLog"
                                             Style="{StaticResource ReadableTabButton}"

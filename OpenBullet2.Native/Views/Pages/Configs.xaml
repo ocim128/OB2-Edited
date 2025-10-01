@@ -21,7 +21,7 @@
         <converters:LessThanConverter x:Key="LessThanConverter" />
     </Page.Resources>
 
-    <Grid Margin="24,20,24,24">
+    <Grid Margin="16,12,16,16">
         <Grid.RowDefinitions>
             <RowDefinition Height="auto" />
             <RowDefinition Height="auto" />
@@ -115,7 +115,7 @@
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                             <TextBox x:Name="filterTextbox" 
                                      Text="{Binding SearchString, UpdateSourceTrigger=PropertyChanged}" 
-                                     Width="200" 
+                                     Width="160" 
                                      Background="Transparent" 
                                      BorderThickness="0" 
                                      Foreground="{DynamicResource ForegroundInput}"

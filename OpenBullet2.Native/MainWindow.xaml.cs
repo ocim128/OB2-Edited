@@ -204,9 +204,16 @@ public partial class MainWindow : MetroWindow
             var workingArea = SystemParameters.WorkArea;
             var dpiScale = Media.VisualTreeHelper.GetDpi(this);
 
-            // Set desired window size
-            var baseWidth = 1000;
-            var baseHeight = 600;
+            // Calculate responsive base size based on screen dimensions and DPI
+            var screenWidth = workingArea.Width;
+            var screenHeight = workingArea.Height;
+            var dpiFactor = dpiScale.DpiScaleX;
+
+            // Responsive sizing: use 70% of screen size on larger screens, 85% on smaller screens
+            var targetScreenPercentage = (screenWidth <= 1366 || screenHeight <= 768) ? 0.85 : 0.70;
+            
+            var baseWidth = Math.Min(1200, screenWidth * targetScreenPercentage / dpiFactor);
+            var baseHeight = Math.Min(800, screenHeight * targetScreenPercentage / dpiFactor);
 
             // Set window size with better constraints
             var maxWidth = workingArea.Width * 0.95;
@@ -230,7 +237,56 @@ public partial class MainWindow : MetroWindow
     private void OnWindowSizeChanged(object sender, SizeChangedEventArgs e)
     {
         UpdateConfigSubmenuPosition();
+        UpdateResponsiveLayout();
         SaveWindowState();
+    }
+    
+    /// <summary>
+    /// Updates responsive layout elements based on current window size
+    /// </summary>
+    private void UpdateResponsiveLayout()
+    {
+        try
+        {
+            // Force update of data triggers by refreshing the binding context
+            // This ensures responsive styles are re-evaluated when window size changes
+            var currentWidth = ActualWidth;
+            
+            // Trigger layout update for responsive elements
+            if (Root != null)
+            {
+                Root.UpdateLayout();
+            }
+            
+            // Update navigation menu responsiveness
+            UpdateNavigationResponsiveness(currentWidth);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error updating responsive layout: {ex.Message}");
+        }
+    }
+    
+    /// <summary>
+    /// Updates navigation menu responsiveness based on window width
+    /// </summary>
+    private void UpdateNavigationResponsiveness(double windowWidth)
+    {
+        try
+        {
+            // Additional responsive logic can be added here if needed
+            // For now, the XAML data triggers handle most of the responsive behavior
+            
+            // Force refresh of config submenu position if it's visible
+            if (configSubmenu?.Visibility == Visibility.Visible)
+            {
+                UpdateConfigSubmenuPosition();
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error updating navigation responsiveness: {ex.Message}");
+        }
     }
 
     private void OnWindowStateChanged(object sender, EventArgs e)
@@ -414,7 +470,7 @@ public partial class MainWindow : MetroWindow
         try
         {
             System.Diagnostics.Debug.WriteLine($"Starting navigation to {pageTypeName}");
-            
+
             // Enhanced logging for page creation
             if (pageField == null)
             {
@@ -432,9 +488,9 @@ public partial class MainWindow : MetroWindow
                     {
                         errorDetails += $" | Inner: {createEx.InnerException.GetType().Name} - {createEx.InnerException.Message}";
                     }
-                    
+
                     System.Diagnostics.Debug.WriteLine(errorDetails);
-                    
+
                     // Log to crash system for better debugging
                     try
                     {
@@ -442,14 +498,14 @@ public partial class MainWindow : MetroWindow
                         if (geh != null)
                         {
                             Infrastructure.Diagnostics.CrashLoggingService.Instance.LogCrash(
-                                createEx, 
-                                $"MainWindow.CreateAndNavigateToPage<{pageTypeName}>", 
-                                $"Page creation failed during navigation to {pageTypeName}. Menu: {menuButton?.Name ?? "Unknown"}", 
+                                createEx,
+                                $"MainWindow.CreateAndNavigateToPage<{pageTypeName}>",
+                                $"Page creation failed during navigation to {pageTypeName}. Menu: {menuButton?.Name ?? "Unknown"}",
                                 false);
                         }
                     }
                     catch { /* Ignore logging errors */ }
-                    
+
                     throw; // Re-throw to be caught by outer try-catch
                 }
             }
@@ -482,20 +538,20 @@ public partial class MainWindow : MetroWindow
                     {
                         errorDetails += $" | Inner: {updateEx.InnerException.GetType().Name} - {updateEx.InnerException.Message}";
                     }
-                    
+
                     System.Diagnostics.Debug.WriteLine(errorDetails);
-                    
+
                     // Log ViewModel update failures
                     try
                     {
                         Infrastructure.Diagnostics.CrashLoggingService.Instance.LogCrash(
-                            updateEx, 
-                            $"MainWindow.UpdateViewModel<{pageTypeName}>", 
-                            $"ViewModel update failed for {pageTypeName}. Menu: {menuButton?.Name ?? "Unknown"}", 
+                            updateEx,
+                            $"MainWindow.UpdateViewModel<{pageTypeName}>",
+                            $"ViewModel update failed for {pageTypeName}. Menu: {menuButton?.Name ?? "Unknown"}",
                             false);
                     }
                     catch { /* Ignore logging errors */ }
-                    
+
                     throw; // Re-throw to be caught by outer try-catch
                 }
             }
@@ -511,21 +567,21 @@ public partial class MainWindow : MetroWindow
             {
                 errorDetails += $" | Inner: {ex.InnerException.GetType().Name} - {ex.InnerException.Message}";
             }
-            
+
             System.Diagnostics.Debug.WriteLine(errorDetails);
             System.Diagnostics.Debug.WriteLine($"Full stack trace: {ex}");
-            
+
             // Enhanced crash logging with full context
             try
             {
                 Infrastructure.Diagnostics.CrashLoggingService.Instance.LogCrash(
-                        ex, 
-                        $"MainWindow.CreateAndNavigateToPage<{pageTypeName}>", 
-                        $"Complete navigation failure for {pageTypeName}. Menu: {menuButton?.Name ?? "Unknown"}, UpdateViewModel: {updateViewModel}", 
+                        ex,
+                        $"MainWindow.CreateAndNavigateToPage<{pageTypeName}>",
+                        $"Complete navigation failure for {pageTypeName}. Menu: {menuButton?.Name ?? "Unknown"}, UpdateViewModel: {updateViewModel}",
                         false);
             }
             catch { /* Ignore logging errors */ }
-            
+
             // Show enhanced error message to user
             var userMessage = $"Failed to open {pageTypeName} page.\n\nError: {ex.Message}";
             if (ex.InnerException != null)
@@ -533,7 +589,7 @@ public partial class MainWindow : MetroWindow
                 userMessage += $"\n\nInner Error: {ex.InnerException.Message}";
             }
             userMessage += $"\n\nCheck the crash logs in UserData/Logs/Crashes for detailed information.";
-            
+
             Alert.Error("Navigation Error", userMessage);
         }
     }
@@ -632,7 +688,7 @@ public partial class MainWindow : MetroWindow
     private void HandleNavigationClick(object sender, RoutedEventArgs e)
     {
         var button = sender as Button;
-        
+
         // Handle update check separately
         if (button?.Name == "menuOptionCheckUpdate")
         {
@@ -689,21 +745,21 @@ public partial class MainWindow : MetroWindow
             {
                 errorDetails += $" | Inner: {ex.InnerException.GetType().Name} - {ex.InnerException.Message}";
             }
-            
+
             System.Diagnostics.Debug.WriteLine(errorDetails);
             System.Diagnostics.Debug.WriteLine($"Full ChangePage error: {ex}");
-            
+
             // Log navigation failures
             try
             {
                 Infrastructure.Diagnostics.CrashLoggingService.Instance.LogCrash(
-                    ex, 
-                    "MainWindow.ChangePage", 
-                    $"Failed to change page to {newPage?.GetType().Name ?? "unknown"}. Button: {newButton?.Name ?? "Unknown"}", 
+                    ex,
+                    "MainWindow.ChangePage",
+                    $"Failed to change page to {newPage?.GetType().Name ?? "unknown"}. Button: {newButton?.Name ?? "Unknown"}",
                     false);
             }
             catch { /* Ignore logging errors */ }
-            
+
             vm.IsLoading = false;
             throw; // Re-throw so calling code can handle it
         }

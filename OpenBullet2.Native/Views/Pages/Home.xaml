@@ -24,10 +24,10 @@
         <!-- Lightweight Metric Card Style -->
         <Style x:Key="MetricCardStyle" TargetType="Border">
             <Setter Property="Background" Value="{StaticResource Modern.BackgroundSecondary}" />
-            <Setter Property="CornerRadius" Value="8" />
-            <Setter Property="Padding" Value="16,14" />
-            <Setter Property="Margin" Value="0,0,12,12" />
-            <Setter Property="MinHeight" Value="80" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Padding" Value="12,10" />
+            <Setter Property="Margin" Value="0,0,8,8" />
+            <Setter Property="MinHeight" Value="70" />
             <Setter Property="BorderBrush" Value="{StaticResource Modern.BorderMain}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="UseLayoutRounding" Value="True" />
@@ -43,11 +43,11 @@
         <!-- Metric Value Style -->
         <Style x:Key="MetricValueStyle" TargetType="TextBlock">
             <Setter Property="FontFamily" Value="Segoe UI" />
-            <Setter Property="FontSize" Value="24" />
+            <Setter Property="FontSize" Value="20" />
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="Foreground" Value="{StaticResource Modern.ForegroundMain}" />
             <Setter Property="HorizontalAlignment" Value="Center" />
-            <Setter Property="Margin" Value="0,4,0,2" />
+            <Setter Property="Margin" Value="0,2,0,2" />
         </Style>
         
         <!-- Metric Label Style -->
@@ -71,7 +71,7 @@
                   VirtualizingPanel.VirtualizationMode="Recycling"
                   UseLayoutRounding="True"
                   SnapsToDevicePixels="True">
-        <Grid Margin="20,16,20,20">
+        <Grid Margin="12,8,12,16">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
@@ -80,10 +80,10 @@
             </Grid.RowDefinitions>
 
             <!-- System Performance Section -->
-            <StackPanel Grid.Row="0" Margin="0,0,0,24">
+            <StackPanel Grid.Row="0" Margin="0,0,0,16">
                 <TextBlock Text="System Performance" 
                            Style="{StaticResource SectionHeaderStyle}" 
-                           Margin="0,0,0,16" />
+                           Margin="0,0,0,12" />
                 
                 <Grid>
                     <Grid.ColumnDefinitions>
@@ -93,23 +93,23 @@
                     </Grid.ColumnDefinitions>
                     
                     <!-- CPU Usage Card -->
-                    <Border Grid.Column="0" Style="{StaticResource MetricCardStyle}" Margin="0,0,8,0">
+                    <Border Grid.Column="0" Style="{StaticResource MetricCardStyle}" Margin="0,0,4,0">
                         <StackPanel>
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                                 <iconPacks:PackIconMaterial Kind="Cpu64Bit" 
-                                                             Width="18" Height="18" 
+                                                             Width="16" Height="16" 
                                                              Foreground="{StaticResource Modern.ThemeMain}"
                                                              VerticalAlignment="Center" 
-                                                             Margin="0,0,8,0" />
+                                                             Margin="0,0,6,0" />
                                 <TextBlock Text="CPU Usage" 
                                            Style="{StaticResource MetricLabelStyle}" />
                             </StackPanel>
                             <TextBlock Text="{Binding CpuUsage, StringFormat='{}{0:F1}%'}" 
                                        Style="{StaticResource MetricValueStyle}" 
-                                       Margin="0,0,0,8" />
+                                       Margin="0,0,0,6" />
                             <ProgressBar Value="{Binding CpuUsage}" 
                                          Maximum="100" 
-                                         Height="6" 
+                                         Height="4" 
                                          Background="{StaticResource Modern.BackgroundSecondary}"
                                          Foreground="{StaticResource Modern.ThemeMain}"
                                          BorderThickness="0"
@@ -118,23 +118,23 @@
                     </Border>
                     
                     <!-- Memory Usage Card -->
-                    <Border Grid.Column="1" Style="{StaticResource MetricCardStyle}" Margin="4,0">
+                    <Border Grid.Column="1" Style="{StaticResource MetricCardStyle}" Margin="2,0">
                         <StackPanel>
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                                 <iconPacks:PackIconMaterial Kind="Memory" 
-                                                              Width="18" Height="18" 
+                                                              Width="16" Height="16" 
                                                               Foreground="{StaticResource Modern.Success}"
                                                               VerticalAlignment="Center" 
-                                                              Margin="0,0,8,0" />
+                                                              Margin="0,0,6,0" />
                                 <TextBlock Text="Memory" 
                                            Style="{StaticResource MetricLabelStyle}" />
                             </StackPanel>
                             <TextBlock Text="{Binding MemoryUsage}" 
                                        Style="{StaticResource MetricValueStyle}" 
-                                       Margin="0,0,0,8" />
+                                       Margin="0,0,0,6" />
                             <ProgressBar Value="{Binding MemoryUsagePercent}" 
                                          Maximum="100" 
-                                         Height="6" 
+                                         Height="4" 
                                          Background="{StaticResource Modern.BackgroundSecondary}"
                                          Foreground="{StaticResource Modern.Success}"
                                          BorderThickness="0"
@@ -143,14 +143,14 @@
                     </Border>
                     
                     <!-- Uptime Card -->
-                    <Border Grid.Column="2" Style="{StaticResource MetricCardStyle}" Margin="8,0,0,0">
+                    <Border Grid.Column="2" Style="{StaticResource MetricCardStyle}" Margin="4,0,0,0">
                         <StackPanel>
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                                 <iconPacks:PackIconMaterial Kind="ClockOutline" 
-                                                              Width="18" Height="18" 
+                                                              Width="16" Height="16" 
                                                               Foreground="{StaticResource Modern.Warning}"
                                                               VerticalAlignment="Center" 
-                                                              Margin="0,0,8,0" />
+                                                              Margin="0,0,6,0" />
                                 <TextBlock Text="Uptime" 
                                            Style="{StaticResource MetricLabelStyle}" />
                             </StackPanel>
@@ -165,10 +165,10 @@
             </StackPanel>
 
             <!-- Quick Actions Section -->
-            <StackPanel Grid.Row="1" Margin="0,0,0,24">
+            <StackPanel Grid.Row="1" Margin="0,0,0,16">
                 <TextBlock Text="Quick Actions" 
                            Style="{StaticResource SectionHeaderStyle}" 
-                           Margin="0,0,0,16" />
+                           Margin="0,0,0,12" />
                 
                 <Grid>
                     <Grid.ColumnDefinitions>
@@ -181,23 +181,16 @@
                             Name="ConfigsShortcut"
                             Click="ConfigsShortcut_Click"
                             Style="{StaticResource ModernButtonStyle}"
-                            Margin="0,0,8,0"
-                            Height="120"
+                            Margin="0,0,4,0"
+                            Height="100"
                             Background="{StaticResource Modern.BackgroundSecondary}"
                             BorderBrush="{StaticResource Modern.BorderSecondary}"
                             BorderThickness="1">
-                        <Border CornerRadius="8" Padding="20">
+                        <Border CornerRadius="8" Padding="16">
                             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                <TextBlock Text="Configs" 
-                                           Style="{StaticResource MetricLabelStyle}"
-                                           HorizontalAlignment="Center"
-                                           FontSize="16"
-                                           FontWeight="SemiBold"
-                                           Margin="0,0,0,4" />
-                                <TextBlock Text="Manage configurations" 
-                                           Style="{StaticResource ModernCaptionText}"
-                                           HorizontalAlignment="Center"
-                                           TextAlignment="Center" />
+                                <TextBlock Text="📁" FontSize="28" HorizontalAlignment="Center" Margin="0,0,0,6" />
+                                <TextBlock Text="Configs" FontSize="14" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                                <TextBlock Text="Manage your configs" FontSize="11" Opacity="0.7" HorizontalAlignment="Center" Margin="0,2,0,0" />
                             </StackPanel>
                         </Border>
                     </Button>
@@ -208,22 +201,15 @@
                             Click="JobsShortcut_Click"
                             Style="{StaticResource ModernButtonStyle}"
                             Margin="8,0,0,0"
-                            Height="120"
+                            Height="100"
                             Background="{StaticResource Modern.BackgroundSecondary}"
                             BorderBrush="{StaticResource Modern.BorderSecondary}"
                             BorderThickness="1">
-                        <Border CornerRadius="8" Padding="20">
+                        <Border CornerRadius="8" Padding="16">
                             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                <TextBlock Text="Jobs" 
-                                           Style="{StaticResource MetricLabelStyle}"
-                                           HorizontalAlignment="Center"
-                                           FontSize="16"
-                                           FontWeight="SemiBold"
-                                           Margin="0,0,0,4" />
-                                <TextBlock Text="View and manage jobs" 
-                                           Style="{StaticResource ModernCaptionText}"
-                                           HorizontalAlignment="Center"
-                                           TextAlignment="Center" />
+                                <TextBlock Text="⚙️" FontSize="28" HorizontalAlignment="Center" Margin="0,0,0,6" />
+                                <TextBlock Text="Jobs" FontSize="14" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                                <TextBlock Text="View and manage jobs" FontSize="11" Opacity="0.7" HorizontalAlignment="Center" Margin="0,2,0,0" />
                             </StackPanel>
                         </Border>
                     </Button>

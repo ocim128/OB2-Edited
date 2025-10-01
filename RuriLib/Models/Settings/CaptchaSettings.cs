@@ -1,4 +1,4 @@
-﻿using RuriLib.Functions.Captchas;
+using RuriLib.Functions.Captchas;
 
 namespace RuriLib.Models.Settings;
 

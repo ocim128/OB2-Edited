@@ -14,7 +14,7 @@ using OpenBullet2.Native.Infrastructure.DependencyInjection;
 
 namespace OpenBullet2.Native.ViewModels;
 
-    public class DebuggerViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
+public class DebuggerViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
 {
     private readonly RuriLibSettingsService rlSettingsService;
     private readonly OpenBulletSettingsService obSettingsService;

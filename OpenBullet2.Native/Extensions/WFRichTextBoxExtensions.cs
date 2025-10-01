@@ -11,11 +11,11 @@ namespace OpenBullet2.Native.Extensions
             box.SelectionLength = 0;
             box.SelectionColor = System.Drawing.ColorTranslator.FromHtml(color);
             box.AppendText(text);
-            
+
             // Reset color to default for the newline
             box.SelectionColor = box.ForeColor;
             box.AppendText(Environment.NewLine);
-            
+
             // Ensure the selection color is reset properly
             box.SelectionStart = box.TextLength;
             box.SelectionLength = 0;

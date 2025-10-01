@@ -15,7 +15,7 @@
     </Page.Resources>
     
     <!-- Modern OpenBullet Settings Layout -->
-    <Grid Background="Transparent" Margin="16">
+    <Grid Background="Transparent" Margin="12,8,12,8">
         <Grid.RowDefinitions>
             <RowDefinition Height="*"/>
             <RowDefinition Height="auto"/>
@@ -39,7 +39,7 @@
                         <!-- Form Grid Layout -->
                         <Grid>
         <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="280"/>
+                                <ColumnDefinition Width="220"/>
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
                             <Grid.RowDefinitions>
@@ -61,7 +61,7 @@
 
                             <!-- Default Author -->
                             <TextBlock Grid.Row="1" Grid.Column="0" Text="Default author for new configs:" Style="{StaticResource BodyTextStyle}" Margin="0,8,16,8" VerticalAlignment="Center"/>
-                            <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding DefaultAuthor}" Width="300" HorizontalAlignment="Left" Margin="0,8" Style="{StaticResource MatchingTextBox}"/>
+                            <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding DefaultAuthor}" Width="240" HorizontalAlignment="Left" Margin="0,8" Style="{StaticResource MatchingTextBox}"/>
 
                             <!-- Log Buffer Size -->
                             <TextBlock Grid.Row="2" Grid.Column="0" Text="Job log buffer size:" Style="{StaticResource BodyTextStyle}" Margin="0,8,16,8" VerticalAlignment="Center"/>

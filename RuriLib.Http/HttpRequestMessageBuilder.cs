@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using System.Net.Http;
 using System.Collections.Generic;
 using System.Net;

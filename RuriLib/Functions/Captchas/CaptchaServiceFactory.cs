@@ -1,4 +1,4 @@
-﻿using CaptchaSharp.Services;
+using CaptchaSharp.Services;
 using RuriLib.Models.Settings;
 using System;
 

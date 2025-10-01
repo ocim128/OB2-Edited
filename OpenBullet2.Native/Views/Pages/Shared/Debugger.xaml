@@ -14,25 +14,14 @@
       d:DesignWidth="800"
       Title="Debugger">
     <Page.Resources>
-        <BooleanToVisibilityConverter x:Key="BoolToVis" />
-        <converters:LessThanConverter x:Key="LessThanConverter" />
-        <converters:BoolToColorConverter x:Key="BoolToColorConverter" />
-        <converters:BoolToIconConverter x:Key="BoolToIconConverter" />
-        
-        <!-- Optimized responsive style with caching -->
+        <!-- Hide auxiliary panels when window is narrow -->
         <Style x:Key="ResponsiveHideStyle" TargetType="FrameworkElement">
             <Style.Triggers>
-                <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=Page}, Path=ActualWidth, Converter={StaticResource LessThanConverter}, ConverterParameter=600}" Value="True">
+                <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=Page}, Path=ActualWidth, Converter={StaticResource LessThanConverter}, ConverterParameter=600}"
+                             Value="True">
                     <Setter Property="Visibility" Value="Collapsed" />
                 </DataTrigger>
             </Style.Triggers>
-        </Style>
-        
-        <!-- Performance optimized button style -->
-        <Style x:Key="OptimizedTabButton" TargetType="Button" BasedOn="{StaticResource ReadableTabButton}">
-            <Setter Property="RenderOptions.BitmapScalingMode" Value="HighQuality" />
-            <Setter Property="UseLayoutRounding" Value="True" />
-            <Setter Property="SnapsToDevicePixels" Value="True" />
         </Style>
     </Page.Resources>
     <Grid Margin="16,12,16,16">
@@ -44,78 +33,77 @@
             <RowDefinition Height="*"
                            MinHeight="320" />
         </Grid.RowDefinitions>
-        <!-- Toggle Button for UI Elements -->
-        <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,0,0,8">
-            <Button x:Name="TabToggleButton"
-                    Click="ToggleTabButtons"
-                    Style="{StaticResource ReadableTabButton}"
-                    Width="120"
-                    Height="28"
-                    Margin="0,0,8,0"
-                    Background="#059669"
-                    Foreground="#F8FAFC"
-                    ToolTip="Toggle UI Elements Visibility">
-                <StackPanel Orientation="Horizontal">
-                    <iconPacks:PackIconUnicons x:Name="TabToggleIcon"
-                                               Kind="Eye"
-                                               Width="14"
-                                               Height="14"
-                                               Margin="0,0,6,0" />
-                    <TextBlock Text="Show UI"
-                               VerticalAlignment="Center"
-                               FontWeight="Medium"
-                               FontSize="11" />
-                </StackPanel>
-            </Button>
-            <!-- Toggle Button for Options -->
-            <Button x:Name="OptionsToggleButton"
-                    Click="ToggleOptions"
-                    Style="{StaticResource ReadableTabButton}"
-                    Width="130"
-                    Height="28"
-                    Background="#7C3AED"
-                    Foreground="#F8FAFC"
-                    ToolTip="Toggle Options Visibility">
-                <StackPanel Orientation="Horizontal">
-                    <iconPacks:PackIconUnicons x:Name="OptionsToggleIcon"
-                                               Kind="Eye"
-                                               Width="14"
-                                               Height="14"
-                                               Margin="0,0,6,0" />
-                    <TextBlock Text="Show Options"
-                               VerticalAlignment="Center"
-                               FontWeight="Medium"
-                               FontSize="11" />
-                </StackPanel>
-            </Button>
-            <!-- Toggle Button for Stacker -->
-            <Button x:Name="StackerToggleButton"
-                    Click="ToggleStacker"
-                    Style="{StaticResource ReadableTabButton}"
-                    Width="130"
-                    Height="28"
-                    Margin="8,0,0,0"
-                    Background="#059669"
-                    Foreground="#F8FAFC"
-                    ToolTip="Toggle Stacker Visibility">
-                <StackPanel Orientation="Horizontal">
-                    <iconPacks:PackIconUnicons x:Name="StackerToggleIcon"
-                                               Kind="Eye"
-                                               Width="14"
-                                               Height="14"
-                                               Margin="0,0,6,0" />
-                    <TextBlock Text="Show Stacker"
-                               VerticalAlignment="Center"
-                               FontWeight="Medium"
-                               FontSize="11" />
-                </StackPanel>
-            </Button>
-        </StackPanel>
+        <!-- Debugger toggles -->
+        <Border Grid.Row="0"
+                Style="{StaticResource DebuggerSectionBorder}"
+                Padding="12"
+                Margin="0,0,0,12">
+            <WrapPanel HorizontalAlignment="Left">
+                <Button x:Name="TabToggleButton"
+                        Click="ToggleTabButtons"
+                        Style="{StaticResource DebuggerCommandButton}"
+                        MinWidth="120"
+                        Margin="0,0,8,0"
+                        Background="{StaticResource Modern.Success}"
+                        Foreground="{StaticResource Modern.TextOnAccent}"
+                        ToolTip="Toggle UI elements visibility">
+                    <StackPanel Orientation="Horizontal">
+                        <iconPacks:PackIconUnicons x:Name="TabToggleIcon"
+                                                   Kind="Eye"
+                                                   Width="14"
+                                                   Height="14"
+                                                   Margin="0,0,6,0" />
+                        <TextBlock Text="Show UI"
+                                   VerticalAlignment="Center"
+                                   FontWeight="SemiBold"
+                                   FontSize="11" />
+                    </StackPanel>
+                </Button>
+                <Button x:Name="OptionsToggleButton"
+                        Click="ToggleOptions"
+                        Style="{StaticResource DebuggerCommandButton}"
+                        MinWidth="130"
+                        Margin="0,0,8,0"
+                        Background="{StaticResource Modern.ThemeAccent}"
+                        Foreground="{StaticResource Modern.TextOnAccent}"
+                        ToolTip="Toggle options visibility">
+                    <StackPanel Orientation="Horizontal">
+                        <iconPacks:PackIconUnicons x:Name="OptionsToggleIcon"
+                                                   Kind="Eye"
+                                                   Width="14"
+                                                   Height="14"
+                                                   Margin="0,0,6,0" />
+                        <TextBlock Text="Show Options"
+                                   VerticalAlignment="Center"
+                                   FontWeight="SemiBold"
+                                   FontSize="11" />
+                    </StackPanel>
+                </Button>
+                <Button x:Name="StackerToggleButton"
+                        Click="ToggleStacker"
+                        Style="{StaticResource DebuggerCommandButton}"
+                        MinWidth="130"
+                        Background="{StaticResource Modern.Success}"
+                        Foreground="{StaticResource Modern.TextOnAccent}"
+                        ToolTip="Toggle stacker visibility">
+                    <StackPanel Orientation="Horizontal">
+                        <iconPacks:PackIconUnicons x:Name="StackerToggleIcon"
+                                                   Kind="Eye"
+                                                   Width="14"
+                                                   Height="14"
+                                                   Margin="0,0,6,0" />
+                        <TextBlock Text="Show Stacker"
+                                   VerticalAlignment="Center"
+                                   FontWeight="SemiBold"
+                                   FontSize="11" />
+                    </StackPanel>
+                </Button>
+            </WrapPanel>
+        </Border>
         <!-- Configuration Panel -->
         <Border Grid.Row="1"
                 x:Name="ConfigurationPanel"
-                Background="#C0303030"
-                CornerRadius="8"
+                Style="{StaticResource DebuggerSectionBorder}"
                 Padding="16,12">
             <Grid>
                 <Grid.Style>
@@ -299,7 +287,7 @@
                                 Visibility="Collapsed">
                             <Button.Style>
                                 <Style TargetType="Button"
-                                       BasedOn="{StaticResource OptimizedTabButton}">
+                                       BasedOn="{StaticResource DebuggerTabButton}">
                                     <Setter Property="Background"
                                             Value="#2563EB" />
                                     <Setter Property="Foreground"
@@ -332,7 +320,7 @@
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
                         <!-- Optimized Log Content with virtualization -->
-                        <Border Grid.Row="0" Background="#1A1A1A" BorderBrush="#404040" BorderThickness="1" CornerRadius="8" Padding="8"
+                        <Border Grid.Row="0" Background="{StaticResource Modern.BackgroundSecondary}" BorderBrush="{StaticResource Modern.BorderSecondary}" BorderThickness="1" CornerRadius="8" Padding="8"
                                 RenderOptions.BitmapScalingMode="HighQuality" UseLayoutRounding="True"
                                 SnapsToDevicePixels="True">
                             <!-- Remove outer ScrollViewer to avoid double scrollbars; rely on inner WinForms RichTextBox scrollbar -->
@@ -370,38 +358,35 @@
                                 </Grid.ColumnDefinitions>
                                 <!-- Optimized Search Input with performance enhancements -->
                         <TextBox Grid.Column="0"
+                                 x:Name="searchTextBox"
                                  Text="{Binding SearchString, UpdateSourceTrigger=PropertyChanged, Delay=200}"
+                                 Style="{StaticResource MatchingTextBox}"
                                  Height="34"
-                                 Background="#2D3748"
-                                 Foreground="#E2E8F0"
-                                 BorderBrush="#4A5568"
-                                 BorderThickness="1"
                                  Padding="10,8"
                                  FontSize="12"
                                  ToolTip="Search logs (Ctrl+F)"
-                                 x:Name="searchTextBox"
                                  RenderOptions.ClearTypeHint="Enabled"
                                  UseLayoutRounding="True"
-                                 SpellCheck.IsEnabled="False"/>
+                                 SpellCheck.IsEnabled="False" />
                                 <!-- Simplified Search Button -->
-                <Button Grid.Column="2"
+                                <Button Grid.Column="2"
                         Click="Search"
+                        Style="{StaticResource DebuggerCommandButton}"
+                        MinWidth="72"
                         Height="34"
-                        Width="60"
-                        Background="#059669"
-                        Foreground="White"
-                        BorderThickness="0"
+                        Margin="8,0,0,0"
+                        Background="{StaticResource Modern.Success}"
+                        Foreground="{StaticResource Modern.TextOnAccent}"
                         Content="Search"
-                        FontSize="9"
-                        mah:ControlsHelper.ContentCharacterCasing="Normal" />
+                        FontSize="11" />
                                 <!-- Previous Button -->
                                 <Button Grid.Column="4"
                                         Click="PreviousMatch"
-                                        Style="{StaticResource ReadableTabButton}"
+                                        Style="{StaticResource DebuggerToolbarButton}"
                                         Width="34"
                                         Height="34"
-                                        Background="#6B7280"
-                                        Foreground="#F8FAFC"
+                                        Background="{StaticResource Modern.BackgroundInput}"
+                                        Foreground="{StaticResource Modern.ForegroundMain}"
                                         ToolTip="Previous Match (Shift+F3)">
                                     <iconPacks:PackIconUnicons Kind="AngleLeft"
                                                                Width="16"
@@ -409,13 +394,13 @@
                                 </Button>
                                 <!-- Match Counter with Enhanced Styling -->
                                 <Border Grid.Column="6"
-                                        Background="#374151"
+                                        Background="{StaticResource Modern.BackgroundSecondary}"
                                         CornerRadius="6"
                                         Padding="10,8"
-                                        BorderBrush="#4B5563"
+                                        BorderBrush="{StaticResource Modern.BorderSecondary}"
                                         BorderThickness="1">
                                     <TextBlock Text="{Binding MatchInfo}"
-                                               Foreground="#F3F4F6"
+                                               Foreground="{StaticResource Modern.ForegroundMain}"
                                                FontFamily="Segoe UI"
                                                FontSize="11"
                                                FontWeight="Medium"
@@ -427,11 +412,11 @@
                                 <!-- Next Button -->
                                 <Button Grid.Column="8"
                                         Click="NextMatch"
-                                        Style="{StaticResource ReadableTabButton}"
+                                        Style="{StaticResource DebuggerToolbarButton}"
                                         Width="34"
                                         Height="34"
-                                        Background="#6B7280"
-                                        Foreground="#F8FAFC"
+                                        Background="{StaticResource Modern.BackgroundInput}"
+                                        Foreground="{StaticResource Modern.ForegroundMain}"
                                         ToolTip="Next Match (F3)">
                                     <iconPacks:PackIconUnicons Kind="AngleRight"
                                                                Width="16"
@@ -442,12 +427,12 @@
                                             Orientation="Horizontal">
                                     <!-- Clear Search Button -->
                                     <Button Click="ClearSearch"
-                                            Style="{StaticResource ReadableTabButton}"
+                                            Style="{StaticResource DebuggerToolbarButton}"
                                             Width="34"
                                             Height="34"
                                             Margin="0,0,8,0"
                                             Background="#DC2626"
-                                            Foreground="#F8FAFC"
+                                            Foreground="{StaticResource Modern.ForegroundMain}"
                                             ToolTip="Clear Search (Esc)">
                                         <iconPacks:PackIconMaterialDesign Kind="Close"
                                                                           Width="14"
@@ -455,12 +440,12 @@
                                     </Button>
                                     <!-- Stop Scroll Button -->
                                     <Button Click="ToggleAutoScroll"
-                                            Style="{StaticResource ReadableTabButton}"
+                                            Style="{StaticResource DebuggerToolbarButton}"
                                             Width="34"
                                             Height="34"
                                             Margin="0,0,8,0"
                                             Background="{Binding IsAutoScrollEnabled, Converter={StaticResource BoolToColorConverter}, ConverterParameter='#059669|#DC2626'}"
-                                            Foreground="#F8FAFC"
+                                            Foreground="{StaticResource Modern.ForegroundMain}"
                                             ToolTip="{Binding AutoScrollButtonText}">
                                         <iconPacks:PackIconMaterial Kind="{Binding IsAutoScrollEnabled, Converter={StaticResource BoolToIconConverter}, ConverterParameter='Pause|Play'}"
                                                                     Width="14"
@@ -468,12 +453,12 @@
                                     </Button>
                                     <!-- Previous Block Button -->
                                     <Button Click="PreviousBlock"
-                                            Style="{StaticResource ReadableTabButton}"
+                                            Style="{StaticResource DebuggerToolbarButton}"
                                             Width="34"
                                             Height="34"
                                             Margin="0,0,8,0"
                                             Background="#0EA5E9"
-                                            Foreground="#F8FAFC"
+                                            Foreground="{StaticResource Modern.ForegroundMain}"
                                             ToolTip="Previous Block (Ctrl+Up)">
                                         <iconPacks:PackIconUnicons Kind="AngleDoubleLeft"
                                                                    Width="14"
@@ -481,12 +466,12 @@
                                     </Button>
                                     <!-- Next Block Button -->
                                     <Button Click="NextBlock"
-                                            Style="{StaticResource ReadableTabButton}"
+                                            Style="{StaticResource DebuggerToolbarButton}"
                                             Width="34"
                                             Height="34"
                                             Margin="0,0,8,0"
                                             Background="#0EA5E9"
-                                            Foreground="#F8FAFC"
+                                            Foreground="{StaticResource Modern.ForegroundMain}"
                                             ToolTip="Next Block (Ctrl+Down)">
                                         <iconPacks:PackIconUnicons Kind="AngleDoubleRight"
                                                                    Width="14"
@@ -494,11 +479,11 @@
                                     </Button>
                                     <!-- Clear Log Button -->
                                     <Button Click="ClearLog"
-                                            Style="{StaticResource ReadableTabButton}"
+                                            Style="{StaticResource DebuggerToolbarButton}"
                                             Width="34"
                                             Height="34"
-                                            Background="#6B7280"
-                                            Foreground="#F8FAFC"
+                                            Background="{StaticResource Modern.BackgroundInput}"
+                                            Foreground="{StaticResource Modern.ForegroundMain}"
                                             ToolTip="Clear All Logs (Ctrl+L)">
                                         <iconPacks:PackIconMaterialDesign Kind="DeleteSweep"
                                                                           Width="14"
@@ -521,7 +506,7 @@
                                 Visibility="Collapsed">
                             <Button.Style>
                                 <Style TargetType="Button"
-                                       BasedOn="{StaticResource OptimizedTabButton}">
+                                       BasedOn="{StaticResource DebuggerTabButton}">
                                     <Setter Property="Background"
                                             Value="#7C3AED" />
                                     <Setter Property="Foreground"
@@ -549,14 +534,14 @@
                     </TabItem.Header>
                     <Grid Margin="16">
                         <!-- Optimized Variables Content with performance enhancements -->
-                        <Border Background="#1A1A1A"
-                                BorderBrush="#404040"
+                        <Border Background="{StaticResource Modern.BackgroundSecondary}"
+                                BorderBrush="{StaticResource Modern.BorderSecondary}"
                                 BorderThickness="1"
                                 CornerRadius="8"
                                 Padding="1"
                                 RenderOptions.BitmapScalingMode="HighQuality"
                                 UseLayoutRounding="True">
-                            <Border Background="#161616"
+                            <Border Background="{StaticResource Modern.BackgroundTertiary}"
                                     CornerRadius="7"
                                     Padding="8">
                                 <Grid>
@@ -603,7 +588,7 @@
                                 Visibility="Collapsed">
                             <Button.Style>
                                 <Style TargetType="Button"
-                                       BasedOn="{StaticResource OptimizedTabButton}">
+                                       BasedOn="{StaticResource DebuggerTabButton}">
                                     <Setter Property="Background"
                                             Value="#DC2626" />
                                     <Setter Property="Foreground"
@@ -631,14 +616,14 @@
                     </TabItem.Header>
                     <Grid Margin="16">
                         <!-- Optimized HTML Content with performance enhancements -->
-                        <Border Background="#1A1A1A"
-                                BorderBrush="#404040"
+                        <Border Background="{StaticResource Modern.BackgroundSecondary}"
+                                BorderBrush="{StaticResource Modern.BorderSecondary}"
                                 BorderThickness="1"
                                 CornerRadius="8"
                                 Padding="1"
                                 RenderOptions.BitmapScalingMode="HighQuality"
                                 UseLayoutRounding="True">
-                            <Border Background="#161616"
+                            <Border Background="{StaticResource Modern.BackgroundTertiary}"
                                     CornerRadius="7"
                                     Padding="2">
                                 <Grid>
@@ -671,3 +656,14 @@
         </Border>
     </Grid>
 </Page>
+
+
+
+
+
+
+
+
+
+
+

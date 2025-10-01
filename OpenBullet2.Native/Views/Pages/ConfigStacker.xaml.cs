@@ -79,6 +79,18 @@ namespace OpenBullet2.Native.Views.Pages
         private void AddBlock(object sender, RoutedEventArgs e)
             => new MainDialog(new AddBlockDialog(this), "Add block", 760, 620).ShowDialog();
 
+        private void CopyBlocks(object sender, RoutedEventArgs e)
+        {
+            CopySelectedBlocks();
+            e.Handled = true;
+        }
+
+        private void PasteBlocksFromClipboard(object sender, RoutedEventArgs e)
+        {
+            PasteBlocks();
+            e.Handled = true;
+        }
+
         private void RemoveBlock(object sender, RoutedEventArgs e)
         {
             ClearAllUndo(); // Clear all undo when doing other operations
@@ -178,7 +190,8 @@ namespace OpenBullet2.Native.Views.Pages
 
             if (first is null)
             {
-                blockInfo.Content = null;
+                BlockInfoContent.Content = null;
+                BlockInfoPlaceholder.Visibility = Visibility.Visible;
             }
             else
             {
@@ -193,7 +206,13 @@ namespace OpenBullet2.Native.Views.Pages
                     _ => null
                 };
 
-                blockInfo.Content = content;
+                BlockInfoContent.Content = content;
+                BlockInfoPlaceholder.Visibility = content is null ? Visibility.Visible : Visibility.Collapsed;
+
+                if (content != null)
+                {
+                    BlockInfoScrollViewer.ScrollToHome();
+                }
             }
         }
 
@@ -954,3 +973,4 @@ namespace OpenBullet2.Native.Views.Pages
         }
     }
 }
+

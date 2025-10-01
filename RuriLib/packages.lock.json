@@ -243,6 +243,15 @@
         "resolved": "8.0.0",
         "contentHash": "OZIsVplFGaVY90G2SbpgU7EnCoOO5pw1t4ic21dBF3/1omrJFpAGoNAVpPyMVOC90/hvgkGG3VFqR13YgZMQfg=="
       },
+      "TextCopy": {
+        "type": "Direct",
+        "requested": "[6.2.1, )",
+        "resolved": "6.2.1",
+        "contentHash": "ryejViUBmHQ2XMie2AiRBn7KVKu2Gh/hqrctGSAUf1BufwfPjr+MWuACNBaiG+40TMbWRDJZgV73Tpl9hggeRw==",
+        "dependencies": {
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "7.0.0"
+        }
+      },
       "Websocket.Client": {
         "type": "Direct",
         "requested": "[5.1.1, )",

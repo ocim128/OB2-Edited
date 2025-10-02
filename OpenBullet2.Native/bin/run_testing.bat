@@ -129,7 +129,8 @@ if exist "%BUILD_DIR%\runtimes" (
     echo      No runtimes folder found.
 )
 
-call :PrintStep "Launching OpenBullet2.Native..."\r\necho DEBUG SKIP_LAUNCH=%SKIP_LAUNCH%\r\nif "%SKIP_LAUNCH%"=="1" (
+call :PrintStep "Launching OpenBullet2.Native..."
+if "%SKIP_LAUNCH%"=="1" (
     echo      Launch skipped (per --no-launch).
 ) else (
     start "" "%BUILD_DIR%\OpenBullet2.Native.exe"

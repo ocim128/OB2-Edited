@@ -37,12 +37,15 @@
   <PropertyGroup Condition="'$(Configuration)' == 'testing' OR '$(Configuration)' == 'Debug'">
     <OptimizeImplicitlyTriggeredBuild>true</OptimizeImplicitlyTriggeredBuild>
     <DisableFastUpToDateCheck>false</DisableFastUpToDateCheck>
+    <SelfContained>false</SelfContained>
+    <TrimUnusedDependencies>false</TrimUnusedDependencies>
   </PropertyGroup>
   
   <!-- Performance optimization for release builds -->
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
     <TieredCompilation>true</TieredCompilation>
     <TieredPGO>true</TieredPGO>
+    <TrimUnusedDependencies>true</TrimUnusedDependencies>
   </PropertyGroup>
   
   <!-- Build Output Size Optimizations -->
@@ -67,9 +70,7 @@
     <!-- Compression settings -->
     <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
     <IncludeAllContentForSelfExtract>false</IncludeAllContentForSelfExtract>
-    
-    <!-- Remove unused references -->
-    <TrimUnusedDependencies>true</TrimUnusedDependencies>
+
     
     <!-- Optimize IL -->
     <IlcOptimizationPreference>Size</IlcOptimizationPreference>
@@ -81,7 +82,6 @@
     <ExcludeAssets Condition="'$(Configuration)' == 'testing' OR '$(Configuration)' == 'Debug'">runtimes/android;runtimes/ios;runtimes/linux;runtimes/osx;runtimes/browser;runtimes/tizen;runtimes/freebsd</ExcludeAssets>
     
     <!-- Prevent copying of cross-platform runtime files -->
-    <RuntimeIdentifiers Condition="'$(Configuration)' == 'testing' OR '$(Configuration)' == 'Debug'">win-x64</RuntimeIdentifiers>
     <UseAppHost Condition="'$(Configuration)' == 'testing' OR '$(Configuration)' == 'Debug'">true</UseAppHost>
   </PropertyGroup>
   

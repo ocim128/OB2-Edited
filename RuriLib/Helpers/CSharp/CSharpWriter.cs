@@ -5,22 +5,37 @@ using System;
 using System.CodeDom;
 using System.CodeDom.Compiler;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+
+#if NET8_0_OR_GREATER
+using System.Runtime.CompilerServices;
+#endif
 
 namespace RuriLib.Helpers.CSharp
 {
     /// <summary>
     /// In charge of writing C# snippets that can be executed.
     /// </summary>
-    public class CSharpWriter
+    public partial class CSharpWriter
     {
         private static readonly CodeGeneratorOptions codeGenOptions = new()
         {
             BlankLinesBetweenMembers = false
         };
+
+        private static readonly CultureInfo invariantCulture = CultureInfo.InvariantCulture;
+
+#if NET8_0_OR_GREATER
+        [GeneratedRegex("<([^>]+)>")]
+        private static partial Regex InterpolationRegex();
+#else
+        private static readonly Regex interpolationRegex = new("<([^>]+)>", RegexOptions.Compiled);
+        private static Regex InterpolationRegex() => interpolationRegex;
+#endif
 
         /// <summary>
         /// Converts a <paramref name="setting"/> to a valid C# snippet.
@@ -104,14 +119,28 @@ namespace RuriLib.Helpers.CSharp
                     return SerializeString(s);
                 case bool b:
                     return b ? "true" : "false";
-                case int i:
-                    return i.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                case float f:
-                    return f.ToString("R", System.Globalization.CultureInfo.InvariantCulture) + "F";
-                case double d:
-                    return d.ToString("R", System.Globalization.CultureInfo.InvariantCulture);
                 case byte by:
-                    return by.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    return by.ToString(invariantCulture);
+                case sbyte sb:
+                    return sb.ToString(invariantCulture);
+                case short sh:
+                    return sh.ToString(invariantCulture);
+                case ushort ush:
+                    return ush.ToString(invariantCulture);
+                case int i:
+                    return i.ToString(invariantCulture);
+                case uint ui:
+                    return ui.ToString(invariantCulture);
+                case long l:
+                    return l.ToString(invariantCulture);
+                case ulong ul:
+                    return ul.ToString(invariantCulture);
+                case float f:
+                    return f.ToString("R", invariantCulture) + "F";
+                case double d:
+                    return d.ToString("R", invariantCulture);
+                case decimal dec:
+                    return dec.ToString(invariantCulture) + "m";
                 default:
                     {
                         using var writer = new StringWriter();
@@ -126,18 +155,47 @@ namespace RuriLib.Helpers.CSharp
         /// Serializes a literal without splitting it on multiple lines like <see cref="ToPrimitive(object)"/> does..
         /// </summary>
         public static string SerializeString(string value)
-            => $"\"{value.Replace("\\", "\\\\").Replace("\"", "\\\"")}\"";
+        {
+            if (value == null)
+                return "null";
+
+            var sb = new StringBuilder(value.Length + 2);
+            sb.Append('"');
+
+            foreach (var ch in value)
+            {
+                switch (ch)
+                {
+                    case '\\':
+                        sb.Append("\\\\");
+                        break;
+                    case '"':
+                        sb.Append("\\\"");
+                        break;
+                    default:
+                        sb.Append(ch);
+                        break;
+                }
+            }
+
+            sb.Append('"');
+            return sb.ToString();
+        }
 
         /// <summary>
         /// Serializes an interpolated string where &lt;var&gt; is a variable (and sanitizes the '{' and '}' characters).
         /// </summary>
         public static string SerializeInterpString(string value)
         {
-            var sb = new StringBuilder(SerializeString(value))
+            if (value == null)
+                return "null";
+
+            var serialized = SerializeString(value);
+            var sb = new StringBuilder(serialized)
                 .Replace("{", "{{")
                 .Replace("}", "}}");
 
-            foreach (Match match in Regex.Matches(value, @"<([^>]+)>"))
+            foreach (Match match in InterpolationRegex().Matches(value))
             {
                 var variable = match.Groups[1].Value;
                 sb.Replace(match.Groups[0].Value.Replace("\\", "\\\\").Replace("\"", "\\\""), '{' + variable + '}');
@@ -155,11 +213,21 @@ namespace RuriLib.Helpers.CSharp
             if (bytes == null)
                 return "null";
 
-            using var writer = new StringWriter();
-            writer.Write("new byte[] {");
-            writer.Write(string.Join(", ", bytes.Select(b => Convert.ToInt32(b).ToString())));
-            writer.Write("}");
-            return writer.ToString();
+            if (bytes.Length == 0)
+                return "Array.Empty<byte>()";
+
+            var sb = new StringBuilder(bytes.Length * 4 + 16);
+            sb.Append("new byte[] {");
+
+            for (int i = 0; i < bytes.Length; i++)
+            {
+                if (i > 0)
+                    sb.Append(", ");
+                sb.Append(((int)bytes[i]).ToString(invariantCulture));
+            }
+
+            sb.Append('}');
+            return sb.ToString();
         }
 
         /// <summary>
@@ -170,16 +238,22 @@ namespace RuriLib.Helpers.CSharp
             if (list == null)
                 return "null";
 
-            using var writer = new StringWriter();
-            writer.Write("new List<string> {");
+            if (list.Count == 0)
+                return "new List<string>()";
 
-            var toWrite = list.Select(e => interpolated
-                ? SerializeInterpString(e)
-                : ToPrimitive(e));
+            var sb = new StringBuilder(list.Count * 16 + 32);
+            sb.Append("new List<string> {");
 
-            writer.Write(string.Join(", ", toWrite));
-            writer.Write("}");
-            return writer.ToString();
+            for (int i = 0; i < list.Count; i++)
+            {
+                if (i > 0)
+                    sb.Append(", ");
+
+                sb.Append(interpolated ? SerializeInterpString(list[i]) : ToPrimitive(list[i]));
+            }
+
+            sb.Append('}');
+            return sb.ToString();
         }
 
         /// <summary>
@@ -190,16 +264,22 @@ namespace RuriLib.Helpers.CSharp
             if (list == null)
                 return "null";
 
-            using var writer = new StringWriter();
-            writer.Write("new string[] {");
+            if (list.Count == 0)
+                return "Array.Empty<string>()";
 
-            var toWrite = list.Select(e => interpolated
-                ? SerializeInterpString(e)
-                : ToPrimitive(e));
+            var sb = new StringBuilder(list.Count * 16 + 24);
+            sb.Append("new string[] {");
 
-            writer.Write(string.Join(", ", toWrite));
-            writer.Write("}");
-            return writer.ToString();
+            for (int i = 0; i < list.Count; i++)
+            {
+                if (i > 0)
+                    sb.Append(", ");
+
+                sb.Append(interpolated ? SerializeInterpString(list[i]) : ToPrimitive(list[i]));
+            }
+
+            sb.Append('}');
+            return sb.ToString();
         }
 
         /// <summary>
@@ -210,16 +290,26 @@ namespace RuriLib.Helpers.CSharp
             if (dict == null)
                 return "null";
 
-            using var writer = new StringWriter();
-            writer.Write("new Dictionary<string, string> {");
+            if (dict.Count == 0)
+                return "new Dictionary<string, string>()";
 
-            var toWrite = dict.Select(kvp => interpolated
-                ? $"{{{SerializeInterpString(kvp.Key)}, {SerializeInterpString(kvp.Value)}}}"
-                : $"{{{ToPrimitive(kvp.Key)}, {ToPrimitive(kvp.Value)}}}");
+            var sb = new StringBuilder(dict.Count * 24 + 32);
+            sb.Append("new Dictionary<string, string> {");
 
-            writer.Write(string.Join(", ", toWrite));
-            writer.Write("}");
-            return writer.ToString();
+            var first = true;
+            foreach (var kvp in dict)
+            {
+                if (!first)
+                    sb.Append(", ");
+                first = false;
+
+                var key = interpolated ? SerializeInterpString(kvp.Key) : ToPrimitive(kvp.Key);
+                var value = interpolated ? SerializeInterpString(kvp.Value) : ToPrimitive(kvp.Value);
+                sb.Append('{').Append(key).Append(", ").Append(value).Append('}');
+            }
+
+            sb.Append('}');
+            return sb.ToString();
         }
 
         private static string GetCasting(BlockSetting setting, bool dynamic = false)

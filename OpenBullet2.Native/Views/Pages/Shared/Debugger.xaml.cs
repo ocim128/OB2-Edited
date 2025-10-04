@@ -10,6 +10,8 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Threading;
 using System.Linq;
+using System.Windows.Media;
+using System.Windows.Media.Animation;
 using OpenBullet2.Native.Infrastructure.DependencyInjection;
 
 namespace OpenBullet2.Native.Views.Pages.Shared
@@ -47,6 +49,7 @@ namespace OpenBullet2.Native.Views.Pages.Shared
         private bool _areStackerControlsVisible = false;
         private int _currentBlockIndex = -1;
         private List<int> _blockPositions = new List<int>();
+        private bool _windowKeyHandlersAttached = false;
         #endregion
 
         #region Constructor
@@ -73,7 +76,8 @@ namespace OpenBullet2.Native.Views.Pages.Shared
         /// </summary>
         private void InitializeComponents()
         {
-            KeyDown += OnDebuggerKeyDown;
+            AddHandler(Keyboard.PreviewKeyDownEvent, new KeyEventHandler(OnDebuggerKeyDown), true);
+            AddHandler(Keyboard.KeyDownEvent, new KeyEventHandler(OnDebuggerKeyDown), true);
             tabControl.SelectedIndex = 0;
 
             // Configure RichTextBox controls
@@ -117,6 +121,8 @@ namespace OpenBullet2.Native.Views.Pages.Shared
         private void SetupEventHandlers()
         {
             SizeChanged += OnDebuggerSizeChanged;
+            Loaded += OnDebuggerLoaded;
+            Unloaded += OnDebuggerUnloaded;
         }
 
         /// <summary>
@@ -210,6 +216,33 @@ namespace OpenBullet2.Native.Views.Pages.Shared
         /// </summary>
         private void OnDebuggerKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
         {
+            // Handle Alt-based shortcuts using SystemKey (fallback to Key when SystemKey is None)
+            if (Keyboard.Modifiers == ModifierKeys.Alt)
+            {
+                var key = e.SystemKey != Key.None ? e.SystemKey : e.Key;
+
+                switch (key)
+                {
+                    case System.Windows.Input.Key.A:
+                        if (inputDataTextBox != null && inputDataTextBox.IsEnabled)
+                        {
+                            inputDataTextBox.Focus();
+                            inputDataTextBox.SelectAll();
+                            e.Handled = true;
+                            return;
+                        }
+                        break;
+                    case System.Windows.Input.Key.S:
+                        if (StartButton != null && StartButton.IsEnabled && StartButton.IsVisible)
+                        {
+                            StartButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                            e.Handled = true;
+                            return;
+                        }
+                        break;
+                }
+            }
+
             switch (e.Key)
             {
                 case System.Windows.Input.Key.F3 when Keyboard.Modifiers == ModifierKeys.Shift:
@@ -236,7 +269,6 @@ namespace OpenBullet2.Native.Views.Pages.Shared
                     Search(null, null);
                     e.Handled = true;
                     break;
-
             }
         }
         #endregion
@@ -873,7 +905,8 @@ namespace OpenBullet2.Native.Views.Pages.Shared
         /// </summary>
         private void ToggleStacker(object sender, RoutedEventArgs e)
         {
-            _areStackerControlsVisible = !_areStackerControlsVisible;
+            // Determine UI state from actual layout instead of relying solely on the flag
+            bool isHidden = false;
 
             // Get reference to the main window and config editor
             var mainWindow = Application.Current.MainWindow as MainWindow;
@@ -891,13 +924,15 @@ namespace OpenBullet2.Native.Views.Pages.Shared
                         var mainGrid = configStacker.Content as Grid;
                         if (mainGrid != null && mainGrid.ColumnDefinitions.Count >= 3)
                         {
-                            // Target the block list column (column 0) and toolbar
+                            // Target the block list column (column 0) and splitter column (column 1)
                             var blockListColumn = mainGrid.ColumnDefinitions[0];
                             var splitterColumn = mainGrid.ColumnDefinitions[1];
 
-                            // Find the toolbar (Border in row 0, column 0) and block list container
+                            // Find the toolbar (Border in row 0, column 0), block list container (Border row 1, col 0), grid splitter, and inspector
                             Border toolbar = null;
                             Border blockListContainer = null;
+                            GridSplitter gridSplitter = null;
+                            Border blockInspector = configStacker.BlockInspectorBorder; // Use the named border
 
                             foreach (var child in mainGrid.Children)
                             {
@@ -911,21 +946,30 @@ namespace OpenBullet2.Native.Views.Pages.Shared
                                     else if (row == 1 && col == 0)
                                         blockListContainer = border;
                                 }
+                                else if (child is GridSplitter splitter && Grid.GetRow(splitter) == 1 && Grid.GetColumn(splitter) == 1)
+                                {
+                                    gridSplitter = splitter;
+                                }
                             }
 
-                            if (_areStackerControlsVisible)
+                            // Determine current hidden state from actual grid widths/visibility
+                            isHidden = blockListColumn.Width.Value <= 0
+                                       || (blockListContainer != null && blockListContainer.Visibility != Visibility.Visible);
+
+                            if (isHidden)
                             {
                                 // Show stacker - restore original layout
-                                blockListColumn.Width = new GridLength(200, GridUnitType.Pixel);
-                                splitterColumn.Width = new GridLength(8, GridUnitType.Pixel);
+                                blockListColumn.Width = new GridLength(220, GridUnitType.Pixel);
+                                splitterColumn.Width = new GridLength(10, GridUnitType.Pixel);
                                 if (toolbar != null) toolbar.Visibility = Visibility.Visible;
                                 if (blockListContainer != null) blockListContainer.Visibility = Visibility.Visible;
-                                var blockInfo = mainGrid.Children.OfType<ScrollViewer>().FirstOrDefault(c => c.Name == "blockInfo");
-                                if (blockInfo != null)
+                                if (gridSplitter != null) gridSplitter.Visibility = Visibility.Visible;
+                                if (blockInspector != null)
                                 {
-                                    Grid.SetColumn(blockInfo, 2);
-                                    Grid.SetColumnSpan(blockInfo, 1);
+                                    Grid.SetColumn(blockInspector, 2);
+                                    Grid.SetColumnSpan(blockInspector, 1);
                                 }
+                                _areStackerControlsVisible = true;
                             }
                             else
                             {
@@ -934,12 +978,13 @@ namespace OpenBullet2.Native.Views.Pages.Shared
                                 splitterColumn.Width = new GridLength(0);
                                 if (toolbar != null) toolbar.Visibility = Visibility.Collapsed;
                                 if (blockListContainer != null) blockListContainer.Visibility = Visibility.Collapsed;
-                                var blockInfo = mainGrid.Children.OfType<ScrollViewer>().FirstOrDefault(c => c.Name == "blockInfo");
-                                if (blockInfo != null)
+                                if (gridSplitter != null) gridSplitter.Visibility = Visibility.Collapsed;
+                                if (blockInspector != null)
                                 {
-                                    Grid.SetColumn(blockInfo, 0);
-                                    Grid.SetColumnSpan(blockInfo, 3);
+                                    Grid.SetColumn(blockInspector, 0);
+                                    Grid.SetColumnSpan(blockInspector, 3);
                                 }
+                                _areStackerControlsVisible = false;
                             }
                         }
                     }
@@ -1038,5 +1083,59 @@ namespace OpenBullet2.Native.Views.Pages.Shared
         [System.Runtime.InteropServices.DllImport("user32.dll")]
         private static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);
         #endregion
+
+        private void OnDebuggerLoaded(object sender, RoutedEventArgs e)
+        {
+            // Ensure the Debugger page has keyboard focus on load so Alt shortcuts work without clicking
+            try
+            {
+                Focusable = true;
+                // Defer focus to after layout to avoid being overridden by other controls
+                Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    // Prefer focusing the input box, then fallback to StartButton, then the Page
+                    if (inputDataTextBox != null && inputDataTextBox.IsVisible && inputDataTextBox.IsEnabled)
+                    {
+                        inputDataTextBox.Focus();
+                    }
+                    else if (StartButton != null && StartButton.IsVisible && StartButton.IsEnabled)
+                    {
+                        StartButton.Focus();
+                    }
+                    else
+                    {
+                        Keyboard.Focus(this);
+                        Focus();
+                    }
+
+                    var window = Window.GetWindow(this);
+                    if (window != null && !_windowKeyHandlersAttached)
+                    {
+                        window.PreviewKeyDown += OnDebuggerKeyDown;
+                        window.KeyDown += OnDebuggerKeyDown;
+                        _windowKeyHandlersAttached = true;
+                        System.Diagnostics.Debug.WriteLine("[Debugger] Loaded: Attached window-level key handlers.");
+                    }
+
+                    System.Diagnostics.Debug.WriteLine("[Debugger] Loaded: Focus prepared for shortcut handling.");
+                }), DispatcherPriority.Background);
+            }
+            catch { }
+        }
+        private void OnDebuggerUnloaded(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var window = Window.GetWindow(this);
+                if (window != null && _windowKeyHandlersAttached)
+                {
+                    window.PreviewKeyDown -= OnDebuggerKeyDown;
+                    window.KeyDown -= OnDebuggerKeyDown;
+                    _windowKeyHandlersAttached = false;
+                    System.Diagnostics.Debug.WriteLine("[Debugger] Unloaded: Detached window-level key handlers.");
+                }
+            }
+            catch { }
+        }
     }
 }

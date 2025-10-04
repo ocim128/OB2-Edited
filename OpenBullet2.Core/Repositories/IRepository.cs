@@ -1,4 +1,4 @@
-﻿using OpenBullet2.Core.Entities;
+using OpenBullet2.Core.Entities;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -67,6 +67,21 @@ public interface IRepository<T> where T : Entity
     /// Deletes multiple <paramref name="entities"/> from the repository.
     /// </summary>
     Task DeleteAsync(IEnumerable<T> entities, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Synchronously deletes an entity from the repository without saving changes.
+    /// </summary>
+    void Delete(T entity);
+
+    /// <summary>
+    /// Synchronously deletes multiple entities from the repository without saving changes.
+    /// </summary>
+    void Delete(IEnumerable<T> entities);
+
+    /// <summary>
+    /// Saves all changes made in this context to the database.
+    /// </summary>
+    Task SaveChangesAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Attaches to a given entity so that EF doesn't try to create a new one

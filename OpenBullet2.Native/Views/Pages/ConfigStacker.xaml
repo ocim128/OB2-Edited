@@ -258,7 +258,8 @@
                       ResizeBehavior="PreviousAndNext" />
 
         <!-- Block details -->
-        <Border Grid.Row="1"
+        <Border x:Name="BlockInspectorBorder"
+                Grid.Row="1"
                 Grid.Column="2"
                 Background="{StaticResource StackerPanelBackground}"
                 BorderBrush="{StaticResource StackerPanelBorder}"

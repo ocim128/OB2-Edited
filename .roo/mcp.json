@@ -1,0 +1,41 @@
+{
+  "mcpServers": {
+    "chrome-devtools": {
+      "command": "npx",
+      "args": [
+        "chrome-devtools-mcp@latest",
+        "--channel=canary",
+        "--headless=true",
+        "--isolated=true"
+      ],
+      "alwaysAllow": [
+        "list_console_messages",
+        "emulate_cpu",
+        "emulate_network",
+        "click",
+        "drag",
+        "fill",
+        "hover",
+        "fill_form",
+        "list_network_requests",
+        "get_network_request",
+        "upload_file",
+        "navigate_page",
+        "list_pages",
+        "handle_dialog",
+        "close_page",
+        "navigate_page_history",
+        "new_page",
+        "resize_page",
+        "select_page",
+        "performance_analyze_insight",
+        "performance_start_trace",
+        "performance_stop_trace",
+        "take_screenshot",
+        "wait_for",
+        "take_snapshot",
+        "evaluate_script"
+      ]
+    }
+  }
+}

@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using OpenBullet2.Core.Entities;
 
 namespace OpenBullet2.Core;
@@ -11,7 +11,6 @@ public class ApplicationDbContext : DbContext
     public ApplicationDbContext(DbContextOptions options)
         : base(options)
     {
-        
     }
 
     public DbSet<ProxyEntity> Proxies { get; set; }
@@ -21,6 +20,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<RecordEntity> Records { get; set; }
     public DbSet<HitEntity> Hits { get; set; }
     public DbSet<GuestEntity> Guests { get; set; }
+    public DbSet<UserEntity> Users { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -28,12 +28,16 @@ public class ApplicationDbContext : DbContext
             .HasMany(g => g.Proxies)
             .WithOne(u => u.Group)
             .OnDelete(DeleteBehavior.Cascade);
-        
+
         modelBuilder.Entity<ProxyGroupEntity>()
             .HasOne(g => g.Owner)
             .WithMany(u => u.ProxyGroups)
             .OnDelete(DeleteBehavior.SetNull);
-        
+
+        modelBuilder.Entity<UserEntity>()
+            .HasIndex(u => u.Username)
+            .IsUnique();
+
         base.OnModelCreating(modelBuilder);
     }
 }

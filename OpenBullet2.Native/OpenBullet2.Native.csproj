@@ -140,57 +140,34 @@
     </ItemGroup>
     <!-- Core Dependencies Only -->
     <ItemGroup>
-        <PackageReference Include="AvalonEdit"
-                          Version="6.3.0.90" />
-        <PackageReference Include="HtmlSanitizer"
-                          Version="8.1.866-beta" />
-        <PackageReference Include="MahApps.Metro"
-                          Version="2.4.10" />
+        <PackageReference Include="AvalonEdit" Version="6.3.0.90" />
+        <PackageReference Include="HtmlSanitizer" Version="8.1.866-beta" />
+        <PackageReference Include="MahApps.Metro" Version="2.4.10" />
         <!-- Essential Icon Packs Only - Removed unused packs for performance -->
-        <PackageReference Include="MahApps.Metro.IconPacks.Material"
-                          Version="4.8.0" />
-        <PackageReference Include="MahApps.Metro.IconPacks.MaterialDesign"
-                          Version="4.8.0" />
-        <PackageReference Include="MahApps.Metro.IconPacks.FontAwesome"
-                          Version="4.8.0" />
-        <PackageReference Include="MahApps.Metro.IconPacks.Entypo"
-                          Version="4.8.0" />
-        <PackageReference Include="MahApps.Metro.IconPacks.RemixIcon"
-                          Version="4.8.0" />
-        <PackageReference Include="MahApps.Metro.IconPacks.Unicons"
-                          Version="4.8.0" />
-        <PackageReference Include="MahApps.Metro.IconPacks.Octicons"
-                          Version="4.8.0" />
-        <PackageReference Include="MahApps.Metro.IconPacks.BoxIcons"
-                          Version="4.8.0" />
-        <PackageReference Include="MahApps.Metro.IconPacks.RadixIcons"
-                          Version="4.8.0" />
-        <PackageReference Include="MahApps.Metro.IconPacks.ForkAwesome"
-                          Version="4.8.0" />
+        <PackageReference Include="MahApps.Metro.IconPacks.Material" Version="4.8.0" />
+        <PackageReference Include="MahApps.Metro.IconPacks.MaterialDesign" Version="4.8.0" />
+        <PackageReference Include="MahApps.Metro.IconPacks.FontAwesome" Version="4.8.0" />
+        <PackageReference Include="MahApps.Metro.IconPacks.Entypo" Version="4.8.0" />
+        <PackageReference Include="MahApps.Metro.IconPacks.RemixIcon" Version="4.8.0" />
+        <PackageReference Include="MahApps.Metro.IconPacks.Unicons" Version="4.8.0" />
+        <PackageReference Include="MahApps.Metro.IconPacks.Octicons" Version="4.8.0" />
+        <PackageReference Include="MahApps.Metro.IconPacks.BoxIcons" Version="4.8.0" />
+        <PackageReference Include="MahApps.Metro.IconPacks.RadixIcons" Version="4.8.0" />
+        <PackageReference Include="MahApps.Metro.IconPacks.ForkAwesome" Version="4.8.0" />
         <!-- Removed unused icon packs to reduce build size -->
-        <PackageReference Include="MahApps.Metro.SimpleChildWindow"
-                          Version="2.2.1" />
-        <PackageReference Include="Markdig"
-                          Version="0.37.0" />
-        <PackageReference Include="Microsoft.EntityFrameworkCore"
-                          Version="8.0.8" />
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Design"
-                          Version="8.0.8">
+        <PackageReference Include="MahApps.Metro.SimpleChildWindow" Version="2.2.1" />
+        <PackageReference Include="Markdig" Version="0.37.0" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.8" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.8">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite"
-                          Version="8.0.8" />
-        <PackageReference Include="Microsoft.Extensions.Configuration.Binder"
-                          Version="8.0.1" />
-        <PackageReference Include="Microsoft.Extensions.DependencyInjection"
-                          Version="8.0.0" />
-        <PackageReference Include="WpfAnimatedGif"
-                          Version="2.0.2" />
-        <PackageReference Include="SixLabors.ImageSharp"
-                          Version="3.1.11" />
-        <PackageReference Include="Microsoft.Playwright"
-                          Version="1.54.0" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.8" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="8.0.1" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
+        <PackageReference Include="WpfAnimatedGif" Version="2.0.2" />
+        <PackageReference Include="SixLabors.ImageSharp" Version="3.1.11" />
+        <PackageReference Include="Microsoft.Playwright" Version="1.54.0" />
     </ItemGroup>
     
     <!-- Exclude non-Windows runtimes to save disk space -->
@@ -214,6 +191,7 @@
     <!-- Project References -->
     <ItemGroup>
         <ProjectReference Include="..\OpenBullet2.Core\OpenBullet2.Core.csproj" />
+        <ProjectReference Include="..\OpenBullet2.Shared\OpenBullet2.Shared.csproj" />
     </ItemGroup>
     <!-- Syntax Highlighting Files -->
     <ItemGroup>

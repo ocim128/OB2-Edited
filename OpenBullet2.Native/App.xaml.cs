@@ -14,6 +14,7 @@ using OpenBullet2.Native.Utils;
 using OpenBullet2.Native.ViewModels;
 using OpenBullet2.Native.Views.Dialogs;
 using OpenBullet2.Native.Views.Pages;
+using OpenBullet2.Shared.DependencyInjection;
 using DebuggerPage = OpenBullet2.Native.Views.Pages.Shared.Debugger;
 using RuriLib.Logging;
 using RuriLib.Providers.RandomNumbers;
@@ -203,6 +204,8 @@ public partial class App : Application
         // Windows and pages
         services.AddSingleton<MainWindow>();
         services.AddSingleton<DebuggerPage>();
+        services.AddSingleton<MainWindowViewModel>();
+        services.AddSingleton<IAppUpdateService, AppUpdateService>();
 
         // EF - Use absolute path for database
         var dbConnectionString = _config.GetConnectionString("DefaultConnection");
@@ -226,6 +229,7 @@ public partial class App : Application
         services.AddSingleton<IJobRepository, DbJobRepository>();
         services.AddSingleton<IRecordRepository, DbRecordRepository>();
         services.AddSingleton<IGuestRepository, DbGuestRepository>();
+        services.AddSingleton<IUserRepository, DbUserRepository>();
         services.AddSingleton<IConfigRepository>(service =>
             new DiskConfigRepository(service.GetService<RuriLibSettingsService>(),
             Path.Combine(userDataPath, "Configs")));

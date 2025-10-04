@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using OpenBullet2.Core.Entities;
 using System.Collections.Generic;
 using System.Linq;
@@ -139,4 +139,37 @@ public class DbRepository<T> : IRepository<T> where T : Entity
 
     /// <inheritdoc/>
     public void Attach<TEntity>(TEntity entity) where TEntity : Entity => context.Attach(entity);
+
+    /// <summary>
+    /// Synchronously deletes an entity from the repository without saving changes.
+    /// </summary>
+    public virtual void Delete(T entity)
+    {
+        context.Remove(entity);
+    }
+
+    /// <summary>
+    /// Synchronously deletes multiple entities from the repository without saving changes.
+    /// </summary>
+    public virtual void Delete(IEnumerable<T> entities)
+    {
+        context.RemoveRange(entities);
+    }
+
+    /// <summary>
+    /// Saves all changes made in this context to the database.
+    /// </summary>
+    public virtual async Task SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        await _semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
+
+        try
+        {
+            await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            _semaphore.Release();
+        }
+    }
 }

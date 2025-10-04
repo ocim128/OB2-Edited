@@ -3,7 +3,20 @@
     "allow": [
       "Bash(grep:*)",
       "Bash(dotnet build:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(npm run lint)",
+      "Bash(npm run build:*)",
+      "Read(//c/Users/user/Documents/~Collection/OpenBullet2-0.3.2/OpenBullet2.Web/**)",
+      "Read(//c/Users/user/Documents/~Collection/OpenBullet2-0.3.2/**)",
+      "Bash(run_testing.bat --no-launch)",
+      "Bash(cmd:*)",
+      "Bash(dotnet publish:*)",
+      "Bash(timeout:*)",
+      "Bash(node:*)",
+      "Bash(npm:*)",
+      "Bash(npx ng:*)",
+      "Bash(cmd.exe:*)",
+      "Bash(powershell:*)"
     ],
     "deny": [],
     "ask": []

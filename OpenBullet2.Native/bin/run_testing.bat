@@ -3,11 +3,11 @@ setlocal EnableExtensions EnableDelayedExpansion
 title OpenBullet2 Testing Build
 color 0A
 
-echo.
+echo(
 echo ================================================
 echo  OpenBullet2.Native - Incremental Testing Build
 echo ================================================
-echo.
+echo(
 
 set "SCRIPT_DIR=%~dp0"
 set "PROJECT_DIR=%SCRIPT_DIR%.."
@@ -43,7 +43,8 @@ taskkill /f /im "OpenBullet2.Native.exe" >nul 2>&1
 if errorlevel 1 (
     echo      No running OpenBullet2.Native processes found.
 ) else (
-    echo      Terminated running OpenBullet2.Native processes.\r\n)
+    echo      Terminated running OpenBullet2.Native processes.
+)
 
 call :PrintStep "Backing up existing UserData from build directory..."
 if exist "%USERDATA_BUILD%" (
@@ -130,27 +131,36 @@ if exist "%BUILD_DIR%\runtimes" (
 )
 
 call :PrintStep "Launching OpenBullet2.Native..."
-if "%SKIP_LAUNCH%"=="1" (
-    echo      Launch skipped (per --no-launch).
-) else (
-    start "" "%BUILD_DIR%\OpenBullet2.Native.exe"
-    echo      Application started.
-)
+call :LaunchApplication
 
 goto :success
+
+:LaunchApplication
+if "%SKIP_LAUNCH%"=="1" (
+    echo      Launch skipped ^(per --no-launch^).
+) else (
+    pushd "%BUILD_DIR%"
+    start "" "OpenBullet2.Native.exe"
+    popd
+    echo      Application started.
+)
+exit /b 0
 
 :failBuild
 echo      Publish failed again. Please check the project configuration.
 goto :fail
 
 :fail
-echo.
+echo(
 echo Build failed. See messages above.
+echo(
+echo Press any key to exit... closing automatically in 30 seconds
+choice /d y /t 30 >nul
 goto :end
 
 :success
 set "END_TIME=%time%"
-echo.
+echo(
 echo ================================================
 echo  Build Process Completed
 echo  Started:  %START_TIME%
@@ -161,16 +171,16 @@ if "%CLEAN_BUILD%"=="1" (echo  Clean:    Forced) else (echo  Clean:    Increment
 if "%RUN_RESTORE%"=="1" (echo  Restore:  Explicit) else (echo  Restore:  On-demand)
 if "%SKIP_LAUNCH%"=="1" (echo  Launch:   Skipped) else (echo  Launch:   Started)
 echo ================================================
-echo.
+echo(
 echo Press any key to exit... closing automatically in 30 seconds
-timeout /t 30 >nul
+choice /d y /t 30 >nul
 
 :end
 endlocal
 exit /b 0
 
 :PrintStep
-echo.
+echo(
 echo [!STEP!/%TOTAL_STEPS%] %~1
 set /a STEP+=1
 exit /b 0

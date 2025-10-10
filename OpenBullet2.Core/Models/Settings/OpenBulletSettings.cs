@@ -1,4 +1,4 @@
-﻿namespace OpenBullet2.Core.Models.Settings;
+namespace OpenBullet2.Core.Models.Settings;
 
 /// <summary>
 /// Settings for the OpenBullet 2 application.
@@ -24,4 +24,9 @@ public class OpenBulletSettings
     /// Settings related to the appearance of the UI.
     /// </summary>
     public CustomizationSettings CustomizationSettings { get; set; } = new();
+
+    /// <summary>
+    /// Settings that improve accessibility and usability.
+    /// </summary>
+    public AccessibilitySettings AccessibilitySettings { get; set; } = new();
 }

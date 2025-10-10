@@ -43,9 +43,11 @@ public partial class MainWindow : MetroWindow
     private readonly IConfigRepository configRepository;
     private readonly IAppUpdateService appUpdateService;
 
+    private AccessibilitySettings AccessibilitySettings => openBulletSettingsService.Settings.AccessibilitySettings ?? new AccessibilitySettings();
+
     private Home homePage;
     private Jobs jobsPage;
-    private Monitor monitorPage;
+    private Tools toolsPage;
     private MultiRunJobViewer multiRunJobViewerPage;
     private ProxyCheckJobViewer proxyCheckJobViewerPage;
     private Proxies proxiesPage;
@@ -68,7 +70,7 @@ public partial class MainWindow : MetroWindow
     {
         ["menuOptionHome"] = MainWindowPage.Home,
         ["menuOptionJobs"] = MainWindowPage.Jobs,
-        ["menuOptionMonitor"] = MainWindowPage.Monitor,
+        ["menuOptionTools"] = MainWindowPage.Tools,
         ["menuOptionProxies"] = MainWindowPage.Proxies,
         ["menuOptionWordlists"] = MainWindowPage.Wordlists,
         ["menuOptionConfigs"] = MainWindowPage.Configs,
@@ -126,7 +128,7 @@ public partial class MainWindow : MetroWindow
         _ = CommandBindings.Add(new CommandBinding(CustomCommands.Quit, OnQuitExecuted));
         _ = CommandBindings.Add(new CommandBinding(CustomCommands.NavigateToHome, OnNavigateToHomeExecuted));
         _ = CommandBindings.Add(new CommandBinding(CustomCommands.NavigateToJobs, OnNavigateToJobsExecuted));
-        _ = CommandBindings.Add(new CommandBinding(CustomCommands.NavigateToMonitor, OnNavigateToMonitorExecuted));
+        _ = CommandBindings.Add(new CommandBinding(CustomCommands.NavigateToTools, OnNavigateToToolsExecuted));
         _ = CommandBindings.Add(new CommandBinding(CustomCommands.NavigateToProxies, OnNavigateToProxiesExecuted));
         _ = CommandBindings.Add(new CommandBinding(CustomCommands.NavigateToWordlists, OnNavigateToWordlistsExecuted));
         _ = CommandBindings.Add(new CommandBinding(CustomCommands.NavigateToConfigs, OnNavigateToConfigsExecuted));
@@ -147,7 +149,7 @@ public partial class MainWindow : MetroWindow
             menuOptionJobs,
             menuOptionLoliCode,
             menuOptionMetadata,
-            menuOptionMonitor,
+            menuOptionTools,
             menuOptionRLSettings,
             menuOptionSettings,
             menuOptionPlugins,
@@ -162,7 +164,7 @@ public partial class MainWindow : MetroWindow
         [
             menuOptionHome,
             menuOptionJobs,
-            menuOptionMonitor,
+            menuOptionTools,
             menuOptionProxies,
             menuOptionWordlists,
             menuOptionConfigs,
@@ -183,6 +185,7 @@ public partial class MainWindow : MetroWindow
 
         var customization = this.openBulletSettingsService.Settings.CustomizationSettings;
         SetTheme(customization);
+        ApplyAccessibilitySettings();
     }
 
     #region Responsive Design Methods
@@ -418,8 +421,8 @@ public partial class MainWindow : MetroWindow
             case MainWindowPage.Home:
                 CreateAndNavigateToPage(() => new Home(), ref homePage, menuOptionHome);
                 break;
-            case MainWindowPage.Monitor:
-                CreateAndNavigateToPage(() => new Monitor(), ref monitorPage, menuOptionMonitor);
+            case MainWindowPage.Tools:
+                CreateAndNavigateToPage(() => new Tools(), ref toolsPage, menuOptionTools);
                 break;
             case MainWindowPage.Proxies:
                 CreateAndNavigateToPage(() => new Proxies(), ref proxiesPage, menuOptionProxies, updateViewModel: true);
@@ -860,7 +863,7 @@ public partial class MainWindow : MetroWindow
     // Consolidated navigation handlers - removed 10 redundant methods
     private void OnNavigateToHomeExecuted(object sender, ExecutedRoutedEventArgs e) => NavigateTo(MainWindowPage.Home);
     private void OnNavigateToJobsExecuted(object sender, ExecutedRoutedEventArgs e) => NavigateTo(MainWindowPage.Jobs);
-    private void OnNavigateToMonitorExecuted(object sender, ExecutedRoutedEventArgs e) => NavigateTo(MainWindowPage.Monitor);
+    private void OnNavigateToToolsExecuted(object sender, ExecutedRoutedEventArgs e) => NavigateTo(MainWindowPage.Tools);
     private void OnNavigateToProxiesExecuted(object sender, ExecutedRoutedEventArgs e) => NavigateTo(MainWindowPage.Proxies);
     private void OnNavigateToWordlistsExecuted(object sender, ExecutedRoutedEventArgs e) => NavigateTo(MainWindowPage.Wordlists);
     private void OnNavigateToConfigsExecuted(object sender, ExecutedRoutedEventArgs e) => NavigateTo(MainWindowPage.Configs);
@@ -966,12 +969,115 @@ public partial class MainWindow : MetroWindow
             : Brush.Get("BackgroundMain");
     }
 
+    private void ApplyAccessibilitySettings()
+    {
+        var accessibility = AccessibilitySettings;
+        if (openBulletSettingsService.Settings.AccessibilitySettings == null)
+        {
+            openBulletSettingsService.Settings.AccessibilitySettings = accessibility;
+        }
+
+        if (Root != null)
+        {
+            Root.LayoutTransform = accessibility.UiScale <= 0.1 || Math.Abs(accessibility.UiScale - 1.0) < 0.01
+                ? Media.Transform.Identity
+                : new Media.ScaleTransform(accessibility.UiScale, accessibility.UiScale);
+        }
+
+        if (accessibility.EnableHighContrast)
+        {
+            ApplyHighContrastPalette();
+        }
+
+        var focusStyle = accessibility.AlwaysShowFocusVisuals
+            ? TryFindResource("HighVisibilityFocusStyle") as Style
+            : null;
+
+        foreach (var button in navigationButtons.Where(static b => b != null))
+        {
+            button.FocusVisualStyle = focusStyle;
+            ApplyButtonSpacing(button, accessibility.UseComfortableSpacing);
+            ConfigureTooltips(button, accessibility.ShowHelpfulTooltips);
+        }
+
+        var submenuButtons = new[]
+        {
+            menuOptionMetadata,
+            menuOptionReadme,
+            menuOptionStacker,
+            menuOptionLoliCode,
+            menuOptionConfigSettings,
+            menuOptionCSharpCode
+        };
+
+        foreach (var button in submenuButtons.Where(static b => b != null))
+        {
+            button.FocusVisualStyle = focusStyle;
+            ApplyButtonSpacing(button, accessibility.UseComfortableSpacing);
+            ConfigureTooltips(button, accessibility.ShowHelpfulTooltips);
+        }
+
+        if (configSubmenu != null)
+        {
+            ConfigureTooltips(configSubmenu, accessibility.ShowHelpfulTooltips);
+        }
+    }
+
+    private void ApplyHighContrastPalette()
+    {
+        Application.Current.Resources["Modern.BackgroundMain"] = Brush.FromHex("#000000");
+        Application.Current.Resources["Modern.BackgroundSecondary"] = Brush.FromHex("#111111");
+        Application.Current.Resources["Modern.BackgroundInput"] = Brush.FromHex("#141414");
+        Application.Current.Resources["Modern.ForegroundMain"] = Brush.FromHex("#FFFFFF");
+        Application.Current.Resources["Modern.ForegroundSecondary"] = Brush.FromHex("#F5F5F5");
+        Application.Current.Resources["Modern.BorderFocus"] = Brush.FromHex("#FFFFFF");
+        Application.Current.Resources["Modern.ThemeMain"] = Brush.FromHex("#FFD700");
+
+        Brush.SetAppColor("BackgroundMain", "#000000");
+        Brush.SetAppColor("BackgroundSecondary", "#111111");
+        Brush.SetAppColor("ForegroundMain", "#FFFFFF");
+        Brush.SetAppColor("ForegroundInput", "#FFFFFF");
+        Brush.SetAppColor("ForegroundMenuSelected", "#FFD700");
+        Brush.SetAppColor("BackgroundInput", "#141414");
+    }
+
+    private static void ApplyButtonSpacing(Button button, bool comfortable)
+    {
+        if (button == null)
+        {
+            return;
+        }
+
+        button.Padding = comfortable ? new Thickness(14, 10, 14, 10) : new Thickness(8, 6, 8, 6);
+        button.Margin = comfortable ? new Thickness(4, 0, 4, 0) : new Thickness(2, 0, 2, 0);
+    }
+
+    private static void ConfigureTooltips(DependencyObject target, bool helpful)
+    {
+        if (target == null)
+        {
+            return;
+        }
+
+        if (helpful)
+        {
+            ToolTipService.SetInitialShowDelay(target, 150);
+            ToolTipService.SetShowDuration(target, 12000);
+            ToolTipService.SetBetweenShowDelay(target, 300);
+        }
+        else
+        {
+            ToolTipService.SetInitialShowDelay(target, 400);
+            ToolTipService.SetShowDuration(target, 4000);
+        }
+    }
+
 }
 public enum MainWindowPage
 {
     Home = 0,
     Jobs = 1,
-    Monitor = 2,
+    Tools = 2,
     Proxies = 3,
     Wordlists = 4,
     Configs = 5,

@@ -81,10 +81,10 @@ namespace OpenBullet2.Native
                 }
             );
 
-        public static readonly RoutedUICommand NavigateToMonitor = new RoutedUICommand
+        public static readonly RoutedUICommand NavigateToTools = new RoutedUICommand
             (
-                "Navigate to Monitor",
-                "NavigateToMonitor",
+                "Navigate to Tools",
+                "NavigateToTools",
                 typeof(CustomCommands),
                 new InputGestureCollection()
                 {

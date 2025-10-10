@@ -22,16 +22,20 @@
         <!-- Modern Toolbar -->
         <Border Grid.Row="0" Background="#FF333333" CornerRadius="8" Padding="16,12" Margin="0,0,0,16">
             <StackPanel Orientation="Horizontal">
-            <Button Click="ToggleUsings"
+            <Button x:Name="ToggleUsingsButton" Click="ToggleUsings"
                         Style="{StaticResource StyledPrimaryButton}"
-                        Margin="0,0,8,0">
+                        Margin="0,0,8,0"
+                        AutomationProperties.Name="Toggle usings"
+                        AutomationProperties.AutomationId="ConfigToggleUsings">
                 <StackPanel Orientation="Horizontal">
                         <iconPacks:PackIconRadixIcons Kind="ActivityLog" Width="16" Height="16"/>
                         <TextBlock VerticalAlignment="Center" Margin="8,0,0,0" FontWeight="SemiBold">Toggle Usings</TextBlock>
                 </StackPanel>
             </Button>
-            <Button Click="ToggleStartup"
-                        Style="{StaticResource StyledPrimaryButton}">
+            <Button x:Name="ToggleStartupButton" Click="ToggleStartup"
+                        Style="{StaticResource StyledPrimaryButton}"
+                        AutomationProperties.Name="Toggle startup script"
+                        AutomationProperties.AutomationId="ConfigToggleStartup">
                 <StackPanel Orientation="Horizontal">
                         <iconPacks:PackIconRadixIcons Kind="Code" Width="16" Height="16"/>
                         <TextBlock VerticalAlignment="Center" Margin="8,0,0,0" FontWeight="SemiBold">Toggle Startup LoliCode</TextBlock>
@@ -70,7 +74,9 @@
                 VerticalContentAlignment="Top"
                          BorderThickness="0"
                          Padding="8"
-                Text="{Binding UsingsString}" />
+                Text="{Binding UsingsString}"
+                AutomationProperties.Name="Custom using statements"
+                AutomationProperties.AutomationId="ConfigUsings" />
         </Grid>
         </Border>
 
@@ -105,7 +111,9 @@
                 ShowLineNumbers="True"
                 WordWrap="{Binding WordWrap}"
                 MaxWidth="{Binding ActualWidth, ElementName=dockParent}"
-                MaxHeight="{Binding ActualHeight, ElementName=dockParent}"/>
+                MaxHeight="{Binding ActualHeight, ElementName=dockParent}"
+                AutomationProperties.Name="Startup LoliCode editor"
+                AutomationProperties.AutomationId="ConfigStartupEditor"/>
                 </Border>
         </Grid>
         </Border>
@@ -122,7 +130,9 @@
             ShowLineNumbers="True"
             WordWrap="{Binding WordWrap}"
             MaxWidth="{Binding ActualWidth, ElementName=dockParent}"
-            MaxHeight="{Binding ActualHeight, ElementName=dockParent}"/>
+            MaxHeight="{Binding ActualHeight, ElementName=dockParent}"
+            AutomationProperties.Name="Main LoliCode editor"
+            AutomationProperties.AutomationId="ConfigMainEditor"/>
         </Border>
     </Grid>
 </Page>

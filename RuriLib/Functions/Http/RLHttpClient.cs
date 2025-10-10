@@ -79,8 +79,13 @@ namespace RuriLib.Functions.Http
                 // Check if a Cookie header already exists (case-insensitive)
                 if (!httpRequestMessage.Headers.Any(h => h.Key.Equals("Cookie", StringComparison.OrdinalIgnoreCase)))
                 {
-                    var cookieHeader = string.Join("; ", request.Cookies.Select(c => $"{c.Key}={c.Value}"));
-                    httpRequestMessage.Headers.Add("Cookie", cookieHeader);
+                    // Only include cookies with non-empty values
+                    var cookies = request.Cookies.Where(static kv => !string.IsNullOrEmpty(kv.Value)).ToArray();
+                    if (cookies.Length > 0)
+                    {
+                        var cookieHeader = string.Join("; ", cookies.Select(c => $"{c.Key}={c.Value}"));
+                        httpRequestMessage.Headers.Add("Cookie", cookieHeader);
+                    }
                 }
             }
 

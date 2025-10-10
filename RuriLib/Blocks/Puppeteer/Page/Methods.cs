@@ -179,7 +179,7 @@ namespace RuriLib.Blocks.Puppeteer.Page
             data.Logger.LogHeader();
 
             var page = GetPage(data);
-            var dom = await page.EvaluateExpressionAsync<string>("document.body.innerHTML");
+            var dom = await page.EvaluateExpressionAsync<string>("document.documentElement.outerHTML");
 
             data.Logger.Log($"Got the full page DOM", LogColors.DarkSalmon);
             data.Logger.Log(dom, LogColors.DarkSalmon, true);

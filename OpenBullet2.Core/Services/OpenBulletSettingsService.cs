@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json;
+using Newtonsoft.Json;
 using OpenBullet2.Core.Models.Settings;
 using System.Collections.Generic;
 using System.IO;
@@ -38,6 +38,9 @@ public class OpenBulletSettingsService
         if (File.Exists(FileName))
         {
             Settings = JsonConvert.DeserializeObject<OpenBulletSettings>(File.ReadAllText(FileName), jsonSettings);
+
+            // Backfill newly added settings when deserializing older files.
+            Settings.AccessibilitySettings ??= new AccessibilitySettings();
         }
         else
         {
@@ -59,6 +62,7 @@ public class OpenBulletSettingsService
         GeneralSettings = new GeneralSettings { ProxyCheckTargets = new List<ProxyCheckTarget> { new ProxyCheckTarget() } },
         RemoteSettings = new RemoteSettings(),
         SecuritySettings = new SecuritySettings().GenerateJwtKey().SetupAdminPassword("admin"),
-        CustomizationSettings = new CustomizationSettings()
+        CustomizationSettings = new CustomizationSettings(),
+        AccessibilitySettings = new AccessibilitySettings()
     };
 }

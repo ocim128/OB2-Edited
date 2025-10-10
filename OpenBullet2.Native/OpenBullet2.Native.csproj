@@ -102,7 +102,7 @@
             <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
             <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
         </Content>
-        <Content Include="ui-sound.mp3">
+        <Content Include="Sounds\*.mp3">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
             <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
             <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
@@ -188,6 +188,17 @@
          <RemoveDir Directories="@(NonWindowsRuntimeDirs)" ContinueOnError="true" />
          <Message Text="Removed non-Windows runtime directories to save disk space" Importance="high" />
       </Target>
+    
+    <!-- Remove unnecessary IronPython lib folder to reduce build size -->
+    <Target Name="RemoveIronPythonLibFolder" AfterTargets="Publish">
+        <ItemGroup>
+            <IronPythonLibFiles Include="$(PublishDir)lib\**" />
+            <IronPythonLibDir Include="$(PublishDir)lib\" />
+        </ItemGroup>
+        <Delete Files="@(IronPythonLibFiles)" ContinueOnError="true" />
+        <RemoveDir Directories="@(IronPythonLibDir)" ContinueOnError="true" />
+        <Message Text="Removed IronPython lib folder to reduce build size" Importance="high" />
+    </Target>
     <!-- Project References -->
     <ItemGroup>
         <ProjectReference Include="..\OpenBullet2.Core\OpenBullet2.Core.csproj" />

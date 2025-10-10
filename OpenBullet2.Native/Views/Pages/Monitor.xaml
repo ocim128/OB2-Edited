@@ -1,136 +1,601 @@
-<Page x:Class="OpenBullet2.Native.Views.Pages.Monitor"
+<Page x:Class="OpenBullet2.Native.Views.Pages.Tools"
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-      xmlns:local="clr-namespace:OpenBullet2.Native.Views.Pages"
+      xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
       mc:Ignorable="d" 
       d:DesignHeight="450" d:DesignWidth="800"
-      Title="Monitor"
+      Title="Tools"
       TextOptions.TextFormattingMode="Display"
       TextOptions.TextRenderingMode="ClearType"
       RenderOptions.ClearTypeHint="Enabled"
       UseLayoutRounding="True"
       SnapsToDevicePixels="True">
 
-    <Page.Resources>
-        <BooleanToVisibilityConverter x:Key="BoolToVis" />
-    </Page.Resources>
-    
-    <Grid Background="Transparent" Margin="24,20,24,24">
-        <ScrollViewer VerticalScrollBarVisibility="Auto" 
-                     CanContentScroll="False" 
-                     PanningMode="VerticalOnly"
-                     Style="{StaticResource ModernScrollViewer}"
-                     UseLayoutRounding="True"
-                     SnapsToDevicePixels="True">
-            <StackPanel>
-                
-                <!-- Main Coming Soon Card -->
-                <Border Style="{StaticResource ModernCardLite}" Background="#C0353535" Margin="0,0,0,16">
-                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Margin="40">
-                        <TextBlock Text="🚧" FontSize="48" HorizontalAlignment="Center" Margin="0,0,0,12"/>
-                        <TextBlock Text="Monitor Page Under Construction!" 
-                                  Style="{StaticResource H2TextStyle}" 
-                                  HorizontalAlignment="Center" 
-                                  Foreground="#F59E0B" Margin="0,0,0,8"/>
-                        <TextBlock Text="Our digital hamsters are still building this feature..." 
-                                  Style="{StaticResource BodyTextStyle}" 
-                                  HorizontalAlignment="Center" 
-                                  Foreground="#CBD5E1"/>
-                    </StackPanel>
+    <Grid Background="Transparent" Margin="20">
+        <ScrollViewer VerticalScrollBarVisibility="Auto"
+                      Style="{StaticResource ModernScrollViewer}"
+                      CanContentScroll="False">
+            <DockPanel LastChildFill="True">
+                <Border Style="{StaticResource ModernCardLite}"
+                        Background="#C0353535"
+                        Margin="0,0,0,20"
+                        Padding="16"
+                        DockPanel.Dock="Top">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <iconPacks:PackIconMaterial Kind="Toolbox" 
+                                                   Width="24" 
+                                                   Height="24" 
+                                                   VerticalAlignment="Center"
+                                                   Margin="0,0,12,0"
+                                                   Foreground="{StaticResource Modern.ThemeMain}"/>
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                            <TextBlock Text="Automation Toolkit"
+                                       Style="{StaticResource H3TextStyle}"
+                                       Margin="0,0,0,2"/>
+                            <TextBlock Text="Quick automation suite for power users"
+                                       Style="{StaticResource CaptionTextStyle}"
+                                       Foreground="#94A3B8"/>
+                        </StackPanel>
+                    </Grid>
                 </Border>
 
-                <!-- Fun Status Cards -->
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                    </Grid.RowDefinitions>
-
-                    <!-- Development Status -->
-                    <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource ModernCardLite}" 
-                           Background="#C0353535" Margin="0,0,8,8" Padding="16">
+                <WrapPanel ItemWidth="400" Margin="0" Orientation="Horizontal">
+                    <Border Style="{StaticResource ModernCardLite}"
+                            Background="#B0282828"
+                            Padding="20"
+                            Margin="0,0,16,16"
+                            Width="400">
                         <StackPanel>
-                            <TextBlock Text="🔧 Development Status" Style="{StaticResource H3TextStyle}" Margin="0,0,0,8"/>
-                            <TextBlock Text="Currently brewing something awesome!" 
-                                      Style="{StaticResource BodyTextStyle}" 
-                                      Foreground="#10B981"/>
-                            <TextBlock Text="Progress: 42% (Perfect!)" 
-                                      Style="{StaticResource CaptionTextStyle}"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                <iconPacks:PackIconMaterial Kind="RouterWireless" 
+                                                           Width="20" 
+                                                           Height="20" 
+                                                           VerticalAlignment="Center"
+                                                           Margin="0,0,8,0"
+                                                           Foreground="#60A5FA"/>
+                                <TextBlock Text="Modem IP Refresher"
+                                           Style="{StaticResource H3TextStyle}"
+                                           VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <TextBlock Text="Trigger a fresh WAN lease by logging in, toggling networks, and reviewing real-time feedback."
+                                       Style="{StaticResource CaptionTextStyle}"
+                                       Foreground="#94A3B8"
+                                       TextWrapping="Wrap"
+                                       Margin="0,0,0,16"/>
+
+                            <StackPanel Margin="0,0,0,12">
+                                <Grid Margin="0,0,0,10">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Text="Router Address"
+                                               Style="{StaticResource BodyTextStyle}"
+                                               Grid.Row="0"/>
+                                    <TextBox x:Name="ModemAddressTextBox"
+                                             Grid.Row="1"
+                                             Style="{StaticResource MatchingTextBox}"
+                                             Text="http://192.168.0.1"
+                                             AutomationProperties.Name="Router address"/>
+                                </Grid>
+                                <Grid Margin="0,0,0,10">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Text="Username"
+                                               Style="{StaticResource BodyTextStyle}"
+                                               Grid.Row="0"/>
+                                    <TextBox x:Name="ModemUsernameTextBox"
+                                             Grid.Row="1"
+                                             Style="{StaticResource MatchingTextBox}"
+                                             Text="admin"
+                                             AutomationProperties.Name="Router username"/>
+                                </Grid>
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Text="Password"
+                                               Style="{StaticResource BodyTextStyle}"
+                                               Grid.Row="0"/>
+                                    <PasswordBox x:Name="ModemPasswordBox"
+                                                 Grid.Row="1"
+                                                 Height="34"
+                                                 Padding="8,0,8,0"
+                                                 AutomationProperties.Name="Router password"/>
+                                </Grid>
+                            </StackPanel>
+
+                            <Grid Margin="0,0,0,12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <Button x:Name="ClearModemLogButton"
+                                        Style="{StaticResource StyledWarningButton}"
+                                        Content="Clear Log"
+                                        Width="100"
+                                        Grid.Column="0"
+                                        HorizontalAlignment="Left"
+                                        Click="ClearModemLog"
+                                        AutomationProperties.Name="Clear modem log"/>
+                                <Button x:Name="RefreshModemIpButton"
+                                        Style="{StaticResource StyledPrimaryButton}"
+                                        Content="Refresh IP"
+                                        Width="110"
+                                        Grid.Column="1"
+                                        Click="RefreshModemIp"
+                                        AutomationProperties.Name="Refresh modem IP"/>
+                            </Grid>
+
+                            <Border x:Name="ModemStatusBorder"
+                                    Background="#1E3A8A"
+                                    CornerRadius="6"
+                                    Padding="10"
+                                    Margin="0,0,0,10"
+                                    Visibility="Collapsed">
+                                <TextBlock x:Name="ModemStatusTextBlock"
+                                           Style="{StaticResource CaptionTextStyle}"
+                                           Foreground="#BFDBFE"
+                                           TextWrapping="Wrap"/>
+                            </Border>
+
+                            <Border Background="#1A1A1A"
+                                    BorderBrush="#333333"
+                                    BorderThickness="1"
+                                    CornerRadius="8"
+                                    Padding="12">
+                                <TextBox x:Name="ModemLogTextBox"
+                                         Style="{StaticResource MatchingTextBox}"
+                                         Background="Transparent"
+                                         BorderThickness="0"
+                                         AcceptsReturn="True"
+                                         IsReadOnly="True"
+                                         Height="180"
+                                         TextWrapping="Wrap"
+                                         ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                         AutomationProperties.Name="Modem log output"/>
+                            </Border>
                         </StackPanel>
                     </Border>
 
-                    <!-- Team Status -->
-                    <Border Grid.Row="0" Grid.Column="1" Style="{StaticResource ModernCardLite}" 
-                           Background="#C0353535" Margin="8,0,0,8" Padding="16">
+                    <Border Style="{StaticResource ModernCardLite}"
+                            Background="#B0282828"
+                            Padding="20"
+                            Margin="0,0,16,16"
+                            Width="400">
                         <StackPanel>
-                            <TextBlock Text="👨‍💻 Team Status" Style="{StaticResource H3TextStyle}" Margin="0,0,0,8"/>
-                            <TextBlock Text="Fueled by coffee and determination!" 
-                                      Style="{StaticResource BodyTextStyle}" 
-                                      Foreground="#3B82F6"/>
-                            <TextBlock Text="Coffee level: Sufficient ☕" 
-                                      Style="{StaticResource CaptionTextStyle}"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                <iconPacks:PackIconMaterial Kind="ShieldKey" 
+                                                           Width="20" 
+                                                           Height="20" 
+                                                           VerticalAlignment="Center"
+                                                           Margin="0,0,8,0"
+                                                           Foreground="#34D399"/>
+                                <TextBlock Text="OTP Toolkit"
+                                           Style="{StaticResource H3TextStyle}"
+                                           VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <TextBlock Text="Drop in a Base32 secret and stay synced with rolling 30-second codes."
+                                       Style="{StaticResource CaptionTextStyle}"
+                                       Foreground="#94A3B8"
+                                       TextWrapping="Wrap"
+                                       Margin="0,0,0,16"/>
+
+                            <TextBox x:Name="SecretKeyTextBox"
+                                     Style="{StaticResource MatchingTextBox}"
+                                     Margin="0,0,0,10"
+                                     AutomationProperties.Name="Secret key"
+                                     ToolTip="Enter a Base32 encoded secret key"
+                                     TextChanged="SecretKeyTextChanged"
+                                     CharacterCasing="Upper"
+                                     TextWrapping="NoWrap"
+                                     AcceptsReturn="False"
+                                     VerticalContentAlignment="Center"
+                                     Height="34"/>
+
+                            <Grid Margin="0,0,0,10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <Button x:Name="ClearSecretButton"
+                                        Style="{StaticResource StyledWarningButton}"
+                                        Content="Clear"
+                                        Width="80"
+                                        Grid.Column="0"
+                                        HorizontalAlignment="Left"
+                                        Click="ClearSecret"
+                                        AutomationProperties.Name="Clear secret"
+                                        ToolTip="Clear the current secret"/>
+                                <Button x:Name="PasteSecretButton"
+                                        Style="{StaticResource StyledPrimaryButton}"
+                                        Content="Paste"
+                                        Width="80"
+                                        Grid.Column="1"
+                                        Click="PasteSecret"
+                                        AutomationProperties.Name="Paste secret"
+                                        ToolTip="Paste a secret from the clipboard"/>
+                            </Grid>
+
+                            <Border x:Name="SecretErrorBorder"
+                                    Background="#7F1D1D"
+                                    CornerRadius="6"
+                                    Padding="10"
+                                    Margin="0,0,0,10"
+                                    Visibility="Collapsed">
+                                <TextBlock x:Name="SecretErrorTextBlock"
+                                           Style="{StaticResource CaptionTextStyle}"
+                                           Foreground="#FCA5A5"
+                                           TextWrapping="Wrap"/>
+                            </Border>
+
+                            <Border Background="#1A1A1A"
+                                    BorderBrush="#333333"
+                                    BorderThickness="1"
+                                    CornerRadius="8"
+                                    Padding="16">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Text="Current OTP"
+                                               Style="{StaticResource BodyTextStyle}"/>
+                                    <TextBlock x:Name="OtpTextBlock"
+                                               Grid.Row="1"
+                                               Text="------"
+                                               FontSize="36"
+                                               FontFamily="Segoe UI Semibold"
+                                               HorizontalAlignment="Center"
+                                               Margin="0,6,0,6"
+                                               AutomationProperties.Name="One-time password"/>
+                                    <ProgressBar x:Name="OtpProgressBar"
+                                                 Grid.Row="2"
+                                                 Height="6"
+                                                 Minimum="0"
+                                                 Maximum="30"
+                                                 Value="0"
+                                                 AutomationProperties.Name="OTP progress"/>
+                                    <Grid Grid.Row="3" Margin="0,10,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock x:Name="OtpStatusTextBlock"
+                                                   Style="{StaticResource CaptionTextStyle}"/>
+                                        <Button x:Name="CopyOtpButton"
+                                                Grid.Column="1"
+                                                Style="{StaticResource StyledSuccessButton}"
+                                                Content="Copy"
+                                                Width="70"
+                                                Margin="12,0,0,0"
+                                                Click="CopyOtp"
+                                                AutomationProperties.Name="Copy OTP button"
+                                                ToolTip="Copy the current OTP to the clipboard"/>
+                                    </Grid>
+                                </Grid>
+                            </Border>
                         </StackPanel>
                     </Border>
 
-                    <!-- Fun Fact -->
-                    <Border Grid.Row="1" Grid.Column="0" Style="{StaticResource ModernCardLite}" 
-                           Background="#C0353535" Margin="0,8,8,0" Padding="16">
+                    <Border Style="{StaticResource ModernCardLite}"
+                            Background="#B0282828"
+                            Padding="20"
+                            Margin="0,0,16,16"
+                            Width="400">
                         <StackPanel>
-                            <TextBlock Text="🎯 Fun Fact" Style="{StaticResource H3TextStyle}" Margin="0,0,0,8"/>
-                            <TextBlock Text="This monitor will be so good, even your CPU will applaud!" 
-                                      Style="{StaticResource BodyTextStyle}" 
-                                      Foreground="#8B5CF6"/>
-                            <TextBlock Text="ETA: Soon™" 
-                                      Style="{StaticResource CaptionTextStyle}"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                <iconPacks:PackIconMaterial Kind="Bookmark" 
+                                                           Width="20" 
+                                                           Height="20" 
+                                                           VerticalAlignment="Center"
+                                                           Margin="0,0,8,0"
+                                                           Foreground="#F59E0B"/>
+                                <TextBlock Text="Bookmarklet Parser"
+                                           Style="{StaticResource H3TextStyle}"
+                                           VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <TextBlock Text="Paste bookmarklet dumps; we strip comments and surface the useful payload."
+                                       Style="{StaticResource CaptionTextStyle}"
+                                       Foreground="#94A3B8"
+                                       TextWrapping="Wrap"
+                                       Margin="0,0,0,16"/>
+
+                            <TextBox x:Name="BookmarkletInputTextBox"
+                                     Style="{StaticResource MatchingTextBox}"
+                                     AcceptsReturn="True"
+                                     Height="120"
+                                     VerticalScrollBarVisibility="Auto"
+                                     TextWrapping="Wrap"
+                                     AutomationProperties.Name="Bookmarklet input"
+                                     KeyDown="BookmarkletInputKeyDown"/>
+
+                            <Grid Margin="0,10,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                                    <Button x:Name="ClearBookmarkletButton"
+                                            Style="{StaticResource StyledWarningButton}"
+                                            Content="Clear"
+                                            Width="80"
+                                            Click="ClearBookmarklet"
+                                            AutomationProperties.Name="Clear bookmarklet input"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                    <Button x:Name="ParseBookmarkletButton"
+                                            Style="{StaticResource StyledPrimaryButton}"
+                                            Content="Parse"
+                                            Width="80"
+                                            Margin="0,0,8,0"
+                                            Click="ParseBookmarklet"
+                                            AutomationProperties.Name="Parse bookmarklet"/>
+                                    <Button x:Name="CopyBookmarkletButton"
+                                            Style="{StaticResource StyledSuccessButton}"
+                                            Content="Copy"
+                                            Width="80"
+                                            Click="CopyBookmarkletOutput"
+                                            AutomationProperties.Name="Copy bookmarklet output"/>
+                                </StackPanel>
+                            </Grid>
+
+                            <Border x:Name="BookmarkletStatusBorder"
+                                    Background="#065F46"
+                                    CornerRadius="6"
+                                    Padding="10"
+                                    Margin="0,10,0,10"
+                                    Visibility="Collapsed">
+                                <TextBlock x:Name="BookmarkletStatusTextBlock"
+                                           Style="{StaticResource CaptionTextStyle}"
+                                           Foreground="#A7F3D0"
+                                           TextWrapping="Wrap"/>
+                            </Border>
+
+                            <TextBox x:Name="BookmarkletOutputTextBox"
+                                     Style="{StaticResource MatchingTextBox}"
+                                     AcceptsReturn="True"
+                                     IsReadOnly="True"
+                                     Height="150"
+                                     VerticalScrollBarVisibility="Auto"
+                                     TextWrapping="Wrap"
+                                     AutomationProperties.Name="Bookmarklet output"
+                                     Cursor="IBeam"/>
                         </StackPanel>
                     </Border>
 
-                    <!-- Easter Egg -->
-                    <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource ModernCardLite}" 
-                           Background="#C0353535" Margin="8,8,0,0" Padding="16">
+                    <Border Style="{StaticResource ModernCardLite}"
+                            Background="#B0282828"
+                            Padding="20"
+                            Margin="0,0,16,16"
+                            Width="400">
                         <StackPanel>
-                            <TextBlock Text="🎮 Easter Egg" Style="{StaticResource H3TextStyle}" Margin="0,0,0,8"/>
-                            <TextBlock Text="You found the secret message!" 
-                                      Style="{StaticResource BodyTextStyle}" 
-                                      Foreground="#F59E0B"/>
-                            <TextBlock Text="+10 Curiosity Points 🌟" 
-                                      Style="{StaticResource CaptionTextStyle}"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                <iconPacks:PackIconMaterial Kind="TextBoxRemove" 
+                                                           Width="20" 
+                                                           Height="20" 
+                                                           VerticalAlignment="Center"
+                                                           Margin="0,0,8,0"
+                                                           Foreground="#A78BFA"/>
+                                <TextBlock Text="Text Cleaner"
+                                           Style="{StaticResource H3TextStyle}"
+                                           VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <TextBlock Text="Normalize chaotic dumps, compress whitespace, and rank by ♦ markers instantly."
+                                       Style="{StaticResource CaptionTextStyle}"
+                                       Foreground="#94A3B8"
+                                       TextWrapping="Wrap"
+                                       Margin="0,0,0,16"/>
+
+                            <TextBox x:Name="TextCleanerInputTextBox"
+                                     Style="{StaticResource MatchingTextBox}"
+                                     AcceptsReturn="True"
+                                     Height="150"
+                                     VerticalScrollBarVisibility="Auto"
+                                     TextWrapping="Wrap"
+                                     AutomationProperties.Name="Text cleaner input"
+                                     KeyDown="TextCleanerInputKeyDown"/>
+
+                            <Grid Margin="0,10,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                                    <Button x:Name="ClearTextCleanerButton"
+                                            Style="{StaticResource StyledWarningButton}"
+                                            Content="Clear"
+                                            Width="80"
+                                            Click="ClearTextCleaner"
+                                            AutomationProperties.Name="Clear text cleaner"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                    <Button x:Name="CleanTextButton"
+                                            Style="{StaticResource StyledPrimaryButton}"
+                                            Content="Clean"
+                                            Width="80"
+                                            Margin="0,0,8,0"
+                                            Click="CleanTextInput"
+                                            AutomationProperties.Name="Clean text"/>
+                                    <Button x:Name="CopyTextCleanerButton"
+                                            Style="{StaticResource StyledSuccessButton}"
+                                            Content="Copy"
+                                            Width="80"
+                                            Click="CopyTextCleanerOutput"
+                                            AutomationProperties.Name="Copy text cleaner output"/>
+                                </StackPanel>
+                            </Grid>
+
+                            <Border x:Name="TextCleanerStatusBorder"
+                                    Background="#065F46"
+                                    CornerRadius="6"
+                                    Padding="10"
+                                    Margin="0,10,0,10"
+                                    Visibility="Collapsed">
+                                <TextBlock x:Name="TextCleanerStatusTextBlock"
+                                           Style="{StaticResource CaptionTextStyle}"
+                                           Foreground="#A7F3D0"
+                                           TextWrapping="Wrap"/>
+                            </Border>
+
+                            <TextBox x:Name="TextCleanerOutputTextBox"
+                                     Style="{StaticResource MatchingTextBox}"
+                                     AcceptsReturn="True"
+                                     IsReadOnly="True"
+                                     Height="150"
+                                     VerticalScrollBarVisibility="Auto"
+                                     TextWrapping="Wrap"
+                                     AutomationProperties.Name="Text cleaner output"
+                                     Cursor="IBeam"/>
                         </StackPanel>
                     </Border>
-                </Grid>
+                    <Border Style="{StaticResource ModernCardLite}"
+                            Background="#B0282828"
+                            Padding="20"
+                            Margin="0,0,16,16"
+                            Width="400">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                <iconPacks:PackIconMaterial Kind="FolderZip" 
+                                                           Width="20" 
+                                                           Height="20" 
+                                                           VerticalAlignment="Center"
+                                                           Margin="0,0,8,0"
+                                                           Foreground="#FB923C"/>
+                                <TextBlock Text="Firefox Switcher"
+                                           Style="{StaticResource H3TextStyle}"
+                                           VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <TextBlock Text="Quickly switch between Firefox profiles or launch new instances with different configurations."
+                                       Style="{StaticResource CaptionTextStyle}"
+                                       Foreground="#94A3B8"
+                                       TextWrapping="Wrap"
+                                       Margin="0,0,0,16"/>
 
-                <!-- Temporary Redirect -->
-                <Border Style="{StaticResource ModernCardLite}" Background="#C0353535" Margin="0,16,0,0" Padding="20">
-                    <StackPanel>
-                        <TextBlock Text="💡 Pro Tip" Style="{StaticResource H3TextStyle}" Margin="0,0,0,12"/>
-                        <TextBlock Text="While we're building this awesome monitoring dashboard, you can check your current system stats on the Home page!" 
-                                  Style="{StaticResource BodyTextStyle}" 
-                                  TextWrapping="Wrap"
-                                  Foreground="#CBD5E1" Margin="0,0,0,12"/>
-                        <TextBlock Text="Navigate to: 🏠 Home → Performance section" 
-                                  Style="{StaticResource CaptionTextStyle}" 
-                                  Foreground="#60A5FA"/>
-                    </StackPanel>
-                </Border>
+                            <Grid Margin="0,0,0,10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <Button x:Name="ClearZipOptionsButton"
+                                        Style="{StaticResource StyledWarningButton}"
+                                        Content="Clear"
+                                        Width="80"
+                                        Grid.Column="0"
+                                        HorizontalAlignment="Left"
+                                        Click="ClearZipOptions"
+                                        AutomationProperties.Name="Clear zip options"/>
+                                <Button x:Name="LoadZipOptionsButton"
+                                        Style="{StaticResource StyledPrimaryButton}"
+                                        Content="Load .zip"
+                                        Width="100"
+                                        Grid.Column="1"
+                                        Click="SelectZipForOptions"
+                                        AutomationProperties.Name="Load zip archive"/>
+                            </Grid>
 
-                <!-- What's Coming -->
-                <Border Style="{StaticResource ModernCardLite}" Background="#C0353535" Margin="0,16,0,0" Padding="20">
-                    <StackPanel>
-                        <TextBlock Text="🚀 What's Coming" Style="{StaticResource H3TextStyle}" Margin="0,0,0,12"/>
-                        <TextBlock Text="• Real-time system monitoring 📊" Style="{StaticResource BodyTextStyle}" Margin="0,0,0,8"/>
-                        <TextBlock Text="• Network activity tracking 🌐" Style="{StaticResource BodyTextStyle}" Margin="0,0,0,8"/>
-                        <TextBlock Text="• Job performance analytics 📈" Style="{StaticResource BodyTextStyle}" Margin="0,0,0,8"/>
-                        <TextBlock Text="• Custom alerts and notifications 🔔" Style="{StaticResource BodyTextStyle}" Margin="0,0,0,8"/>
-                        <TextBlock Text="• And much more exciting stuff! ✨" Style="{StaticResource BodyTextStyle}"/>
-                    </StackPanel>
-                </Border>
-            </StackPanel>
+                            <Border Background="#1A1A1A"
+                                    BorderBrush="#333333"
+                                    BorderThickness="1"
+                                    CornerRadius="6"
+                                    Padding="12"
+                                    Margin="0,0,0,10">
+                                <StackPanel>
+                                    <TextBlock Text="Selected Archive"
+                                               Style="{StaticResource CaptionTextStyle}"
+                                               Foreground="#94A3B8"
+                                               Margin="0,0,0,4"/>
+                                    <TextBlock x:Name="ZipOptionFileTextBlock"
+                                               Text="No file loaded"
+                                               Style="{StaticResource BodyTextStyle}"
+                                               Foreground="#E2E8F0"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Border x:Name="ZipOptionStatusBorder"
+                                    Background="#1E3A8A"
+                                    CornerRadius="6"
+                                    Padding="10"
+                                    Margin="0,0,0,10"
+                                    Visibility="Collapsed">
+                                <TextBlock x:Name="ZipOptionStatusTextBlock"
+                                           Style="{StaticResource CaptionTextStyle}"
+                                           Foreground="#BFDBFE"
+                                           TextWrapping="Wrap"/>
+                            </Border>
+
+                            <Border Background="#1A1A1A"
+                                    BorderBrush="#333333"
+                                    BorderThickness="1"
+                                    CornerRadius="8"
+                                    Padding="8"
+                                    MinHeight="160">
+                                <ListBox x:Name="ZipOptionListBox"
+                                         Foreground="#F5F5F5"
+                                         BorderThickness="0"
+                                         Background="Transparent"
+                                         HorizontalContentAlignment="Stretch">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid Margin="0,6,0,6">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <Border Grid.Column="0"
+                                                        Background="#2A2A2A"
+                                                        BorderBrush="#404040"
+                                                        BorderThickness="1"
+                                                        CornerRadius="6"
+                                                        Padding="12,8"
+                                                        Margin="0,0,8,0">
+                                                    <TextBlock Text="{Binding Name}"
+                                                               Style="{StaticResource BodyTextStyle}"
+                                                               Foreground="#E2E8F0"
+                                                               VerticalAlignment="Center"/>
+                                                </Border>
+                                                <Button Grid.Column="1"
+                                                        Style="{StaticResource StyledPrimaryButton}"
+                                                        Width="40"
+                                                        Height="34"
+                                                        Padding="4"
+                                                        Margin="0,0,6,0"
+                                                        Tag="{Binding}"
+                                                        Click="CopyZipOptionName"
+                                                        ToolTip="Copy folder name">
+                                                    <iconPacks:PackIconMaterial Kind="ContentCopy" Width="18" Height="18"/>
+                                                </Button>
+                                                <Button Grid.Column="2"
+                                                        Style="{StaticResource StyledSuccessButton}"
+                                                        Width="44"
+                                                        Height="34"
+                                                        Padding="4"
+                                                        Tag="{Binding}"
+                                                        Click="LaunchZipOption"
+                                                        ToolTip="Launch Firefox profile">
+                                                    <iconPacks:PackIconMaterial Kind="RocketLaunch" Width="20" Height="20"/>
+                                                </Button>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+                </WrapPanel>
+            </DockPanel>
         </ScrollViewer>
     </Grid>
 </Page>

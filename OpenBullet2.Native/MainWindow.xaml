@@ -61,16 +61,34 @@
         
         <!-- Converters -->
         <converters:LessThanConverter x:Key="LessThanConverter" />
+
+        <!-- Global focus outline for accessibility -->
+        <Style x:Key="HighVisibilityFocusStyle" TargetType="Control">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Control">
+                        <Rectangle StrokeThickness="2"
+                                   Stroke="{StaticResource Modern.ThemeAccent}"
+                                   StrokeDashArray="2 1"
+                                   RadiusX="4"
+                                   RadiusY="4"
+                                   Fill="Transparent"
+                                   Margin="2" />
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
         
         <!-- Responsive Navigation Styles -->
         <Style x:Key="ResponsiveNavButton" TargetType="Button" BasedOn="{StaticResource ModernButton}">
             <Setter Property="Margin" Value="2,0" />
             <Setter Property="Padding" Value="8,6" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
             <Style.Triggers>
                 <!-- Hide text on smaller windows -->
                 <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=ActualWidth, Converter={StaticResource LessThanConverter}, ConverterParameter=1000}" Value="True">
-                    <Setter Property="Width" Value="40" />
-                    <Setter Property="Padding" Value="8" />
+                    <Setter Property="MinWidth" Value="48" />
+                    <Setter Property="Padding" Value="6" />
                 </DataTrigger>
                 <!-- Compact mode for medium windows -->
                 <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=ActualWidth, Converter={StaticResource LessThanConverter}, ConverterParameter=1200}" Value="True">
@@ -183,7 +201,7 @@
         <KeyBinding Command="{x:Static local:CustomCommands.Quit}" Gesture="CTRL+Q" />
         <KeyBinding Command="{x:Static local:CustomCommands.NavigateToHome}" Gesture="CTRL+D1" />
         <KeyBinding Command="{x:Static local:CustomCommands.NavigateToJobs}" Gesture="CTRL+D2" />
-        <KeyBinding Command="{x:Static local:CustomCommands.NavigateToMonitor}" Gesture="CTRL+D3" />
+        <KeyBinding Command="{x:Static local:CustomCommands.NavigateToTools}" Gesture="CTRL+D3" />
         <KeyBinding Command="{x:Static local:CustomCommands.NavigateToProxies}" Gesture="CTRL+D4" />
         <KeyBinding Command="{x:Static local:CustomCommands.NavigateToWordlists}" Gesture="CTRL+D5" />
         <KeyBinding Command="{x:Static local:CustomCommands.NavigateToConfigs}" Gesture="CTRL+D6" />
@@ -207,87 +225,130 @@
                 Background="{StaticResource Modern.BackgroundSecondary}" 
                 BorderBrush="{StaticResource Modern.BorderMain}" 
                 BorderThickness="0,0,0,1">
-            <StackPanel x:Name="topMenu" 
-                        Orientation="Horizontal" 
-                        VerticalAlignment="Center"
-                        Style="{StaticResource ResponsiveStackPanel}">
+            <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                          VerticalScrollBarVisibility="Disabled"
+                          Focusable="False"
+                          Padding="0">
+                <StackPanel x:Name="topMenu" 
+                            Orientation="Horizontal" 
+                            VerticalAlignment="Center"
+                            Style="{StaticResource ResponsiveStackPanel}"
+                            KeyboardNavigation.TabNavigation="Cycle"
+                            KeyboardNavigation.DirectionalNavigation="Cycle">
                     <!-- Using styles from ModernTheme.xaml for better performance -->
                     <!-- Reduced margins for better responsiveness on smaller screens -->
                 
                     <!-- Navigation Menu Items -->
-                    <Button x:Name="menuOptionHome" Style="{StaticResource ResponsiveNavButton}" Click="HandleNavigationClick" Tag="Home" ToolTip="Home Dashboard (Ctrl+1)">
+                    <Button x:Name="menuOptionHome" Style="{StaticResource ResponsiveNavButton}" Click="HandleNavigationClick" Tag="Home" ToolTip="Home Dashboard (Ctrl+1)"
+                            AutomationProperties.Name="Home"
+                            AutomationProperties.AutomationId="NavHome"
+                            AutomationProperties.HelpText="Open the home dashboard">
                         <StackPanel Orientation="Horizontal">
                             <iconPacks:PackIconMaterial Kind="Home" Style="{StaticResource ResponsiveNavIcon}"/>
                             <TextBlock Text="Home" Style="{StaticResource ResponsiveNavText}"/>
                         </StackPanel>
                     </Button>
-                    <Button x:Name="menuOptionJobs" Style="{StaticResource ResponsiveNavButton}" Click="HandleNavigationClick" Tag="Jobs" ToolTip="Job Management (Ctrl+2)">
+                    <Button x:Name="menuOptionJobs" Style="{StaticResource ResponsiveNavButton}" Click="HandleNavigationClick" Tag="Jobs" ToolTip="Job Management (Ctrl+2)"
+                            AutomationProperties.Name="Jobs"
+                            AutomationProperties.AutomationId="NavJobs"
+                            AutomationProperties.HelpText="Open job management">
                         <StackPanel Orientation="Horizontal">
                             <iconPacks:PackIconMaterial Kind="PlayBox" Style="{StaticResource ResponsiveNavIcon}"/>
                             <TextBlock Text="Jobs" Style="{StaticResource ResponsiveNavText}"/>
                         </StackPanel>
                     </Button>
-                    <Button x:Name="menuOptionMonitor" Style="{StaticResource ResponsiveNavButton}" Click="HandleNavigationClick" Tag="Monitor" ToolTip="Live Monitoring (Ctrl+3)">
+                    <Button x:Name="menuOptionTools" Style="{StaticResource ResponsiveNavButton}" Click="HandleNavigationClick" Tag="Tools" ToolTip="Utility Tools (Ctrl+3)"
+                            AutomationProperties.Name="Tools"
+                            AutomationProperties.AutomationId="NavTools"
+                            AutomationProperties.HelpText="Open utility tools">
                         <StackPanel Orientation="Horizontal">
-                            <iconPacks:PackIconMaterial Kind="Monitor" Style="{StaticResource ResponsiveNavIcon}"/>
-                            <TextBlock Text="Monitor" Style="{StaticResource ResponsiveNavText}"/>
+                            <iconPacks:PackIconMaterial Kind="Toolbox" Style="{StaticResource ResponsiveNavIcon}"/>
+                            <TextBlock Text="Tools" Style="{StaticResource ResponsiveNavText}"/>
                         </StackPanel>
                     </Button>
-                    <Button x:Name="menuOptionProxies" Style="{StaticResource ResponsiveNavButton}" Click="HandleNavigationClick" Tag="Proxies" ToolTip="Proxy Management (Ctrl+4)">
+                    <Button x:Name="menuOptionProxies" Style="{StaticResource ResponsiveNavButton}" Click="HandleNavigationClick" Tag="Proxies" ToolTip="Proxy Management (Ctrl+4)"
+                            AutomationProperties.Name="Proxies"
+                            AutomationProperties.AutomationId="NavProxies"
+                            AutomationProperties.HelpText="Open proxy management">
                         <StackPanel Orientation="Horizontal">
                             <iconPacks:PackIconMaterial Kind="ServerNetwork" Style="{StaticResource ResponsiveNavIcon}"/>
                             <TextBlock Text="Proxies" Style="{StaticResource ResponsiveNavText}"/>
                         </StackPanel>
                     </Button>
-                    <Button x:Name="menuOptionWordlists" Style="{StaticResource ResponsiveNavButton}" Click="HandleNavigationClick" Tag="Wordlists" ToolTip="Wordlist Library (Ctrl+5)">
+                    <Button x:Name="menuOptionWordlists" Style="{StaticResource ResponsiveNavButton}" Click="HandleNavigationClick" Tag="Wordlists" ToolTip="Wordlist Library (Ctrl+5)"
+                            AutomationProperties.Name="Wordlists"
+                            AutomationProperties.AutomationId="NavWordlists"
+                            AutomationProperties.HelpText="Open the wordlist library">
                         <StackPanel Orientation="Horizontal">
                             <iconPacks:PackIconMaterial Kind="FileDocument" Style="{StaticResource ResponsiveNavIcon}"/>
                             <TextBlock Text="Wordlists" Style="{StaticResource ResponsiveNavText}"/>
                         </StackPanel>
                     </Button>
-                    <Button x:Name="menuOptionConfigs" Style="{StaticResource ResponsiveNavButton}" Click="HandleNavigationClick" Tag="Configs" MouseEnter="ConfigsMenuOptionMouseEnter" MouseLeave="ConfigsMenuOptionMouseLeave" ToolTip="Configuration Editor (Ctrl+6)">
+                    <Button x:Name="menuOptionConfigs" Style="{StaticResource ResponsiveNavButton}" Click="HandleNavigationClick" Tag="Configs" MouseEnter="ConfigsMenuOptionMouseEnter" MouseLeave="ConfigsMenuOptionMouseLeave" ToolTip="Configuration Editor (Ctrl+6)"
+                            AutomationProperties.Name="Configs"
+                            AutomationProperties.AutomationId="NavConfigs"
+                            AutomationProperties.HelpText="Open configuration editor submenu">
                         <StackPanel Orientation="Horizontal">
                             <iconPacks:PackIconMaterial Kind="CodeJson" Style="{StaticResource ResponsiveNavIcon}"/>
                             <TextBlock Text="Configs" Style="{StaticResource ResponsiveNavText}"/>
                         </StackPanel>
                     </Button>
-                    <Button x:Name="menuOptionHits" Style="{StaticResource ResponsiveNavButton}" Click="HandleNavigationClick" Tag="Hits" ToolTip="Successful Results (Ctrl+7)">
+                    <Button x:Name="menuOptionHits" Style="{StaticResource ResponsiveNavButton}" Click="HandleNavigationClick" Tag="Hits" ToolTip="Successful Results (Ctrl+7)"
+                            AutomationProperties.Name="Hits"
+                            AutomationProperties.AutomationId="NavHits"
+                            AutomationProperties.HelpText="Open successful results">
                         <StackPanel Orientation="Horizontal">
                             <iconPacks:PackIconMaterial Kind="Target" Style="{StaticResource ResponsiveNavIcon}"/>
                             <TextBlock Text="Hits" Style="{StaticResource ResponsiveNavText}"/>
                         </StackPanel>
                     </Button>
-                    <Button x:Name="menuOptionPlugins" Style="{StaticResource ResponsiveNavButton}" Click="HandleNavigationClick" Tag="Plugins" ToolTip="Plugin Manager (Ctrl+8)">
+                    <Button x:Name="menuOptionPlugins" Style="{StaticResource ResponsiveNavButton}" Click="HandleNavigationClick" Tag="Plugins" ToolTip="Plugin Manager (Ctrl+8)"
+                            AutomationProperties.Name="Plugins"
+                            AutomationProperties.AutomationId="NavPlugins"
+                            AutomationProperties.HelpText="Open plugin manager">
                         <StackPanel Orientation="Horizontal">
                             <iconPacks:PackIconMaterial Kind="Puzzle" Style="{StaticResource ResponsiveNavIcon}"/>
                             <TextBlock Text="Plugins" Style="{StaticResource ResponsiveNavText}"/>
                         </StackPanel>
                     </Button>
-                    <Button x:Name="menuOptionSettings" Style="{StaticResource ResponsiveNavButton}" Click="HandleNavigationClick" Tag="OBSettings" ToolTip="Application Settings (Ctrl+9)">
+                    <Button x:Name="menuOptionSettings" Style="{StaticResource ResponsiveNavButton}" Click="HandleNavigationClick" Tag="OBSettings" ToolTip="Application Settings (Ctrl+9)"
+                            AutomationProperties.Name="Settings"
+                            AutomationProperties.AutomationId="NavSettings"
+                            AutomationProperties.HelpText="Open application settings">
                         <StackPanel Orientation="Horizontal">
                             <iconPacks:PackIconMaterial Kind="Cog" Style="{StaticResource ResponsiveNavIcon}"/>
                             <TextBlock Text="Settings" Style="{StaticResource ResponsiveNavText}"/>
                         </StackPanel>
                     </Button>
-                    <Button x:Name="menuOptionRLSettings" Style="{StaticResource ResponsiveNavButton}" Click="HandleNavigationClick" Tag="RLSettings" ToolTip="RuriLib Settings">
+                    <Button x:Name="menuOptionRLSettings" Style="{StaticResource ResponsiveNavButton}" Click="HandleNavigationClick" Tag="RLSettings" ToolTip="RuriLib Settings"
+                            AutomationProperties.Name="RuriLib Settings"
+                            AutomationProperties.AutomationId="NavRLSettings"
+                            AutomationProperties.HelpText="Open RuriLib settings">
                         <StackPanel Orientation="Horizontal">
                             <iconPacks:PackIconMaterial Kind="Wrench" Style="{StaticResource ResponsiveNavIcon}"/>
                             <TextBlock Text="RL Settings" Style="{StaticResource ResponsiveNavText}"/>
                         </StackPanel>
                     </Button>
-                    <Button x:Name="menuOptionCheckUpdate" Style="{StaticResource ResponsiveNavButton}" Click="HandleNavigationClick" Tag="CheckUpdate" ToolTip="Check for Updates">
+                    <Button x:Name="menuOptionCheckUpdate" Style="{StaticResource ResponsiveNavButton}" Click="HandleNavigationClick" Tag="CheckUpdate" ToolTip="Check for Updates"
+                            AutomationProperties.Name="Check for updates"
+                            AutomationProperties.AutomationId="NavCheckUpdate"
+                            AutomationProperties.HelpText="Check for application updates">
                         <StackPanel Orientation="Horizontal">
                             <iconPacks:PackIconMaterial Kind="Update" Style="{StaticResource ResponsiveNavIcon}"/>
                             <TextBlock Text="Check Update" Style="{StaticResource ResponsiveNavText}"/>
                         </StackPanel>
                     </Button>
-                    <Button x:Name="menuOptionAbout" Style="{StaticResource ResponsiveNavButton}" Click="HandleNavigationClick" Tag="About" ToolTip="About OpenBullet">
+                    <Button x:Name="menuOptionAbout" Style="{StaticResource ResponsiveNavButton}" Click="HandleNavigationClick" Tag="About" ToolTip="About OpenBullet"
+                            AutomationProperties.Name="About"
+                            AutomationProperties.AutomationId="NavAbout"
+                            AutomationProperties.HelpText="Open about page">
                         <StackPanel Orientation="Horizontal">
                             <iconPacks:PackIconMaterial Kind="Information" Style="{StaticResource ResponsiveNavIcon}"/>
                             <TextBlock Text="About" Style="{StaticResource ResponsiveNavText}"/>
                         </StackPanel>
                     </Button>
-            </StackPanel>
+                </StackPanel>
+            </ScrollViewer>
         </Border>
 
         <!-- Modern Config Submenu -->
@@ -310,37 +371,55 @@
                 <!-- Using ModernButton style from ModernTheme.xaml -->
                 
                 <!-- Config Editor Menu Items -->
-                <Button x:Name="menuOptionMetadata" Style="{StaticResource ResponsiveNavButton}" Click="HandleNavigationClick" Tag="ConfigMetadata" ToolTip="Metadata" FontSize="12" Padding="12,8" Margin="0,1" HorizontalContentAlignment="Left">
+                <Button x:Name="menuOptionMetadata" Style="{StaticResource ResponsiveNavButton}" Click="HandleNavigationClick" Tag="ConfigMetadata" ToolTip="Metadata" FontSize="12" Padding="12,8" Margin="0,1" HorizontalContentAlignment="Left"
+                        AutomationProperties.Name="Config metadata"
+                        AutomationProperties.AutomationId="SubmenuMetadata"
+                        AutomationProperties.HelpText="Open configuration metadata">
                     <StackPanel Orientation="Horizontal">
                         <iconPacks:PackIconMaterial Kind="Information" Style="{StaticResource ResponsiveNavIcon}"/>
                         <TextBlock Text="Metadata" Style="{StaticResource ResponsiveNavText}"/>
                     </StackPanel>
                 </Button>
-                <Button x:Name="menuOptionReadme" Style="{StaticResource ResponsiveNavButton}" Click="HandleNavigationClick" Tag="ConfigReadme" ToolTip="Readme" FontSize="12" Padding="12,8" Margin="0,1" HorizontalContentAlignment="Left">
+                <Button x:Name="menuOptionReadme" Style="{StaticResource ResponsiveNavButton}" Click="HandleNavigationClick" Tag="ConfigReadme" ToolTip="Readme" FontSize="12" Padding="12,8" Margin="0,1" HorizontalContentAlignment="Left"
+                        AutomationProperties.Name="Config readme"
+                        AutomationProperties.AutomationId="SubmenuReadme"
+                        AutomationProperties.HelpText="Open configuration readme">
                     <StackPanel Orientation="Horizontal">
                         <iconPacks:PackIconMaterial Kind="FileDocument" Style="{StaticResource ResponsiveNavIcon}"/>
                         <TextBlock Text="Readme" Style="{StaticResource ResponsiveNavText}"/>
                     </StackPanel>
                 </Button>
-                <Button x:Name="menuOptionStacker" Style="{StaticResource ResponsiveNavButton}" Click="HandleNavigationClick" Tag="ConfigStacker" ToolTip="Stacker" FontSize="12" Padding="12,8" Margin="0,1" HorizontalContentAlignment="Left">
+                <Button x:Name="menuOptionStacker" Style="{StaticResource ResponsiveNavButton}" Click="HandleNavigationClick" Tag="ConfigStacker" ToolTip="Stacker" FontSize="12" Padding="12,8" Margin="0,1" HorizontalContentAlignment="Left"
+                        AutomationProperties.Name="Config stacker"
+                        AutomationProperties.AutomationId="SubmenuStacker"
+                        AutomationProperties.HelpText="Open configuration stacker">
                     <StackPanel Orientation="Horizontal">
                         <iconPacks:PackIconMaterial Kind="LayersTriple" Style="{StaticResource ResponsiveNavIcon}"/>
                         <TextBlock Text="Stacker" Style="{StaticResource ResponsiveNavText}"/>
                     </StackPanel>
                 </Button>
-                <Button x:Name="menuOptionLoliCode" Style="{StaticResource ResponsiveNavButton}" Click="HandleNavigationClick" Tag="ConfigLoliCode" ToolTip="LoliCode" FontSize="12" Padding="12,8" Margin="0,1" HorizontalContentAlignment="Left">
+                <Button x:Name="menuOptionLoliCode" Style="{StaticResource ResponsiveNavButton}" Click="HandleNavigationClick" Tag="ConfigLoliCode" ToolTip="LoliCode" FontSize="12" Padding="12,8" Margin="0,1" HorizontalContentAlignment="Left"
+                        AutomationProperties.Name="Config LoliCode"
+                        AutomationProperties.AutomationId="SubmenuLoliCode"
+                        AutomationProperties.HelpText="Open configuration LoliCode editor">
                     <StackPanel Orientation="Horizontal">
                         <iconPacks:PackIconMaterial Kind="CodeBraces" Style="{StaticResource ResponsiveNavIcon}"/>
                         <TextBlock Text="LoliCode" Style="{StaticResource ResponsiveNavText}"/>
                     </StackPanel>
                 </Button>
-                <Button x:Name="menuOptionConfigSettings" Style="{StaticResource ResponsiveNavButton}" Click="HandleNavigationClick" Tag="ConfigSettings" ToolTip="Settings" FontSize="12" Padding="12,8" Margin="0,1" HorizontalContentAlignment="Left">
+                <Button x:Name="menuOptionConfigSettings" Style="{StaticResource ResponsiveNavButton}" Click="HandleNavigationClick" Tag="ConfigSettings" ToolTip="Settings" FontSize="12" Padding="12,8" Margin="0,1" HorizontalContentAlignment="Left"
+                        AutomationProperties.Name="Config settings"
+                        AutomationProperties.AutomationId="SubmenuSettings"
+                        AutomationProperties.HelpText="Open configuration settings">
                     <StackPanel Orientation="Horizontal">
                         <iconPacks:PackIconMaterial Kind="Cog" Style="{StaticResource ResponsiveNavIcon}"/>
                         <TextBlock Text="Settings" Style="{StaticResource ResponsiveNavText}"/>
                     </StackPanel>
                 </Button>
-                <Button x:Name="menuOptionCSharpCode" Style="{StaticResource ResponsiveNavButton}" Click="HandleNavigationClick" Tag="ConfigCSharpCode" ToolTip="C# Code" FontSize="12" Padding="12,8" Margin="0,1" HorizontalContentAlignment="Left">
+                <Button x:Name="menuOptionCSharpCode" Style="{StaticResource ResponsiveNavButton}" Click="HandleNavigationClick" Tag="ConfigCSharpCode" ToolTip="C# Code" FontSize="12" Padding="12,8" Margin="0,1" HorizontalContentAlignment="Left"
+                        AutomationProperties.Name="Config C# code"
+                        AutomationProperties.AutomationId="SubmenuCSharp"
+                        AutomationProperties.HelpText="Open configuration C# editor">
                     <StackPanel Orientation="Horizontal">
                         <iconPacks:PackIconMaterial Kind="LanguageCsharp" Style="{StaticResource ResponsiveNavIcon}"/>
                         <TextBlock Text="C# Code" Style="{StaticResource ResponsiveNavText}"/>

@@ -5,6 +5,7 @@ using ICSharpCode.AvalonEdit.Editing;
 using ICSharpCode.AvalonEdit.Highlighting;
 using ICSharpCode.AvalonEdit.Highlighting.Xshd;
 using ICSharpCode.AvalonEdit.Search;
+using OpenBullet2.Core.Models.Settings;
 using OpenBullet2.Core.Repositories;
 using OpenBullet2.Core.Services;
 using OpenBullet2.Native.Helpers;
@@ -29,6 +30,7 @@ namespace OpenBullet2.Native.Views.Pages
         private readonly ConfigLoliCodeViewModel vm;
         private readonly ConfigService configService;
         private readonly IConfigRepository configRepo; // TODO: This should not be here
+        private readonly AccessibilitySettings accessibility;
         private CompletionWindow completionWindow;
 
         public ConfigLoliCode()
@@ -39,6 +41,7 @@ namespace OpenBullet2.Native.Views.Pages
             InitializeComponent();
             configService = ServiceLocator.GetService<ConfigService>();
             configRepo = ServiceLocator.GetService<IConfigRepository>();
+            accessibility = ServiceLocator.GetService<OpenBulletSettingsService>().Settings.AccessibilitySettings ?? new AccessibilitySettings();
 
             HighlightSyntax(editor);
             AddAutoCompletion(editor);
@@ -47,6 +50,8 @@ namespace OpenBullet2.Native.Views.Pages
             HighlightSyntax(startupEditor);
             AddAutoCompletion(startupEditor);
             SearchPanel.Install(startupEditor);
+
+            ApplyAccessibilityPreferences();
         }
 
         public void UpdateViewModel()
@@ -168,7 +173,10 @@ namespace OpenBullet2.Native.Views.Pages
                 configService.SelectedConfig.StartupLoliCodeScript = startupEditor.Text;
                 await configRepo.SaveAsync(configService.SelectedConfig);
                 Alert.Success("Saved", $"{configService.SelectedConfig.Metadata.Name} was saved successfully!");
+                e.Handled = true;
             }
+            // For all other keys (including Ctrl+F), let them pass through to the editor
+            // Don't set e.Handled to allow the editor to handle its native shortcuts
         }
 
         private void ToggleUsings(object sender, RoutedEventArgs e) => usingsContainer.Visibility =
@@ -176,6 +184,57 @@ namespace OpenBullet2.Native.Views.Pages
 
         private void ToggleStartup(object sender, RoutedEventArgs e) => startupEditorContainer.Visibility =
             startupEditorContainer.Visibility == Visibility.Collapsed ? Visibility.Visible : Visibility.Collapsed;
+
+        private void ApplyAccessibilityPreferences()
+        {
+            if (accessibility.UseLargeEditorFonts)
+            {
+                editor.FontSize = 13.5;
+                startupEditor.FontSize = 13.5;
+                usingsTextBox.FontSize = 13;
+            }
+
+            if (accessibility.UseComfortableSpacing)
+            {
+                editor.Margin = new Thickness(4);
+                startupEditor.Margin = new Thickness(4);
+                usingsTextBox.Margin = new Thickness(0, 4, 0, 0);
+            }
+
+            if (accessibility.ShowHelpfulTooltips)
+            {
+                ConfigureTooltip(ToggleUsingsButton, "Show or hide the custom using statements");
+                ConfigureTooltip(ToggleStartupButton, "Show or hide the startup script editor");
+                ConfigureTooltip(editor, "Edit the primary LoliCode script");
+                ConfigureTooltip(startupEditor, "Edit the startup LoliCode script");
+            }
+
+            if (accessibility.AlwaysShowFocusVisuals)
+            {
+                var focusStyle = Application.Current.TryFindResource("HighVisibilityFocusStyle") as Style;
+                if (focusStyle != null)
+                {
+                    ToggleUsingsButton.FocusVisualStyle = focusStyle;
+                    ToggleStartupButton.FocusVisualStyle = focusStyle;
+                    editor.FocusVisualStyle = focusStyle;
+                    startupEditor.FocusVisualStyle = focusStyle;
+                    usingsTextBox.FocusVisualStyle = focusStyle;
+                }
+            }
+        }
+
+        private static void ConfigureTooltip(DependencyObject target, string text)
+        {
+            if (target == null)
+            {
+                return;
+            }
+
+            ToolTipService.SetToolTip(target, text);
+            ToolTipService.SetInitialShowDelay(target, 150);
+            ToolTipService.SetShowDuration(target, 10000);
+            ToolTipService.SetBetweenShowDelay(target, 250);
+        }
     }
 
     public class ConfigLoliCodeViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase

@@ -151,22 +151,27 @@ namespace RuriLib.Http.Models
         private void AddCookieHeaders(List<KeyValuePair<string, string>> finalHeaders)
         {
             // Add the Cookie header if not set manually and cookies exist
-            if (!HeaderExists("Cookie", out _) && Cookies.Count != 0)
+            if (!HeaderExists("Cookie", out _))
             {
-                var cookieBuilder = new StringBuilder();
-                var firstCookie = true;
-
-                foreach (var cookie in Cookies)
+                // Only include cookies with non-empty values
+                var nonEmptyCookies = Cookies.Where(static kv => !string.IsNullOrEmpty(kv.Value)).ToArray();
+                if (nonEmptyCookies.Length > 0)
                 {
-                    if (!firstCookie)
-                    {
-                        _ = cookieBuilder.Append("; ");
-                    }
-                    _ = cookieBuilder.Append($"{cookie.Key}={cookie.Value}");
-                    firstCookie = false;
-                }
+                    var cookieBuilder = new StringBuilder();
+                    var firstCookie = true;
 
-                finalHeaders.Add("Cookie", cookieBuilder.ToString());
+                    foreach (var cookie in nonEmptyCookies)
+                    {
+                        if (!firstCookie)
+                        {
+                            _ = cookieBuilder.Append("; ");
+                        }
+                        _ = cookieBuilder.Append($"{cookie.Key}={cookie.Value}");
+                        firstCookie = false;
+                    }
+
+                    finalHeaders.Add("Cookie", cookieBuilder.ToString());
+                }
             }
         }
 

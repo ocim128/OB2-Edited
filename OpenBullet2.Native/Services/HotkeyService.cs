@@ -324,8 +324,14 @@ namespace OpenBullet2.Native.Services
         {
             try
             {
-                // Use the ui-sound.mp3 file from the application directory (portable)
-                var soundPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ui-sound.mp3");
+                // Use the ui-sound.mp3 file from the Sounds directory
+                var baseDir = AppDomain.CurrentDomain.BaseDirectory;
+                var soundPath = Path.Combine(baseDir, "Sounds", "ui-sound.mp3");
+
+                if (!File.Exists(soundPath))
+                {
+                    soundPath = Path.Combine(baseDir, "ui-sound.mp3");
+                }
 
                 if (File.Exists(soundPath))
                 {

@@ -1,3 +1,5 @@
+using OpenBullet2.Core.Models.Settings;
+using OpenBullet2.Core.Services;
 using OpenBullet2.Native.Extensions;
 using OpenBullet2.Native.Helpers;
 using OpenBullet2.Native.Services;
@@ -33,6 +35,7 @@ namespace OpenBullet2.Native.Views.Pages.Shared
 
         #region Private Fields
         private readonly DebuggerViewModel _viewModel;
+        private readonly AccessibilitySettings _accessibility;
         private Queue<BotLoggerEntry> _pendingEntries;
         private DispatcherTimer _resizeTimer;
         private DispatcherTimer _updateTimer;
@@ -58,6 +61,9 @@ namespace OpenBullet2.Native.Views.Pages.Shared
         /// </summary>
         public Debugger()
         {
+            var settingsService = ServiceLocator.GetService<OpenBulletSettingsService>();
+            _accessibility = settingsService.Settings.AccessibilitySettings ?? new AccessibilitySettings();
+
             _viewModel = ServiceLocator.GetService<ViewModelsService>().Debugger;
             DataContext = _viewModel;
 
@@ -67,6 +73,7 @@ namespace OpenBullet2.Native.Views.Pages.Shared
             InitializeComponent();
             InitializeComponents();
             SetupEventHandlers();
+            ApplyAccessibilityPreferences();
         }
         #endregion
 
@@ -81,13 +88,13 @@ namespace OpenBullet2.Native.Views.Pages.Shared
             tabControl.SelectedIndex = 0;
 
             // Configure RichTextBox controls
-            ConfigureRichTextBox(logRTB);
-            ConfigureRichTextBox(variablesRTB);
+            ConfigureRichTextBox(logRTB, _accessibility.UseLargeEditorFonts ? 12.5f : 11f);
+            ConfigureRichTextBox(variablesRTB, _accessibility.UseLargeEditorFonts ? 12.5f : 11f);
 
             // Initialize queues and timers
             _pendingEntries = new Queue<BotLoggerEntry>();
-            _resizeTimer = CreateTimer(TimeSpan.FromMilliseconds(RESIZE_DELAY_MS), OnResizeTimerTick);
-            _updateTimer = CreateTimer(TimeSpan.FromMilliseconds(UPDATE_INTERVAL_MS), OnUpdateTimerTick);
+            _resizeTimer = CreateTimer(TimeSpan.FromMilliseconds(_accessibility.ReduceAnimations ? RESIZE_DELAY_MS * 2 : RESIZE_DELAY_MS), OnResizeTimerTick);
+            _updateTimer = CreateTimer(TimeSpan.FromMilliseconds(_accessibility.ReduceAnimations ? UPDATE_INTERVAL_MS * 2 : UPDATE_INTERVAL_MS), OnUpdateTimerTick);
             _updateTimer.Start();
         }
 
@@ -95,9 +102,9 @@ namespace OpenBullet2.Native.Views.Pages.Shared
         /// Configures a RichTextBox control with consistent styling.
         /// </summary>
         /// <param name="richTextBox">The RichTextBox to configure.</param>
-        private static void ConfigureRichTextBox(System.Windows.Forms.RichTextBox richTextBox)
+        private static void ConfigureRichTextBox(System.Windows.Forms.RichTextBox richTextBox, float fontSize)
         {
-            richTextBox.Font = new System.Drawing.Font("Consolas", 11f);
+            richTextBox.Font = new System.Drawing.Font("Consolas", fontSize);
             richTextBox.BackColor = System.Drawing.Color.FromArgb(22, 22, 22);
             richTextBox.HandleCreated += (_, _) => FixAutoWordSelection(richTextBox);
         }
@@ -132,6 +139,86 @@ namespace OpenBullet2.Native.Views.Pages.Shared
         {
             // Keyboard shortcuts are already handled in OnDebuggerKeyDown
             // No additional setup needed
+        }
+
+        private void ApplyAccessibilityPreferences()
+        {
+            if (_accessibility.UseLargeEditorFonts)
+            {
+                inputDataTextBox.FontSize = 14;
+                searchTextBox.FontSize = 14;
+            }
+
+            if (_accessibility.UseComfortableSpacing)
+            {
+                TabToggleButton.Margin = new Thickness(0, 0, 12, 0);
+                OptionsToggleButton.Margin = new Thickness(0, 0, 12, 0);
+                StackerToggleButton.Margin = new Thickness(0, 0, 12, 0);
+                ConfigurationPanel.Padding = new Thickness(18, 14, 18, 14);
+            }
+
+            if (_accessibility.ShowHelpfulTooltips)
+            {
+                ConfigureTooltip(TabToggleButton, "Show or hide debugger interface elements (Alt+U)");
+                ConfigureTooltip(OptionsToggleButton, "Toggle secondary debugger options");
+                ConfigureTooltip(StackerToggleButton, "Toggle stacker blocks visibility");
+                ConfigureTooltip(StartButton, "Start execution (Alt+S)");
+                if (StepButton != null)
+                {
+                    ConfigureTooltip(StepButton, "Run a single step (Ctrl+Alt+Right)");
+                }
+                if (StopButton != null)
+                {
+                    ConfigureTooltip(StopButton, "Stop execution (Alt+X)");
+                }
+                ConfigureTooltip(searchTextBox, "Search within log output (Ctrl+F)");
+            }
+
+            if (_accessibility.AlwaysShowFocusVisuals)
+            {
+                var focusStyle = Application.Current.TryFindResource("HighVisibilityFocusStyle") as Style;
+                if (focusStyle != null)
+                {
+                    foreach (var control in EnumerateFocusableControls())
+                    {
+                        control.FocusVisualStyle = focusStyle;
+                    }
+                }
+            }
+        }
+
+        private IEnumerable<Control> EnumerateFocusableControls()
+        {
+            yield return TabToggleButton;
+            yield return OptionsToggleButton;
+            yield return StackerToggleButton;
+            yield return StartButton;
+
+            if (StopButton != null)
+            {
+                yield return StopButton;
+            }
+
+            if (StepButton != null)
+            {
+                yield return StepButton;
+            }
+
+            yield return searchTextBox;
+            yield return inputDataTextBox;
+        }
+
+        private void ConfigureTooltip(DependencyObject target, string text)
+        {
+            if (target == null)
+            {
+                return;
+            }
+
+            ToolTipService.SetToolTip(target, text);
+            ToolTipService.SetInitialShowDelay(target, 150);
+            ToolTipService.SetShowDuration(target, 12000);
+            ToolTipService.SetBetweenShowDelay(target, 300);
         }
         #endregion
 
@@ -216,6 +303,13 @@ namespace OpenBullet2.Native.Views.Pages.Shared
         /// </summary>
         private void OnDebuggerKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
         {
+            // Check if focus is on a code editor (LoliCode or CSharp) - if so, don't intercept editor shortcuts
+            var focusedElement = Keyboard.FocusedElement as System.Windows.UIElement;
+            var isEditorFocused = focusedElement != null && (
+                focusedElement.GetType().Name.Contains("TextEditor") || // AvalonEdit editor
+                focusedElement.ToString().Contains("ICSharpCode.AvalonEdit") // More specific check
+            );
+
             // Handle Alt-based shortcuts using SystemKey (fallback to Key when SystemKey is None)
             if (Keyboard.Modifiers == ModifierKeys.Alt)
             {
@@ -254,8 +348,13 @@ namespace OpenBullet2.Native.Views.Pages.Shared
                     e.Handled = true;
                     break;
                 case System.Windows.Input.Key.F when Keyboard.Modifiers == ModifierKeys.Control:
-                    searchTextBox.Focus();
-                    e.Handled = true;
+                    // Only handle Ctrl+F if not focused on an editor
+                    if (!isEditorFocused)
+                    {
+                        searchTextBox.Focus();
+                        e.Handled = true;
+                    }
+                    // If editor is focused, let the editor handle Ctrl+F for its search
                     break;
                 case System.Windows.Input.Key.L when Keyboard.Modifiers == ModifierKeys.Control:
                     ClearLog(null, null);

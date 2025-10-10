@@ -157,6 +157,74 @@ namespace RuriLib.Blocks.Puppeteer.Elements
             return values.ToList();
         }
 
+        // New: Get HTML attribute via getAttribute for a single element
+        [Block("Gets an HTML attribute via getAttribute", name = "Get Attribute")]
+        public static async Task<string> PuppeteerGetAttribute(BotData data, FindElementBy findBy, string identifier, int index,
+            string attributeName)
+        {
+            data.Logger.LogHeader();
+
+            var elemScript = GetElementScript(findBy, identifier, index);
+            var frame = GetFrame(data);
+            var safeAttr = attributeName?.Replace("'", "\\'") ?? string.Empty;
+            var script = $"(function(){{var el = {elemScript}; if(!el) return ''; var v = el.getAttribute('{safeAttr}'); return v == null ? '' : String(v);}})()";
+            var value = await frame.EvaluateExpressionAsync<string>(script);
+
+            data.Logger.Log($"Got attribute {attributeName} value '{value}' by executing {script}", LogColors.DarkSalmon);
+            return value;
+        }
+
+        // New: Get HTML attribute via getAttribute for multiple elements
+        [Block("Gets HTML attribute values via getAttribute for multiple elements", name = "Get Attribute All")]
+        public static async Task<List<string>> PuppeteerGetAttributeAll(BotData data, FindElementBy findBy, string identifier,
+            string attributeName)
+        {
+            data.Logger.LogHeader();
+
+            var elemScript = GetElementsScript(findBy, identifier);
+            var frame = GetFrame(data);
+            var safeAttr = attributeName?.Replace("'", "\\'") ?? string.Empty;
+            var script = $"Array.prototype.slice.call({elemScript}).map((item) => {{ var v = item ? item.getAttribute('{safeAttr}') : null; return v == null ? '' : String(v); }})";
+            var values = await frame.EvaluateExpressionAsync<string[]>(script);
+
+            data.Logger.Log($"Got {values.Length} attribute '{attributeName}' values by executing {script}", LogColors.DarkSalmon);
+            return values.ToList();
+        }
+
+        // New: Get DOM property value using bracket notation for dynamic property names
+        [Block("Gets a DOM property value of an element", name = "Get Property Value")]
+        public static async Task<string> PuppeteerGetPropertyValue(BotData data, FindElementBy findBy, string identifier, int index,
+            string propertyName = "innerText")
+        {
+            data.Logger.LogHeader();
+
+            var elemScript = GetElementScript(findBy, identifier, index);
+            var frame = GetFrame(data);
+            var safeProp = propertyName?.Replace("'", "\\'") ?? string.Empty;
+            var script = $"(function(){{var el = {elemScript}; if(!el) return ''; var v = el['{safeProp}']; return v == null ? '' : String(v);}})()";
+            var value = await frame.EvaluateExpressionAsync<string>(script);
+
+            data.Logger.Log($"Got property {propertyName} value '{value}' by executing {script}", LogColors.DarkSalmon);
+            return value;
+        }
+
+        // New: Get DOM property values for multiple elements
+        [Block("Gets DOM property values of multiple elements", name = "Get Property Value All")]
+        public static async Task<List<string>> PuppeteerGetPropertyValueAll(BotData data, FindElementBy findBy, string identifier,
+            string propertyName = "innerText")
+        {
+            data.Logger.LogHeader();
+
+            var elemScript = GetElementsScript(findBy, identifier);
+            var frame = GetFrame(data);
+            var safeProp = propertyName?.Replace("'", "\\'") ?? string.Empty;
+            var script = $"Array.prototype.slice.call({elemScript}).map((item) => {{ var v = item ? item['{safeProp}'] : null; return v == null ? '' : String(v); }})";
+            var values = await frame.EvaluateExpressionAsync<string[]>(script);
+
+            data.Logger.Log($"Got {values.Length} property '{propertyName}' values by executing {script}", LogColors.DarkSalmon);
+            return values.ToList();
+        }
+
         [Block("Checks if an element is currently being displayed on the page", name = "Is Displayed")]
         public static async Task<bool> PuppeteerIsDisplayed(BotData data, FindElementBy findBy, string identifier, int index)
         {
@@ -300,15 +368,203 @@ namespace RuriLib.Blocks.Puppeteer.Elements
         }
 
         [Block("Switches to a different iframe", name = "Switch to Frame")]
-        public static async Task PuppeteerSwitchToFrame(BotData data, FindElementBy findBy, string identifier, int index)
+        public static async Task PuppeteerSwitchToFrame(BotData data, FindElementBy findBy, string identifier, int index, int timeoutMs = 3000)
         {
             data.Logger.LogHeader();
 
+            // Ensure we are operating on a valid (non-detached) frame; if not, reset to MainFrame
             var frame = GetFrame(data);
-            var elem = await GetElement(frame, findBy, identifier, index);
-            data.SetObject("puppeteerFrame", await elem.ContentFrameAsync());
+            bool frameValid = false;
+            try
+            {
+                var pingTask = frame.EvaluateExpressionAsync<bool>("true");
+                var finished = await Task.WhenAny(pingTask, Task.Delay(300));
+                if (finished == pingTask)
+                {
+                    frameValid = true; // ping succeeded quickly
+                }
+            }
+            catch (PuppeteerSharp.PuppeteerException ex)
+            {
+                if (ex.Message != null && ex.Message.IndexOf("detached frame", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    frameValid = false;
+                }
+            }
+            catch
+            {
+                frameValid = false;
+            }
 
-            data.Logger.Log($"Switched to iframe", LogColors.DarkSalmon);
+            if (!frameValid)
+            {
+                var page = GetPage(data);
+                frame = page.MainFrame;
+                data.SetObject("puppeteerFrame", frame);
+                data.Logger.Log("Current frame is detached; reset to MainFrame", LogColors.Yellow);
+            }
+
+            // Acquire element with timeout to avoid hangs if the context is flaky
+            IElementHandle elem;
+            {
+                var getTask = GetElement(frame, findBy, identifier, index);
+                var done = await Task.WhenAny(getTask, Task.Delay(500));
+                if (done == getTask)
+                {
+                    elem = await getTask;
+                }
+                else
+                {
+                    // If timed out, try once more after resetting to MainFrame
+                    var page = GetPage(data);
+                    frame = page.MainFrame;
+                    data.SetObject("puppeteerFrame", frame);
+                    var retryTask = GetElement(frame, findBy, identifier, index);
+                    var retryDone = await Task.WhenAny(retryTask, Task.Delay(500));
+                    if (retryDone != retryTask)
+                        throw new TimeoutException("Timeout locating iframe element");
+                    elem = await retryTask;
+                }
+            }
+
+            // Quick validation: ensure the element is an IFRAME without blocking
+            try
+            {
+                var tagTask = elem.EvaluateFunctionAsync<string>("e => e && e.tagName");
+                var tagCompleted = await Task.WhenAny(tagTask, Task.Delay(300));
+                if (tagCompleted == tagTask)
+                {
+                    var tag = await tagTask;
+                    if (!string.Equals(tag, "IFRAME", StringComparison.OrdinalIgnoreCase))
+                    {
+                        throw new Exception("Selected element is not an iframe");
+                    }
+                }
+            }
+            catch
+            {
+                // If evaluation fails or times out, proceed best-effort
+            }
+
+            var deadline = DateTime.UtcNow + TimeSpan.FromMilliseconds(Math.Max(0, timeoutMs));
+            IFrame? targetFrame = null;
+
+            // Single loop: try to acquire content frame; if handle is stale, re-acquire; never block indefinitely
+            while (DateTime.UtcNow < deadline)
+            {
+                // Re-validate frame quickly; if invalid, reset to MainFrame before continuing
+                bool valid = false;
+                try
+                {
+                    var pingTask = frame.EvaluateExpressionAsync<bool>("true");
+                    var finished = await Task.WhenAny(pingTask, Task.Delay(200));
+                    valid = finished == pingTask;
+                }
+                catch { valid = false; }
+                if (!valid)
+                {
+                    var page = GetPage(data);
+                    frame = page.MainFrame;
+                    data.SetObject("puppeteerFrame", frame);
+                    // Re-acquire element after frame reset (with timeout)
+                    var reacquireTask = GetElement(frame, findBy, identifier, index);
+                    var reacquireDone = await Task.WhenAny(reacquireTask, Task.Delay(400));
+                    if (reacquireDone == reacquireTask)
+                    {
+                        elem = await reacquireTask;
+                    }
+                    else
+                    {
+                        await Task.Delay(200);
+                        continue;
+                    }
+                }
+
+                var contentFrameTask = elem.ContentFrameAsync();
+                var completed = await Task.WhenAny(contentFrameTask, Task.Delay(400));
+
+                if (completed == contentFrameTask)
+                {
+                    try
+                    {
+                        targetFrame = await contentFrameTask;
+                        if (targetFrame != null) break;
+                    }
+                    catch
+                    {
+                        // ignore and retry
+                    }
+                }
+
+                // Re-acquire the element in case the handle is stale or detached (with timeout)
+                var reacquireTask2 = GetElement(frame, findBy, identifier, index);
+                var reacquireDone2 = await Task.WhenAny(reacquireTask2, Task.Delay(300));
+                if (reacquireDone2 == reacquireTask2)
+                {
+                    try { elem = await reacquireTask2; } catch { }
+                }
+
+                await Task.Delay(200);
+            }
+
+            if (targetFrame == null)
+            {
+                // Last-chance fallback: pick a non-main frame with a real URL if there's only one candidate
+                var page = GetPage(data);
+                var candidates = page.Frames.Where(f => f != page.MainFrame && !string.IsNullOrEmpty(f.Url) && !f.Url.StartsWith("about:blank", StringComparison.OrdinalIgnoreCase)).ToList();
+                if (candidates.Count == 1)
+                {
+                    targetFrame = candidates[0];
+                    data.Logger.Log($"Fallback selected frame by Url: {targetFrame.Url}", LogColors.Yellow);
+                }
+            }
+
+            // Attempt targeted fallback by matching iframe src/name to existing frames
+            if (targetFrame == null)
+            {
+                string? src = null;
+                string? name = null;
+                try
+                {
+                    var srcTask = elem.EvaluateFunctionAsync<string>("e => e && (e.getAttribute('src') || e.src) || ''");
+                    var nameTask = elem.EvaluateFunctionAsync<string>("e => e && (e.getAttribute('name') || e.name) || ''");
+                    var srcDone = await Task.WhenAny(srcTask, Task.Delay(300));
+                    var nameDone = await Task.WhenAny(nameTask, Task.Delay(300));
+                    if (srcDone == srcTask) src = await srcTask;
+                    if (nameDone == nameTask) name = await nameTask;
+                }
+                catch { }
+
+                var page = GetPage(data);
+                if (!string.IsNullOrWhiteSpace(src))
+                {
+                    var byUrl = page.Frames.FirstOrDefault(f => string.Equals(f.Url, src, StringComparison.OrdinalIgnoreCase))
+                               ?? page.Frames.FirstOrDefault(f => f.Url.IndexOf(src, StringComparison.OrdinalIgnoreCase) >= 0);
+                    if (byUrl != null)
+                    {
+                        targetFrame = byUrl;
+                        data.Logger.Log($"Fallback matched frame by src: {src}", LogColors.Yellow);
+                    }
+                }
+                if (targetFrame == null && !string.IsNullOrWhiteSpace(name))
+                {
+                    var byName = page.Frames.FirstOrDefault(f => string.Equals(f.Name, name, StringComparison.OrdinalIgnoreCase));
+                    if (byName != null)
+                    {
+                        targetFrame = byName;
+                        data.Logger.Log($"Fallback matched frame by name: {name}", LogColors.Yellow);
+                    }
+                }
+            }
+
+            if (targetFrame == null)
+            {
+                data.Logger.Log("Timeout acquiring iframe content frame", LogColors.DarkSalmon);
+                throw new TimeoutException("Timeout acquiring iframe content frame");
+            }
+
+            data.SetObject("puppeteerFrame", targetFrame);
+            data.Logger.Log("Switched to iframe", LogColors.DarkSalmon);
         }
 
         [Block("Waits for an element to appear on the page", name = "Wait for Element")]
@@ -382,5 +638,65 @@ namespace RuriLib.Blocks.Puppeteer.Elements
 
         private static IFrame GetFrame(BotData data)
             => data.TryGetObject<IFrame>("puppeteerFrame") ?? GetPage(data).MainFrame;
+
+        // New: Get innerHTML of a single element
+        [Block("Gets the innerHTML of an element", name = "Get InnerHTML")]
+        public static async Task<string> PuppeteerGetInnerHTML(BotData data, FindElementBy findBy, string identifier, int index)
+        {
+            data.Logger.LogHeader();
+
+            var elemScript = GetElementScript(findBy, identifier, index);
+            var frame = GetFrame(data);
+            var script = $"(function(){{var el = {elemScript}; return el ? String(el.innerHTML || '') : '';}})()";
+            var value = await frame.EvaluateExpressionAsync<string>(script);
+
+            data.Logger.Log($"Got innerHTML length {value?.Length ?? 0}", LogColors.DarkSalmon);
+            return value;
+        }
+
+        // New: Get outerHTML of a single element
+        [Block("Gets the outerHTML of an element", name = "Get OuterHTML")]
+        public static async Task<string> PuppeteerGetOuterHTML(BotData data, FindElementBy findBy, string identifier, int index)
+        {
+            data.Logger.LogHeader();
+
+            var elemScript = GetElementScript(findBy, identifier, index);
+            var frame = GetFrame(data);
+            var script = $"(function(){{var el = {elemScript}; return el ? String(el.outerHTML || '') : '';}})()";
+            var value = await frame.EvaluateExpressionAsync<string>(script);
+
+            data.Logger.Log($"Got outerHTML length {value?.Length ?? 0}", LogColors.DarkSalmon);
+            return value;
+        }
+
+        // New: Get innerHTML of multiple elements
+        [Block("Gets the innerHTML values of multiple elements", name = "Get InnerHTML All")]
+        public static async Task<List<string>> PuppeteerGetInnerHTMLAll(BotData data, FindElementBy findBy, string identifier)
+        {
+            data.Logger.LogHeader();
+
+            var elemScript = GetElementsScript(findBy, identifier);
+            var frame = GetFrame(data);
+            var script = $"Array.prototype.slice.call({elemScript}).map((item) => {{ var v = item ? item.innerHTML : null; return v == null ? '' : String(v); }})";
+            var values = await frame.EvaluateExpressionAsync<string[]>(script);
+
+            data.Logger.Log($"Got {values.Length} innerHTML values", LogColors.DarkSalmon);
+            return values.ToList();
+        }
+
+        // New: Get outerHTML of multiple elements
+        [Block("Gets the outerHTML values of multiple elements", name = "Get OuterHTML All")]
+        public static async Task<List<string>> PuppeteerGetOuterHTMLAll(BotData data, FindElementBy findBy, string identifier)
+        {
+            data.Logger.LogHeader();
+
+            var elemScript = GetElementsScript(findBy, identifier);
+            var frame = GetFrame(data);
+            var script = $"Array.prototype.slice.call({elemScript}).map((item) => {{ var v = item ? item.outerHTML : null; return v == null ? '' : String(v); }})";
+            var values = await frame.EvaluateExpressionAsync<string[]>(script);
+
+            data.Logger.Log($"Got {values.Length} outerHTML values", LogColors.DarkSalmon);
+            return values.ToList();
+        }
     }
 }

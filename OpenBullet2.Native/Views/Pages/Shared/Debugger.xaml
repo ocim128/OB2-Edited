@@ -46,7 +46,9 @@
                         Margin="0,0,8,0"
                         Background="{StaticResource Modern.Success}"
                         Foreground="{StaticResource Modern.TextOnAccent}"
-                        ToolTip="Toggle UI elements visibility">
+                        ToolTip="Toggle UI elements visibility"
+                        AutomationProperties.Name="Toggle debugger UI"
+                        AutomationProperties.AutomationId="DbgToggleUi">
                     <StackPanel Orientation="Horizontal">
                         <iconPacks:PackIconUnicons x:Name="TabToggleIcon"
                                                    Kind="Eye"
@@ -66,7 +68,9 @@
                         Margin="0,0,8,0"
                         Background="{StaticResource Modern.ThemeAccent}"
                         Foreground="{StaticResource Modern.TextOnAccent}"
-                        ToolTip="Toggle options visibility">
+                        ToolTip="Toggle options visibility"
+                        AutomationProperties.Name="Toggle options"
+                        AutomationProperties.AutomationId="DbgToggleOptions">
                     <StackPanel Orientation="Horizontal">
                         <iconPacks:PackIconUnicons x:Name="OptionsToggleIcon"
                                                    Kind="Eye"
@@ -85,7 +89,9 @@
                         MinWidth="130"
                         Background="{StaticResource Modern.Success}"
                         Foreground="{StaticResource Modern.TextOnAccent}"
-                        ToolTip="Toggle stacker visibility">
+                        ToolTip="Toggle stacker visibility"
+                        AutomationProperties.Name="Toggle stacker"
+                        AutomationProperties.AutomationId="DbgToggleStacker">
                     <StackPanel Orientation="Horizontal">
                         <iconPacks:PackIconUnicons x:Name="StackerToggleIcon"
                                                    Kind="Eye"
@@ -146,7 +152,9 @@
                                  AcceptsReturn="False"
                                  TextWrapping="NoWrap"
                                  VerticalScrollBarVisibility="Disabled"
-                                 HorizontalScrollBarVisibility="Hidden" />
+                                 HorizontalScrollBarVisibility="Hidden"
+                                 AutomationProperties.Name="Input data"
+                                 AutomationProperties.AutomationId="DbgInputData" />
                     </StackPanel>
                     <!-- Perfect Start Button -->
                     <StackPanel Grid.Column="2"
@@ -158,21 +166,29 @@
                                 Width="80"
                                 Height="32"
                                 Margin="0,0,6,0"
-                                Padding="10,6" />
-                        <Button Click="Stop"
+                                Padding="10,6"
+                                AutomationProperties.Name="Start debugging"
+                                AutomationProperties.AutomationId="DbgStart" />
+                        <Button x:Name="StopButton"
+                                Click="Stop"
                                 Style="{StaticResource PerfectStopButton}"
                                 Visibility="{Binding CanStop, Converter={StaticResource BoolToVis}}"
                                 Width="80"
                                 Height="32"
                                 Margin="0,0,6,0"
-                                Padding="10,6" />
-                        <Button Click="TakeStep"
+                                Padding="10,6"
+                                AutomationProperties.Name="Stop debugging"
+                                AutomationProperties.AutomationId="DbgStop" />
+                        <Button x:Name="StepButton"
+                                Click="TakeStep"
                                 Style="{StaticResource StyledPrimaryButton}"
                                 Visibility="{Binding CanTakeStep, Converter={StaticResource BoolToVis}}"
                                 Width="75"
                                 Height="32"
                                 Margin="0,0,6,0"
-                                FontSize="11">
+                                FontSize="11"
+                                AutomationProperties.Name="Step execution"
+                                AutomationProperties.AutomationId="DbgStep">
                             <StackPanel Orientation="Horizontal">
                                 <iconPacks:PackIconEntypo Kind="ControllerPlay"
                                                           Width="12"
@@ -367,7 +383,9 @@
                                  ToolTip="Search logs (Ctrl+F)"
                                  RenderOptions.ClearTypeHint="Enabled"
                                  UseLayoutRounding="True"
-                                 SpellCheck.IsEnabled="False" />
+                                 SpellCheck.IsEnabled="False"
+                                 AutomationProperties.Name="Search logs"
+                                 AutomationProperties.AutomationId="DbgSearchInput" />
                                 <!-- Simplified Search Button -->
                                 <Button Grid.Column="2"
                         Click="Search"
@@ -378,7 +396,9 @@
                         Background="{StaticResource Modern.Success}"
                         Foreground="{StaticResource Modern.TextOnAccent}"
                         Content="Search"
-                        FontSize="11" />
+                        FontSize="11"
+                        AutomationProperties.Name="Execute search"
+                        AutomationProperties.AutomationId="DbgSearchButton" />
                                 <!-- Previous Button -->
                                 <Button Grid.Column="4"
                                         Click="PreviousMatch"
@@ -387,7 +407,9 @@
                                         Height="34"
                                         Background="{StaticResource Modern.BackgroundInput}"
                                         Foreground="{StaticResource Modern.ForegroundMain}"
-                                        ToolTip="Previous Match (Shift+F3)">
+                                        ToolTip="Previous Match (Shift+F3)"
+                                        AutomationProperties.Name="Previous match"
+                                        AutomationProperties.AutomationId="DbgSearchPrevious">
                                     <iconPacks:PackIconUnicons Kind="AngleLeft"
                                                                Width="16"
                                                                Height="16" />
@@ -417,7 +439,9 @@
                                         Height="34"
                                         Background="{StaticResource Modern.BackgroundInput}"
                                         Foreground="{StaticResource Modern.ForegroundMain}"
-                                        ToolTip="Next Match (F3)">
+                                        ToolTip="Next Match (F3)"
+                                        AutomationProperties.Name="Next match"
+                                        AutomationProperties.AutomationId="DbgSearchNext">
                                     <iconPacks:PackIconUnicons Kind="AngleRight"
                                                                Width="16"
                                                                Height="16" />
@@ -433,7 +457,9 @@
                                             Margin="0,0,8,0"
                                             Background="#DC2626"
                                             Foreground="{StaticResource Modern.ForegroundMain}"
-                                            ToolTip="Clear Search (Esc)">
+                                            ToolTip="Clear Search (Esc)"
+                                            AutomationProperties.Name="Clear search"
+                                            AutomationProperties.AutomationId="DbgSearchClear">
                                         <iconPacks:PackIconMaterialDesign Kind="Close"
                                                                           Width="14"
                                                                           Height="14" />
@@ -446,7 +472,9 @@
                                             Margin="0,0,8,0"
                                             Background="{Binding IsAutoScrollEnabled, Converter={StaticResource BoolToColorConverter}, ConverterParameter='#059669|#DC2626'}"
                                             Foreground="{StaticResource Modern.ForegroundMain}"
-                                            ToolTip="{Binding AutoScrollButtonText}">
+                                            ToolTip="{Binding AutoScrollButtonText}"
+                                            AutomationProperties.Name="Toggle auto scroll"
+                                            AutomationProperties.AutomationId="DbgToggleAutoScroll">
                                         <iconPacks:PackIconMaterial Kind="{Binding IsAutoScrollEnabled, Converter={StaticResource BoolToIconConverter}, ConverterParameter='Pause|Play'}"
                                                                     Width="14"
                                                                     Height="14" />
@@ -459,7 +487,9 @@
                                             Margin="0,0,8,0"
                                             Background="#0EA5E9"
                                             Foreground="{StaticResource Modern.ForegroundMain}"
-                                            ToolTip="Previous Block (Ctrl+Up)">
+                                            ToolTip="Previous Block (Ctrl+Up)"
+                                            AutomationProperties.Name="Previous block"
+                                            AutomationProperties.AutomationId="DbgBlockPrevious">
                                         <iconPacks:PackIconUnicons Kind="AngleDoubleLeft"
                                                                    Width="14"
                                                                    Height="14" />
@@ -472,7 +502,9 @@
                                             Margin="0,0,8,0"
                                             Background="#0EA5E9"
                                             Foreground="{StaticResource Modern.ForegroundMain}"
-                                            ToolTip="Next Block (Ctrl+Down)">
+                                            ToolTip="Next Block (Ctrl+Down)"
+                                            AutomationProperties.Name="Next block"
+                                            AutomationProperties.AutomationId="DbgBlockNext">
                                         <iconPacks:PackIconUnicons Kind="AngleDoubleRight"
                                                                    Width="14"
                                                                    Height="14" />
@@ -484,7 +516,9 @@
                                             Height="34"
                                             Background="{StaticResource Modern.BackgroundInput}"
                                             Foreground="{StaticResource Modern.ForegroundMain}"
-                                            ToolTip="Clear All Logs (Ctrl+L)">
+                                            ToolTip="Clear All Logs (Ctrl+L)"
+                                            AutomationProperties.Name="Clear log"
+                                            AutomationProperties.AutomationId="DbgClearLog">
                                         <iconPacks:PackIconMaterialDesign Kind="DeleteSweep"
                                                                           Width="14"
                                                                           Height="14" />

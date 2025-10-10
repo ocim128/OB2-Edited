@@ -2,11 +2,13 @@ using Newtonsoft.Json;
 using OpenBullet2.Native.Helpers;
 using System;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Media;
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -210,7 +212,7 @@ public class AppUpdateService : IAppUpdateService
                         expectedSize = headResponse.Content.Headers.ContentLength ?? 0;
                     }
 
-                    if (expectedSize > 0 && existingFileInfo.Length == expectedSize && await VerifyFileIntegrity(downloadPath).ConfigureAwait(false))
+                    if (expectedSize > 0 && existingFileInfo.Length == expectedSize && await VerifyFileIntegrity(downloadPath, expectedSize, msg => AppendUpdateLog($"Existing download check: {msg}")).ConfigureAwait(false))
                     {
                         needsDownload = false;
                         MessageBox.Show("Update file already downloaded and verified. Proceeding with installation...",
@@ -226,6 +228,10 @@ public class AppUpdateService : IAppUpdateService
                     try { File.Delete(downloadPath); } catch { }
                 }
             }
+
+            using var cts = new CancellationTokenSource();
+            var downloadCancelled = false;
+            var downloadCompleted = false;
 
             Window progressWindow = null!;
             ProgressBar progressBar = null!;
@@ -257,6 +263,20 @@ public class AppUpdateService : IAppUpdateService
                     Margin = new Thickness(20, 10, 20, 0)
                 };
 
+                progressWindow.Closing += (_, _) =>
+                {
+                    if (downloadCompleted)
+                    {
+                        return;
+                    }
+
+                    downloadCancelled = true;
+                    if (!cts.IsCancellationRequested)
+                    {
+                        cts.Cancel();
+                    }
+                };
+
                 var stackPanel = new StackPanel();
                 stackPanel.Children.Add(statusLabel);
                 stackPanel.Children.Add(progressBar);
@@ -265,37 +285,76 @@ public class AppUpdateService : IAppUpdateService
                 progressWindow.Show();
             }).Task.ConfigureAwait(true);
 
-            if (needsDownload)
+            try
             {
-                int maxRetries = 3;
-                int retryDelay = 2000;
-
-                for (int attempt = 1; attempt <= maxRetries; attempt++)
+                if (needsDownload)
                 {
-                    try
-                    {
-                        statusLabel.Dispatcher.Invoke(() => statusLabel.Content = attempt > 1 ? $"Downloading (Attempt {attempt}/{maxRetries})..." : "Downloading...");
-                        await DownloadFileWithProgress(downloadUrl, downloadPath, progressBar, statusLabel).ConfigureAwait(false);
-                        break;
-                    }
-                    catch (Exception ex) when (attempt < maxRetries)
-                    {
-                        statusLabel.Dispatcher.Invoke(() => statusLabel.Content = $"Download failed (Attempt {attempt}/{maxRetries}): {ex.Message}\nRetrying in {retryDelay / 1000} seconds...");
-                        await Task.Delay(retryDelay).ConfigureAwait(false);
-                        retryDelay *= 2;
+                    int maxRetries = 3;
+                    int retryDelay = 2000;
 
-                        try { File.Delete(downloadPath); } catch { }
-                    }
-                    catch (Exception ex) when (attempt == maxRetries)
+                    for (int attempt = 1; attempt <= maxRetries; attempt++)
                     {
-                        throw new Exception($"Download failed after {maxRetries} attempts: {ex.Message}", ex);
+                        try
+                        {
+                            statusLabel.Dispatcher.Invoke(() => statusLabel.Content = attempt > 1 ? $"Downloading (Attempt {attempt}/{maxRetries})..." : "Downloading...");
+                            await DownloadFileWithProgress(downloadUrl, downloadPath, progressBar, statusLabel, fileSize, cts.Token).ConfigureAwait(false);
+                            break;
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            downloadCancelled = true;
+                            break;
+                        }
+                        catch (Exception ex) when (attempt < maxRetries)
+                        {
+                            statusLabel.Dispatcher.Invoke(() => statusLabel.Content = $"Download failed (Attempt {attempt}/{maxRetries}): {ex.Message}\nRetrying in {retryDelay / 1000} seconds...");
+                            await Task.Delay(retryDelay).ConfigureAwait(false);
+                            retryDelay *= 2;
+
+                            try { File.Delete(downloadPath); } catch { }
+                        }
+                        catch (Exception ex) when (attempt == maxRetries)
+                        {
+                            throw new Exception($"Download failed after {maxRetries} attempts: {ex.Message}", ex);
+                        }
                     }
                 }
+                else
+                {
+                    progressBar.Dispatcher.Invoke(() => progressBar.Value = 100);
+                    statusLabel.Dispatcher.Invoke(() => statusLabel.Content = "Using existing verified download...");
+                }
             }
-            else
+            catch (OperationCanceledException)
             {
-                progressBar.Dispatcher.Invoke(() => progressBar.Value = 100);
-                statusLabel.Dispatcher.Invoke(() => statusLabel.Content = "Using existing verified download...");
+                downloadCancelled = true;
+            }
+
+            if (downloadCancelled || cts.IsCancellationRequested)
+            {
+                try
+                {
+                    if (File.Exists(downloadPath))
+                    {
+                        File.Delete(downloadPath);
+                    }
+                }
+                catch
+                {
+                    // ignore cleanup failures
+                }
+
+                await dispatcher.InvokeAsync(() =>
+                {
+                    downloadCompleted = true;
+                    if (progressWindow.IsVisible)
+                    {
+                        progressWindow.Close();
+                    }
+                    MessageBox.Show("Update download cancelled.", "Update", MessageBoxButton.OK, MessageBoxImage.Information);
+                }).Task.ConfigureAwait(true);
+
+                return;
             }
 
             await dispatcher.InvokeAsync(() =>
@@ -340,7 +399,11 @@ public class AppUpdateService : IAppUpdateService
                 }
                 catch (Exception ex)
                 {
-                    await dispatcher.InvokeAsync(() => progressWindow.Close()).Task.ConfigureAwait(true);
+                    await dispatcher.InvokeAsync(() =>
+                    {
+                        downloadCompleted = true;
+                        progressWindow.Close();
+                    }).Task.ConfigureAwait(true);
                     await dispatcher.InvokeAsync(() =>
                         MessageBox.Show($"Failed to extract update file: {ex.Message}\n\nPlease download and extract manually.",
                             "Extraction Error", MessageBoxButton.OK, MessageBoxImage.Error)).Task.ConfigureAwait(true);
@@ -349,7 +412,11 @@ public class AppUpdateService : IAppUpdateService
             }
             else if (fileExtension == ".rar")
             {
-                await dispatcher.InvokeAsync(() => progressWindow.Close()).Task.ConfigureAwait(true);
+                await dispatcher.InvokeAsync(() =>
+                {
+                    downloadCompleted = true;
+                    progressWindow.Close();
+                }).Task.ConfigureAwait(true);
                 MessageBox.Show(
                     $"Downloaded update file: {fileName}\n\n" +
                     $"This is a RAR archive. Please extract it manually to:\n{currentDir}\n\n" +
@@ -364,13 +431,21 @@ public class AppUpdateService : IAppUpdateService
             }
             else
             {
-                await dispatcher.InvokeAsync(() => progressWindow.Close()).Task.ConfigureAwait(true);
+                await dispatcher.InvokeAsync(() =>
+                {
+                    downloadCompleted = true;
+                    progressWindow.Close();
+                }).Task.ConfigureAwait(true);
                 await dispatcher.InvokeAsync(() =>
                     MessageBox.Show($"Unsupported file format: {fileExtension}", "Error", MessageBoxButton.OK, MessageBoxImage.Error)).Task.ConfigureAwait(true);
                 return;
             }
 
-            await dispatcher.InvokeAsync(() => progressWindow.Close()).Task.ConfigureAwait(true);
+            await dispatcher.InvokeAsync(() =>
+            {
+                downloadCompleted = true;
+                progressWindow.Close();
+            }).Task.ConfigureAwait(true);
 
             var updateScript = Path.Combine(tempDir, "update.bat");
             var rollbackScript = Path.Combine(tempDir, "rollback.bat");
@@ -481,43 +556,95 @@ public class AppUpdateService : IAppUpdateService
         }
     }
 
-    private static async Task DownloadFileWithProgress(string url, string destination, ProgressBar progressBar, Label statusLabel)
+    private static async Task DownloadFileWithProgress(string url, string destination, ProgressBar progressBar, Label statusLabel, long expectedSize, CancellationToken cancellationToken)
     {
         using var httpClient = new HttpClient { Timeout = TimeSpan.FromMinutes(10) };
-        using var response = await httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
+        using var response = await httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
 
         var totalBytes = response.Content.Headers.ContentLength ?? 0;
         using var contentStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
-        using var fileStream = new FileStream(destination, FileMode.Create, FileAccess.Write, FileShare.None);
 
         var buffer = new byte[81920];
         long totalRead = 0;
         int read;
+        var stopwatch = Stopwatch.StartNew();
+        var lastUiUpdate = TimeSpan.Zero;
 
-        while ((read = await contentStream.ReadAsync(buffer.AsMemory(0, buffer.Length)).ConfigureAwait(false)) > 0)
+        using (var fileStream = new FileStream(destination, FileMode.Create, FileAccess.Write, FileShare.ReadWrite, buffer.Length, useAsync: true))
         {
-            await fileStream.WriteAsync(buffer.AsMemory(0, read)).ConfigureAwait(false);
-            totalRead += read;
+            while ((read = await contentStream.ReadAsync(buffer.AsMemory(0, buffer.Length), cancellationToken).ConfigureAwait(false)) > 0)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                await fileStream.WriteAsync(buffer.AsMemory(0, read), cancellationToken).ConfigureAwait(false);
+                totalRead += read;
 
-            if (totalBytes > 0)
-            {
-                var progress = (double)totalRead / totalBytes * 100;
-                progressBar.Dispatcher.Invoke(() => progressBar.Value = progress);
-                statusLabel.Dispatcher.Invoke(() => statusLabel.Content = $"Downloading... {progress:F1}%");
+                var elapsed = stopwatch.Elapsed;
+                if (elapsed - lastUiUpdate >= TimeSpan.FromMilliseconds(250))
+                {
+                    lastUiUpdate = elapsed;
+                    var speed = elapsed.TotalSeconds > 0 ? totalRead / elapsed.TotalSeconds : 0;
+                    var downloadedText = FormatBytes(totalRead);
+                    var speedText = speed > 0 ? $"{FormatBytes(speed)}/s" : "0 B/s";
+
+                    if (totalBytes > 0)
+                    {
+                        var progress = (double)totalRead / totalBytes * 100;
+                        var eta = speed > 0 ? TimeSpan.FromSeconds(Math.Max(0, (totalBytes - totalRead) / speed)) : TimeSpan.Zero;
+                        var etaText = speed > 0 ? $" ETA {FormatDuration(eta)}" : string.Empty;
+                        var totalText = FormatBytes(totalBytes);
+
+                        if (!progressBar.Dispatcher.HasShutdownStarted)
+                        {
+                            progressBar.Dispatcher.Invoke(() => progressBar.Value = progress);
+                        }
+
+                        if (!statusLabel.Dispatcher.HasShutdownStarted)
+                        {
+                            statusLabel.Dispatcher.Invoke(() => statusLabel.Content = $"Downloading... {progress:F1}% ({downloadedText} / {totalText}, {speedText}{etaText})");
+                        }
+                    }
+                    else
+                    {
+                        if (!progressBar.Dispatcher.HasShutdownStarted)
+                        {
+                            progressBar.Dispatcher.Invoke(() => progressBar.IsIndeterminate = true);
+                        }
+
+                        if (!statusLabel.Dispatcher.HasShutdownStarted)
+                        {
+                            statusLabel.Dispatcher.Invoke(() => statusLabel.Content = $"Downloading... {downloadedText} ({speedText})");
+                        }
+                    }
+                }
             }
-            else
-            {
-                progressBar.Dispatcher.Invoke(() => progressBar.IsIndeterminate = true);
-            }
+
+            await fileStream.FlushAsync().ConfigureAwait(false);
         }
 
-        progressBar.Dispatcher.Invoke(() => progressBar.Value = 100);
-        statusLabel.Dispatcher.Invoke(() => statusLabel.Content = "Download complete, validating file...");
+        cancellationToken.ThrowIfCancellationRequested();
+        stopwatch.Stop();
 
-        if (!await VerifyFileIntegrity(destination).ConfigureAwait(false))
+        var finalSpeed = stopwatch.Elapsed.TotalSeconds > 0 ? totalRead / stopwatch.Elapsed.TotalSeconds : 0;
+        var finalSpeedText = finalSpeed > 0 ? $"{FormatBytes(finalSpeed)}/s" : "0 B/s";
+        var finalDownloadText = FormatBytes(totalRead);
+        var durationText = FormatDuration(stopwatch.Elapsed);
+
+        if (!progressBar.Dispatcher.HasShutdownStarted)
         {
-            throw new InvalidOperationException("Downloaded file failed integrity check");
+            progressBar.Dispatcher.Invoke(() => progressBar.Value = 100);
+        }
+
+        if (!statusLabel.Dispatcher.HasShutdownStarted)
+        {
+            statusLabel.Dispatcher.Invoke(() => statusLabel.Content = $"Download complete ({finalDownloadText} in {durationText}, avg {finalSpeedText}) - validating file...");
+        }
+
+        var expected = totalBytes > 0 ? totalBytes : expectedSize;
+
+        if (!await VerifyFileIntegrity(destination, expected, msg => AppendUpdateLog($"Post-download check: {msg}")).ConfigureAwait(false))
+        {
+            throw new InvalidOperationException("Downloaded file failed integrity check. See update_error.log for details.");
         }
     }
 
@@ -587,70 +714,139 @@ public class AppUpdateService : IAppUpdateService
         }
     }
 
-    private static async Task<bool> VerifyFileIntegrity(string filePath)
+    private static async Task<bool> VerifyFileIntegrity(string filePath, long expectedSize = 0, Action<string>? logFailure = null)
     {
         try
         {
             if (!File.Exists(filePath))
+            {
+                logFailure?.Invoke($"Integrity check failed for '{filePath}': file does not exist.");
                 return false;
+            }
 
-            var fileInfo = new FileInfo(filePath);
+            await using var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
 
-            if (fileInfo.Length == 0)
+            if (fileStream.Length == 0)
+            {
+                logFailure?.Invoke($"Integrity check failed for '{filePath}': file size is zero.");
                 return false;
+            }
 
-            using var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
-            var buffer = new byte[Math.Min(8192, (int)Math.Min(fileInfo.Length, int.MaxValue))];
-            var bytesRead = await fileStream.ReadAsync(buffer, 0, buffer.Length).ConfigureAwait(false);
-
-            if (bytesRead == 0)
+            if (expectedSize > 0 && fileStream.Length != expectedSize)
+            {
+                logFailure?.Invoke($"Integrity check failed for '{filePath}': size mismatch (expected {expectedSize}, actual {fileStream.Length}).");
                 return false;
+            }
 
             var extension = Path.GetExtension(filePath).ToLower();
 
             if (extension == ".zip")
             {
-                try
-                {
-                    using var archive = ZipFile.OpenRead(filePath);
-                    if (archive.Entries.Count == 0)
-                        return false;
+                var signature = new byte[4];
+                var read = await fileStream.ReadAsync(signature.AsMemory(0, signature.Length)).ConfigureAwait(false);
 
-                    var firstEntry = archive.Entries.First();
-                    using var entryStream = firstEntry.Open();
-                    var testBuffer = new byte[Math.Min(1024, (int)Math.Max(1, firstEntry.Length))];
-                    _ = await entryStream.ReadAsync(testBuffer, 0, testBuffer.Length).ConfigureAwait(false);
-
-                    return true;
-                }
-                catch
+                if (read < 4 || signature[0] != 0x50 || signature[1] != 0x4B)
                 {
+                    logFailure?.Invoke($"Integrity check failed for '{filePath}': invalid ZIP header (bytes: {string.Join(" ", signature.Take(read))}).");
                     return false;
                 }
+
+                try
+                {
+                    fileStream.Position = 0;
+                    using var archive = new ZipArchive(fileStream, ZipArchiveMode.Read, leaveOpen: true);
+                    if (!archive.Entries.Any(e => !string.IsNullOrEmpty(e.Name)))
+                    {
+                        logFailure?.Invoke($"Integrity check failed for '{filePath}': ZIP archive contains no files.");
+                        return false;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logFailure?.Invoke($"Integrity check failed for '{filePath}': unable to read ZIP archive ({ex.Message}).");
+                    return false;
+                }
+
+                return true;
             }
 
             if (extension == ".rar")
             {
                 fileStream.Position = 0;
                 var signature = new byte[7];
-                await fileStream.ReadAsync(signature, 0, 7).ConfigureAwait(false);
+                var read = await fileStream.ReadAsync(signature.AsMemory(0, signature.Length)).ConfigureAwait(false);
 
-                return signature.Length >= 4 &&
-                       signature[0] == 0x52 && signature[1] == 0x61 &&
-                       signature[2] == 0x72 && signature[3] == 0x21;
+                if (read >= 4 && signature[0] == 0x52 && signature[1] == 0x61 && signature[2] == 0x72 && signature[3] == 0x21)
+                {
+                    return true;
+                }
+
+                logFailure?.Invoke($"Integrity check failed for '{filePath}': invalid RAR header (bytes: {string.Join(" ", signature.Take(read))}).");
+                return false;
             }
 
             return true;
         }
+        catch (Exception ex)
+        {
+            logFailure?.Invoke($"Integrity check failed for '{filePath}': exception during validation ({ex.Message}).");
+            return false;
+        }
+    }
+
+    private static string FormatBytes(long bytes) => FormatBytes((double)bytes);
+
+    private static string FormatBytes(double bytes)
+    {
+        if (bytes <= 0)
+            return "0 B";
+
+        string[] units = new[] { "B", "KB", "MB", "GB", "TB" };
+        var value = bytes;
+        var unitIndex = 0;
+
+        while (value >= 1024 && unitIndex < units.Length - 1)
+        {
+            value /= 1024;
+            unitIndex++;
+        }
+
+        var format = value >= 100 || unitIndex == 0 ? "0" : "0.0";
+        return $"{value.ToString(format, CultureInfo.InvariantCulture)} {units[unitIndex]}";
+    }
+
+    private static string FormatDuration(TimeSpan span)
+    {
+        if (span.TotalHours >= 1)
+        {
+            return $"{(int)span.TotalHours:D2}:{span.Minutes:D2}:{span.Seconds:D2}";
+        }
+
+        return $"{span.Minutes:D2}:{span.Seconds:D2}";
+    }
+
+    private static void AppendUpdateLog(string message)
+    {
+        try
+        {
+            var logPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "update_error.log");
+            File.AppendAllText(logPath, $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {message}{Environment.NewLine}");
+        }
         catch
         {
-            return false;
+            // Ignore logging failures
         }
     }
 
     private void PlayPopSound()
     {
-        var soundPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ui-sound.mp3");
+        var baseDir = AppDomain.CurrentDomain.BaseDirectory;
+        var soundPath = Path.Combine(baseDir, "Sounds", "ui-sound.mp3");
+
+        if (!File.Exists(soundPath))
+        {
+            soundPath = Path.Combine(baseDir, "ui-sound.mp3");
+        }
 
         if (!File.Exists(soundPath))
         {

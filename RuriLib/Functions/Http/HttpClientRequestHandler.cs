@@ -67,6 +67,9 @@ namespace RuriLib.Functions.Http
                 cookieContainer.Add(new Uri(options.Url), new Cookie(cookie.Key, cookie.Value));
             }
 
+            // Merge any raw Cookie headers from CustomHeaders into the cookie jar, filtering out empty values
+            MergeCookieHeader(options.CustomHeaders, data.COOKIES);
+
             var clientOptions = GetClientOptions(data, options);
             var client = sharedClient;
             using var request = new HttpRequestMessage
@@ -78,14 +81,19 @@ namespace RuriLib.Functions.Http
 
             foreach (var header in options.CustomHeaders)
             {
+                if (header.Key.Equals("Cookie", StringComparison.OrdinalIgnoreCase) || header.Key.Equals("cookies", StringComparison.OrdinalIgnoreCase))
+                    continue; // prevent sending raw Cookie headers; we build a filtered one below
                 request.Headers.TryAddWithoutValidation(header.Key, header.Value);
             }
 
             // Manually add cookies as Cookie header since UseCookies = false
             if (data.COOKIES.Count > 0)
             {
-                var cookieHeader = string.Join("; ", data.COOKIES.Select(c => $"{c.Key}={c.Value}"));
-                request.Headers.TryAddWithoutValidation("Cookie", cookieHeader);
+                var cookieHeader = string.Join("; ", data.COOKIES.Where(static c => !string.IsNullOrEmpty(c.Value)).Select(c => $"{c.Key}={c.Value}"));
+                if (!string.IsNullOrEmpty(cookieHeader))
+                {
+                    request.Headers.TryAddWithoutValidation("Cookie", cookieHeader);
+                }
             }
 
             string content = null;
@@ -146,8 +154,11 @@ namespace RuriLib.Functions.Http
                     // Re-add accumulated cookies for the redirect
                     if (data.COOKIES.Count > 0)
                     {
-                        var cookieHeader = string.Join("; ", data.COOKIES.Select(c => $"{c.Key}={c.Value}"));
-                        redirectRequest.Headers.TryAddWithoutValidation("Cookie", cookieHeader);
+                        var cookieHeader = string.Join("; ", data.COOKIES.Where(static c => !string.IsNullOrEmpty(c.Value)).Select(c => $"{c.Key}={c.Value}"));
+                        if (!string.IsNullOrEmpty(cookieHeader))
+                        {
+                            redirectRequest.Headers.TryAddWithoutValidation("Cookie", cookieHeader);
+                        }
                     }
 
                     response = await client.SendAsync(redirectRequest, options.ReadResponseContent ?
@@ -182,6 +193,9 @@ namespace RuriLib.Functions.Http
                 cookieContainer.Add(new Uri(options.Url), new Cookie(cookie.Key, cookie.Value));
             }
 
+            // Merge any raw Cookie headers from CustomHeaders into the cookie jar, filtering out empty values
+            MergeCookieHeader(options.CustomHeaders, data.COOKIES);
+
             var clientOptions = GetClientOptions(data, options);
             var client = sharedClient;
             using var request = new HttpRequestMessage
@@ -194,14 +208,19 @@ namespace RuriLib.Functions.Http
 
             foreach (var header in options.CustomHeaders)
             {
+                if (header.Key.Equals("Cookie", StringComparison.OrdinalIgnoreCase) || header.Key.Equals("cookies", StringComparison.OrdinalIgnoreCase))
+                    continue; // prevent sending raw Cookie headers; we build a filtered one below
                 request.Headers.TryAddWithoutValidation(header.Key, header.Value);
             }
 
             // Manually add cookies as Cookie header since UseCookies = false
             if (data.COOKIES.Count > 0)
             {
-                var cookieHeader = string.Join("; ", data.COOKIES.Select(c => $"{c.Key}={c.Value}"));
-                request.Headers.TryAddWithoutValidation("Cookie", cookieHeader);
+                var cookieHeader = string.Join("; ", data.COOKIES.Where(static c => !string.IsNullOrEmpty(c.Value)).Select(c => $"{c.Key}={c.Value}"));
+                if (!string.IsNullOrEmpty(cookieHeader))
+                {
+                    request.Headers.TryAddWithoutValidation("Cookie", cookieHeader);
+                }
             }
 
             request.Content.Headers.ContentType = MediaTypeHeaderValue.Parse(options.ContentType);
@@ -245,8 +264,11 @@ namespace RuriLib.Functions.Http
                     // Re-add accumulated cookies for the redirect
                     if (data.COOKIES.Count > 0)
                     {
-                        var cookieHeader = string.Join("; ", data.COOKIES.Select(c => $"{c.Key}={c.Value}"));
-                        redirectRequest.Headers.TryAddWithoutValidation("Cookie", cookieHeader);
+                        var cookieHeader = string.Join("; ", data.COOKIES.Where(static c => !string.IsNullOrEmpty(c.Value)).Select(c => $"{c.Key}={c.Value}"));
+                        if (!string.IsNullOrEmpty(cookieHeader))
+                        {
+                            redirectRequest.Headers.TryAddWithoutValidation("Cookie", cookieHeader);
+                        }
                     }
 
                     response = await client.SendAsync(redirectRequest, options.ReadResponseContent ?
@@ -281,6 +303,9 @@ namespace RuriLib.Functions.Http
                 cookieContainer.Add(new Uri(options.Url), new Cookie(cookie.Key, cookie.Value));
             }
 
+            // Merge any raw Cookie headers from CustomHeaders into the cookie jar, filtering out empty values
+            MergeCookieHeader(options.CustomHeaders, data.COOKIES);
+
             var clientOptions = GetClientOptions(data, options);
             var client = sharedClient;
             using var request = new HttpRequestMessage
@@ -292,14 +317,19 @@ namespace RuriLib.Functions.Http
 
             foreach (var header in options.CustomHeaders)
             {
+                if (header.Key.Equals("Cookie", StringComparison.OrdinalIgnoreCase) || header.Key.Equals("cookies", StringComparison.OrdinalIgnoreCase))
+                    continue; // prevent sending raw Cookie headers; we build a filtered one below
                 request.Headers.TryAddWithoutValidation(header.Key, header.Value);
             }
 
             // Manually add cookies as Cookie header since UseCookies = false
             if (data.COOKIES.Count > 0)
             {
-                var cookieHeader = string.Join("; ", data.COOKIES.Select(c => $"{c.Key}={c.Value}"));
-                request.Headers.TryAddWithoutValidation("Cookie", cookieHeader);
+                var cookieHeader = string.Join("; ", data.COOKIES.Where(static c => !string.IsNullOrEmpty(c.Value)).Select(c => $"{c.Key}={c.Value}"));
+                if (!string.IsNullOrEmpty(cookieHeader))
+                {
+                    request.Headers.TryAddWithoutValidation("Cookie", cookieHeader);
+                }
             }
 
             // Add the basic auth header
@@ -352,8 +382,11 @@ namespace RuriLib.Functions.Http
                     // Re-add accumulated cookies for the redirect
                     if (data.COOKIES.Count > 0)
                     {
-                        var cookieHeader = string.Join("; ", data.COOKIES.Select(c => $"{c.Key}={c.Value}"));
-                        redirectRequest.Headers.TryAddWithoutValidation("Cookie", cookieHeader);
+                        var cookieHeader = string.Join("; ", data.COOKIES.Where(static c => !string.IsNullOrEmpty(c.Value)).Select(c => $"{c.Key}={c.Value}"));
+                        if (!string.IsNullOrEmpty(cookieHeader))
+                        {
+                            redirectRequest.Headers.TryAddWithoutValidation("Cookie", cookieHeader);
+                        }
                     }
 
                     response = await client.SendAsync(redirectRequest, options.ReadResponseContent ?
@@ -435,16 +468,24 @@ namespace RuriLib.Functions.Http
                 Content = multipartContent
             };
 
+            // Merge any raw Cookie headers from CustomHeaders into the cookie jar, filtering out empty values
+            MergeCookieHeader(options.CustomHeaders, data.COOKIES);
+
             foreach (var header in options.CustomHeaders)
             {
+                if (header.Key.Equals("Cookie", StringComparison.OrdinalIgnoreCase) || header.Key.Equals("cookies", StringComparison.OrdinalIgnoreCase))
+                    continue; // prevent sending raw Cookie headers; we build a filtered one below
                 request.Headers.TryAddWithoutValidation(header.Key, header.Value);
             }
 
             // Manually add cookies as Cookie header since UseCookies = false
             if (data.COOKIES.Count > 0)
             {
-                var cookieHeader = string.Join("; ", data.COOKIES.Select(c => $"{c.Key}={c.Value}"));
-                request.Headers.TryAddWithoutValidation("Cookie", cookieHeader);
+                var cookieHeader = string.Join("; ", data.COOKIES.Where(c => !string.IsNullOrEmpty(c.Value)).Select(c => $"{c.Key}={c.Value}"));
+                if (!string.IsNullOrEmpty(cookieHeader))
+                {
+                    request.Headers.TryAddWithoutValidation("Cookie", cookieHeader);
+                }
             }
 
             data.Logger.LogHeader();
@@ -486,8 +527,11 @@ namespace RuriLib.Functions.Http
                     // Re-add accumulated cookies for the redirect
                     if (data.COOKIES.Count > 0)
                     {
-                        var cookieHeader = string.Join("; ", data.COOKIES.Select(c => $"{c.Key}={c.Value}"));
-                        redirectRequest.Headers.TryAddWithoutValidation("Cookie", cookieHeader);
+                        var cookieHeader = string.Join("; ", data.COOKIES.Where(static c => !string.IsNullOrEmpty(c.Value)).Select(c => $"{c.Key}={c.Value}"));
+                        if (!string.IsNullOrEmpty(cookieHeader))
+                        {
+                            redirectRequest.Headers.TryAddWithoutValidation("Cookie", cookieHeader);
+                        }
                     }
 
                     response = await client.SendAsync(redirectRequest, options.ReadResponseContent ?
@@ -515,6 +559,37 @@ namespace RuriLib.Functions.Http
             }
         }
 
+        private static void MergeCookieHeader(IDictionary<string, string> headers, IDictionary<string, string> cookieJar)
+        {
+            if (headers == null || headers.Count == 0) return;
+
+            foreach (var header in headers)
+            {
+                if (header.Key.Equals("Cookie", StringComparison.OrdinalIgnoreCase) ||
+                    header.Key.Equals("cookies", StringComparison.OrdinalIgnoreCase))
+                {
+                    var raw = header.Value;
+                    if (string.IsNullOrEmpty(raw)) continue;
+
+                    foreach (var part in raw.Split(new[] { ';', ',' }, StringSplitOptions.RemoveEmptyEntries))
+                    {
+                        var trimmed = part.Trim();
+                        if (trimmed.Length == 0) continue;
+                        var idx = trimmed.IndexOf('=');
+                        if (idx <= 0) continue;
+
+                        var name = trimmed.Substring(0, idx).Trim();
+                        var value = trimmed.Substring(idx + 1);
+
+                        if (!string.IsNullOrEmpty(value))
+                        {
+                            cookieJar[name] = value;
+                        }
+                    }
+                }
+            }
+        }
+
         private static void LogHttpRequestData(BotData data, HttpRequestMessage request, string content = null, string boundary = null)
         {
             using var writer = new StringWriter();
@@ -532,7 +607,7 @@ namespace RuriLib.Functions.Http
             }
 
             // Log the cookie header
-            var cookies = data.COOKIES.Select(c => $"{c.Key}={c.Value}");
+            var cookies = data.COOKIES.Where(c => !string.IsNullOrEmpty(c.Value)).Select(c => $"{c.Key}={c.Value}");
 
             if (cookies.Any())
                 writer.WriteLine($"Cookie: {string.Join("; ", cookies)}");

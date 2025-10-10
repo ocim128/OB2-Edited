@@ -16,7 +16,8 @@
       "Bash(npm:*)",
       "Bash(npx ng:*)",
       "Bash(cmd.exe:*)",
-      "Bash(powershell:*)"
+      "Bash(powershell:*)",
+      "Read(//c/Users/user/Documents/Repo/OB2-Edited/**)"
     ],
     "deny": [],
     "ask": []

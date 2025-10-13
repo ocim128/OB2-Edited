@@ -7,7 +7,6 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -18,6 +17,7 @@ using System.Windows.Threading;
 using Microsoft.Playwright;
 using Microsoft.Win32;
 using OpenBullet2.Native.Infrastructure.DependencyInjection;
+using RuriLib.Blocks.Utility;
 using RuriLib.Models.Settings;
 using RuriLib.Services;
 
@@ -28,8 +28,7 @@ namespace OpenBullet2.Native.Views.Pages
     /// </summary>
     public partial class Tools : Page
     {
-        private const int TotpPeriodSeconds = 30;
-        private static readonly DateTime Epoch = new(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        private const int TotpPeriodSeconds = TwoFactorUtility.TotpPeriodSeconds;
         private static readonly string[] ModemTogglePayloads =
         [
             "isTest=false&goformId=SET_BEARER_PREFERENCE&BearerPreference=Only_LTE%0ALTE_preferred",
@@ -74,7 +73,7 @@ namespace OpenBullet2.Native.Views.Pages
 
         private void SecretKeyTextChanged(object sender, TextChangedEventArgs e)
         {
-            normalizedSecret = NormalizeSecret(SecretKeyTextBox.Text);
+            normalizedSecret = TwoFactorUtility.NormalizeSecret(SecretKeyTextBox.Text);
             ValidateAndStart();
         }
 
@@ -128,7 +127,7 @@ namespace OpenBullet2.Native.Views.Pages
                 return;
             }
 
-            if (TryGenerateOtp(normalizedSecret, DateTime.UtcNow, out var otp, out var secondsRemaining, out var error))
+            if (TwoFactorUtility.TryGenerateOtp(normalizedSecret, DateTime.UtcNow, out var otp, out var secondsRemaining, out var error))
             {
                 SecretErrorBorder.Visibility = Visibility.Collapsed;
                 SetOtpDisplay(otp, BuildExpiryMessage(secondsRemaining), TotpPeriodSeconds - secondsRemaining);
@@ -153,7 +152,7 @@ namespace OpenBullet2.Native.Views.Pages
                 return;
             }
 
-            if (TryGenerateOtp(normalizedSecret, DateTime.UtcNow, out var otp, out var secondsRemaining, out var error))
+            if (TwoFactorUtility.TryGenerateOtp(normalizedSecret, DateTime.UtcNow, out var otp, out var secondsRemaining, out var error))
             {
                 SetOtpDisplay(otp, BuildExpiryMessage(secondsRemaining), TotpPeriodSeconds - secondsRemaining);
                 CopyOtpButton.IsEnabled = true;
@@ -179,126 +178,6 @@ namespace OpenBullet2.Native.Views.Pages
             OtpTextBlock.Text = otp;
             OtpStatusTextBlock.Text = statusMessage;
             OtpProgressBar.Value = Math.Max(0, Math.Min(TotpPeriodSeconds, elapsedSeconds));
-        }
-
-        private static string NormalizeSecret(string input)
-        {
-            if (string.IsNullOrWhiteSpace(input))
-            {
-                return string.Empty;
-            }
-
-            var builder = new StringBuilder(input.Length);
-            foreach (var c in input.ToUpperInvariant())
-            {
-                if (char.IsWhiteSpace(c) || c == '-')
-                {
-                    continue;
-                }
-
-                builder.Append(c);
-            }
-
-            return builder.ToString();
-        }
-
-        private static bool TryGenerateOtp(string base32Secret, DateTime timestampUtc, out string otp, out int secondsRemaining, out string error)
-        {
-            otp = "------";
-            secondsRemaining = 0;
-            error = string.Empty;
-
-            try
-            {
-                var keyBytes = DecodeBase32(base32Secret);
-                if (keyBytes.Length == 0)
-                {
-                    error = "Secret decodes to an empty value.";
-                    return false;
-                }
-
-                var unixSeconds = (long)Math.Floor((timestampUtc - Epoch).TotalSeconds);
-                secondsRemaining = TotpPeriodSeconds - (int)(unixSeconds % TotpPeriodSeconds);
-                if (secondsRemaining == TotpPeriodSeconds)
-                {
-                    secondsRemaining = TotpPeriodSeconds;
-                }
-
-                var timestep = unixSeconds / TotpPeriodSeconds;
-                var hotp = ComputeHotp(keyBytes, timestep);
-                otp = hotp.ToString("000000");
-                return true;
-            }
-            catch (FormatException ex)
-            {
-                error = ex.Message;
-            }
-            catch (Exception ex)
-            {
-                error = $"Failed to generate OTP: {ex.Message}";
-            }
-
-            return false;
-        }
-
-        private static int ComputeHotp(byte[] key, long counter)
-        {
-            var counterBytes = BitConverter.GetBytes(counter);
-            if (BitConverter.IsLittleEndian)
-            {
-                Array.Reverse(counterBytes);
-            }
-
-            using var hmac = new HMACSHA1(key);
-            var hash = hmac.ComputeHash(counterBytes);
-            var offset = hash[^1] & 0x0F;
-
-            var binaryCode = ((hash[offset] & 0x7F) << 24)
-                | ((hash[offset + 1] & 0xFF) << 16)
-                | ((hash[offset + 2] & 0xFF) << 8)
-                | (hash[offset + 3] & 0xFF);
-
-            return binaryCode % 1_000_000;
-        }
-
-        private static byte[] DecodeBase32(string input)
-        {
-            const string alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
-
-            var sanitized = new List<int>(input.Length);
-            foreach (var c in input)
-            {
-                if (c == '=')
-                {
-                    break;
-                }
-
-                var index = alphabet.IndexOf(c);
-                if (index < 0)
-                {
-                    throw new FormatException($"Invalid Base32 character '{c}'.");
-                }
-
-                sanitized.Add(index);
-            }
-
-            var output = new List<byte>((sanitized.Count * 5) / 8);
-            var bitBuffer = 0;
-            var bitsLeft = 0;
-
-            foreach (var value in sanitized)
-            {
-                bitBuffer = (bitBuffer << 5) | value;
-                bitsLeft += 5;
-
-                if (bitsLeft >= 8)
-                {
-                    bitsLeft -= 8;
-                    output.Add((byte)((bitBuffer >> bitsLeft) & 0xFF));
-                }
-            }
-
-            return output.ToArray();
         }
 
         private void ParseBookmarklet(object sender, RoutedEventArgs e)

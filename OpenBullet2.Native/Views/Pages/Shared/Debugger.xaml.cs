@@ -303,6 +303,12 @@ namespace OpenBullet2.Native.Views.Pages.Shared
         /// </summary>
         private void OnDebuggerKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
         {
+            // Handle shortcuts only once during the preview phase
+            if (e.RoutedEvent != Keyboard.PreviewKeyDownEvent)
+            {
+                return;
+            }
+
             // Check if focus is on a code editor (LoliCode or CSharp) - if so, don't intercept editor shortcuts
             var focusedElement = Keyboard.FocusedElement as System.Windows.UIElement;
             var isEditorFocused = focusedElement != null && (
@@ -329,7 +335,7 @@ namespace OpenBullet2.Native.Views.Pages.Shared
                     case System.Windows.Input.Key.S:
                         if (StartButton != null && StartButton.IsEnabled && StartButton.IsVisible)
                         {
-                            StartButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                            Start(StartButton, new RoutedEventArgs(Button.ClickEvent, StartButton));
                             e.Handled = true;
                             return;
                         }
@@ -863,13 +869,9 @@ namespace OpenBullet2.Native.Views.Pages.Shared
         /// </summary>
         private async void Start(object sender, RoutedEventArgs e)
         {
-            if (!_viewModel.PersistLog)
-            {
-                logRTB.Clear();
-            }
-
             try
             {
+                logRTB.Clear();
                 await _viewModel.RunAsync();
             }
             catch (Exception ex)

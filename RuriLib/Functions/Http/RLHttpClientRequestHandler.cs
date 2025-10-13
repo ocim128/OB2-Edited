@@ -273,7 +273,7 @@ namespace RuriLib.Functions.Http
                 using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(data.CancellationToken, timeoutCts.Token);
                 using var response = await client.SendAsync(request, linkedCts.Token).ConfigureAwait(false);
 
-                LogHttpRequestData(data, request);
+                await LogHttpRequestData(data, request).ConfigureAwait(false);
 
                 // Add generic redirect handling for all 3xx codes
                 if (options.AutoRedirect && options.MaxNumberOfRedirects > 0 &&
@@ -314,7 +314,7 @@ namespace RuriLib.Functions.Http
             }
             catch (Exception ex) when (IsLikelyNetworkException(ex))
             {
-                LogHttpRequestData(data, request);
+                await LogHttpRequestData(data, request).ConfigureAwait(false);
                 data.Logger.Log($"Network exception detected: {ex.GetType().Name} - {ex.Message}", LogColors.Orange);
                 throw; // Re-throw to be caught by the retry logic
             }
@@ -355,12 +355,12 @@ namespace RuriLib.Functions.Http
                 using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(data.CancellationToken, timeoutCts.Token);
                 using var response = await client.SendAsync(request, linkedCts.Token).ConfigureAwait(false);
 
-                LogHttpRequestData(data, request);
+                await LogHttpRequestData(data, request).ConfigureAwait(false);
                 await LogHttpResponseData(data, response, request, options).ConfigureAwait(false);
             }
             catch (Exception ex) when (IsLikelyNetworkException(ex))
             {
-                LogHttpRequestData(data, request);
+                await LogHttpRequestData(data, request).ConfigureAwait(false);
                 data.Logger.Log($"Network exception detected: {ex.GetType().Name} - {ex.Message}", LogColors.Orange);
                 throw; // Re-throw to be caught by the retry logic
             }
@@ -402,12 +402,12 @@ namespace RuriLib.Functions.Http
                 using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(data.CancellationToken, timeoutCts.Token);
                 using var response = await client.SendAsync(request, linkedCts.Token).ConfigureAwait(false);
 
-                LogHttpRequestData(data, request);
+                await LogHttpRequestData(data, request).ConfigureAwait(false);
                 await LogHttpResponseData(data, response, request, options).ConfigureAwait(false);
             }
             catch (Exception ex) when (IsLikelyNetworkException(ex))
             {
-                LogHttpRequestData(data, request);
+                await LogHttpRequestData(data, request).ConfigureAwait(false);
                 data.Logger.Log($"Network exception detected: {ex.GetType().Name} - {ex.Message}", LogColors.Orange);
                 throw; // Re-throw to be caught by the retry logic
             }
@@ -484,12 +484,12 @@ namespace RuriLib.Functions.Http
                 using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(data.CancellationToken, timeoutCts.Token);
                 using var response = await client.SendAsync(request, linkedCts.Token).ConfigureAwait(false);
 
-                LogHttpRequestData(data, request, options.Boundary, options.Contents);
+                await LogHttpRequestData(data, request, options.Boundary, options.Contents).ConfigureAwait(false);
                 await LogHttpResponseData(data, response, request, options).ConfigureAwait(false);
             }
             catch (Exception ex) when (IsLikelyNetworkException(ex))
             {
-                LogHttpRequestData(data, request, options.Boundary, options.Contents);
+                await LogHttpRequestData(data, request, options.Boundary, options.Contents).ConfigureAwait(false);
                 data.Logger.Log($"Network exception detected: {ex.GetType().Name} - {ex.Message}", LogColors.Orange);
                 throw; // Re-throw to be caught by the retry logic
             }
@@ -501,7 +501,7 @@ namespace RuriLib.Functions.Http
             }
         }
 
-        private static void LogHttpRequestData(BotData data, HttpRequest request,
+        private static async Task LogHttpRequestData(BotData data, HttpRequest request,
             string boundary = null, List<MyHttpContent> multipartContents = null)
         {
             var sb = new StringBuilder();
@@ -535,12 +535,14 @@ namespace RuriLib.Functions.Http
                 if (request.Content is StringContent stringContent)
                 {
                     sb.AppendLine();
-                    sb.AppendLine(stringContent.ReadAsStringAsync().Result);
+                    var content = await stringContent.ReadAsStringAsync().ConfigureAwait(false);
+                    sb.AppendLine(content);
                 }
                 else if (request.Content is ByteArrayContent byteArrayContent)
                 {
                     sb.AppendLine();
-                    sb.AppendLine(Base64Converter.ToBase64String(byteArrayContent.ReadAsByteArrayAsync().Result));
+                    var bytes = await byteArrayContent.ReadAsByteArrayAsync().ConfigureAwait(false);
+                    sb.AppendLine(Base64Converter.ToBase64String(bytes));
                 }
                 else if (request.Content is MultipartFormDataContent)
                 {

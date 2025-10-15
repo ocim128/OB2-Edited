@@ -22,6 +22,22 @@ namespace RuriLib.Helpers.CSharp
     /// </summary>
     public partial class CSharpWriter
     {
+        public readonly struct KeyRenderInfo
+        {
+            public KeyRenderInfo(string leftExpression, string leftTypeName, string comparison, string rightExpression)
+            {
+                LeftExpression = leftExpression;
+                LeftTypeName = leftTypeName;
+                Comparison = comparison;
+                RightExpression = rightExpression;
+            }
+
+            public string LeftExpression { get; }
+            public string LeftTypeName { get; }
+            public string Comparison { get; }
+            public string RightExpression { get; }
+        }
+
         private static readonly CodeGeneratorOptions codeGenOptions = new()
         {
             BlankLinesBetweenMembers = false
@@ -311,7 +327,6 @@ namespace RuriLib.Helpers.CSharp
             sb.Append('}');
             return sb.ToString();
         }
-
         private static string GetCasting(BlockSetting setting, bool dynamic = false)
         {
             if (setting.FixedSetting == null)
@@ -352,9 +367,9 @@ namespace RuriLib.Helpers.CSharp
         }
 
         /// <summary>
-        /// Converts a <paramref name="key"/> to a valid C# snippet.
+        /// Gets render information for a key comparison.
         /// </summary>
-        public static string ConvertKey(Key key)
+        public static KeyRenderInfo GetKeyRenderInfo(Key key)
         {
             var comparison = key switch
             {
@@ -369,8 +384,27 @@ namespace RuriLib.Helpers.CSharp
 
             var left = FromSetting(key.Left);
             var right = FromSetting(key.Right);
+            var leftType = key switch
+            {
+                BoolKey => "bool",
+                StringKey => "string",
+                IntKey => "int",
+                FloatKey => "float",
+                ListKey => "List<string>",
+                DictionaryKey => "Dictionary<string, string>",
+                _ => throw new Exception("Unknown key type")
+            };
 
-            return $"CheckCondition(data, {left}, {comparison}, {right})";
+            return new KeyRenderInfo(left, leftType, comparison, right);
+        }
+
+        /// <summary>
+        /// Converts a <paramref name="key"/> to a valid C# snippet.
+        /// </summary>
+        public static string ConvertKey(Key key)
+        {
+            var info = GetKeyRenderInfo(key);
+            return $"CheckCondition(data, {info.LeftExpression}, {info.Comparison}, {info.RightExpression})";
         }
     }
 }

@@ -181,6 +181,53 @@ namespace RuriLib.Models.Blocks.Custom
                 return writer.ToString();
             }
 
+            var keyInfosPerChain = new List<List<CSharpWriter.KeyRenderInfo>>(nonEmpty.Count);
+            var leftUsage = new Dictionary<(string Expression, string Type), (CSharpWriter.KeyRenderInfo Info, int Count)>();
+            var duplicateOrder = new List<(string Expression, string Type)>();
+
+            foreach (var keychain in nonEmpty)
+            {
+                var infoList = new List<CSharpWriter.KeyRenderInfo>(keychain.Keys.Count);
+
+                foreach (var key in keychain.Keys)
+                {
+                    var info = CSharpWriter.GetKeyRenderInfo(key);
+                    infoList.Add(info);
+
+                    var tupleKey = (info.LeftExpression, info.LeftTypeName);
+                    if (leftUsage.TryGetValue(tupleKey, out var existing))
+                    {
+                        if (existing.Count == 1)
+                        {
+                            duplicateOrder.Add(tupleKey);
+                        }
+
+                        leftUsage[tupleKey] = (existing.Info, existing.Count + 1);
+                    }
+                    else
+                    {
+                        leftUsage[tupleKey] = (info, 1);
+                    }
+                }
+
+                keyInfosPerChain.Add(infoList);
+            }
+
+            var cachedLeftExpressions = new Dictionary<(string Expression, string Type), string>();
+            var cacheIndex = 0;
+            foreach (var tuple in duplicateOrder)
+            {
+                var entry = leftUsage[tuple];
+                var leftExpr = entry.Info.LeftExpression;
+
+                if (leftExpr.Contains(".Dynamic") || leftExpr.Contains(".As"))
+                {
+                    var variableName = $"__keyLeft{cacheIndex++}";
+                    cachedLeftExpressions[tuple] = variableName;
+                    writer.WriteLine($"var {variableName} = {leftExpr};");
+                }
+            }
+
             // Write all the keychains
             for (var i = 0; i < nonEmpty.Count; i++)
             {
@@ -195,7 +242,16 @@ namespace RuriLib.Models.Blocks.Custom
                     writer.Write("else if (");
                 }
 
-                var conditions = keychain.Keys.Select(CSharpWriter.ConvertKey);
+                var infoList = keyInfosPerChain[i];
+                var conditions = infoList.Select(info =>
+                {
+                    var tupleKey = (info.LeftExpression, info.LeftTypeName);
+                    var left = cachedLeftExpressions.TryGetValue(tupleKey, out var cached)
+                        ? cached
+                        : info.LeftExpression;
+
+                    return $"CheckCondition(data, {left}, {info.Comparison}, {info.RightExpression})";
+                });
 
                 var chainedCondition = keychain.Mode switch
                 {

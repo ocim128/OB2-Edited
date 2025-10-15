@@ -10,12 +10,15 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading;
 
 namespace RuriLib.Models.Blocks.Custom
 {
     public class KeycheckBlockInstance : BlockInstance
     {
         public List<Keychain> Keychains { get; set; } = new List<Keychain>();
+
+        private static int keyLeftCacheSeed;
 
         public KeycheckBlockInstance(KeycheckBlockDescriptor descriptor)
             : base(descriptor)
@@ -152,6 +155,7 @@ namespace RuriLib.Models.Blocks.Custom
             using var writer = new StringWriter();
             var banIfNoMatch = Settings["banIfNoMatch"];
             var nonEmpty = Keychains.Where(kc => kc.Keys.Count > 0).ToList();
+            var uniqueCacheSeed = Interlocked.Increment(ref keyLeftCacheSeed);
 
             // If there are no keychains
             if (nonEmpty.Count == 0)
@@ -222,7 +226,7 @@ namespace RuriLib.Models.Blocks.Custom
 
                 if (leftExpr.Contains(".Dynamic") || leftExpr.Contains(".As"))
                 {
-                    var variableName = $"__keyLeft{cacheIndex++}";
+                    var variableName = $"__keyLeft{uniqueCacheSeed}_{cacheIndex++}";
                     cachedLeftExpressions[tuple] = variableName;
                     writer.WriteLine($"var {variableName} = {leftExpr};");
                 }

@@ -23,6 +23,28 @@
                 </DataTrigger>
             </Style.Triggers>
         </Style>
+
+        <!-- Dedicated search TextBox styling for debugger -->
+        <Style x:Key="DebuggerSearchTextBox" TargetType="TextBox" BasedOn="{StaticResource BaseTextBox}">
+            <Setter Property="MinHeight" Value="40" />
+            <Setter Property="MinWidth" Value="360" />
+            <Setter Property="Padding" Value="16,6" />
+            <Setter Property="FontSize" Value="13.5" />
+            <Setter Property="FontFamily" Value="Segoe UI" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="TextWrapping" Value="NoWrap" />
+            <Setter Property="AcceptsReturn" Value="False" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Background" Value="#0E1726" />
+            <Setter Property="Foreground" Value="#F8FAFC" />
+            <Setter Property="BorderBrush" Value="#4C72FF" />
+            <Setter Property="BorderThickness" Value="1.4" />
+            <Setter Property="CaretBrush" Value="#F8FAFC" />
+            <Setter Property="SelectionBrush" Value="#81A1FF" />
+            <Setter Property="mah:ControlsHelper.CornerRadius" Value="10" />
+            <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
+            <Setter Property="TextOptions.TextRenderingMode" Value="ClearType" />
+        </Style>
     </Page.Resources>
     <Grid Margin="16,12,16,16">
         <Grid.RowDefinitions>
@@ -346,12 +368,12 @@
                                                 MaxLength="1000000" />
                             </WindowsFormsHost>
                         </Border>
-                        <!-- Search Controls - Enhanced UI with Better Styling -->
+                        <!-- Search Controls - Reshaped UI -->
                         <Border Grid.Row="2"
-                                Background="#70303030"
-                                CornerRadius="8"
-                                Padding="14,12"
-                                BorderBrush="#4A5568"
+                                Background="#1C2433"
+                                CornerRadius="10"
+                                Padding="18,16"
+                                BorderBrush="#27324A"
                                 BorderThickness="1"
                                 x:Name="SearchControlsArea"
                                 Visibility="Collapsed">
@@ -359,102 +381,113 @@
                                 <Style TargetType="Border" BasedOn="{StaticResource ResponsiveHideStyle}" />
                             </Border.Style>
                             <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="16" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
                                 <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
                                     <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="14" />
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="10" />
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="14" />
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="10" />
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="8" />
-                                    <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
-                                <!-- Optimized Search Input with performance enhancements -->
-                        <TextBox Grid.Column="0"
-                                 x:Name="searchTextBox"
-                                 Text="{Binding SearchString, UpdateSourceTrigger=PropertyChanged, Delay=200}"
-                                 Style="{StaticResource MatchingTextBox}"
-                                 Height="34"
-                                 Padding="10,8"
-                                 FontSize="12"
-                                 ToolTip="Search logs (Ctrl+F)"
-                                 RenderOptions.ClearTypeHint="Enabled"
-                                 UseLayoutRounding="True"
-                                 SpellCheck.IsEnabled="False"
-                                 AutomationProperties.Name="Search logs"
-                                 AutomationProperties.AutomationId="DbgSearchInput" />
-                                <!-- Simplified Search Button -->
-                                <Button Grid.Column="2"
-                        Click="Search"
-                        Style="{StaticResource DebuggerCommandButton}"
-                        MinWidth="72"
-                        Height="34"
-                        Margin="8,0,0,0"
-                        Background="{StaticResource Modern.Success}"
-                        Foreground="{StaticResource Modern.TextOnAccent}"
-                        Content="Search"
-                        FontSize="11"
-                        AutomationProperties.Name="Execute search"
-                        AutomationProperties.AutomationId="DbgSearchButton" />
-                                <!-- Previous Button -->
-                                <Button Grid.Column="4"
-                                        Click="PreviousMatch"
-                                        Style="{StaticResource DebuggerToolbarButton}"
-                                        Width="34"
-                                        Height="34"
-                                        Background="{StaticResource Modern.BackgroundInput}"
-                                        Foreground="{StaticResource Modern.ForegroundMain}"
-                                        ToolTip="Previous Match (Shift+F3)"
-                                        AutomationProperties.Name="Previous match"
-                                        AutomationProperties.AutomationId="DbgSearchPrevious">
-                                    <iconPacks:PackIconUnicons Kind="AngleLeft"
-                                                               Width="16"
-                                                               Height="16" />
-                                </Button>
-                                <!-- Match Counter with Enhanced Styling -->
-                                <Border Grid.Column="6"
-                                        Background="{StaticResource Modern.BackgroundSecondary}"
-                                        CornerRadius="6"
-                                        Padding="10,8"
-                                        BorderBrush="{StaticResource Modern.BorderSecondary}"
-                                        BorderThickness="1">
-                                    <TextBlock Text="{Binding MatchInfo}"
-                                               Foreground="{StaticResource Modern.ForegroundMain}"
-                                               FontFamily="Segoe UI"
-                                               FontSize="11"
-                                               FontWeight="Medium"
-                                               VerticalAlignment="Center"
-                                               MinWidth="80"
-                                               TextAlignment="Center"
-                                               TextTrimming="CharacterEllipsis"/>
+
+                                <!-- Search Box + Button -->
+                                <Grid Grid.Row="0"
+                                      Grid.ColumnSpan="2">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox Grid.Column="0"
+                                             x:Name="searchTextBox"
+                                             Text="{Binding SearchString, UpdateSourceTrigger=PropertyChanged, Delay=200}"
+                                             Style="{StaticResource DebuggerSearchTextBox}"
+                                             ToolTip="Search logs (Ctrl+F)"
+                                             RenderOptions.ClearTypeHint="Enabled"
+                                             UseLayoutRounding="True"
+                                             SpellCheck.IsEnabled="False"
+                                             AutomationProperties.Name="Search logs"
+                                             AutomationProperties.AutomationId="DbgSearchInput" />
+                                    <Button Grid.Column="1"
+                                            Click="Search"
+                                            Style="{StaticResource DebuggerCommandButton}"
+                                            MinWidth="88"
+                                            Height="36"
+                                            Margin="12,0,0,0"
+                                            Background="{StaticResource Modern.Success}"
+                                            Foreground="{StaticResource Modern.TextOnAccent}"
+                                            Content="Search"
+                                            FontSize="12"
+                                            AutomationProperties.Name="Execute search"
+                                            AutomationProperties.AutomationId="DbgSearchButton" />
+                                </Grid>
+
+                                <!-- Match navigation -->
+                                <Border Grid.Row="2"
+                                        Grid.Column="0"
+                                        Background="#121b29"
+                                        CornerRadius="8"
+                                        Padding="6,4"
+                                        BorderBrush="#27324A"
+                                        BorderThickness="1"
+                                        Margin="0,0,18,0">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Button Click="PreviousMatch"
+                                                Style="{StaticResource DebuggerToolbarButton}"
+                                                Width="36"
+                                                Height="32"
+                                                Background="Transparent"
+                                                Foreground="{StaticResource Modern.ForegroundMain}"
+                                                ToolTip="Previous Match (Shift+F3)"
+                                                AutomationProperties.Name="Previous match"
+                                                AutomationProperties.AutomationId="DbgSearchPrevious">
+                                            <iconPacks:PackIconUnicons Kind="AngleLeft"
+                                                                       Width="16"
+                                                                       Height="16" />
+                                        </Button>
+                                        <Border Width="84"
+                                                Height="32"
+                                                Margin="6,0"
+                                                Background="#1f2a3d"
+                                                CornerRadius="6"
+                                                BorderBrush="#303d55"
+                                                BorderThickness="1">
+                                            <TextBlock Text="{Binding MatchInfo}"
+                                                       Foreground="{StaticResource Modern.ForegroundMain}"
+                                                       FontFamily="Segoe UI"
+                                                       FontSize="11"
+                                                       FontWeight="SemiBold"
+                                                       VerticalAlignment="Center"
+                                                       HorizontalAlignment="Center"
+                                                       TextAlignment="Center"
+                                                       TextTrimming="CharacterEllipsis" />
+                                        </Border>
+                                        <Button Click="NextMatch"
+                                                Style="{StaticResource DebuggerToolbarButton}"
+                                                Width="36"
+                                                Height="32"
+                                                Background="Transparent"
+                                                Foreground="{StaticResource Modern.ForegroundMain}"
+                                                ToolTip="Next Match (F3)"
+                                                AutomationProperties.Name="Next match"
+                                                AutomationProperties.AutomationId="DbgSearchNext">
+                                            <iconPacks:PackIconUnicons Kind="AngleRight"
+                                                                       Width="16"
+                                                                       Height="16" />
+                                        </Button>
+                                    </StackPanel>
                                 </Border>
-                                <!-- Next Button -->
-                                <Button Grid.Column="8"
-                                        Click="NextMatch"
-                                        Style="{StaticResource DebuggerToolbarButton}"
-                                        Width="34"
-                                        Height="34"
-                                        Background="{StaticResource Modern.BackgroundInput}"
-                                        Foreground="{StaticResource Modern.ForegroundMain}"
-                                        ToolTip="Next Match (F3)"
-                                        AutomationProperties.Name="Next match"
-                                        AutomationProperties.AutomationId="DbgSearchNext">
-                                    <iconPacks:PackIconUnicons Kind="AngleRight"
-                                                               Width="16"
-                                                               Height="16" />
-                                </Button>
-                                <!-- Action Buttons Group -->
-                                <StackPanel Grid.Column="10"
-                                            Orientation="Horizontal">
-                                    <!-- Clear Search Button -->
+
+                                <!-- Action Buttons -->
+                                <StackPanel Grid.Row="2"
+                                            Grid.Column="1"
+                                            Orientation="Horizontal"
+                                            HorizontalAlignment="Right">
                                     <Button Click="ClearSearch"
                                             Style="{StaticResource DebuggerToolbarButton}"
-                                            Width="34"
-                                            Height="34"
-                                            Margin="0,0,8,0"
+                                            Width="36"
+                                            Height="36"
+                                            Margin="0,0,10,0"
                                             Background="#DC2626"
                                             Foreground="{StaticResource Modern.ForegroundMain}"
                                             ToolTip="Clear Search (Esc)"
@@ -464,12 +497,11 @@
                                                                           Width="14"
                                                                           Height="14" />
                                     </Button>
-                                    <!-- Stop Scroll Button -->
                                     <Button Click="ToggleAutoScroll"
                                             Style="{StaticResource DebuggerToolbarButton}"
-                                            Width="34"
-                                            Height="34"
-                                            Margin="0,0,8,0"
+                                            Width="36"
+                                            Height="36"
+                                            Margin="0,0,10,0"
                                             Background="{Binding IsAutoScrollEnabled, Converter={StaticResource BoolToColorConverter}, ConverterParameter='#059669|#DC2626'}"
                                             Foreground="{StaticResource Modern.ForegroundMain}"
                                             ToolTip="{Binding AutoScrollButtonText}"
@@ -479,12 +511,11 @@
                                                                     Width="14"
                                                                     Height="14" />
                                     </Button>
-                                    <!-- Previous Block Button -->
                                     <Button Click="PreviousBlock"
                                             Style="{StaticResource DebuggerToolbarButton}"
-                                            Width="34"
-                                            Height="34"
-                                            Margin="0,0,8,0"
+                                            Width="36"
+                                            Height="36"
+                                            Margin="0,0,10,0"
                                             Background="#0EA5E9"
                                             Foreground="{StaticResource Modern.ForegroundMain}"
                                             ToolTip="Previous Block (Ctrl+Up)"
@@ -494,12 +525,11 @@
                                                                    Width="14"
                                                                    Height="14" />
                                     </Button>
-                                    <!-- Next Block Button -->
                                     <Button Click="NextBlock"
                                             Style="{StaticResource DebuggerToolbarButton}"
-                                            Width="34"
-                                            Height="34"
-                                            Margin="0,0,8,0"
+                                            Width="36"
+                                            Height="36"
+                                            Margin="0,0,10,0"
                                             Background="#0EA5E9"
                                             Foreground="{StaticResource Modern.ForegroundMain}"
                                             ToolTip="Next Block (Ctrl+Down)"
@@ -509,11 +539,10 @@
                                                                    Width="14"
                                                                    Height="14" />
                                     </Button>
-                                    <!-- Clear Log Button -->
                                     <Button Click="ClearLog"
                                             Style="{StaticResource DebuggerToolbarButton}"
-                                            Width="34"
-                                            Height="34"
+                                            Width="36"
+                                            Height="36"
                                             Background="{StaticResource Modern.BackgroundInput}"
                                             Foreground="{StaticResource Modern.ForegroundMain}"
                                             ToolTip="Clear All Logs (Ctrl+L)"

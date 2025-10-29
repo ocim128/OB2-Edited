@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -15,6 +16,7 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Threading;
 using Microsoft.Playwright;
+using Microsoft.VisualBasic.Devices;
 using Microsoft.Win32;
 using OpenBullet2.Native.Infrastructure.DependencyInjection;
 using RuriLib.Blocks.Utility;
@@ -46,6 +48,9 @@ namespace OpenBullet2.Native.Views.Pages
         private readonly object zipProfileLock = new();
         private string zipArchivePath = string.Empty;
         private bool isLaunchingZip;
+        
+        // Performance benchmark fields
+        private readonly ComputerInfo computerInfo = new();
 
         public Tools()
         {
@@ -58,11 +63,17 @@ namespace OpenBullet2.Native.Views.Pages
             timer.Tick += (_, _) => UpdateOtp();
             Unloaded += Tools_Unloaded;
 
+            // Performance monitoring will be lazily initialized only when needed
+            // This prevents expensive operations during page load and reduces navigation lag
+
             SetOtpDisplay("------", "Enter a secret key to generate codes.", 0);
             CopyOtpButton.IsEnabled = false;
             BookmarkletStatusBorder.Visibility = Visibility.Collapsed;
             TextCleanerStatusBorder.Visibility = Visibility.Collapsed;
             ZipOptionListBox.ItemsSource = zipOptionFolders;
+
+            // Set initial values for performance display (will be updated lazily)
+            InitializePerformanceDisplay();
         }
 
         private async void Tools_Unloaded(object sender, RoutedEventArgs e)
@@ -1121,5 +1132,392 @@ namespace OpenBullet2.Native.Views.Pages
             ModemStatusTextBlock.Foreground = brush;
             ModemStatusBorder.Visibility = Visibility.Visible;
         }
+
+        #region Performance Benchmark
+        
+        private DispatcherTimer benchmarkUpdateTimer;
+        private DateTime benchmarkStartTime;
+        private Stopwatch benchmarkStopwatch;
+        private bool benchmarkInitialized = false;
+        private bool performanceMonitoringStarted = false;
+
+        private void LazyInitializePerformanceMonitoring()
+        {
+            if (benchmarkInitialized) return;
+
+            benchmarkInitialized = true;
+            performanceMonitoringStarted = true;
+            
+            // Use a longer interval to reduce CPU load
+            benchmarkUpdateTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromSeconds(5) // Increased from 2 to 5 seconds
+            };
+            benchmarkUpdateTimer.Tick += (_, _) => UpdatePerformanceStats();
+            benchmarkUpdateTimer.Start();
+        }
+
+        private void UpdatePerformanceStats()
+        {
+            if (!performanceMonitoringStarted) return;
+
+            try
+            {
+                // Lightweight performance updates - only update essential information
+                var memoryInfo = GetLightweightMemoryUsage();
+                if (memoryInfo.usedMB != null)
+                {
+                    MemoryUsageValue.Text = $"{memoryInfo.usedMB} MB / {memoryInfo.totalMB} MB";
+                    MemoryUsageTextBlock.Text = memoryInfo.percentage.ToString("F1") + "%";
+                    MemoryUsageTextBlock.Foreground = GetPerformanceColor(memoryInfo.percentage);
+
+                    // Update CPU usage with lower frequency
+                    var cpuUsage = GetCpuUsage();
+                    CpuUsageValue.Text = cpuUsage.ToString("F1") + "%";
+                    CpuUsageTextBlock.Text = cpuUsage > 80 ? "HIGH" : cpuUsage > 50 ? "MED" : "LOW";
+                    CpuUsageTextBlock.Foreground = GetPerformanceColor(cpuUsage);
+                }
+
+                // Update system status (less frequently to reduce CPU load)
+                var systemStatus = GetSystemStatus();
+                if (!string.IsNullOrEmpty(systemStatus))
+                {
+                    SystemStatusValue.Text = systemStatus;
+                    SystemStatusTextBlock.Text = systemStatus == "Optimal" ? "GOOD" : 
+                                               systemStatus == "Moderate" ? "WARN" : "POOR";
+                    SystemStatusTextBlock.Foreground = systemStatus == "Optimal" ? Brushes.LightGreen :
+                                                     systemStatus == "Moderate" ? Brushes.Orange : Brushes.Red;
+                }
+            }
+            catch (Exception ex)
+            {
+                // Minimize logging for performance
+                if (System.Diagnostics.Debugger.IsAttached)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error updating performance stats: {ex.Message}");
+                }
+            }
+        }
+
+        private (string? usedMB, string totalMB, double percentage) GetLightweightMemoryUsage()
+        {
+            try
+            {
+                var process = Process.GetCurrentProcess();
+                var workingSet = process.WorkingSet64;
+                var totalMemory = computerInfo.TotalPhysicalMemory;
+                var percentage = totalMemory > 0 ? (double)workingSet / totalMemory * 100.0 : 0;
+
+                return (
+                    usedMB: (workingSet / 1024 / 1024).ToString(),
+                    totalMB: (totalMemory / 1024 / 1024).ToString(),
+                    percentage
+                );
+            }
+            catch
+            {
+                return (null, "N/A", 0);
+            }
+        }
+
+        private void ClearBenchmarkStats(object sender, RoutedEventArgs e)
+        {
+            BenchmarkOutputTextBox.Clear();
+            BenchmarkStatusBorder.Visibility = Visibility.Collapsed;
+            AppendBenchmarkLog("Performance statistics cleared.");
+        }
+
+        private async void RunPerformanceBenchmark(object sender, RoutedEventArgs e)
+        {
+            RunBenchmarkButton.IsEnabled = false;
+            
+            // Lazy initialize performance monitoring only when user actually wants to run tests
+            if (!performanceMonitoringStarted)
+            {
+                LazyInitializePerformanceMonitoring();
+            }
+            
+            benchmarkStartTime = DateTime.Now;
+            benchmarkStopwatch = Stopwatch.StartNew();
+            
+            SetBenchmarkStatus("Running performance benchmark...", Brushes.LightBlue);
+            AppendBenchmarkLog($"Benchmark started at {benchmarkStartTime:HH:mm:ss}");
+            AppendBenchmarkLog("Testing memory allocation...");
+            
+            try
+            {
+                // Test 1: Memory allocation performance
+                var memoryResult = await Task.Run(() => TestMemoryAllocation());
+                AppendBenchmarkLog($"Memory test: {memoryResult}");
+
+                AppendBenchmarkLog("Testing string processing...");
+                
+                // Test 2: String processing performance
+                var stringResult = await Task.Run(() => TestStringProcessing());
+                AppendBenchmarkLog($"String processing test: {stringResult}");
+
+                AppendBenchmarkLog("Testing file I/O performance...");
+                
+                // Test 3: File I/O performance
+                var fileResult = await Task.Run(() => TestFileIO());
+                AppendBenchmarkLog($"File I/O test: {fileResult}");
+
+                AppendBenchmarkLog("Testing calculation performance...");
+                
+                // Test 4: Calculation performance
+                var calcResult = await Task.Run(() => TestCalculations());
+                AppendBenchmarkLog($"Calculation test: {calcResult}");
+
+                benchmarkStopwatch.Stop();
+                var totalTime = benchmarkStopwatch.ElapsedMilliseconds;
+                
+                AppendBenchmarkLog("=== BENCHMARK COMPLETE ===");
+                AppendBenchmarkLog($"Total time: {totalTime}ms");
+                AppendBenchmarkLog($"Benchmark completed at {DateTime.Now:HH:mm:ss}");
+
+                SetBenchmarkStatus($"Benchmark completed in {totalTime}ms", Brushes.LightGreen);
+            }
+            catch (Exception ex)
+            {
+                AppendBenchmarkLog($"Benchmark failed: {ex.Message}");
+                SetBenchmarkStatus($"Benchmark failed: {ex.Message}", Brushes.Red);
+            }
+            finally
+            {
+                RunBenchmarkButton.IsEnabled = true;
+            }
+        }
+
+        private (string totalMB, string usedMB, double percentage) GetMemoryUsage()
+        {
+            try
+            {
+                var process = Process.GetCurrentProcess();
+                var workingSet = process.WorkingSet64;
+                var totalMemory = computerInfo.TotalPhysicalMemory;
+                var usedMemory = workingSet;
+                var percentage = totalMemory > 0 ? (double)usedMemory / totalMemory * 100.0 : 0;
+
+                return (
+                    (totalMemory / 1024 / 1024).ToString(),
+                    (workingSet / 1024 / 1024).ToString(),
+                    percentage
+                );
+            }
+            catch
+            {
+                return ("N/A", "N/A", 0);
+            }
+        }
+
+        private double GetCpuUsage()
+        {
+            try
+            {
+                var startTime = DateTime.UtcNow;
+                var startCpu = Process.GetCurrentProcess().TotalProcessorTime;
+
+                System.Threading.Thread.Sleep(1000); // Wait 1 second
+
+                var endTime = DateTime.UtcNow;
+                var endCpu = Process.GetCurrentProcess().TotalProcessorTime;
+
+                var cpuUsedMs = (endCpu - startCpu).TotalMilliseconds;
+                var totalMsPassed = (endTime - startTime).TotalMilliseconds;
+                var cpuUsageTotal = cpuUsedMs / (Environment.ProcessorCount * totalMsPassed);
+
+                return Math.Clamp(cpuUsageTotal * 100.0, 0.0, 100.0);
+            }
+            catch
+            {
+                return 0;
+            }
+        }
+
+        private string GetSystemStatus()
+        {
+            try
+            {
+                var (memoryTotal, memoryUsed, memoryPercent) = GetSystemMemoryInfo();
+                var cpuUsage = GetCpuUsage();
+
+                if (memoryPercent < 50 && cpuUsage < 50)
+                    return "Optimal";
+                else if (memoryPercent < 75 && cpuUsage < 75)
+                    return "Moderate";
+                else
+                    return "High Load";
+            }
+            catch
+            {
+                return "Unknown";
+            }
+        }
+
+        private (long totalMemory, long availableMemory, float usagePercent) GetSystemMemoryInfo()
+        {
+            try
+            {
+                var computerInfo = new ComputerInfo();
+                var totalMemory = (long)computerInfo.TotalPhysicalMemory;
+                var availableMemory = (long)computerInfo.AvailablePhysicalMemory;
+                var usagePercent = totalMemory == 0 ? 0f : (float)(100.0 * (totalMemory - availableMemory) / totalMemory);
+
+                return (totalMemory, availableMemory, usagePercent);
+            }
+            catch
+            {
+                return (0, 0, 0f);
+            }
+        }
+
+        private Brush GetPerformanceColor(double value)
+        {
+            if (value < 50) return Brushes.LightGreen;
+            if (value < 80) return Brushes.Orange;
+            return Brushes.Red;
+        }
+
+        private string TestMemoryAllocation()
+        {
+            var sw = Stopwatch.StartNew();
+            var items = new List<byte[]>();
+            
+            // Allocate 100MB of memory in chunks
+            for (int i = 0; i < 100; i++)
+            {
+                items.Add(new byte[1024 * 1024]); // 1MB chunks
+            }
+            
+            sw.Stop();
+            
+            // Clean up
+            items.Clear();
+            GC.Collect();
+            
+            return $"{sw.ElapsedMilliseconds}ms for 100MB allocation";
+        }
+
+        private string TestStringProcessing()
+        {
+            var sw = Stopwatch.StartNew();
+            var result = "";
+            
+            // Process 100,000 string operations
+            for (int i = 0; i < 100000; i++)
+            {
+                result += i.ToString() + ",";
+            }
+            
+            // Test string splitting
+            var parts = result.Split(',');
+            var count = parts.Length;
+            
+            sw.Stop();
+            return $"{sw.ElapsedMilliseconds}ms for {count} string operations";
+        }
+
+        private string TestFileIO()
+        {
+            var sw = Stopwatch.StartNew();
+            var testFile = Path.Combine(Path.GetTempPath(), "ob2_benchmark_test.txt");
+            
+            try
+            {
+                // Write test
+                var testData = new string('A', 1024 * 100); // 100KB of data
+                File.WriteAllText(testFile, testData);
+                
+                // Read test
+                var readData = File.ReadAllText(testFile);
+                var size = readData.Length;
+                
+                sw.Stop();
+                return $"{sw.ElapsedMilliseconds}ms for 100KB file I/O ({size} bytes)";
+            }
+            finally
+            {
+                try { File.Delete(testFile); } catch { }
+            }
+        }
+
+        private string TestCalculations()
+        {
+            var sw = Stopwatch.StartNew();
+            double result = 0;
+            
+            // Perform 1 million mathematical operations
+            for (int i = 0; i < 1000000; i++)
+            {
+                result += Math.Sqrt(i) * Math.Sin(i) + Math.Cos(i);
+            }
+            
+            sw.Stop();
+            return $"{sw.ElapsedMilliseconds}ms for 1M mathematical operations (result: {result:F2})";
+        }
+
+        private void AppendBenchmarkLog(string message)
+        {
+            if (BenchmarkOutputTextBox == null) return;
+            
+            var timestamp = DateTime.Now.ToString("HH:mm:ss");
+            var logEntry = $"[{timestamp}] {message}{Environment.NewLine}";
+            
+            BenchmarkOutputTextBox.AppendText(logEntry);
+            BenchmarkOutputTextBox.ScrollToEnd();
+        }
+
+        private void SetBenchmarkStatus(string message, Brush brush)
+        {
+            BenchmarkStatusTextBlock.Text = message;
+            BenchmarkStatusTextBlock.Foreground = brush;
+            BenchmarkStatusBorder.Visibility = Visibility.Visible;
+        }
+
+        private void InitializePerformanceDisplay()
+        {
+            try
+            {
+                // Set initial values quickly without expensive operations
+                var process = Process.GetCurrentProcess();
+                var workingSet = process.WorkingSet64;
+                var totalMemory = computerInfo.TotalPhysicalMemory;
+                
+                if (totalMemory > 0)
+                {
+                    MemoryUsageValue.Text = $"{workingSet / 1024 / 1024} MB / {totalMemory / 1024 / 1024} MB";
+                    MemoryUsageTextBlock.Text = "0.0%";
+                    MemoryUsageTextBlock.Foreground = Brushes.LightGreen;
+                }
+                else
+                {
+                    MemoryUsageValue.Text = "N/A";
+                    MemoryUsageTextBlock.Text = "N/A";
+                    MemoryUsageTextBlock.Foreground = Brushes.Gray;
+                }
+
+                // Set initial CPU value
+                CpuUsageValue.Text = "0.0%";
+                CpuUsageTextBlock.Text = "LOW";
+                CpuUsageTextBlock.Foreground = Brushes.LightGreen;
+
+                // Set initial system status
+                SystemStatusValue.Text = "Optimal";
+                SystemStatusTextBlock.Text = "GOOD";
+                SystemStatusTextBlock.Foreground = Brushes.LightGreen;
+            }
+            catch
+            {
+                // Set safe defaults if anything fails
+                MemoryUsageValue.Text = "N/A";
+                MemoryUsageTextBlock.Text = "N/A";
+                CpuUsageValue.Text = "N/A";
+                CpuUsageTextBlock.Text = "N/A";
+                SystemStatusValue.Text = "Unknown";
+                SystemStatusTextBlock.Text = "N/A";
+            }
+        }
+
+        #endregion
     }
 }

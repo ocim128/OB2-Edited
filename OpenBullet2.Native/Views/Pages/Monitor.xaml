@@ -594,6 +594,149 @@
                             </Border>
                         </StackPanel>
                     </Border>
+
+                    <Border Style="{StaticResource ModernCardLite}"
+                            Background="#B0282828"
+                            Padding="20"
+                            Margin="0,0,16,16"
+                            Width="400">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                <iconPacks:PackIconMaterial Kind="Speedometer" 
+                                                           Width="20" 
+                                                           Height="20" 
+                                                           VerticalAlignment="Center"
+                                                           Margin="0,0,8,0"
+                                                           Foreground="#EC4899"/>
+                                <TextBlock Text="Performance Benchmark"
+                                           Style="{StaticResource H3TextStyle}"
+                                           VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <TextBlock Text="Test application performance and monitor system resources in real-time."
+                                       Style="{StaticResource CaptionTextStyle}"
+                                       Foreground="#94A3B8"
+                                       TextWrapping="Wrap"
+                                       Margin="0,0,0,16"/>
+
+                            <Grid Margin="0,0,0,12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                
+                                <TextBlock Text="Memory Usage:"
+                                           Style="{StaticResource BodyTextStyle}"
+                                           Grid.Row="0"
+                                           Margin="0,0,0,4"/>
+                                <TextBlock x:Name="MemoryUsageTextBlock"
+                                           Grid.Row="0"
+                                           Grid.Column="1"
+                                           Style="{StaticResource CaptionTextStyle}"
+                                           Foreground="#60A5FA"
+                                           HorizontalAlignment="Right"/>
+                                <TextBlock x:Name="MemoryUsageValue"
+                                           Grid.Row="0"
+                                           Grid.Column="1"
+                                           Style="{StaticResource BodyTextStyle}"
+                                           Foreground="#E2E8F0"
+                                           HorizontalAlignment="Right"
+                                           Margin="0,0,0,4"/>
+                                
+                                <TextBlock Text="CPU Usage:"
+                                           Style="{StaticResource BodyTextStyle}"
+                                           Grid.Row="1"
+                                           Margin="0,0,0,4"/>
+                                <TextBlock x:Name="CpuUsageTextBlock"
+                                           Grid.Row="1"
+                                           Grid.Column="1"
+                                           Style="{StaticResource CaptionTextStyle}"
+                                           Foreground="#34D399"
+                                           HorizontalAlignment="Right"/>
+                                <TextBlock x:Name="CpuUsageValue"
+                                           Grid.Row="1"
+                                           Grid.Column="1"
+                                           Style="{StaticResource BodyTextStyle}"
+                                           Foreground="#E2E8F0"
+                                           HorizontalAlignment="Right"
+                                           Margin="0,0,0,4"/>
+                                
+                                <TextBlock Text="System Status:"
+                                           Style="{StaticResource BodyTextStyle}"
+                                           Grid.Row="2"
+                                           Margin="0,0,0,4"/>
+                                <TextBlock x:Name="SystemStatusTextBlock"
+                                           Grid.Row="2"
+                                           Grid.Column="1"
+                                           Style="{StaticResource CaptionTextStyle}"
+                                           Foreground="#34D399"
+                                           HorizontalAlignment="Right"/>
+                                <TextBlock x:Name="SystemStatusValue"
+                                           Grid.Row="2"
+                                           Grid.Column="1"
+                                           Style="{StaticResource BodyTextStyle}"
+                                           Foreground="#E2E8F0"
+                                           HorizontalAlignment="Right"
+                                           Margin="0,0,0,4"/>
+                            </Grid>
+
+                            <Grid Margin="0,0,0,12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <Button x:Name="ClearBenchmarkButton"
+                                        Style="{StaticResource StyledWarningButton}"
+                                        Content="Clear Stats"
+                                        Width="100"
+                                        Grid.Column="0"
+                                        HorizontalAlignment="Left"
+                                        Click="ClearBenchmarkStats"
+                                        AutomationProperties.Name="Clear benchmark statistics"/>
+                                <Button x:Name="RunBenchmarkButton"
+                                        Style="{StaticResource StyledPrimaryButton}"
+                                        Content="Run Test"
+                                        Width="100"
+                                        Grid.Column="1"
+                                        Click="RunPerformanceBenchmark"
+                                        AutomationProperties.Name="Run performance benchmark"/>
+                            </Grid>
+
+                            <Border x:Name="BenchmarkStatusBorder"
+                                    Background="#065F46"
+                                    CornerRadius="6"
+                                    Padding="10"
+                                    Margin="0,0,0,10"
+                                    Visibility="Collapsed">
+                                <TextBlock x:Name="BenchmarkStatusTextBlock"
+                                           Style="{StaticResource CaptionTextStyle}"
+                                           Foreground="#A7F3D0"
+                                           TextWrapping="Wrap"/>
+                            </Border>
+
+                            <Border Background="#1A1A1A"
+                                    BorderBrush="#333333"
+                                    BorderThickness="1"
+                                    CornerRadius="8"
+                                    Padding="12"
+                                    MinHeight="120">
+                                <TextBox x:Name="BenchmarkOutputTextBox"
+                                         Style="{StaticResource MatchingTextBox}"
+                                         Background="Transparent"
+                                         BorderThickness="0"
+                                         AcceptsReturn="True"
+                                         IsReadOnly="True"
+                                         Height="120"
+                                         TextWrapping="Wrap"
+                                         ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                         AutomationProperties.Name="Benchmark output"/>
+                            </Border>
+                        </StackPanel>
+                    </Border>
                 </WrapPanel>
             </DockPanel>
         </ScrollViewer>

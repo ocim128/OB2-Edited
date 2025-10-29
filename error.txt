@@ -1,4 +1,0 @@
-Unhandled exception. System.IO.FileNotFoundException: Could not load file or assembly 'Microsoft.Extensions.Configuration.Abstractions, Version=8.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60'. The system cannot find the file specified.
-File name: 'Microsoft.Extensions.Configuration.Abstractions, Version=8.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60'
-   at OpenBullet2.Native.App..ctor()
-   at OpenBullet2.Native.App.Main()

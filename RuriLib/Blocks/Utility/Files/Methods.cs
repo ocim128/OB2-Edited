@@ -270,6 +270,130 @@ namespace RuriLib.Blocks.Utility.Files
             data.Logger.LogHeader();
             data.Logger.Log($"Deleted {path}", LogColors.Flavescent);
         }
+
+        [Block("Deletes all files and folders inside the system temporary folder",
+            extraInfo = "Skips entries that are currently locked or in use by other processes.")]
+        public static int ClearTempFolder(BotData data)
+        {
+            var tempPath = Path.GetTempPath();
+
+            if (string.IsNullOrWhiteSpace(tempPath))
+            {
+                throw new InvalidOperationException("Unable to resolve the system temporary folder path.");
+            }
+
+            tempPath = SanitizePath(tempPath).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+
+            if (!Directory.Exists(tempPath))
+            {
+                data.Logger.LogHeader();
+                data.Logger.Log($"The temporary directory {tempPath} does not exist.", LogColors.Flavescent);
+                return 0;
+            }
+
+            if (data.Providers.Security.RestrictBlocksToCWD)
+                FileUtils.ThrowIfNotInCWD(tempPath);
+
+            var deletedFiles = 0;
+            var deletedDirectories = 0;
+            var skippedEntries = 0;
+            var pendingDirectories = new Stack<(string Path, bool Visited)>();
+            pendingDirectories.Push((tempPath, false));
+
+            while (pendingDirectories.Count > 0)
+            {
+                var (currentPath, visited) = pendingDirectories.Pop();
+
+                if (!visited)
+                {
+                    string[] filesInCurrent;
+                    try
+                    {
+                        filesInCurrent = Directory.GetFiles(currentPath);
+                    }
+                    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                    {
+                        skippedEntries++;
+                        continue;
+                    }
+
+                    foreach (var file in filesInCurrent)
+                    {
+                        var handle = FileLocker.GetHandle(file);
+                        try
+                        {
+                            lock (handle.GetSyncLock())
+                            {
+                                if (File.Exists(file))
+                                {
+                                    File.Delete(file);
+                                    deletedFiles++;
+                                }
+                            }
+                        }
+                        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                        {
+                            skippedEntries++;
+                        }
+                    }
+
+                    // Ensure we attempt to delete the directory after processing its children.
+                    pendingDirectories.Push((currentPath, true));
+
+                    string[] subDirectories;
+                    try
+                    {
+                        subDirectories = Directory.GetDirectories(currentPath);
+                    }
+                    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                    {
+                        skippedEntries++;
+                        continue;
+                    }
+
+                    foreach (var subDirectory in subDirectories)
+                    {
+                        try
+                        {
+                            var attributes = File.GetAttributes(subDirectory);
+                            if ((attributes & FileAttributes.ReparsePoint) != 0)
+                            {
+                                continue;
+                            }
+                        }
+                        catch (Exception)
+                        {
+                            skippedEntries++;
+                            continue;
+                        }
+
+                        pendingDirectories.Push((subDirectory, false));
+                    }
+                }
+                else
+                {
+                    if (string.Equals(currentPath, tempPath, StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue; // Don't delete the root temp directory itself.
+                    }
+
+                    try
+                    {
+                        Directory.Delete(currentPath, false);
+                        deletedDirectories++;
+                    }
+                    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                    {
+                        skippedEntries++;
+                    }
+                }
+            }
+
+            data.Logger.LogHeader();
+            data.Logger.Log($"Deleted {deletedFiles} files and {deletedDirectories} folders from {tempPath}. Skipped {skippedEntries} locked or inaccessible entries.", LogColors.Flavescent);
+
+            return deletedFiles + deletedDirectories;
+        }
         #endregion
 
         private static async Task<TOut> ExecuteFileOperation<TIn, TOut>(BotData data, string path, TIn parameter,

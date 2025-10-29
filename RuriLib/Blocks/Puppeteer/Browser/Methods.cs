@@ -840,7 +840,7 @@ navigator.maxTouchPoints = 0;
         {
             Headless = headless,
             Args = browserArgs.ToArray(),
-            IgnoreHTTPSErrors = data.ConfigSettings.BrowserSettings.IgnoreHttpsErrors,
+            AcceptInsecureCerts = data.ConfigSettings.BrowserSettings.IgnoreHttpsErrors,
             SlowMo = 0,
             Timeout = 30000,
             ExecutablePath = data.Providers.PuppeteerBrowser.ChromeBinaryLocation,

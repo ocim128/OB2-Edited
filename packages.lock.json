@@ -319,23 +319,19 @@
       },
       "PuppeteerExtraSharp": {
         "type": "Transitive",
-        "resolved": "2.0.0",
-        "contentHash": "dNbWUR1TEUOsNe0Ai2z260p7GTE3wa7I29oQAYoZDUtEkw2xwORsynhMu7iUhGqz+Ck2QpsUPKWmLdPHW+iv4w==",
+        "resolved": "3.0.1",
+        "contentHash": "tqNvYgX1GJYqhoxGMG8GQM2PFZcyUQjGt762Lc6Prx8QIKgkCyQQ3mfLosVPYi5fOeQemRHH9ONc2jmCD60ujQ==",
         "dependencies": {
-          "PuppeteerSharp": "9.0.2",
+          "PuppeteerSharp": "20.2.2",
           "RestSharp": "108.0.3"
         }
       },
       "PuppeteerSharp": {
         "type": "Transitive",
-        "resolved": "9.0.2",
-        "contentHash": "zNk/7IksuwRKBRD74OZWc3jaq21V9jkM+VGaayd7EmDcvLeWFdL7z4Z9/m5F5DcruQMtTj1+b3QoWV6bb7j1LQ==",
+        "resolved": "20.2.4",
+        "contentHash": "EIZEsXiFkzh1oftndcLwwFuiSoWGQ0s8/W7s78nszZZ97dP8Hv5n/37uQL/qW7rYs2xA/Upj1dsG9SRzYqySmA==",
         "dependencies": {
-          "Microsoft.AspNetCore.WebUtilities": "2.2.0",
-          "Microsoft.Bcl.AsyncInterfaces": "1.1.0",
-          "Microsoft.Extensions.Logging": "2.0.2",
-          "Newtonsoft.Json": "13.0.1",
-          "SharpZipLib": "1.3.3"
+          "Microsoft.Extensions.Logging": "8.0.0"
         }
       },
       "RestSharp": {
@@ -533,8 +529,8 @@
           "Microsoft.CodeAnalysis.Workspaces.Common": "[4.5.0, )",
           "Microsoft.Playwright": "[1.40.0, )",
           "Newtonsoft.Json": "[13.0.3, )",
-          "PuppeteerExtraSharp": "[2.0.0, )",
-          "PuppeteerSharp": "[9.0.2, )",
+          "PuppeteerExtraSharp": "[3.0.1, )",
+          "PuppeteerSharp": "[20.2.4, )",
           "RuriLib.Http": "[1.0.1, )",
           "RuriLib.Parallelization": "[1.0.6, )",
           "RuriLib.Proxies": "[1.0.2, )",

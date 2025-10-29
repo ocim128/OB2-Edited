@@ -68,7 +68,7 @@ namespace RuriLib.Blocks.Puppeteer.Elements
 
             var frame = GetFrame(data);
             var elem = await GetElement(frame, findBy, identifier, index);
-            await elem.ClickAsync(new PuppeteerSharp.Input.ClickOptions { Button = mouseButton, ClickCount = clickCount, Delay = timeBetweenClicks });
+            await elem.ClickAsync(new PuppeteerSharp.Input.ClickOptions { Button = mouseButton, Count = clickCount, Delay = timeBetweenClicks });
 
             data.Logger.Log($"Clicked {clickCount} time(s) with {mouseButton} button", LogColors.DarkSalmon);
         }
@@ -336,7 +336,7 @@ namespace RuriLib.Blocks.Puppeteer.Elements
 
             var frame = GetFrame(data);
             var elem = await GetElement(frame, findBy, identifier, index);
-            await elem.ScreenshotAsync(fileName, new ScreenshotOptions 
+            await elem.ScreenshotAsync(fileName, new ElementScreenshotOptions
             {
                 FullPage = fullPage,
                 OmitBackground = omitBackground,
@@ -355,7 +355,7 @@ namespace RuriLib.Blocks.Puppeteer.Elements
 
             var frame = GetFrame(data);
             var elem = await GetElement(frame, findBy, identifier, index);
-            var base64 = await elem.ScreenshotBase64Async(new ScreenshotOptions 
+            var base64 = await elem.ScreenshotBase64Async(new ElementScreenshotOptions
             { 
                 FullPage = fullPage,
                 OmitBackground = omitBackground,

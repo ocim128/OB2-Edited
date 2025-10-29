@@ -213,25 +213,37 @@ public partial class MainWindow : MetroWindow
         {
             // Use default sizing logic for new installations
             var workingArea = SystemParameters.WorkArea;
-            var dpiScale = Media.VisualTreeHelper.GetDpi(this);
-
-            // Calculate responsive base size based on screen dimensions and DPI
+            // Calculate responsive base size based on current screen dimensions
             var screenWidth = workingArea.Width;
             var screenHeight = workingArea.Height;
-            var dpiFactor = dpiScale.DpiScaleX;
 
-            // Responsive sizing: use 70% of screen size on larger screens, 85% on smaller screens
-            var targetScreenPercentage = (screenWidth <= 1366 || screenHeight <= 768) ? 0.85 : 0.70;
-            
-            var baseWidth = Math.Min(1200, screenWidth * targetScreenPercentage / dpiFactor);
-            var baseHeight = Math.Min(800, screenHeight * targetScreenPercentage / dpiFactor);
+            // Responsive sizing: medium screens use ~80%, small screens ~90%, ultra-wide ~72%
+            var widthPercentage = screenWidth <= 1366
+                ? 0.90
+                : screenWidth <= 1920
+                    ? 0.80
+                    : 0.72;
 
-            // Set window size with better constraints
-            var maxWidth = workingArea.Width * 0.95;
-            var maxHeight = workingArea.Height * 0.95;
+            var heightPercentage = screenHeight <= 768
+                ? 0.90
+                : screenHeight <= 1080
+                    ? 0.80
+                    : 0.75;
 
-            Width = Math.Max(MinWidth, Math.Min(baseWidth, maxWidth));
-            Height = Math.Max(MinHeight, Math.Min(baseHeight, maxHeight));
+            var baseWidth = screenWidth * widthPercentage;
+            var baseHeight = screenHeight * heightPercentage;
+
+            // Keep the window within a comfortable range across resolutions
+            var minComfortableWidth = Math.Min(screenWidth * 0.55, 1024);
+            var maxComfortableWidth = Math.Min(screenWidth * 0.95, 1920);
+            var minComfortableHeight = Math.Min(screenHeight * 0.55, 720);
+            var maxComfortableHeight = Math.Min(screenHeight * 0.95, 1100);
+
+            var balancedWidth = Math.Max(minComfortableWidth, Math.Min(baseWidth, maxComfortableWidth));
+            var balancedHeight = Math.Max(minComfortableHeight, Math.Min(baseHeight, maxComfortableHeight));
+
+            Width = Math.Max(MinWidth, balancedWidth);
+            Height = Math.Max(MinHeight, balancedHeight);
 
             // Center window with better positioning
             Left = Math.Max(0, (workingArea.Width - Width) / 2 + workingArea.Left);

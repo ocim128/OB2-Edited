@@ -5,6 +5,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Threading;
 
 namespace OpenBullet2.Native.Extensions
 {
@@ -53,6 +54,7 @@ namespace OpenBullet2.Native.Extensions
             }
 
             var text = writer.ToString();
+            var dispatcher = Application.Current?.Dispatcher;
 
             const int maxAttempts = 6;
             var delayMs = 10;
@@ -60,7 +62,14 @@ namespace OpenBullet2.Native.Extensions
             {
                 try
                 {
-                    Clipboard.SetText(text);
+                    if (dispatcher is null || dispatcher.CheckAccess())
+                    {
+                        Clipboard.SetText(text);
+                    }
+                    else
+                    {
+                        await dispatcher.InvokeAsync(() => Clipboard.SetText(text)).Task.ConfigureAwait(false);
+                    }
                     return;
                 }
                 catch (COMException ex)

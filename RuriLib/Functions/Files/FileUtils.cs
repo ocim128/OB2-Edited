@@ -53,19 +53,16 @@ namespace RuriLib.Functions.Files
         }
 
         /// <summary>
-        /// Throws an UnauthorizedAccessException if the path is not part of the current working directory.
+        /// Historically this threw if the path was not part of the current working directory.
+        /// The restriction has been lifted to allow working with files located outside
+        /// of the software directory, so the method now acts as a no-op.
         /// </summary>
         /// <param name="path">The absolute or relative path.</param>
         public static void ThrowIfNotInCWD(string path)
         {
             if (path == null)
                 throw new ArgumentNullException(nameof(path));
-
-            if (!path.IsSubPathOf(Directory.GetCurrentDirectory()))
-            {
-                throw new UnauthorizedAccessException(
-                    "For security reasons, interactions with paths outside of the current working directory are not allowed");
-            }
+            // Intentionally left blank.
         }
 
         /// <summary>

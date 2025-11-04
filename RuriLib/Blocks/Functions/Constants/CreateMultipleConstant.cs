@@ -9,7 +9,7 @@ namespace RuriLib.Blocks.Functions.Constants
     [BlockCategory("Constants", "Blocks that allow to assign constant values to variables", "#9acd32")]
     public static class CreateMultipleConstant
     {
-        [Block("Creates multiple constant string variables at once")]
+        [Block("")]
         public static async Task<bool> CreateMultiple(
             BotData data,
             string variableName1 = "",

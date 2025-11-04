@@ -65,7 +65,7 @@ namespace OpenBullet2.Native.Controls
             }
         }
 
-        private void AddVariable_Click(object sender, RoutedEventArgs e)
+        public void AddVariable()
         {
             int nextIndex = GetNextAvailableIndex();
             if (nextIndex <= 10)

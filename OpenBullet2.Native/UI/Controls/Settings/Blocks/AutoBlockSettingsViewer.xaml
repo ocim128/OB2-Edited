@@ -56,12 +56,19 @@
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <TextBlock Grid.Column="0" Text="Label:" 
                           Foreground="#ccc" FontSize="11" 
                           VerticalAlignment="Center" Margin="0 0 4 0"/>
                 <TextBox Grid.Column="1" Text="{Binding Label}" 
-                        Style="{StaticResource MatchingTextBox}"/>
+                        Style="{StaticResource MatchingTextBox}"
+                        Margin="0 0 8 0"/>
+                <ContentControl x:Name="blockHeaderAction"
+                                Grid.Column="2"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Center"
+                                Visibility="Collapsed"/>
             </Grid>
 
             <!-- Safe Mode -->
@@ -69,7 +76,8 @@
                      Content="Safe mode"
                      IsChecked="{Binding SafeMode}"
                      Style="{StaticResource SquareCheckBox}"
-                     FontSize="11"/>
+                     FontSize="11"
+                     Visibility="{Binding ShowExecutionOptions, Converter={StaticResource ResourceKey=BoolToVis}}"/>
 
             <!-- Return Value -->
             <Grid Grid.Row="3" Margin="0 0 0 6"

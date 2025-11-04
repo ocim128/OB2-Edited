@@ -6,6 +6,7 @@ using System;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using MahApps.Metro.IconPacks;
 
 namespace OpenBullet2.Native.Controls
 {
@@ -69,15 +70,21 @@ namespace OpenBullet2.Native.Controls
         private void CreateSettings()
         {
             settingsPanel.Children.Clear();
+            blockHeaderAction.Content = null;
+            blockHeaderAction.Visibility = Visibility.Collapsed;
 
             // Special handling for CreateMultiple block - use custom UI
             if (vm.Block.Descriptor.Id == "CreateMultiple")
             {
                 var createMultipleViewer = new CreateMultipleConstantViewer
                 {
-                    BlockVM = vm.BlockVM
+                    BlockVM = vm.BlockVM,
+                    Margin = new Thickness(0, 4, 0, 0)
                 };
                 settingsPanel.Children.Add(createMultipleViewer);
+
+                blockHeaderAction.Content = CreateAddVariableButton(createMultipleViewer);
+                blockHeaderAction.Visibility = Visibility.Visible;
                 return;
             }
 
@@ -114,11 +121,50 @@ namespace OpenBullet2.Native.Controls
                 imagesPanel.Children.Add(control);
             }
         }
+
+        private Button CreateAddVariableButton(CreateMultipleConstantViewer viewer)
+        {
+            var button = new Button
+            {
+                Style = TryFindResource("ModernButton") as Style,
+                HorizontalAlignment = HorizontalAlignment.Right,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(8, 0, 0, 0),
+                Cursor = System.Windows.Input.Cursors.Hand
+            };
+
+            var content = new StackPanel
+            {
+                Orientation = Orientation.Horizontal
+            };
+
+            content.Children.Add(new PackIconMaterial
+            {
+                Kind = PackIconMaterialKind.Plus,
+                Width = 16,
+                Height = 16,
+                Margin = new Thickness(0, 0, 8, 0)
+            });
+
+            content.Children.Add(new TextBlock
+            {
+                Text = "Add",
+                FontSize = 12,
+                FontWeight = FontWeights.SemiBold
+            });
+
+            button.Content = content;
+            button.Click += (s, e) => viewer.AddVariable();
+
+            return button;
+        }
     }
 
     public class AutoBlockSettingsViewerViewModel : BlockSettingsViewerViewModel
     {
         public AutoBlockInstance AutoBlock => Block as AutoBlockInstance;
+
+        public bool ShowExecutionOptions => !string.Equals(Block.Descriptor.Id, "CreateMultiple", StringComparison.OrdinalIgnoreCase);
 
         public bool SafeMode
         {
@@ -130,7 +176,7 @@ namespace OpenBullet2.Native.Controls
             }
         }
 
-        public bool HasReturnValue => Block.Descriptor.ReturnType is not null;
+        public bool HasReturnValue => ShowExecutionOptions && Block.Descriptor.ReturnType is not null;
         public string ReturnValueType => $"Output variable ({Block.Descriptor.ReturnType})";
         public bool HasActions => Block.Descriptor.Actions.Any();
         public bool HasImages => Block.Descriptor.Images.Any();

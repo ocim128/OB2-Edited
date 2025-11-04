@@ -267,47 +267,20 @@
                 CornerRadius="12"
                 Padding="16">
             <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="*" />
-                </Grid.RowDefinitions>
-
-                <StackPanel Grid.Row="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,12">
-                    <Border Width="32" Height="32" Background="#0EA5E9" CornerRadius="8">
-                        <iconPacks:PackIconMaterial Kind="ToolboxOutline"
-                                                     Width="16"
-                                                     Height="16"
-                                                     Foreground="White"
-                                                     HorizontalAlignment="Center"
-                                                     VerticalAlignment="Center" />
-                    </Border>
-                    <StackPanel Orientation="Vertical" Margin="8,0,0,0">
-                        <TextBlock Text="Block Inspector"
-                                   FontSize="14"
-                                   FontWeight="SemiBold"
-                                   Foreground="{StaticResource Modern.ForegroundMain}" />
-                        <TextBlock Text="Review and edit the selected block"
-                                   FontSize="11"
-                                   Foreground="{StaticResource Modern.ForegroundMuted}" />
-                    </StackPanel>
-                </StackPanel>
-
-                <Grid Grid.Row="1">
-                    <TextBlock x:Name="BlockInfoPlaceholder"
-                               Text="Select a block to inspect its settings."
-                               Foreground="{StaticResource Modern.ForegroundMuted}"
-                               FontSize="13"
-                               TextAlignment="Center"
-                               TextWrapping="Wrap"
-                               HorizontalAlignment="Center"
-                               VerticalAlignment="Center"
-                               Margin="32" />
-                    <ScrollViewer x:Name="BlockInfoScrollViewer"
-                                  VerticalScrollBarVisibility="Auto"
-                                  HorizontalScrollBarVisibility="Disabled">
-                        <ContentControl x:Name="BlockInfoContent" />
-                    </ScrollViewer>
-                </Grid>
+                <TextBlock x:Name="BlockInfoPlaceholder"
+                           Text="Select a block to inspect its settings."
+                           Foreground="{StaticResource Modern.ForegroundMuted}"
+                           FontSize="13"
+                           TextAlignment="Center"
+                           TextWrapping="Wrap"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"
+                           Margin="32" />
+                <ScrollViewer x:Name="BlockInfoScrollViewer"
+                              VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled">
+                    <ContentControl x:Name="BlockInfoContent" />
+                </ScrollViewer>
             </Grid>
         </Border>
     </Grid>

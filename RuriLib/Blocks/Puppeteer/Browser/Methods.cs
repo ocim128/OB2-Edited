@@ -1,13 +1,20 @@
 using Yove.Proxy;
 using PuppeteerSharp;
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Globalization;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Threading;
+using System.Threading.Tasks;
 using RuriLib.Attributes;
 using RuriLib.Logging;
 using RuriLib.Models.Bots;
 using RuriLib.Models.Configs.Settings;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 using ProxyType = RuriLib.Models.Proxies.ProxyType;
 
@@ -17,7 +24,7 @@ namespace RuriLib.Blocks.Puppeteer.Browser;
 public static class Methods
 {
     [Block("Opens a new puppeteer browser", name = "Open Browser")]
-    public static async Task PuppeteerOpenBrowser(BotData data, string extraCmdLineArgs = "")
+    public static async Task PuppeteerOpenBrowser(BotData data, string extraCmdLineArgs = "", bool? useRealBrowser = null)
     {
         data.Logger.LogHeader();
 
@@ -29,8 +36,17 @@ public static class Methods
             return;
         }
 
-        // Always use real browser as default, with optional stealth mode
-        await OpenIntegratedRealBrowser(data, extraCmdLineArgs);
+        var providerPreference = data.Providers?.PuppeteerBrowser?.UseRealBrowser ?? false;
+        var shouldUseRealBrowser = useRealBrowser ?? providerPreference;
+
+        if (shouldUseRealBrowser)
+        {
+            await OpenRealBrowserAsync(data, extraCmdLineArgs);
+        }
+        else
+        {
+            await OpenPuppeteerSharpBrowser(data, extraCmdLineArgs);
+        }
     }
 
     [Block("Closes an open puppeteer browser", name = "Close Browser")]
@@ -43,23 +59,24 @@ public static class Methods
         StopYoveProxyInternalServer(data);
 
         // Clean up real browser process if it exists
-        var realBrowserProcessIdObj = data.TryGetObject<object>("puppeteer.realBrowserProcessId");
-        if (realBrowserProcessIdObj is int realBrowserProcessId)
+        if (data.TryGetObject<Process>("puppeteer.realBrowserProcess") is { } storedProcess)
         {
             try
             {
-                var process = System.Diagnostics.Process.GetProcessById(realBrowserProcessId);
-                if (!process.HasExited)
+                if (!storedProcess.HasExited)
                 {
-                    process.Kill();
+                    storedProcess.Kill(true);
                 }
             }
             catch
             {
-                // Ignore if process doesn't exist
+                // Ignore failures during cleanup
             }
-            data.SetObject("puppeteer.realBrowserProcessId", null);
+            storedProcess.Dispose();
         }
+
+        data.Objects.Remove("puppeteer.realBrowserProcess");
+        data.Objects.Remove("puppeteer.realBrowserProcessId");
 
         data.Logger.Log("Browser closed successfully!", LogColors.DarkSalmon);
     }
@@ -193,18 +210,45 @@ public static class Methods
 
     private static async Task SetPageLoadingOptions(BotData data, IPage page)
     {
-        await page.SetRequestInterceptionAsync(true);
-        page.Request += (sender, e) =>
+        var blockedUrls = data.ConfigSettings.BrowserSettings.BlockedUrls ?? new List<string>();
+        var needsInterception = data.ConfigSettings.BrowserSettings.LoadOnlyDocumentAndScript ||
+                                blockedUrls.Any(u => !string.IsNullOrWhiteSpace(u));
+        var isRealBrowser = data.TryGetObject<Process>("puppeteer.realBrowserProcess") is not null;
+
+        if (needsInterception)
         {
-            // If we only want documents and scripts but the resource is not one of those, block
-            _ = data.ConfigSettings.BrowserSettings.LoadOnlyDocumentAndScript &&
-                e.Request.ResourceType != ResourceType.Document && e.Request.ResourceType != ResourceType.Script
-                ? e.Request.AbortAsync()
-                : data.ConfigSettings.BrowserSettings.BlockedUrls
-                                    .Any(u => !string.IsNullOrWhiteSpace(u) && e.Request.Url.Contains(u, StringComparison.OrdinalIgnoreCase))
-                    ? e.Request.AbortAsync()
-                    : e.Request.ContinueAsync();
-        };
+            await page.SetRequestInterceptionAsync(true);
+            page.Request += async (sender, e) =>
+            {
+                if (data.ConfigSettings.BrowserSettings.LoadOnlyDocumentAndScript &&
+                    e.Request.ResourceType != ResourceType.Document &&
+                    e.Request.ResourceType != ResourceType.Script)
+                {
+                    await e.Request.AbortAsync().ConfigureAwait(false);
+                    return;
+                }
+
+                var shouldBlock = blockedUrls.Any(u =>
+                    !string.IsNullOrWhiteSpace(u) &&
+                    e.Request.Url.Contains(u, StringComparison.OrdinalIgnoreCase));
+
+                if (shouldBlock)
+                {
+                    await e.Request.AbortAsync().ConfigureAwait(false);
+                }
+                else
+                {
+                    await e.Request.ContinueAsync().ConfigureAwait(false);
+                }
+            };
+        }
+        else
+        {
+            if (isRealBrowser)
+            {
+                await page.SetRequestInterceptionAsync(false);
+            }
+        }
 
         if (data.ConfigSettings.BrowserSettings.DismissDialogs)
         {
@@ -748,97 +792,221 @@ navigator.maxTouchPoints = 0;
         ["Cache-Control"] = "max-age=0"
     };
 
-    private static async Task OpenIntegratedRealBrowser(BotData data, string extraCmdLineArgs = "")
+
+    private static readonly JsonSerializerOptions RealBrowserJsonOptions = new()
     {
-        var browserArgs = new List<string>(BaseBrowserArgs);
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+    };
 
-        // Add stealth arguments based on selected mode
-        switch (data.ConfigSettings.BrowserSettings.StealthMode)
+    private static async Task OpenRealBrowserAsync(BotData data, string extraCmdLineArgs)
+    {
+        var browserArgs = BuildBrowserArguments(data, extraCmdLineArgs, includeDefaultArgs: true);
+
+        data.Logger.Log($"Browser arguments: {string.Join(" ", browserArgs)}", LogColors.Yellow);
+
+        var scriptsDirectory = ResolveScriptsDirectory();
+        var launcherPath = Path.Combine(scriptsDirectory, "puppeteer-real-browser.js");
+        if (!File.Exists(launcherPath))
         {
-            case BrowserStealthMode.Option4:
-                browserArgs.AddRange(Option4StealthArgs);
-                break;
-            case BrowserStealthMode.Stealth:
-                browserArgs.AddRange(StealthArgs);
-                break;
-            case BrowserStealthMode.EnhancedStealth:
-                browserArgs.AddRange(EnhancedStealthArgs);
-                break;
-            case BrowserStealthMode.Default:
-            default:
-                // No additional stealth arguments for default mode
-                break;
+            throw new FileNotFoundException($"Unable to find puppeteer-real-browser.js in '{scriptsDirectory}'. Make sure the npm dependencies in RuriLib/Scripts are installed.");
         }
 
-        // Add user-provided arguments with proper quoted argument handling
-        if (!string.IsNullOrWhiteSpace(data.ConfigSettings.BrowserSettings.CommandLineArgs))
+        var realBrowserModulePath = Path.Combine(scriptsDirectory, "node_modules", "puppeteer-real-browser");
+        if (!Directory.Exists(realBrowserModulePath))
         {
-            browserArgs.AddRange(ParseCommandLineArgs(data.ConfigSettings.BrowserSettings.CommandLineArgs));
+            throw new DirectoryNotFoundException($"puppeteer-real-browser dependencies not found in '{scriptsDirectory}'. Run 'npm install' inside RuriLib/Scripts before using the real browser option.");
         }
 
-        if (!string.IsNullOrWhiteSpace(extraCmdLineArgs))
-        {
-            browserArgs.AddRange(ParseCommandLineArgs(extraCmdLineArgs));
-        }
+        var chromePath = data.Providers.PuppeteerBrowser.ChromeBinaryLocation;
+        RealBrowserCustomConfig? customConfig = string.IsNullOrWhiteSpace(chromePath)
+            ? null
+            : new RealBrowserCustomConfig { ChromePath = chromePath };
 
-        // Remove arguments that conflict with extension loading
-        browserArgs.RemoveAll(arg => arg.Contains("--disable-extensions") ||
-                                   arg.Contains("--disable-plugins") ||
-                                   arg.Contains("--disable-default-apps"));
-
-        // Always enable extensions for full functionality
-        if (!browserArgs.Contains("--enable-extensions"))
-        {
-            browserArgs.Add("--enable-extensions");
-        }
-
-        // Handle --load-extension arguments with --disable-extensions-except for better compatibility
-        var loadExtensionArgs = browserArgs.Where(arg => arg.StartsWith("--load-extension=")).ToList();
-        if (loadExtensionArgs.Any())
-        {
-            // Remove existing load-extension args to rebuild them with quotes
-            browserArgs.RemoveAll(arg => arg.StartsWith("--load-extension="));
-
-            foreach (var loadExtArg in loadExtensionArgs)
-            {
-                var extensionPath = loadExtArg.Substring("--load-extension=".Length);
-
-                // Re-add the load-extension argument with quotes for proper path handling
-                browserArgs.Add($"--load-extension=\"{extensionPath}\"");
-
-                // Add --disable-extensions-except for better Chrome compatibility
-                if (!browserArgs.Any(arg => arg.StartsWith("--disable-extensions-except=")))
-                {
-                    browserArgs.Add($"--disable-extensions-except=\"{extensionPath}\"");
-                }
-            }
-        }
-
-        // Add Chrome Web Store access
-        browserArgs.Add("--disable-web-security");
-        browserArgs.Add("--disable-features=VizDisplayCompositor");
-
-        // Configure proxy if needed
+        RealBrowserProxyOptions? proxyOptions = null;
         if (data.UseProxy && data.Proxy != null)
         {
-            browserArgs.Add($"--proxy-server={data.Proxy.Type.ToString().ToLower(System.Globalization.CultureInfo.CurrentCulture)}://{data.Proxy.Host}:{data.Proxy.Port}");
-            if (data.Proxy.NeedsAuthentication)
+            proxyOptions = new RealBrowserProxyOptions
             {
-                browserArgs.Add($"--proxy-auth={data.Proxy.Username}:{data.Proxy.Password}");
+                Host = data.Proxy.Host,
+                Port = data.Proxy.Port,
+                Username = data.Proxy.NeedsAuthentication ? data.Proxy.Username : null,
+                Password = data.Proxy.NeedsAuthentication ? data.Proxy.Password : null
+            };
+        }
+
+        var launchOptions = new RealBrowserLaunchOptions
+        {
+            Args = browserArgs.ToArray(),
+            Headless = data.ConfigSettings.BrowserSettings.Headless,
+            Turnstile = true,
+            DisableXvfb = true,
+            IgnoreAllFlags = false,
+            ConnectOption = new RealBrowserConnectOptions
+            {
+                DefaultViewport = null,
+                IgnoreHTTPSErrors = data.ConfigSettings.BrowserSettings.IgnoreHttpsErrors
+            },
+            CustomConfig = customConfig,
+            Proxy = proxyOptions
+        };
+
+        var payload = Convert.ToBase64String(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(launchOptions, RealBrowserJsonOptions)));
+
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = "node",
+            Arguments = $"\"{launcherPath}\" \"{payload}\"",
+            WorkingDirectory = scriptsDirectory,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+
+        Process process;
+        try
+        {
+            process = Process.Start(startInfo) ?? throw new InvalidOperationException("Failed to start Node.js process.");
+        }
+        catch (Exception ex)
+        {
+            throw new Exception("Failed to start puppeteer-real-browser launcher. Ensure Node.js 16+ is installed and available on PATH.", ex);
+        }
+
+        using var cancellationRegistration = data.CancellationToken.Register(static state =>
+        {
+            if (state is Process proc && !proc.HasExited)
+            {
+                try
+                {
+                    proc.Kill(true);
+                }
+                catch
+                {
+                }
+            }
+        }, process);
+
+        try
+        {
+            string? handshakeLine;
+            try
+            {
+                handshakeLine = await process.StandardOutput.ReadLineAsync().WaitAsync(data.CancellationToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                if (!process.HasExited)
+                {
+                    try
+                    {
+                        process.Kill(true);
+                    }
+                    catch
+                    {
+                    }
+                }
+
+                throw;
+            }
+
+            if (string.IsNullOrWhiteSpace(handshakeLine))
+            {
+                var details = await CollectProcessFailureDetailsAsync(process, data.CancellationToken).ConfigureAwait(false);
+                throw new Exception($"puppeteer-real-browser did not return a browser WebSocket endpoint. {details}");
+            }
+
+            var launchResponse = JsonSerializer.Deserialize<RealBrowserLaunchResponse>(handshakeLine, RealBrowserJsonOptions);
+            if (launchResponse is null || !launchResponse.Success || string.IsNullOrWhiteSpace(launchResponse.BrowserWSEndpoint))
+            {
+                var details = await CollectProcessFailureDetailsAsync(process, data.CancellationToken).ConfigureAwait(false);
+                var reason = launchResponse?.Error ?? "unknown error";
+                throw new Exception($"Failed to launch puppeteer-real-browser: {reason}. {details}");
+            }
+
+        var connectOptions = new ConnectOptions
+        {
+            BrowserWSEndpoint = launchResponse.BrowserWSEndpoint,
+            DefaultViewport = null
+        };
+
+            var browser = await PuppeteerSharp.Puppeteer.ConnectAsync(connectOptions).ConfigureAwait(false);
+
+            data.SetObject("puppeteer", browser);
+            data.SetObject("puppeteer.realBrowserProcess", process, false);
+            data.SetObject("puppeteer.realBrowserProcessId", launchResponse.ProcessId ?? process.Id, false);
+
+            var existingPages = await browser.PagesAsync().ConfigureAwait(false);
+            var page = existingPages.FirstOrDefault() ?? await browser.NewPageAsync().ConfigureAwait(false);
+
+        foreach (var p in await browser.PagesAsync().ConfigureAwait(false))
+        {
+            if (p != page && p.Url == "about:blank")
+            {
+                await p.CloseAsync().ConfigureAwait(false);
             }
         }
 
-        // Remove duplicates and conflicting arguments
-        browserArgs = browserArgs.Distinct().Where(static arg => !string.IsNullOrWhiteSpace(arg)).ToList();
+        SetPageAndFrame(data, page);
+        await SetPageLoadingOptions(data, page).ConfigureAwait(false);
 
-        // Debug: Log all command line arguments being passed to browser
-        data.Logger.Log($"🔧 Browser arguments: {string.Join(" ", browserArgs)}", LogColors.Yellow);
+            switch (data.ConfigSettings.BrowserSettings.StealthMode)
+            {
+                case BrowserStealthMode.Option4:
+                    await ApplyOption4StealthMeasures(page).ConfigureAwait(false);
+                    data.Logger.Log("dY>��,?dY>��,?dY>��,? Option4 Stealth Mode activated - Maximum anti-detection active!", LogColors.Green);
+                    break;
+                case BrowserStealthMode.EnhancedStealth:
+                    await ApplyEnhancedStealthMeasures(page).ConfigureAwait(false);
+                    data.Logger.Log("dY>��,?dY>��,? Enhanced Stealth Mode activated - Ultra anti-detection active!", LogColors.Green);
+                    break;
+                case BrowserStealthMode.Stealth:
+                    await ApplyStealthMeasures(page).ConfigureAwait(false);
+                    data.Logger.Log("dY>��,? Stealth Mode activated - Cloudflare bypass active!", LogColors.Green);
+                    break;
+                case BrowserStealthMode.Default:
+                default:
+                    data.Logger.Log("puppeteer-real-browser connected with default mode.", LogColors.Green);
+                    break;
+            }
 
-        // Capture headless setting
-        var headless = data.ConfigSettings.BrowserSettings.Headless;
+            if (data.UseProxy && data.Proxy is { NeedsAuthentication: true, Type: ProxyType.Http } proxy)
+            {
+                await page.AuthenticateAsync(new Credentials { Username = proxy.Username, Password = proxy.Password }).ConfigureAwait(false);
+            }
+
+            data.Logger.Log("Connected to puppeteer-real-browser.", LogColors.Green);
+        }
+        catch
+        {
+            try
+            {
+                if (!process.HasExited)
+                {
+                    process.Kill(true);
+                }
+            }
+            catch
+            {
+            }
+
+            process.Dispose();
+            data.Objects.Remove("puppeteer.realBrowserProcess");
+            data.Objects.Remove("puppeteer.realBrowserProcessId");
+            throw;
+        }
+    }
+
+    private static async Task OpenPuppeteerSharpBrowser(BotData data, string extraCmdLineArgs = "")
+    {
+        var browserArgs = BuildBrowserArguments(data, extraCmdLineArgs, includeDefaultArgs: true);
+
+        data.Logger.Log($"Browser arguments: {string.Join(" ", browserArgs)}", LogColors.Yellow);
+
         var launchOptions = new LaunchOptions
         {
-            Headless = headless,
+            Headless = data.ConfigSettings.BrowserSettings.Headless,
             Args = browserArgs.ToArray(),
             AcceptInsecureCerts = data.ConfigSettings.BrowserSettings.IgnoreHttpsErrors,
             SlowMo = 0,
@@ -855,57 +1023,312 @@ navigator.maxTouchPoints = 0;
             ]
         };
 
-        // Launch browser with maximum stealth
-        var browser = await PuppeteerSharp.Puppeteer.LaunchAsync(launchOptions);
+        var browser = await PuppeteerSharp.Puppeteer.LaunchAsync(launchOptions).ConfigureAwait(false);
 
-        data.Logger.Log("✅ Integrated Real Browser launched successfully!", LogColors.Green);
+        data.Logger.Log("Puppeteer browser launched successfully.", LogColors.Green);
 
-        // Reuse the first existing page to avoid extra blank tab
-        var existingPages = await browser.PagesAsync();
-        var page = existingPages.FirstOrDefault() ?? await browser.NewPageAsync();
+        var existingPages = await browser.PagesAsync().ConfigureAwait(false);
+        var page = existingPages.FirstOrDefault() ?? await browser.NewPageAsync().ConfigureAwait(false);
 
-        // Close any additional about:blank pages
-        foreach (var p in await browser.PagesAsync())
+        foreach (var p in await browser.PagesAsync().ConfigureAwait(false))
         {
             if (p != page && p.Url == "about:blank")
             {
-                await p.CloseAsync();
+                await p.CloseAsync().ConfigureAwait(false);
             }
         }
 
-        // Set cached headers for better performance
-        await page.SetExtraHttpHeadersAsync(BrowserHeaders);
+        await page.SetExtraHttpHeadersAsync(BrowserHeaders).ConfigureAwait(false);
 
-        // Save objects for further use
         data.SetObject("puppeteer", browser);
         SetPageAndFrame(data, page);
-        await SetPageLoadingOptions(data, page);
+        await SetPageLoadingOptions(data, page).ConfigureAwait(false);
 
-        // Apply stealth measures based on selected mode
         switch (data.ConfigSettings.BrowserSettings.StealthMode)
         {
             case BrowserStealthMode.Option4:
-                await ApplyOption4StealthMeasures(page);
-                data.Logger.Log("🛡️🛡️🛡️ Option4 Stealth Mode activated - Maximum anti-detection active!", LogColors.Green);
+                await ApplyOption4StealthMeasures(page).ConfigureAwait(false);
+                data.Logger.Log("dY>��,?dY>��,?dY>��,? Option4 Stealth Mode activated - Maximum anti-detection active!", LogColors.Green);
                 break;
             case BrowserStealthMode.EnhancedStealth:
-                await ApplyEnhancedStealthMeasures(page);
-                data.Logger.Log("🛡️🛡️ Enhanced Stealth Mode activated - Ultra anti-detection active!", LogColors.Green);
+                await ApplyEnhancedStealthMeasures(page).ConfigureAwait(false);
+                data.Logger.Log("dY>��,?dY>��,? Enhanced Stealth Mode activated - Ultra anti-detection active!", LogColors.Green);
                 break;
             case BrowserStealthMode.Stealth:
-                await ApplyStealthMeasures(page);
-                data.Logger.Log("🛡️ Stealth Mode activated - Cloudflare bypass active!", LogColors.Green);
+                await ApplyStealthMeasures(page).ConfigureAwait(false);
+                data.Logger.Log("dY>��,? Stealth Mode activated - Cloudflare bypass active!", LogColors.Green);
                 break;
             case BrowserStealthMode.Default:
             default:
-                data.Logger.Log("✅ Default Mode - Standard browser behavior", LogColors.Green);
+                data.Logger.Log("�o. Default Mode - Standard browser behavior", LogColors.Green);
                 break;
         }
 
-        // Handle proxy authentication
         if (data.UseProxy && data.Proxy is { NeedsAuthentication: true, Type: ProxyType.Http } proxy)
         {
-            await page.AuthenticateAsync(new Credentials { Username = proxy.Username, Password = proxy.Password });
+            await page.AuthenticateAsync(new Credentials { Username = proxy.Username, Password = proxy.Password }).ConfigureAwait(false);
         }
+    }
+
+    private static List<string> BuildBrowserArguments(BotData data, string extraCmdLineArgs, bool includeDefaultArgs)
+    {
+        var browserArgs = includeDefaultArgs
+            ? new List<string>(BaseBrowserArgs)
+            : new List<string>();
+
+        if (includeDefaultArgs)
+        {
+            switch (data.ConfigSettings.BrowserSettings.StealthMode)
+            {
+                case BrowserStealthMode.Option4:
+                    browserArgs.AddRange(Option4StealthArgs);
+                    break;
+                case BrowserStealthMode.Stealth:
+                    browserArgs.AddRange(StealthArgs);
+                    break;
+                case BrowserStealthMode.EnhancedStealth:
+                    browserArgs.AddRange(EnhancedStealthArgs);
+                    break;
+                case BrowserStealthMode.Default:
+                default:
+                    break;
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(data.ConfigSettings.BrowserSettings.CommandLineArgs))
+        {
+            browserArgs.AddRange(ParseCommandLineArgs(data.ConfigSettings.BrowserSettings.CommandLineArgs));
+        }
+
+        if (!string.IsNullOrWhiteSpace(extraCmdLineArgs))
+        {
+            browserArgs.AddRange(ParseCommandLineArgs(extraCmdLineArgs));
+        }
+
+        if (includeDefaultArgs)
+        {
+            browserArgs.RemoveAll(static arg =>
+                arg.Contains("--disable-extensions", StringComparison.OrdinalIgnoreCase) ||
+                arg.Contains("--disable-plugins", StringComparison.OrdinalIgnoreCase) ||
+                arg.Contains("--disable-default-apps", StringComparison.OrdinalIgnoreCase));
+
+            if (!browserArgs.Any(arg => arg.Equals("--enable-extensions", StringComparison.OrdinalIgnoreCase)))
+            {
+                browserArgs.Add("--enable-extensions");
+            }
+
+            var loadExtensionArgs = browserArgs
+                .Where(arg => arg.StartsWith("--load-extension=", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            if (loadExtensionArgs.Any())
+            {
+                browserArgs.RemoveAll(arg => arg.StartsWith("--load-extension=", StringComparison.OrdinalIgnoreCase));
+
+                foreach (var loadExtArg in loadExtensionArgs)
+                {
+                    var extensionPath = loadExtArg.Substring("--load-extension=".Length).Trim('"');
+                    browserArgs.Add($"--load-extension=\"{extensionPath}\"");
+
+                    if (!browserArgs.Any(arg => arg.StartsWith("--disable-extensions-except=", StringComparison.OrdinalIgnoreCase)))
+                    {
+                        browserArgs.Add($"--disable-extensions-except=\"{extensionPath}\"");
+                    }
+                }
+            }
+        }
+
+        if (includeDefaultArgs)
+        {
+            if (!browserArgs.Any(arg => arg.Equals("--disable-web-security", StringComparison.OrdinalIgnoreCase)))
+            {
+                browserArgs.Add("--disable-web-security");
+            }
+
+            if (!browserArgs.Any(arg => arg.StartsWith("--disable-features=VizDisplayCompositor", StringComparison.OrdinalIgnoreCase)))
+            {
+                browserArgs.Add("--disable-features=VizDisplayCompositor");
+            }
+        }
+
+        if (data.UseProxy && data.Proxy != null)
+        {
+            var proxyArg = $"--proxy-server={data.Proxy.Type.ToString().ToLower(CultureInfo.CurrentCulture)}://{data.Proxy.Host}:{data.Proxy.Port}";
+            if (!browserArgs.Contains(proxyArg, StringComparer.OrdinalIgnoreCase))
+            {
+                browserArgs.Add(proxyArg);
+            }
+
+            if (data.Proxy.NeedsAuthentication)
+            {
+                var authArg = $"--proxy-auth={data.Proxy.Username}:{data.Proxy.Password}";
+                if (!browserArgs.Contains(authArg, StringComparer.OrdinalIgnoreCase))
+                {
+                    browserArgs.Add(authArg);
+                }
+            }
+        }
+
+        return browserArgs
+            .Where(static arg => !string.IsNullOrWhiteSpace(arg))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    private static string ResolveScriptsDirectory()
+    {
+        static bool TryGetScriptsDirectory(string root, out string scriptsPath)
+        {
+            var direct = Path.Combine(root, "Scripts");
+            if (Directory.Exists(direct) && File.Exists(Path.Combine(direct, "puppeteer-real-browser.js")))
+            {
+                scriptsPath = direct;
+                return true;
+            }
+
+            var nested = Path.Combine(root, "RuriLib", "Scripts");
+            if (Directory.Exists(nested) && File.Exists(Path.Combine(nested, "puppeteer-real-browser.js")))
+            {
+                scriptsPath = nested;
+                return true;
+            }
+
+            scriptsPath = string.Empty;
+            return false;
+        }
+
+        var baseCandidates = new List<string?>();
+        baseCandidates.Add(AppContext.BaseDirectory);
+        baseCandidates.Add(Path.GetDirectoryName(typeof(Methods).Assembly.Location));
+        baseCandidates.Add(Directory.GetCurrentDirectory());
+
+        foreach (var candidate in baseCandidates.Where(static c => !string.IsNullOrWhiteSpace(c))
+                                                .Select(static c => Path.GetFullPath(c!))
+                                                .Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            if (TryGetScriptsDirectory(candidate, out var resolved))
+            {
+                return resolved;
+            }
+
+            var current = candidate;
+            for (var depth = 0; depth < 10 && !string.IsNullOrEmpty(current); depth++)
+            {
+                var parent = Directory.GetParent(current);
+                if (parent is null)
+                {
+                    break;
+                }
+
+                if (TryGetScriptsDirectory(parent.FullName, out resolved))
+                {
+                    return resolved;
+                }
+
+                current = parent.FullName;
+            }
+        }
+
+        throw new DirectoryNotFoundException("Unable to locate the Scripts directory. Verify that RuriLib/Scripts exists alongside the source and npm install has been executed there.");
+    }
+
+    private static async Task<string> CollectProcessFailureDetailsAsync(Process process, CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(5));
+            await process.WaitForExitAsync(timeoutCts.Token).ConfigureAwait(false);
+        }
+        catch
+        {
+            if (!process.HasExited)
+            {
+                try
+                {
+                    process.Kill(true);
+                }
+                catch
+                {
+                }
+            }
+        }
+
+        var stderr = string.Empty;
+        try
+        {
+            stderr = await process.StandardError.ReadToEndAsync().ConfigureAwait(false);
+        }
+        catch
+        {
+        }
+
+        var stdout = string.Empty;
+        try
+        {
+            stdout = await process.StandardOutput.ReadToEndAsync().ConfigureAwait(false);
+        }
+        catch
+        {
+        }
+
+        var builder = new StringBuilder();
+        if (!string.IsNullOrWhiteSpace(stderr))
+        {
+            builder.Append(stderr.Trim());
+        }
+
+        if (!string.IsNullOrWhiteSpace(stdout))
+        {
+            if (builder.Length > 0)
+            {
+                builder.AppendLine();
+            }
+
+            builder.Append(stdout.Trim());
+        }
+
+        return builder.Length > 0
+            ? $"Details: {builder}"
+            : "Check the puppeteer-real-browser logs for more information.";
+    }
+
+    private sealed record RealBrowserLaunchResponse
+    {
+        public string? BrowserWSEndpoint { get; init; }
+        public int? ProcessId { get; init; }
+        public bool Success { get; init; }
+        public string? Error { get; init; }
+    }
+
+    private sealed record RealBrowserLaunchOptions
+    {
+        public string[] Args { get; init; } = Array.Empty<string>();
+        public bool Headless { get; init; }
+        public bool Turnstile { get; init; } = true;
+        public bool DisableXvfb { get; init; } = true;
+        public bool IgnoreAllFlags { get; init; } = false;
+        public RealBrowserConnectOptions ConnectOption { get; init; } = new();
+        public RealBrowserCustomConfig? CustomConfig { get; init; }
+        public RealBrowserProxyOptions? Proxy { get; init; }
+    }
+
+    private sealed record RealBrowserConnectOptions
+    {
+        public object? DefaultViewport { get; init; }
+        public bool IgnoreHTTPSErrors { get; init; }
+    }
+
+    private sealed record RealBrowserCustomConfig
+    {
+        public string? ChromePath { get; init; }
+    }
+
+    private sealed record RealBrowserProxyOptions
+    {
+        public string Host { get; init; } = string.Empty;
+        public int Port { get; init; }
+        public string? Username { get; init; }
+        public string? Password { get; init; }
     }
 }

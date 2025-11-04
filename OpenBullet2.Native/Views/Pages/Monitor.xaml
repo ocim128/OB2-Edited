@@ -3,6 +3,7 @@
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+      xmlns:mah="clr-namespace:MahApps.Metro.Controls;assembly=MahApps.Metro"
       xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
       mc:Ignorable="d" 
       d:DesignHeight="450" d:DesignWidth="800"
@@ -14,11 +15,104 @@
       SnapsToDevicePixels="True">
 
     <Grid Background="Transparent" Margin="20">
-        <ScrollViewer VerticalScrollBarVisibility="Auto"
+        <ScrollViewer x:Name="ToolsScrollViewer"
+                      VerticalScrollBarVisibility="Auto"
                       Style="{StaticResource ModernScrollViewer}"
-                      CanContentScroll="False">
+                      CanContentScroll="False"
+                      Loaded="ToolsScrollViewer_Loaded"
+                      SizeChanged="ToolsScrollViewer_SizeChanged">
             <DockPanel LastChildFill="True">
                 <Border Style="{StaticResource ModernCardLite}"
+                        Background="#B0282828"
+                        Margin="0,0,0,20"
+                        Padding="20"
+                        DockPanel.Dock="Top">
+                    <StackPanel>
+                        <TextBlock Text="Tool Command Center"
+                                   Style="{StaticResource H3TextStyle}"
+                                   Margin="0,0,0,4"/>
+                        <TextBlock Text="Search, filter, and jump straight to your favorite automation helpers."
+                                   Style="{StaticResource CaptionTextStyle}"
+                                   Foreground="#94A3B8"/>
+
+                        <Grid Margin="0,20,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="220"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBox x:Name="ToolSearchTextBox"
+                                     Style="{StaticResource MatchingTextBox}"
+                                     mah:TextBoxHelper.Watermark="Search tools..."
+                                     mah:TextBoxHelper.UseFloatingWatermark="False"
+                                     Margin="0,0,16,0"
+                                     TextChanged="ToolSearchTextChanged"
+                                     AutomationProperties.Name="Search tools box"/>
+                            <ComboBox x:Name="ToolCategoryComboBox"
+                                      Grid.Column="1"
+                                      Style="{StaticResource CleanComboBox}"
+                                      SelectionChanged="ToolCategorySelectionChanged"
+                                      Margin="0,0,16,0"
+                                      AutomationProperties.Name="Tool category filter"/>
+                            <Button x:Name="ResetToolFiltersButton"
+                                    Grid.Column="2"
+                                    Style="{StaticResource StyledButton}"
+                                    Content="Reset"
+                                    Width="90"
+                                    Click="ResetToolFilters"
+                                    AutomationProperties.Name="Reset tool filters button"/>
+                        </Grid>
+
+                        <WrapPanel Margin="0,18,0,0">
+                            <Button Style="{StaticResource StyledButton}"
+                                    Content="Modem refresh"
+                                    Margin="0,0,10,10"
+                                    Tag="Modem IP Refresher"
+                                    Click="NavigateToToolCard"
+                                    AutomationProperties.Name="Jump to Modem IP Refresher tool"/>
+                            <Button Style="{StaticResource StyledButton}"
+                                    Content="OTP toolkit"
+                                    Margin="0,0,10,10"
+                                    Tag="OTP Toolkit"
+                                    Click="NavigateToToolCard"
+                                    AutomationProperties.Name="Jump to OTP Toolkit"/>
+                            <Button Style="{StaticResource StyledButton}"
+                                    Content="Bookmarklet parser"
+                                    Margin="0,0,10,10"
+                                    Tag="Bookmarklet Parser"
+                                    Click="NavigateToToolCard"
+                                    AutomationProperties.Name="Jump to Bookmarklet Parser"/>
+                            <Button Style="{StaticResource StyledButton}"
+                                    Content="Text cleaner"
+                                    Margin="0,0,10,10"
+                                    Tag="Text Cleaner"
+                                    Click="NavigateToToolCard"
+                                    AutomationProperties.Name="Jump to Text Cleaner"/>
+                            <Button Style="{StaticResource StyledButton}"
+                                    Content="Firefox switcher"
+                                    Margin="0,0,10,10"
+                                    Tag="Firefox Switcher"
+                                    Click="NavigateToToolCard"
+                                    AutomationProperties.Name="Jump to Firefox Switcher"/>
+                            <Button Style="{StaticResource StyledButton}"
+                                    Content="Performance bench"
+                                    Margin="0,0,10,10"
+                                    Tag="Performance Benchmark"
+                                    Click="NavigateToToolCard"
+                                    AutomationProperties.Name="Jump to Performance Benchmark"/>
+                        </WrapPanel>
+
+                        <TextBlock x:Name="ToolFilterStatusTextBlock"
+                                   Margin="0,10,0,0"
+                                   Style="{StaticResource CaptionTextStyle}"
+                                   Foreground="#94A3B8"
+                                   Visibility="Collapsed"/>
+                    </StackPanel>
+                </Border>
+
+                <Border x:Name="AutomationBannerCard"
+                        Style="{StaticResource ModernCardLite}"
                         Background="#C0353535"
                         Margin="0,0,0,20"
                         Padding="16"
@@ -45,12 +139,19 @@
                     </Grid>
                 </Border>
 
-                <WrapPanel ItemWidth="400" Margin="0" Orientation="Horizontal">
-                    <Border Style="{StaticResource ModernCardLite}"
+                <WrapPanel x:Name="ToolCardPanel"
+                           ItemWidth="360"
+                           Margin="0"
+                           Orientation="Horizontal">
+                    <Border x:Name="ModemToolCard"
+                            Style="{StaticResource ModernCardLite}"
                             Background="#B0282828"
                             Padding="20"
                             Margin="0,0,16,16"
-                            Width="400">
+                            MinWidth="300"
+                            MaxWidth="420"
+                            Width="{Binding ElementName=ToolCardPanel, Path=ItemWidth}"
+                            Tag="Networking">
                         <StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
                                 <iconPacks:PackIconMaterial Kind="RouterWireless" 
@@ -167,11 +268,15 @@
                         </StackPanel>
                     </Border>
 
-                    <Border Style="{StaticResource ModernCardLite}"
+                    <Border x:Name="OtpToolCard"
+                            Style="{StaticResource ModernCardLite}"
                             Background="#B0282828"
                             Padding="20"
                             Margin="0,0,16,16"
-                            Width="400">
+                            MinWidth="300"
+                            MaxWidth="420"
+                            Width="{Binding ElementName=ToolCardPanel, Path=ItemWidth}"
+                            Tag="Security">
                         <StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
                                 <iconPacks:PackIconMaterial Kind="ShieldKey" 
@@ -289,11 +394,15 @@
                         </StackPanel>
                     </Border>
 
-                    <Border Style="{StaticResource ModernCardLite}"
+                    <Border x:Name="BookmarkletToolCard"
+                            Style="{StaticResource ModernCardLite}"
                             Background="#B0282828"
                             Padding="20"
                             Margin="0,0,16,16"
-                            Width="400">
+                            MinWidth="300"
+                            MaxWidth="420"
+                            Width="{Binding ElementName=ToolCardPanel, Path=ItemWidth}"
+                            Tag="Automation">
                         <StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
                                 <iconPacks:PackIconMaterial Kind="Bookmark" 
@@ -375,11 +484,15 @@
                         </StackPanel>
                     </Border>
 
-                    <Border Style="{StaticResource ModernCardLite}"
+                    <Border x:Name="TextCleanerToolCard"
+                            Style="{StaticResource ModernCardLite}"
                             Background="#B0282828"
                             Padding="20"
                             Margin="0,0,16,16"
-                            Width="400">
+                            MinWidth="300"
+                            MaxWidth="420"
+                            Width="{Binding ElementName=ToolCardPanel, Path=ItemWidth}"
+                            Tag="Text">
                         <StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
                                 <iconPacks:PackIconMaterial Kind="TextBoxRemove" 
@@ -392,7 +505,7 @@
                                            Style="{StaticResource H3TextStyle}"
                                            VerticalAlignment="Center"/>
                             </StackPanel>
-                            <TextBlock Text="Normalize chaotic dumps, compress whitespace, and rank by ♦ markers instantly."
+                            <TextBlock Text="Normalize chaotic dumps, compress whitespace, and rank by 'T' markers instantly."
                                        Style="{StaticResource CaptionTextStyle}"
                                        Foreground="#94A3B8"
                                        TextWrapping="Wrap"
@@ -460,11 +573,15 @@
                                      Cursor="IBeam"/>
                         </StackPanel>
                     </Border>
-                    <Border Style="{StaticResource ModernCardLite}"
+                    <Border x:Name="FirefoxToolCard"
+                            Style="{StaticResource ModernCardLite}"
                             Background="#B0282828"
                             Padding="20"
                             Margin="0,0,16,16"
-                            Width="400">
+                            MinWidth="300"
+                            MaxWidth="420"
+                            Width="{Binding ElementName=ToolCardPanel, Path=ItemWidth}"
+                            Tag="Browsers">
                         <StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
                                 <iconPacks:PackIconMaterial Kind="FolderZip" 
@@ -595,11 +712,15 @@
                         </StackPanel>
                     </Border>
 
-                    <Border Style="{StaticResource ModernCardLite}"
+                    <Border x:Name="BenchmarkToolCard"
+                            Style="{StaticResource ModernCardLite}"
                             Background="#B0282828"
                             Padding="20"
                             Margin="0,0,16,16"
-                            Width="400">
+                            MinWidth="300"
+                            MaxWidth="420"
+                            Width="{Binding ElementName=ToolCardPanel, Path=ItemWidth}"
+                            Tag="Performance">
                         <StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
                                 <iconPacks:PackIconMaterial Kind="Speedometer" 
@@ -737,6 +858,13 @@
                             </Border>
                         </StackPanel>
                     </Border>
+                    <TextBlock x:Name="NoToolMatchesTextBlock"
+                               Style="{StaticResource CaptionTextStyle}"
+                               Foreground="#F87171"
+                               TextWrapping="Wrap"
+                               Margin="0,20,0,0"
+                               Visibility="Collapsed"
+                               Text="No tools match your filters. Adjust the search or reset filters to show every tool."/>
                 </WrapPanel>
             </DockPanel>
         </ScrollViewer>

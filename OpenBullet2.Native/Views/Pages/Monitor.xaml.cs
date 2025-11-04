@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
@@ -19,7 +19,19 @@ using Microsoft.Playwright;
 using Microsoft.VisualBasic.Devices;
 using Microsoft.Win32;
 using OpenBullet2.Native.Infrastructure.DependencyInjection;
+using OpenBullet2.Core.Services;
+using RuriLib;
 using RuriLib.Blocks.Utility;
+using RuriLib.Helpers;
+using RuriLib.Helpers.Transpilers;
+using RuriLib.Models.Blocks;
+using RuriLib.Models.Blocks.Custom;
+using RuriLib.Models.Configs;
+using RuriLib.Models.Data;
+using RuriLib.Models.Data.DataPools;
+using RuriLib.Models.Bots;
+using RuriLib.Logging;
+using RuriLib.Models.Environment;
 using RuriLib.Models.Settings;
 using RuriLib.Services;
 
@@ -38,6 +50,11 @@ namespace OpenBullet2.Native.Views.Pages
             "isTest=false&goformId=SET_BEARER_PREFERENCE&BearerPreference=Only_LTE%0ALTE_preferred",
             "isTest=false&goformId=SET_BEARER_PREFERENCE&BearerPreference=NETWORK_auto%0ALTE_preferred"
         ];
+        private const double CardMinWidth = 300;
+        private const double CardMaxWidth = 420;
+        private const double CardHorizontalSpacing = 16;
+        private const int CardMaxColumns = 3;
+        private const string AllCategoriesLabel = "All categories";
 
         private readonly DispatcherTimer timer;
         private string normalizedSecret = string.Empty;
@@ -46,8 +63,10 @@ namespace OpenBullet2.Native.Views.Pages
         private readonly ObservableCollection<ZipFolderOption> zipOptionFolders = new();
         private readonly List<LaunchedZipProfile> launchedZipProfiles = new();
         private readonly object zipProfileLock = new();
+        private readonly List<ToolCardMetadata> toolCardCatalog = new();
         private string zipArchivePath = string.Empty;
         private bool isLaunchingZip;
+        private bool isInitializingFilters;
         
         // Performance benchmark fields
         private readonly ComputerInfo computerInfo = new();
@@ -74,6 +93,7 @@ namespace OpenBullet2.Native.Views.Pages
 
             // Set initial values for performance display (will be updated lazily)
             InitializePerformanceDisplay();
+            InitializeToolCardCatalogue();
         }
 
         private async void Tools_Unloaded(object sender, RoutedEventArgs e)
@@ -182,6 +202,175 @@ namespace OpenBullet2.Native.Views.Pages
             => secondsRemaining <= 1
                 ? "Expires in 1 second"
                 : $"Expires in {secondsRemaining} seconds";
+
+        private void InitializeToolCardCatalogue()
+        {
+            isInitializingFilters = true;
+
+            toolCardCatalog.Clear();
+            toolCardCatalog.Add(new ToolCardMetadata(ModemToolCard, "Modem IP Refresher", "Networking",
+                "modem", "router", "wan", "gateway", "ip", "lease", "refresh"));
+            toolCardCatalog.Add(new ToolCardMetadata(OtpToolCard, "OTP Toolkit", "Security",
+                "two factor", "authenticator", "totp", "code", "2fa", "token"));
+            toolCardCatalog.Add(new ToolCardMetadata(BookmarkletToolCard, "Bookmarklet Parser", "Automation",
+                "javascript", "bookmark", "parser", "payload", "scrubber", "deobfuscate"));
+            toolCardCatalog.Add(new ToolCardMetadata(TextCleanerToolCard, "Text Cleaner", "Text",
+                "normalize", "whitespace", "dedupe", "cleanup", "formatter", "text", "sort"));
+            toolCardCatalog.Add(new ToolCardMetadata(FirefoxToolCard, "Firefox Switcher", "Browsers",
+                "profile", "browser", "automation", "firefox", "zip", "launcher", "profile manager"));
+            toolCardCatalog.Add(new ToolCardMetadata(BenchmarkToolCard, "Performance Benchmark", "Performance",
+                "metrics", "cpu", "memory", "system", "monitoring", "speed"));
+
+            var categories = toolCardCatalog
+                .Select(card => card.Category)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(category => category)
+                .ToList();
+            categories.Insert(0, AllCategoriesLabel);
+
+            ToolCategoryComboBox.ItemsSource = categories;
+            ToolCategoryComboBox.SelectedIndex = 0;
+            ToolSearchTextBox.Text = string.Empty;
+            ResetToolFiltersButton.IsEnabled = false;
+
+            isInitializingFilters = false;
+            ApplyToolFilters();
+        }
+
+        private void ToolSearchTextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (isInitializingFilters)
+            {
+                return;
+            }
+
+            ApplyToolFilters();
+        }
+
+        private void ToolCategorySelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (isInitializingFilters)
+            {
+                return;
+            }
+
+            ApplyToolFilters();
+        }
+
+        private void ResetToolFilters(object sender, RoutedEventArgs e)
+        {
+            if (ToolSearchTextBox is null || ToolCategoryComboBox is null)
+            {
+                return;
+            }
+
+            var selectedCategory = ToolCategoryComboBox.SelectedItem as string;
+            var hasCategoryFilter = !string.IsNullOrEmpty(selectedCategory) &&
+                                    !string.Equals(selectedCategory, AllCategoriesLabel, StringComparison.OrdinalIgnoreCase);
+            var hasSearch = !string.IsNullOrWhiteSpace(ToolSearchTextBox.Text);
+
+            if (!hasCategoryFilter && !hasSearch)
+            {
+                return;
+            }
+
+            isInitializingFilters = true;
+            ToolSearchTextBox.Text = string.Empty;
+            ToolCategoryComboBox.SelectedIndex = 0;
+            isInitializingFilters = false;
+
+            ApplyToolFilters();
+        }
+
+        private void NavigateToToolCard(object sender, RoutedEventArgs e)
+        {
+            if (sender is not Button button)
+            {
+                return;
+            }
+
+            var alias = button.Tag as string ?? button.Content as string ?? string.Empty;
+            var targetCard = toolCardCatalog.FirstOrDefault(card => card.HasAlias(alias));
+
+            if (targetCard is null)
+            {
+                return;
+            }
+
+            if (targetCard.Card.Visibility != Visibility.Visible)
+            {
+                isInitializingFilters = true;
+                ToolSearchTextBox.Text = string.Empty;
+                ToolCategoryComboBox.SelectedIndex = 0;
+                isInitializingFilters = false;
+                ApplyToolFilters();
+            }
+
+            Dispatcher.InvokeAsync(() =>
+            {
+                targetCard.Card.BringIntoView();
+                targetCard.Card.Focus();
+            }, DispatcherPriority.Background);
+        }
+
+        private void ApplyToolFilters()
+        {
+            if (toolCardCatalog.Count == 0 || ToolCategoryComboBox is null || ToolSearchTextBox is null)
+            {
+                return;
+            }
+
+            var searchTerms = string.IsNullOrWhiteSpace(ToolSearchTextBox.Text)
+                ? Array.Empty<string>()
+                : ToolSearchTextBox.Text
+                    .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+            var selectedCategory = ToolCategoryComboBox.SelectedItem as string;
+            var filterByCategory = !string.IsNullOrEmpty(selectedCategory) &&
+                                   !string.Equals(selectedCategory, AllCategoriesLabel, StringComparison.OrdinalIgnoreCase);
+
+            var visibleCount = 0;
+
+            foreach (var metadata in toolCardCatalog)
+            {
+                var matchesCategory = !filterByCategory || metadata.IsInCategory(selectedCategory!);
+                var matchesSearch = searchTerms.Length == 0 || metadata.MatchesSearchTerms(searchTerms);
+
+                metadata.Card.Visibility = matchesCategory && matchesSearch
+                    ? Visibility.Visible
+                    : Visibility.Collapsed;
+
+                if (metadata.Card.Visibility == Visibility.Visible)
+                {
+                    visibleCount++;
+                }
+            }
+
+            var filtersActive = filterByCategory || searchTerms.Length > 0;
+
+            UpdateToolFilterStatus(visibleCount, toolCardCatalog.Count, filtersActive);
+            NoToolMatchesTextBlock.Visibility = visibleCount == 0 ? Visibility.Visible : Visibility.Collapsed;
+            ResetToolFiltersButton.IsEnabled = filtersActive;
+        }
+
+        private void UpdateToolFilterStatus(int visibleCount, int totalCount, bool filtersActive)
+        {
+            if (!filtersActive)
+            {
+                ToolFilterStatusTextBlock.Visibility = Visibility.Collapsed;
+                ToolFilterStatusTextBlock.Text = string.Empty;
+                return;
+            }
+
+            ToolFilterStatusTextBlock.Text = visibleCount switch
+            {
+                0 => "No tools matched your filters.",
+                _ when visibleCount == totalCount => $"All {totalCount} tools are visible.",
+                _ => $"Showing {visibleCount} of {totalCount} tools."
+            };
+
+            ToolFilterStatusTextBlock.Visibility = Visibility.Visible;
+        }
 
         private void SetOtpDisplay(string otp, string statusMessage, int elapsedSeconds)
         {
@@ -341,9 +530,9 @@ namespace OpenBullet2.Native.Views.Pages
 
                 var normalized = Regex.Replace(line, " {2,}", " ");
                 normalized = normalized.TrimEnd();
-                normalized = normalized.Replace("♦️", "♦");
-                normalized = normalized.Replace("♠️", "♠");
-                normalized = normalized.Replace("♠ ", "♠");
+                normalized = normalized.Replace("ÃƒÂ¢Ã¢â€žÂ¢Ã‚Â¦ÃƒÂ¯Ã‚Â¸Ã‚Â", "ÃƒÂ¢Ã¢â€žÂ¢Ã‚Â¦");
+                normalized = normalized.Replace("ÃƒÂ¢Ã¢â€žÂ¢Ã‚Â ÃƒÂ¯Ã‚Â¸Ã‚Â", "ÃƒÂ¢Ã¢â€žÂ¢Ã‚Â ");
+                normalized = normalized.Replace("ÃƒÂ¢Ã¢â€žÂ¢Ã‚Â  ", "ÃƒÂ¢Ã¢â€žÂ¢Ã‚Â ");
 
                 if (string.IsNullOrWhiteSpace(normalized))
                 {
@@ -362,7 +551,7 @@ namespace OpenBullet2.Native.Views.Pages
 
         private static int GetTextCleanerSortKey(string line)
         {
-            var match = Regex.Match(line, "♦(\\d+)");
+            var match = Regex.Match(line, "ÃƒÂ¢Ã¢â€žÂ¢Ã‚Â¦(\\d+)");
             if (match.Success && int.TryParse(match.Groups[1].Value, out var value))
             {
                 return value;
@@ -440,7 +629,7 @@ namespace OpenBullet2.Native.Views.Pages
                 }
             }
 
-            var post = Regex.Match(line, "^(\\d+)♠").Groups[1].Value;
+            var post = Regex.Match(line, "^(\\d+)ÃƒÂ¢Ã¢â€žÂ¢Ã‚Â ").Groups[1].Value;
             var follower = Regex.Match(line, "(\\d+)~").Groups[1].Value;
             var year = Regex.Match(line, "~\\s*(\\d+)").Groups[1].Value;
 
@@ -452,9 +641,9 @@ namespace OpenBullet2.Native.Views.Pages
             builder.AppendLine($"check email: akunlama.com/inbox/{usernamePart}");
             builder.AppendLine($"auth_token={authToken ?? "N/A"}");
             builder.AppendLine();
-            builder.Append($"Username•Post•Follower•Tahun = {username ?? "N/A"}•{post}");
-            builder.Append($"•{(string.IsNullOrEmpty(follower) ? "N/A" : follower)}");
-            builder.Append($"•{(string.IsNullOrEmpty(year) ? "N/A" : year)}");
+            builder.Append($"UsernameÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢PostÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢FollowerÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢Tahun = {username ?? "N/A"}ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢{post}");
+            builder.Append($"ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢{(string.IsNullOrEmpty(follower) ? "N/A" : follower)}");
+            builder.Append($"ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢{(string.IsNullOrEmpty(year) ? "N/A" : year)}");
             return builder.ToString();
         }
 
@@ -837,12 +1026,14 @@ namespace OpenBullet2.Native.Views.Pages
 
         private static string? ExtractDetailedPatternLine(string line)
         {
-            if (!line.Contains('♦') || !line.Contains('='))
+            const string SeparatorMarker = "\u00C3\u00A2\u00E2\u201E\u00A2\u00C2\u00A6";
+
+            if (!line.Contains(SeparatorMarker, StringComparison.Ordinal) || !line.Contains('='))
             {
                 return null;
             }
 
-            var pattern = new Regex(@"^(.*?)♦(\d+)\s*\*(\d+)\s*♠(\S*)\s*@([^\s=]+)\s*=(\S+)(?:\s+(.*))?$");
+            var pattern = new Regex($@"^(.*?){SeparatorMarker}(\d+)\s*\*(\d+)\s*{SeparatorMarker}(\S*)\s*@([^\s=]+)\s*=(\S+)(?:\s+(.*))?$");
             var match = pattern.Match(line);
             if (!match.Success)
             {
@@ -867,6 +1058,7 @@ namespace OpenBullet2.Native.Views.Pages
                     {
                         password = before;
                     }
+
                     twoFaSecret = twoFaMatch.Groups[1].Value.Trim();
                 }
                 else
@@ -907,7 +1099,7 @@ namespace OpenBullet2.Native.Views.Pages
             var authToken = Regex.Match(line, "auth_token=(\\w+)").Groups[1].Value;
             var sessionId = Regex.Match(line, "sessionid=(\\S+)").Groups[1].Value;
             var username = Regex.Match(line, "@(\\S+)").Groups[1].Value;
-            var post = Regex.Match(line, "^(\\d+)♠").Groups[1].Value;
+            var post = Regex.Match(line, "^(\\d+)ÃƒÂ¢Ã¢â€žÂ¢Ã‚Â ").Groups[1].Value;
             var follower = Regex.Match(line, "(\\d+)~").Groups[1].Value;
             var year = Regex.Match(line, "~\\s*(\\d+)").Groups[1].Value;
 
@@ -929,7 +1121,7 @@ namespace OpenBullet2.Native.Views.Pages
             if (!string.IsNullOrEmpty(post) || !string.IsNullOrEmpty(follower) || !string.IsNullOrEmpty(year))
             {
                 builder.AppendLine();
-                builder.Append($"Username•Post•Follower•Tahun = {(string.IsNullOrEmpty(username) ? "N/A" : username)}•{(string.IsNullOrEmpty(post) ? "N/A" : post)}•{(string.IsNullOrEmpty(follower) ? "N/A" : follower)}•{(string.IsNullOrEmpty(year) ? "N/A" : year)}");
+                builder.Append($"UsernameÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢PostÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢FollowerÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢Tahun = {(string.IsNullOrEmpty(username) ? "N/A" : username)}ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢{(string.IsNullOrEmpty(post) ? "N/A" : post)}ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢{(string.IsNullOrEmpty(follower) ? "N/A" : follower)}ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢{(string.IsNullOrEmpty(year) ? "N/A" : year)}");
             }
 
             return builder.ToString();
@@ -961,7 +1153,7 @@ namespace OpenBullet2.Native.Views.Pages
             var password = ModemPasswordBox.Password ?? string.Empty;
 
             RefreshModemIpButton.IsEnabled = false;
-            SetModemStatus("Contacting modem…", Brushes.LightSteelBlue);
+            SetModemStatus("Contacting modemÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦", Brushes.LightSteelBlue);
             AppendModemLog($"Target: {baseUri}");
 
             try
@@ -1111,7 +1303,7 @@ namespace OpenBullet2.Native.Views.Pages
                 return "(empty)";
             }
 
-            return text.Length > 120 ? text[..120] + "…" : text;
+            return text.Length > 120 ? text[..120] + "ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦" : text;
         }
 
         private void AppendModemLog(string message)
@@ -1227,64 +1419,495 @@ namespace OpenBullet2.Native.Views.Pages
             AppendBenchmarkLog("Performance statistics cleared.");
         }
 
+        private sealed class BenchmarkContext
+        {
+            public ConfigService ConfigService { get; set; }
+            public RuriLibSettingsService SettingsService { get; set; }
+            public PluginRepository PluginRepository { get; set; }
+            public BotData BotData { get; set; }
+        }
+
+        private sealed class BenchmarkResult
+        {
+            public BenchmarkResult(string name, TimeSpan duration, string details, bool success, bool skipped, string errorMessage)
+            {
+                Name = name;
+                Duration = duration;
+                Details = details;
+                Success = success;
+                Skipped = skipped;
+                ErrorMessage = errorMessage;
+            }
+
+            public string Name { get; }
+            public TimeSpan Duration { get; }
+            public string Details { get; }
+            public bool Success { get; }
+            public bool Skipped { get; }
+            public string ErrorMessage { get; }
+
+            public static BenchmarkResult SuccessResult(string name, TimeSpan duration, string details)
+                => new(name, duration, details, true, false, null);
+
+            public static BenchmarkResult Failure(string name, TimeSpan duration, string error)
+                => new(name, duration, string.Empty, false, false, error);
+
+            public static BenchmarkResult SkippedResult(string name, string reason)
+                => new(name, TimeSpan.Zero, reason, false, true, null);
+        }
+
         private async void RunPerformanceBenchmark(object sender, RoutedEventArgs e)
         {
             RunBenchmarkButton.IsEnabled = false;
-            
-            // Lazy initialize performance monitoring only when user actually wants to run tests
-            if (!performanceMonitoringStarted)
-            {
-                LazyInitializePerformanceMonitoring();
-            }
-            
-            benchmarkStartTime = DateTime.Now;
-            benchmarkStopwatch = Stopwatch.StartNew();
-            
-            SetBenchmarkStatus("Running performance benchmark...", Brushes.LightBlue);
-            AppendBenchmarkLog($"Benchmark started at {benchmarkStartTime:HH:mm:ss}");
-            AppendBenchmarkLog("Testing memory allocation...");
-            
+
             try
             {
-                // Test 1: Memory allocation performance
-                var memoryResult = await Task.Run(() => TestMemoryAllocation());
-                AppendBenchmarkLog($"Memory test: {memoryResult}");
+                if (!performanceMonitoringStarted)
+                {
+                    LazyInitializePerformanceMonitoring();
+                }
 
-                AppendBenchmarkLog("Testing string processing...");
-                
-                // Test 2: String processing performance
-                var stringResult = await Task.Run(() => TestStringProcessing());
-                AppendBenchmarkLog($"String processing test: {stringResult}");
+                benchmarkStartTime = DateTime.Now;
+                benchmarkStopwatch = Stopwatch.StartNew();
 
-                AppendBenchmarkLog("Testing file I/O performance...");
-                
-                // Test 3: File I/O performance
-                var fileResult = await Task.Run(() => TestFileIO());
-                AppendBenchmarkLog($"File I/O test: {fileResult}");
+                SetBenchmarkStatus("Running software performance benchmark...", Brushes.LightBlue);
+                AppendBenchmarkLog($"Benchmark started at {benchmarkStartTime:HH:mm:ss}");
 
-                AppendBenchmarkLog("Testing calculation performance...");
-                
-                // Test 4: Calculation performance
-                var calcResult = await Task.Run(() => TestCalculations());
-                AppendBenchmarkLog($"Calculation test: {calcResult}");
+                var context = BuildBenchmarkContext();
+                var steps = new List<Func<BenchmarkContext, Task<BenchmarkResult>>>
+                {
+                    BenchmarkConfigReloadAsync,
+                    BenchmarkConfigSerializationAsync,
+                    BenchmarkStringBlockAsync,
+                    BenchmarkLoliCodeParsingAsync,
+                    BenchmarkWordlistDataPoolAsync,
+                    BenchmarkPluginDiscoveryAsync
+                };
+
+                var results = new List<BenchmarkResult>();
+
+                foreach (var step in steps)
+                {
+                    var result = await step(context);
+                    results.Add(result);
+                    AppendBenchmarkResultLog(result);
+                }
 
                 benchmarkStopwatch.Stop();
-                var totalTime = benchmarkStopwatch.ElapsedMilliseconds;
-                
+
+                var passed = results.Count(r => r.Success);
+                var skipped = results.Count(r => r.Skipped);
+                var failed = results.Count - passed - skipped;
+                var totalDuration = results.Aggregate(TimeSpan.Zero, (acc, current) => acc + current.Duration);
+
                 AppendBenchmarkLog("=== BENCHMARK COMPLETE ===");
-                AppendBenchmarkLog($"Total time: {totalTime}ms");
+                AppendBenchmarkLog($"Tests passed: {passed}, failed: {failed}, skipped: {skipped}");
+                AppendBenchmarkLog($"Aggregate runtime: {totalDuration.TotalMilliseconds:F0}ms (wall clock {benchmarkStopwatch.ElapsedMilliseconds}ms)");
                 AppendBenchmarkLog($"Benchmark completed at {DateTime.Now:HH:mm:ss}");
 
-                SetBenchmarkStatus($"Benchmark completed in {totalTime}ms", Brushes.LightGreen);
+                if (failed > 0)
+                {
+                    SetBenchmarkStatus("Software benchmark completed with errors", Brushes.OrangeRed);
+                }
+                else if (passed == 0)
+                {
+                    SetBenchmarkStatus("Software benchmark could not run", Brushes.Orange);
+                }
+                else if (skipped > 0)
+                {
+                    SetBenchmarkStatus("Software benchmark completed with partial coverage", Brushes.Gold);
+                }
+                else
+                {
+                    SetBenchmarkStatus("Software benchmark completed successfully", Brushes.LightGreen);
+                }
             }
             catch (Exception ex)
             {
-                AppendBenchmarkLog($"Benchmark failed: {ex.Message}");
+                benchmarkStopwatch?.Stop();
+                AppendBenchmarkLog($"Benchmark aborted: {ex.Message}");
                 SetBenchmarkStatus($"Benchmark failed: {ex.Message}", Brushes.Red);
             }
             finally
             {
                 RunBenchmarkButton.IsEnabled = true;
+            }
+        }
+
+        private BenchmarkContext BuildBenchmarkContext()
+        {
+            var context = new BenchmarkContext();
+
+            try
+            {
+                context.ConfigService = ServiceLocator.GetOptionalService<ConfigService>();
+            }
+            catch (Exception ex)
+            {
+                AppendBenchmarkLog($"Config service unavailable: {ex.Message}");
+            }
+
+            try
+            {
+                context.SettingsService = ServiceLocator.GetOptionalService<RuriLibSettingsService>();
+            }
+            catch (Exception ex)
+            {
+                AppendBenchmarkLog($"Settings service unavailable: {ex.Message}");
+            }
+
+            if (context.SettingsService == null)
+            {
+                try
+                {
+                    context.SettingsService = new RuriLibSettingsService(GetBenchmarkSettingsPath());
+                }
+                catch (Exception ex)
+                {
+                    AppendBenchmarkLog($"Fallback settings initialization failed: {ex.Message}");
+                }
+            }
+
+            try
+            {
+                context.PluginRepository = ServiceLocator.GetOptionalService<PluginRepository>();
+            }
+            catch (Exception ex)
+            {
+                AppendBenchmarkLog($"Plugin repository unavailable: {ex.Message}");
+            }
+
+            context.BotData = CreateBenchmarkBotData(context.SettingsService);
+
+            return context;
+        }
+
+        private static string GetBenchmarkSettingsPath()
+        {
+            var path = Path.Combine(Path.GetTempPath(), "ob2-benchmark", "settings");
+            Directory.CreateDirectory(path);
+            return path;
+        }
+
+        private BotData CreateBenchmarkBotData(RuriLibSettingsService settingsService)
+        {
+            try
+            {
+                var effectiveSettings = settingsService ?? new RuriLibSettingsService(GetBenchmarkSettingsPath());
+                var providers = new Providers(effectiveSettings);
+                var logger = new BotLogger { Enabled = false };
+                var wordlistType = effectiveSettings.Environment?.WordlistTypes?.FirstOrDefault()
+                    ?? new WordlistType
+                    {
+                        Name = "Benchmark",
+                        Regex = ".*",
+                        Verify = false,
+                        Separator = ":",
+                        Slices = new[] { "DATA", "EXTRA" },
+                        SlicesAlias = Array.Empty<string>()
+                    };
+
+                var dataLine = new DataLine("benchmark:data", wordlistType);
+                return new BotData(providers, new RuriLib.Models.Configs.ConfigSettings(), logger, dataLine);
+            }
+            catch (Exception ex)
+            {
+                AppendBenchmarkLog($"Bot context initialization failed: {ex.Message}");
+                return null;
+            }
+        }
+
+        private void AppendBenchmarkResultLog(BenchmarkResult result)
+        {
+            if (result == null)
+            {
+                AppendBenchmarkLog("Benchmark step returned no result.");
+                return;
+            }
+
+            if (result.Skipped)
+            {
+                AppendBenchmarkLog($"[Skipped] {result.Name}: {result.Details}");
+            }
+            else if (!result.Success)
+            {
+                var message = string.IsNullOrWhiteSpace(result.ErrorMessage) ? "Unknown error" : result.ErrorMessage;
+                AppendBenchmarkLog($"[Failed] {result.Name} ({result.Duration.TotalMilliseconds:F0}ms): {message}");
+            }
+            else
+            {
+                AppendBenchmarkLog($"[Passed] {result.Name} ({result.Duration.TotalMilliseconds:F0}ms): {result.Details}");
+            }
+        }
+
+        private async Task<BenchmarkResult> BenchmarkConfigReloadAsync(BenchmarkContext context)
+        {
+            const string name = "Config cache refresh";
+
+            if (context.ConfigService == null)
+            {
+                return BenchmarkResult.SkippedResult(name, "Config service unavailable");
+            }
+
+            var stopwatch = Stopwatch.StartNew();
+
+            try
+            {
+                await context.ConfigService.ReloadConfigsAsync();
+                var elapsed = stopwatch.Elapsed;
+                var configCount = context.ConfigService.Configs?.Count() ?? 0;
+                var details = $"{configCount} config(s) cached";
+                return BenchmarkResult.SuccessResult(name, elapsed, details);
+            }
+            catch (Exception ex)
+            {
+                var elapsed = stopwatch.Elapsed;
+                return BenchmarkResult.Failure(name, elapsed, ex.Message);
+            }
+        }
+
+        private async Task<BenchmarkResult> BenchmarkConfigSerializationAsync(BenchmarkContext _)
+        {
+            const string name = "Config serialization";
+            var config = BuildSampleBenchmarkConfig();
+            var stopwatch = Stopwatch.StartNew();
+
+            try
+            {
+                var packed = await ConfigPacker.PackAsync(config);
+                using var stream = new MemoryStream(packed);
+                var unpacked = await ConfigPacker.UnpackAsync(stream);
+                var elapsed = stopwatch.Elapsed;
+                var sizeKb = packed.Length / 1024d;
+                var details = $"Packed {unpacked.Metadata?.Name ?? "config"} ({sizeKb:F1} KB)";
+                return BenchmarkResult.SuccessResult(name, elapsed, details);
+            }
+            catch (Exception ex)
+            {
+                var elapsed = stopwatch.Elapsed;
+                return BenchmarkResult.Failure(name, elapsed, ex.Message);
+            }
+        }
+
+        private Task<BenchmarkResult> BenchmarkStringBlockAsync(BenchmarkContext context)
+        {
+            const string name = "String block throughput";
+            var botData = context.BotData;
+
+            if (botData == null)
+            {
+                return Task.FromResult(BenchmarkResult.SkippedResult(name, "Bot context unavailable"));
+            }
+
+            var samples = new[]
+            {
+                "The quick brown fox jumps over the lazy dog.",
+                "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
+                "OpenBullet2 diagnostics benchmark string payload.",
+                "RuriLib string functions under load."
+            };
+
+            var replacements = new[] { "a", "e", "i", "o", "u" };
+            const int iterations = 100_000;
+
+            var stopwatch = Stopwatch.StartNew();
+
+            try
+            {
+                var lengthAccumulator = 0;
+
+                for (var i = 0; i < iterations; i++)
+                {
+                    var input = samples[i % samples.Length];
+
+                    var upper = RuriLib.Blocks.Functions.String.Methods.ToUppercase(botData, input);
+                    var reversed = RuriLib.Blocks.Functions.String.Methods.Reverse(botData, upper);
+
+                    var sliceLength = Math.Min(16, reversed.Length);
+                    var sliced = sliceLength > 0
+                        ? RuriLib.Blocks.Functions.String.Methods.Substring(botData, reversed, 0, sliceLength)
+                        : string.Empty;
+
+                    var replaced = RuriLib.Blocks.Functions.String.Methods.Replace(
+                        botData,
+                        sliced,
+                        replacements[i % replacements.Length],
+                        replacements[(i + 1) % replacements.Length]);
+
+                    var random = RuriLib.Blocks.Functions.String.Methods.RandomString(botData, "?l?u?d?l?u?d");
+
+                    lengthAccumulator += (replaced?.Length ?? 0) + (random?.Length ?? 0);
+                }
+
+                stopwatch.Stop();
+
+                var opsPerSecond = iterations / Math.Max(stopwatch.Elapsed.TotalSeconds, 0.001);
+                var details = $"{iterations:N0} string block invocations (~{opsPerSecond:N0} ops/s, aggregate output {lengthAccumulator:N0} chars)";
+                return Task.FromResult(BenchmarkResult.SuccessResult(name, stopwatch.Elapsed, details));
+            }
+            catch (Exception ex)
+            {
+                var elapsed = stopwatch.Elapsed;
+                return Task.FromResult(BenchmarkResult.Failure(name, elapsed, ex.Message));
+            }
+        }
+
+        private Config BuildSampleBenchmarkConfig()
+        {
+            return new Config
+            {
+                Id = $"benchmark-{Guid.NewGuid():N}",
+                Mode = ConfigMode.LoliCode,
+                Metadata = new RuriLib.Models.Configs.ConfigMetadata
+                {
+                    Name = "Benchmark Sample Config",
+                    Category = "Diagnostics",
+                    Author = "OpenBullet2"
+                },
+                Settings = new RuriLib.Models.Configs.ConfigSettings(),
+                Readme = "Synthetic config generated for diagnostics.",
+                LoliCodeScript = "LOG \"Benchmark\"",
+                StartupLoliCodeScript = "LOG \"Benchmark startup\""
+            };
+        }
+
+        private static string BuildBenchmarkLoliScript()
+        {
+            var ids = Globals.DescriptorsRepository.Descriptors
+                .Where(pair => pair.Value is AutoBlockDescriptor autoDescriptor && autoDescriptor.Parameters.Count == 0)
+                .Select(pair => pair.Key)
+                .Distinct()
+                .Take(12)
+                .ToList();
+
+            if (!ids.Any())
+            {
+                return string.Empty;
+            }
+
+            var builder = new StringBuilder();
+
+            foreach (var id in ids)
+            {
+                builder.AppendLine($"BLOCK:{id}");
+                builder.AppendLine("ENDBLOCK");
+            }
+
+            return builder.ToString();
+        }
+
+        private Task<BenchmarkResult> BenchmarkLoliCodeParsingAsync(BenchmarkContext _)
+        {
+            const string name = "LoliCode transpiler";
+            var script = BuildBenchmarkLoliScript();
+
+            if (string.IsNullOrWhiteSpace(script))
+            {
+                return Task.FromResult(BenchmarkResult.SkippedResult(name, "No parameterless blocks available for testing"));
+            }
+
+            var stopwatch = Stopwatch.StartNew();
+
+            try
+            {
+                var stack = Loli2StackTranspiler.Transpile(script);
+                var elapsed = stopwatch.Elapsed;
+                var details = $"Transpiled {stack.Count} block(s)";
+                return Task.FromResult(BenchmarkResult.SuccessResult(name, elapsed, details));
+            }
+            catch (Exception ex)
+            {
+                var elapsed = stopwatch.Elapsed;
+                return Task.FromResult(BenchmarkResult.Failure(name, elapsed, ex.Message));
+            }
+        }
+
+        private Task<BenchmarkResult> BenchmarkWordlistDataPoolAsync(BenchmarkContext context)
+        {
+            const string name = "Wordlist ingestion";
+
+            var wordlistType = context.SettingsService?.Environment?.WordlistTypes?.FirstOrDefault();
+
+            if (wordlistType == null)
+            {
+                return Task.FromResult(BenchmarkResult.SkippedResult(name, "No wordlist types configured"));
+            }
+
+            var tempFile = Path.Combine(Path.GetTempPath(), $"ob2-wordlist-{Guid.NewGuid():N}.txt");
+            var entries = GenerateBenchmarkWordlistEntries(2000);
+
+            try
+            {
+                File.WriteAllLines(tempFile, entries);
+
+                var wordlist = new Wordlist("Benchmark Wordlist", tempFile, wordlistType, "Diagnostics", countLines: false)
+                {
+                    Total = entries.Length
+                };
+
+                var stopwatch = Stopwatch.StartNew();
+
+                try
+                {
+                    var dataPool = new WordlistDataPool(wordlist);
+                    var enumerated = dataPool.DataList.Take(Math.Min(entries.Length, 1500)).Count();
+                    var elapsed = stopwatch.Elapsed;
+                    var details = $"Enumerated {enumerated} entry(ies) from disk";
+                    return Task.FromResult(BenchmarkResult.SuccessResult(name, elapsed, details));
+                }
+                catch (Exception ex)
+                {
+                    var elapsed = stopwatch.Elapsed;
+                    return Task.FromResult(BenchmarkResult.Failure(name, elapsed, ex.Message));
+                }
+            }
+            catch (Exception ex)
+            {
+                return Task.FromResult(BenchmarkResult.Failure(name, TimeSpan.Zero, ex.Message));
+            }
+            finally
+            {
+                try { File.Delete(tempFile); } catch { }
+            }
+        }
+
+        private static string[] GenerateBenchmarkWordlistEntries(int count)
+        {
+            var lines = new string[count];
+
+            for (int i = 0; i < count; i++)
+            {
+                lines[i] = $"user{i:0000}:password{i:0000}";
+            }
+
+            return lines;
+        }
+
+        private Task<BenchmarkResult> BenchmarkPluginDiscoveryAsync(BenchmarkContext context)
+        {
+            const string name = "Plugin catalogue scan";
+
+            if (context.PluginRepository == null)
+            {
+                return Task.FromResult(BenchmarkResult.SkippedResult(name, "Plugin repository unavailable"));
+            }
+
+            var stopwatch = Stopwatch.StartNew();
+
+            try
+            {
+                var pluginNames = context.PluginRepository.GetPluginNames().ToList();
+                var elapsed = stopwatch.Elapsed;
+                var preview = pluginNames.Count == 0
+                    ? "No plugins detected"
+                    : $"Loaded {pluginNames.Count} plugin(s) ({string.Join(", ", pluginNames.Take(3))}{(pluginNames.Count > 3 ? ", ..." : string.Empty)})";
+
+                return Task.FromResult(BenchmarkResult.SuccessResult(name, elapsed, preview));
+            }
+            catch (Exception ex)
+            {
+                var elapsed = stopwatch.Elapsed;
+                return Task.FromResult(BenchmarkResult.Failure(name, elapsed, ex.Message));
             }
         }
 
@@ -1378,84 +2001,6 @@ namespace OpenBullet2.Native.Views.Pages
             return Brushes.Red;
         }
 
-        private string TestMemoryAllocation()
-        {
-            var sw = Stopwatch.StartNew();
-            var items = new List<byte[]>();
-            
-            // Allocate 100MB of memory in chunks
-            for (int i = 0; i < 100; i++)
-            {
-                items.Add(new byte[1024 * 1024]); // 1MB chunks
-            }
-            
-            sw.Stop();
-            
-            // Clean up
-            items.Clear();
-            GC.Collect();
-            
-            return $"{sw.ElapsedMilliseconds}ms for 100MB allocation";
-        }
-
-        private string TestStringProcessing()
-        {
-            var sw = Stopwatch.StartNew();
-            var result = "";
-            
-            // Process 100,000 string operations
-            for (int i = 0; i < 100000; i++)
-            {
-                result += i.ToString() + ",";
-            }
-            
-            // Test string splitting
-            var parts = result.Split(',');
-            var count = parts.Length;
-            
-            sw.Stop();
-            return $"{sw.ElapsedMilliseconds}ms for {count} string operations";
-        }
-
-        private string TestFileIO()
-        {
-            var sw = Stopwatch.StartNew();
-            var testFile = Path.Combine(Path.GetTempPath(), "ob2_benchmark_test.txt");
-            
-            try
-            {
-                // Write test
-                var testData = new string('A', 1024 * 100); // 100KB of data
-                File.WriteAllText(testFile, testData);
-                
-                // Read test
-                var readData = File.ReadAllText(testFile);
-                var size = readData.Length;
-                
-                sw.Stop();
-                return $"{sw.ElapsedMilliseconds}ms for 100KB file I/O ({size} bytes)";
-            }
-            finally
-            {
-                try { File.Delete(testFile); } catch { }
-            }
-        }
-
-        private string TestCalculations()
-        {
-            var sw = Stopwatch.StartNew();
-            double result = 0;
-            
-            // Perform 1 million mathematical operations
-            for (int i = 0; i < 1000000; i++)
-            {
-                result += Math.Sqrt(i) * Math.Sin(i) + Math.Cos(i);
-            }
-            
-            sw.Stop();
-            return $"{sw.ElapsedMilliseconds}ms for 1M mathematical operations (result: {result:F2})";
-        }
-
         private void AppendBenchmarkLog(string message)
         {
             if (BenchmarkOutputTextBox == null) return;
@@ -1518,6 +2063,115 @@ namespace OpenBullet2.Native.Views.Pages
             }
         }
 
+        private void ToolsScrollViewer_Loaded(object sender, RoutedEventArgs e)
+        {
+            if (sender is FrameworkElement element)
+            {
+                UpdateCardLayout(element.ActualWidth);
+            }
+        }
+
+        private void ToolsScrollViewer_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            UpdateCardLayout(e.NewSize.Width);
+        }
+
+        private void UpdateCardLayout(double availableWidth)
+        {
+            if (ToolCardPanel == null)
+            {
+                return;
+            }
+
+            if (double.IsNaN(availableWidth) || availableWidth <= 0)
+            {
+                return;
+            }
+
+            // Account for the scrollbar gutter so the last column does not clip.
+            availableWidth = Math.Max(availableWidth - SystemParameters.VerticalScrollBarWidth, CardMinWidth);
+
+            var maxColumns = Math.Max(1, (int)Math.Floor((availableWidth + CardHorizontalSpacing) / (CardMinWidth + CardHorizontalSpacing)));
+            maxColumns = Math.Min(maxColumns, CardMaxColumns);
+
+            for (var columns = maxColumns; columns >= 1; columns--)
+            {
+                var candidate = (availableWidth - (columns - 1) * CardHorizontalSpacing) / columns;
+                if (candidate < CardMinWidth)
+                {
+                    continue;
+                }
+
+                ApplyCardWidth(Math.Min(candidate, CardMaxWidth));
+                return;
+            }
+
+            ApplyCardWidth(Math.Max(CardMinWidth, Math.Min(CardMaxWidth, availableWidth)));
+        }
+
+        private void ApplyCardWidth(double width)
+        {
+            if (double.IsNaN(width) || width <= 0 || ToolCardPanel == null)
+            {
+                return;
+            }
+
+            if (Math.Abs(ToolCardPanel.ItemWidth - width) > 0.5)
+            {
+                ToolCardPanel.ItemWidth = width;
+            }
+        }
+
         #endregion
+
+        private sealed class ToolCardMetadata
+        {
+            private readonly string[] aliases;
+            private readonly string searchHaystack;
+
+            public ToolCardMetadata(Border card, string title, string category, params string[] keywords)
+            {
+                Card = card ?? throw new ArgumentNullException(nameof(card));
+                Title = title;
+                Category = category;
+
+                aliases = new[] { title, category }
+                    .Concat(keywords ?? Array.Empty<string>())
+                    .Select(alias => alias?.Trim())
+                    .Where(alias => !string.IsNullOrEmpty(alias))
+                    .ToArray()!;
+
+                searchHaystack = string.Join(' ', aliases);
+            }
+
+            public Border Card { get; }
+            public string Title { get; }
+            public string Category { get; }
+
+            public bool HasAlias(string alias)
+                => !string.IsNullOrWhiteSpace(alias) &&
+                   aliases.Any(a => a.Equals(alias, StringComparison.OrdinalIgnoreCase));
+
+            public bool IsInCategory(string category)
+                => string.Equals(Category, category, StringComparison.OrdinalIgnoreCase);
+
+            public bool MatchesSearchTerms(IEnumerable<string> searchTerms)
+            {
+                if (searchTerms is null)
+                {
+                    return true;
+                }
+
+                foreach (var term in searchTerms)
+                {
+                    if (!searchHaystack.Contains(term, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+        }
     }
 }

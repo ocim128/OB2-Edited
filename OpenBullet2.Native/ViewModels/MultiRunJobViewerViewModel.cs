@@ -458,6 +458,14 @@ public class MultiRunJobViewerViewModel : OpenBullet2.Native.ViewModels.Infrastr
     #region Controls
     public async Task StartAsync()
     {
+        if (MultiRunJob.Config is null)
+        {
+            Alert.Error(
+                "Config missing",
+                "This job references a config that is no longer available. Edit the job to select a valid config before starting.");
+            return;
+        }
+
         try
         {
             startCTS = new CancellationTokenSource();
@@ -517,9 +525,17 @@ public class MultiRunJobViewerViewModel : OpenBullet2.Native.ViewModels.Infrastr
     #region Utils
     private void AskCustomInputs()
     {
+        var customInputs = MultiRunJob.Config?.Settings.InputSettings.CustomInputs;
+
+        if (customInputs is null || customInputs.Count == 0)
+        {
+            MultiRunJob.CustomInputsAnswers.Clear();
+            return;
+        }
+
         MultiRunJob.CustomInputsAnswers.Clear();
 
-        foreach (var input in MultiRunJob.Config.Settings.InputSettings.CustomInputs)
+        foreach (var input in customInputs)
         {
             MultiRunJob.CustomInputsAnswers[input.VariableName] = Alert.CustomInput(input.Description, input.DefaultAnswer);
         }

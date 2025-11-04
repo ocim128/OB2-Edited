@@ -10,7 +10,7 @@ namespace RuriLib.Providers.Puppeteer
         public DefaultPuppeteerBrowserProvider(RuriLibSettingsService settings)
         {
             ChromeBinaryLocation = settings.RuriLibSettings.PuppeteerSettings.ChromeBinaryLocation;
-            UseRealBrowser = true; // Always use real browser for enhanced bot detection avoidance
+            UseRealBrowser = settings.RuriLibSettings.PuppeteerSettings.UseRealBrowser;
         }
     }
 }

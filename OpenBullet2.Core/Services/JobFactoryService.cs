@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using OpenBullet2.Core.Models.Hits;
 using OpenBullet2.Core.Models.Jobs;
 using OpenBullet2.Core.Models.Proxies;
+using OpenBullet2.Core.Repositories;
 using RuriLib.Logging;
 using RuriLib.Models.Bots;
 using RuriLib.Models.Jobs;
@@ -86,13 +87,41 @@ public class JobFactoryService
         using var scope = _scopeFactory.CreateScope();
         var proxySourceFactory = scope.ServiceProvider.GetRequiredService<ProxySourceFactoryService>();
         var dataPoolFactory = scope.ServiceProvider.GetRequiredService<DataPoolFactoryService>();
+        var configRepository = scope.ServiceProvider.GetRequiredService<IConfigRepository>();
 
         var hitOutputsFactory = new HitOutputFactory(_hitStorage);
 
+        var config = default(RuriLib.Models.Configs.Config);
+
+        if (!string.IsNullOrWhiteSpace(options.ConfigId))
+        {
+            config = _configService.GetConfigsList().FirstOrDefault(c => c.Id == options.ConfigId);
+
+            if (config is null)
+            {
+                try
+                {
+                    config = configRepository.GetAsync(options.ConfigId).GetAwaiter().GetResult();
+
+                    if (config is not null && !_configService.GetConfigsList().Any(c => c.Id == config.Id))
+                    {
+                        _configService.AddConfig(config);
+                    }
+                }
+                catch
+                {
+                    // If the config cannot be loaded, we will fall back to a placeholder below.
+                }
+            }
+        }
+
         var job = new MultiRunJob(_settingsService, _pluginRepo, _logger)
         {
-            Config = _configService.GetConfigsList().FirstOrDefault(c => c.Id == options.ConfigId) ??
-                     new RuriLib.Models.Configs.Config { Id = "missing", Metadata = new RuriLib.Models.Configs.ConfigMetadata { Name = "Config Missing" } },
+            Config = config ?? new RuriLib.Models.Configs.Config
+            {
+                Id = string.IsNullOrWhiteSpace(options.ConfigId) ? "missing" : options.ConfigId,
+                Metadata = new RuriLib.Models.Configs.ConfigMetadata { Name = "Config Missing" }
+            },
             CreationTime = DateTime.Now,
             ProxyMode = options.ProxyMode,
             ShuffleProxies = options.ShuffleProxies,

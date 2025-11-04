@@ -1,3 +1,4 @@
+using RuriLib.Http.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -6,6 +7,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Buffers;
+using System.Runtime.CompilerServices;
 
 namespace RuriLib.Http.Models
 {
@@ -53,20 +55,15 @@ namespace RuriLib.Http.Models
         public HttpContent Content { get; set; }
 
         /// <summary>
-        /// Writes the HTTP request to an <see cref="IBufferWriter{T}"/>.
+        /// Writes the HTTP request to an <see cref="IBufferWriter{T}"/> with high-performance optimizations.
         /// </summary>
         /// <param name="writer">The buffer writer to write to</param>
         /// <param name="cancellationToken">The token to cancel the operation</param>
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         public async Task WriteToAsync(IBufferWriter<byte> writer, CancellationToken cancellationToken = default)
         {
-            BuildFirstLine(writer);
-            BuildHeaders(writer);
-
-            if (Content != null)
-            {
-                var payload = await Content.ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false);
-                writer.Write(payload.AsSpan());
-            }
+            // Use the optimized HTTP performance writer for better throughput
+            await HttpPerformanceOptimizer.WriteOptimizedRequestAsync(this, writer, cancellationToken).ConfigureAwait(false);
         }
 
         private static readonly byte[] CRLF = Encoding.ASCII.GetBytes("\r\n");
@@ -135,13 +132,13 @@ namespace RuriLib.Http.Models
             // Add the Host header if not already provided
             if (!HeaderExists("Host", out _))
             {
-                finalHeaders.Add(new KeyValuePair<string, string>("Host", Uri.Host));
+                finalHeaders.Add("Host", Uri.Host);
             }
 
             // If there is no Connection header, add it
             if (!HeaderExists("Connection", out _))
             {
-                finalHeaders.Add(new KeyValuePair<string, string>("Connection", "Close"));
+                finalHeaders.Add("Connection", "Close");
             }
 
             // Add the non-content headers
@@ -173,7 +170,7 @@ namespace RuriLib.Http.Models
                         firstCookie = false;
                     }
 
-                    finalHeaders.Add(new KeyValuePair<string, string>("Cookie", cookieBuilder.ToString()));
+                    finalHeaders.Add("Cookie", cookieBuilder.ToString());
                 }
             }
         }
@@ -188,7 +185,7 @@ namespace RuriLib.Http.Models
                     // If it was already set, skip
                     if (!HeaderExists(header.Key, out _))
                     {
-                        finalHeaders.Add(new KeyValuePair<string, string>(header.Key, string.Join(' ', header.Value)));
+                        finalHeaders.Add(header.Key, string.Join(' ', header.Value));
                     }
                 }
 
@@ -199,7 +196,7 @@ namespace RuriLib.Http.Models
 
                     if (contentLength > 0)
                     {
-                        finalHeaders.Add(new KeyValuePair<string, string>("Content-Length", contentLength.Value.ToString()));
+                        finalHeaders.Add("Content-Length", contentLength.Value.ToString());
                     }
                 }
             }

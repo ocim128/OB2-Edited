@@ -90,13 +90,6 @@ internal sealed class HttpResponseMessageBuilder : IAsyncDisposable
             var result = await _reader.ReadAsync(cancellationToken).ConfigureAwait(false);
             var buffer = result.Buffer;
 
-            if (TryReadStatusLine(ref buffer, out var line))
-            {
-                ApplyStatusLine(line);
-                _reader.AdvanceTo(buffer.Start);
-                return;
-            }
-
             if (result.IsCompleted)
             {
                 throw new InvalidOperationException("Incomplete HTTP response status line");
@@ -109,67 +102,6 @@ internal sealed class HttpResponseMessageBuilder : IAsyncDisposable
     /// <summary>
     /// Attempts to parse the status line from the buffer.
     /// </summary>
-    private static bool TryReadStatusLine(ref ReadOnlySequence<byte> buffer, out ReadOnlySpan<byte> line)
-    {
-        var reader = new SequenceReader<byte>(buffer);
-        if (reader.TryReadTo(out ReadOnlySpan<byte> statusLine, CRLF, true))
-        {
-            line = statusLine;
-            buffer = buffer.Slice(reader.Position);
-            return true;
-        }
-
-        line = default;
-        return false;
-    }
-
-    private void ApplyStatusLine(ReadOnlySpan<byte> line)
-    {
-        var statusLine = Encoding.UTF8.GetString(line).Trim();
-        if (string.IsNullOrEmpty(statusLine))
-        {
-            throw new FormatException("Invalid HTTP response status line");
-        }
-
-        var firstSpaceIndex = statusLine.IndexOf(' ');
-        if (firstSpaceIndex < 0)
-        {
-            throw new FormatException("Invalid HTTP response status line");
-        }
-
-        var versionPart = statusLine[..firstSpaceIndex];
-        if (!versionPart.StartsWith("HTTP/", StringComparison.OrdinalIgnoreCase) ||
-            !Version.TryParse(versionPart.Substring(5), out var version))
-        {
-            throw new FormatException("Invalid HTTP version in response");
-        }
-
-        var remainder = statusLine[(firstSpaceIndex + 1)..];
-        var secondSpaceIndex = remainder.IndexOf(' ');
-
-        string statusCodePart;
-        string reasonPhrase;
-
-        if (secondSpaceIndex < 0)
-        {
-            statusCodePart = remainder;
-            reasonPhrase = string.Empty;
-        }
-        else
-        {
-            statusCodePart = remainder[..secondSpaceIndex];
-            reasonPhrase = remainder[(secondSpaceIndex + 1)..];
-        }
-
-        if (!int.TryParse(statusCodePart, out var statusCode))
-        {
-            throw new FormatException("Invalid HTTP status code in response");
-        }
-
-        _response.Version = version;
-        _response.StatusCode = (HttpStatusCode)statusCode;
-        _response.ReasonPhrase = reasonPhrase.Trim();
-    }
 
     /// <summary>
     /// Parses HTTP headers from the response.

@@ -49,7 +49,20 @@ namespace OpenBullet2.Native.Views.Pages.Shared
         private bool _scrollingDisabled;
         private bool _areTabButtonsVisible = false;
         private bool _areOptionsVisible = false;
-        private bool _areStackerControlsVisible = false;
+        private bool _areStackerControlsVisible = true;
+        private bool _isFocusModeEnabled;
+        private bool _focusStoredOptionsVisible;
+        private bool _focusStoredTabButtonsVisible;
+        private bool _focusStoredStackerVisible = true;
+        private Visibility _focusStoredStopButtonVisibility = Visibility.Visible;
+        private Visibility _focusStoredStepButtonVisibility = Visibility.Visible;
+        private Visibility _focusStoredVariablesTabVisibility = Visibility.Visible;
+        private Visibility _focusStoredHtmlTabVisibility = Visibility.Visible;
+        private Visibility _focusStoredTabToggleVisibility = Visibility.Visible;
+        private Visibility _focusStoredOptionsToggleVisibility = Visibility.Visible;
+        private Visibility _focusStoredStackerToggleVisibility = Visibility.Visible;
+        private Visibility _focusStoredTopMenuVisibility = Visibility.Visible;
+        private Visibility _focusStoredStackerControlsVisibility = Visibility.Visible;
         private int _currentBlockIndex = -1;
         private List<int> _blockPositions = new List<int>();
         private bool _windowKeyHandlersAttached = false;
@@ -96,6 +109,10 @@ namespace OpenBullet2.Native.Views.Pages.Shared
             _resizeTimer = CreateTimer(TimeSpan.FromMilliseconds(_accessibility.ReduceAnimations ? RESIZE_DELAY_MS * 2 : RESIZE_DELAY_MS), OnResizeTimerTick);
             _updateTimer = CreateTimer(TimeSpan.FromMilliseconds(_accessibility.ReduceAnimations ? UPDATE_INTERVAL_MS * 2 : UPDATE_INTERVAL_MS), OnUpdateTimerTick);
             _updateTimer.Start();
+
+            UpdateOptionsToggleAppearance();
+            UpdateTabToggleAppearance();
+            UpdateStackerToggleAppearance();
         }
 
         /// <summary>
@@ -962,6 +979,301 @@ namespace OpenBullet2.Native.Views.Pages.Shared
                 try { variablesRTB.ResumeLayout(false); } catch { }
             }
         }
+
+        #region UI Visibility Helpers
+        private void ApplyOptionsVisibility(bool visible)
+        {
+            _areOptionsVisible = visible;
+
+            if (SecondaryOptionsGrid != null)
+            {
+                SecondaryOptionsGrid.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
+            }
+
+            UpdateOptionsToggleAppearance();
+        }
+
+        private void UpdateOptionsToggleAppearance()
+        {
+            if (OptionsToggleButton?.Content is not StackPanel content || content.Children.Count < 2)
+            {
+                return;
+            }
+
+            if (content.Children[1] is not TextBlock label)
+            {
+                return;
+            }
+
+            if (_areOptionsVisible)
+            {
+                OptionsToggleIcon.Kind = MahApps.Metro.IconPacks.PackIconUniconsKind.EyeSlash;
+                label.Text = "Hide Options";
+                OptionsToggleButton.Background = new SolidColorBrush(Color.FromRgb(220, 38, 38));
+            }
+            else
+            {
+                OptionsToggleIcon.Kind = MahApps.Metro.IconPacks.PackIconUniconsKind.Eye;
+                label.Text = "Show Options";
+                OptionsToggleButton.Background = new SolidColorBrush(Color.FromRgb(124, 58, 237));
+            }
+        }
+
+        private void ApplyTabUiVisibility(bool visible)
+        {
+            _areTabButtonsVisible = visible;
+            var targetVisibility = visible ? Visibility.Visible : Visibility.Collapsed;
+
+            if (LogTabButton != null) LogTabButton.Visibility = targetVisibility;
+            if (VariablesTabButton != null) VariablesTabButton.Visibility = targetVisibility;
+            if (HtmlTabButton != null) HtmlTabButton.Visibility = targetVisibility;
+            if (SearchControlsArea != null) SearchControlsArea.Visibility = targetVisibility;
+
+            UpdateTabToggleAppearance();
+        }
+
+        private void UpdateTabToggleAppearance()
+        {
+            if (TabToggleButton?.Content is not StackPanel content || content.Children.Count < 2)
+            {
+                return;
+            }
+
+            if (content.Children[1] is not TextBlock label)
+            {
+                return;
+            }
+
+            if (_areTabButtonsVisible)
+            {
+                TabToggleIcon.Kind = MahApps.Metro.IconPacks.PackIconUniconsKind.EyeSlash;
+                label.Text = "Hide UI";
+                TabToggleButton.Background = new SolidColorBrush(Color.FromRgb(220, 38, 38));
+            }
+            else
+            {
+                TabToggleIcon.Kind = MahApps.Metro.IconPacks.PackIconUniconsKind.Eye;
+                label.Text = "Show UI";
+                TabToggleButton.Background = new SolidColorBrush(Color.FromRgb(5, 150, 105));
+            }
+        }
+
+        private void ApplyStackerVisibility(bool showStacker)
+        {
+            try
+            {
+                var mainWindow = Application.Current.MainWindow as MainWindow;
+                var configEditor = mainWindow?.ConfigEditorPage;
+                if (configEditor != null && configEditor.IsStackerPageActive())
+                {
+                    var editorFrame = configEditor.editorFrame;
+                    if (editorFrame?.Content is ConfigStacker configStacker)
+                    {
+                        if (configStacker.Content is Grid mainGrid && mainGrid.ColumnDefinitions.Count >= 3)
+                        {
+                            var blockListColumn = mainGrid.ColumnDefinitions[0];
+                            var splitterColumn = mainGrid.ColumnDefinitions[1];
+
+                            Border toolbar = null;
+                            Border blockListContainer = null;
+                            GridSplitter gridSplitter = null;
+                            Border blockInspector = configStacker.BlockInspectorBorder;
+
+                            foreach (var child in mainGrid.Children)
+                            {
+                                if (child is Border border)
+                                {
+                                    if (Grid.GetRow(border) == 0 && Grid.GetColumn(border) == 0)
+                                    {
+                                        toolbar = border;
+                                    }
+                                    else if (Grid.GetRow(border) == 1 && Grid.GetColumn(border) == 0)
+                                    {
+                                        blockListContainer = border;
+                                    }
+                                }
+                                else if (child is GridSplitter splitter && Grid.GetColumn(splitter) == 1)
+                                {
+                                    gridSplitter = splitter;
+                                }
+                            }
+
+                            if (showStacker)
+                            {
+                                blockListColumn.Width = new GridLength(220, GridUnitType.Pixel);
+                                splitterColumn.Width = new GridLength(10, GridUnitType.Pixel);
+                                if (toolbar != null) toolbar.Visibility = Visibility.Visible;
+                                if (blockListContainer != null) blockListContainer.Visibility = Visibility.Visible;
+                                if (gridSplitter != null) gridSplitter.Visibility = Visibility.Visible;
+                                if (blockInspector != null)
+                                {
+                                    Grid.SetColumn(blockInspector, 2);
+                                    Grid.SetColumnSpan(blockInspector, 1);
+                                }
+                            }
+                            else
+                            {
+                                blockListColumn.Width = new GridLength(0);
+                                splitterColumn.Width = new GridLength(0);
+                                if (toolbar != null) toolbar.Visibility = Visibility.Collapsed;
+                                if (blockListContainer != null) blockListContainer.Visibility = Visibility.Collapsed;
+                                if (gridSplitter != null) gridSplitter.Visibility = Visibility.Collapsed;
+                                if (blockInspector != null)
+                                {
+                                    Grid.SetColumn(blockInspector, 0);
+                                    Grid.SetColumnSpan(blockInspector, 3);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // Ignore layout failures, the intention is preserved for the toggle appearance.
+            }
+
+            _areStackerControlsVisible = showStacker;
+            UpdateStackerToggleAppearance();
+        }
+
+        private void UpdateStackerToggleAppearance()
+        {
+            if (StackerToggleButton?.Content is not StackPanel content || content.Children.Count < 2)
+            {
+                return;
+            }
+
+            if (content.Children[1] is not TextBlock label)
+            {
+                return;
+            }
+
+            if (_areStackerControlsVisible)
+            {
+                StackerToggleIcon.Kind = MahApps.Metro.IconPacks.PackIconUniconsKind.EyeSlash;
+                label.Text = "Hide Stacker";
+                StackerToggleButton.Background = new SolidColorBrush(Color.FromRgb(220, 38, 38));
+            }
+            else
+            {
+                StackerToggleIcon.Kind = MahApps.Metro.IconPacks.PackIconUniconsKind.Eye;
+                label.Text = "Show Stacker";
+                StackerToggleButton.Background = new SolidColorBrush(Color.FromRgb(5, 150, 105));
+            }
+        }
+
+        private void ApplyFocusMode(bool enable)
+        {
+            if (_isFocusModeEnabled == enable)
+            {
+                return;
+            }
+
+            if (enable)
+            {
+                _focusStoredOptionsVisible = _areOptionsVisible;
+                _focusStoredTabButtonsVisible = _areTabButtonsVisible;
+                _focusStoredStackerVisible = _areStackerControlsVisible;
+                _focusStoredStopButtonVisibility = StopButton?.Visibility ?? Visibility.Visible;
+                _focusStoredStepButtonVisibility = StepButton?.Visibility ?? Visibility.Visible;
+                _focusStoredVariablesTabVisibility = VariablesTabItem?.Visibility ?? Visibility.Visible;
+                _focusStoredHtmlTabVisibility = HtmlTabItem?.Visibility ?? Visibility.Visible;
+                _focusStoredTabToggleVisibility = TabToggleButton?.Visibility ?? Visibility.Visible;
+                _focusStoredOptionsToggleVisibility = OptionsToggleButton?.Visibility ?? Visibility.Visible;
+                _focusStoredStackerToggleVisibility = StackerToggleButton?.Visibility ?? Visibility.Visible;
+                var mainWindow = Application.Current.MainWindow as MainWindow;
+                if (mainWindow?.topMenu != null)
+                {
+                    _focusStoredTopMenuVisibility = mainWindow.topMenu.Visibility;
+                    mainWindow.topMenu.SetCurrentValue(UIElement.VisibilityProperty, Visibility.Collapsed);
+                }
+                else
+                {
+                    _focusStoredTopMenuVisibility = Visibility.Visible;
+                }
+
+                var stackerControlsPanel = mainWindow?.ConfigEditorPage?.GetStackerControlsPanel();
+                if (stackerControlsPanel != null)
+                {
+                    _focusStoredStackerControlsVisibility = stackerControlsPanel.Visibility;
+                    stackerControlsPanel.SetCurrentValue(UIElement.VisibilityProperty, Visibility.Collapsed);
+                }
+                else
+                {
+                    _focusStoredStackerControlsVisibility = Visibility.Visible;
+                }
+
+                ApplyOptionsVisibility(false);
+                ApplyTabUiVisibility(false);
+                ApplyStackerVisibility(false);
+
+                StopButton?.SetCurrentValue(UIElement.VisibilityProperty, Visibility.Collapsed);
+                StepButton?.SetCurrentValue(UIElement.VisibilityProperty, Visibility.Collapsed);
+                VariablesTabItem?.SetCurrentValue(UIElement.VisibilityProperty, Visibility.Collapsed);
+                HtmlTabItem?.SetCurrentValue(UIElement.VisibilityProperty, Visibility.Collapsed);
+                if (tabControl != null) tabControl.SelectedItem = LogTabItem;
+
+                if (TabToggleButton != null) TabToggleButton.Visibility = Visibility.Collapsed;
+                if (OptionsToggleButton != null) OptionsToggleButton.Visibility = Visibility.Collapsed;
+                if (StackerToggleButton != null) StackerToggleButton.Visibility = Visibility.Collapsed;
+
+                if (FocusModeIcon != null)
+                {
+                    FocusModeIcon.Kind = MahApps.Metro.IconPacks.PackIconUniconsKind.EyeSlash;
+                }
+
+                if (FocusModeText != null)
+                {
+                    FocusModeText.Text = "Exit Focus";
+                }
+
+                if (FocusModeButton != null)
+                {
+                    FocusModeButton.Background = new SolidColorBrush(Color.FromRgb(220, 38, 38));
+                }
+            }
+            else
+            {
+                ApplyOptionsVisibility(_focusStoredOptionsVisible);
+                ApplyTabUiVisibility(_focusStoredTabButtonsVisible);
+                ApplyStackerVisibility(_focusStoredStackerVisible);
+                var mainWindow = Application.Current.MainWindow as MainWindow;
+                if (mainWindow?.topMenu != null)
+                {
+                    mainWindow.topMenu.SetCurrentValue(UIElement.VisibilityProperty, _focusStoredTopMenuVisibility);
+                }
+
+                mainWindow?.ConfigEditorPage?.GetStackerControlsPanel()?.SetCurrentValue(UIElement.VisibilityProperty, _focusStoredStackerControlsVisibility);
+
+                StopButton?.SetCurrentValue(UIElement.VisibilityProperty, _focusStoredStopButtonVisibility);
+                StepButton?.SetCurrentValue(UIElement.VisibilityProperty, _focusStoredStepButtonVisibility);
+                VariablesTabItem?.SetCurrentValue(UIElement.VisibilityProperty, _focusStoredVariablesTabVisibility);
+                HtmlTabItem?.SetCurrentValue(UIElement.VisibilityProperty, _focusStoredHtmlTabVisibility);
+
+                if (TabToggleButton != null) TabToggleButton.Visibility = _focusStoredTabToggleVisibility;
+                if (OptionsToggleButton != null) OptionsToggleButton.Visibility = _focusStoredOptionsToggleVisibility;
+                if (StackerToggleButton != null) StackerToggleButton.Visibility = _focusStoredStackerToggleVisibility;
+
+                if (FocusModeIcon != null)
+                {
+                    FocusModeIcon.Kind = MahApps.Metro.IconPacks.PackIconUniconsKind.Crosshair;
+                }
+
+                if (FocusModeText != null)
+                {
+                    FocusModeText.Text = "Focus Mode";
+                }
+
+                if (FocusModeButton != null)
+                {
+                    FocusModeButton.Background = new SolidColorBrush(Color.FromRgb(245, 158, 11));
+                }
+            }
+
+            _isFocusModeEnabled = enable;
+        }
+        #endregion
         #endregion
 
         #region Button Event Handlers
@@ -981,24 +1293,7 @@ namespace OpenBullet2.Native.Views.Pages.Shared
         /// </summary>
         private void ToggleOptions(object sender, RoutedEventArgs e)
         {
-            _areOptionsVisible = !_areOptionsVisible;
-
-            // Toggle visibility of the secondary options grid
-            SecondaryOptionsGrid.Visibility = _areOptionsVisible ? Visibility.Visible : Visibility.Collapsed;
-
-            // Update the toggle button appearance for better UX
-            if (_areOptionsVisible)
-            {
-                OptionsToggleIcon.Kind = MahApps.Metro.IconPacks.PackIconUniconsKind.EyeSlash;
-                ((TextBlock)((StackPanel)OptionsToggleButton.Content).Children[1]).Text = "Hide Options";
-                OptionsToggleButton.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(220, 38, 38)); // Red when visible
-            }
-            else
-            {
-                OptionsToggleIcon.Kind = MahApps.Metro.IconPacks.PackIconUniconsKind.Eye;
-                ((TextBlock)((StackPanel)OptionsToggleButton.Content).Children[1]).Text = "Show Options";
-                OptionsToggleButton.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(124, 58, 237)); // Purple when hidden
-            }
+            ApplyOptionsVisibility(!_areOptionsVisible);
         }
 
         /// <summary>
@@ -1006,105 +1301,7 @@ namespace OpenBullet2.Native.Views.Pages.Shared
         /// </summary>
         private void ToggleStacker(object sender, RoutedEventArgs e)
         {
-            // Determine UI state from actual layout instead of relying solely on the flag
-            bool isHidden = false;
-
-            // Get reference to the main window and config editor
-            var mainWindow = Application.Current.MainWindow as MainWindow;
-            var configEditor = mainWindow?.ConfigEditorPage;
-            if (configEditor != null)
-            {
-                // Only toggle if we're on the stacker page
-                if (configEditor.IsStackerPageActive())
-                {
-                    // Get the ConfigStacker page loaded in the editorFrame
-                    var editorFrame = configEditor.editorFrame;
-                    if (editorFrame?.Content is ConfigStacker configStacker)
-                    {
-                        // Find the main grid in ConfigStacker
-                        var mainGrid = configStacker.Content as Grid;
-                        if (mainGrid != null && mainGrid.ColumnDefinitions.Count >= 3)
-                        {
-                            // Target the block list column (column 0) and splitter column (column 1)
-                            var blockListColumn = mainGrid.ColumnDefinitions[0];
-                            var splitterColumn = mainGrid.ColumnDefinitions[1];
-
-                            // Find the toolbar (Border in row 0, column 0), block list container (Border row 1, col 0), grid splitter, and inspector
-                            Border toolbar = null;
-                            Border blockListContainer = null;
-                            GridSplitter gridSplitter = null;
-                            Border blockInspector = configStacker.BlockInspectorBorder; // Use the named border
-
-                            foreach (var child in mainGrid.Children)
-                            {
-                                if (child is Border border)
-                                {
-                                    int row = Grid.GetRow(border);
-                                    int col = Grid.GetColumn(border);
-
-                                    if (row == 0 && col == 0)
-                                        toolbar = border;
-                                    else if (row == 1 && col == 0)
-                                        blockListContainer = border;
-                                }
-                                else if (child is GridSplitter splitter && Grid.GetRow(splitter) == 1 && Grid.GetColumn(splitter) == 1)
-                                {
-                                    gridSplitter = splitter;
-                                }
-                            }
-
-                            // Determine current hidden state from actual grid widths/visibility
-                            isHidden = blockListColumn.Width.Value <= 0
-                                       || (blockListContainer != null && blockListContainer.Visibility != Visibility.Visible);
-
-                            if (isHidden)
-                            {
-                                // Show stacker - restore original layout
-                                blockListColumn.Width = new GridLength(220, GridUnitType.Pixel);
-                                splitterColumn.Width = new GridLength(10, GridUnitType.Pixel);
-                                if (toolbar != null) toolbar.Visibility = Visibility.Visible;
-                                if (blockListContainer != null) blockListContainer.Visibility = Visibility.Visible;
-                                if (gridSplitter != null) gridSplitter.Visibility = Visibility.Visible;
-                                if (blockInspector != null)
-                                {
-                                    Grid.SetColumn(blockInspector, 2);
-                                    Grid.SetColumnSpan(blockInspector, 1);
-                                }
-                                _areStackerControlsVisible = true;
-                            }
-                            else
-                            {
-                                // Hide stacker - hide block list and expand block info to use full space
-                                blockListColumn.Width = new GridLength(0);
-                                splitterColumn.Width = new GridLength(0);
-                                if (toolbar != null) toolbar.Visibility = Visibility.Collapsed;
-                                if (blockListContainer != null) blockListContainer.Visibility = Visibility.Collapsed;
-                                if (gridSplitter != null) gridSplitter.Visibility = Visibility.Collapsed;
-                                if (blockInspector != null)
-                                {
-                                    Grid.SetColumn(blockInspector, 0);
-                                    Grid.SetColumnSpan(blockInspector, 3);
-                                }
-                                _areStackerControlsVisible = false;
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Update the toggle button appearance for better UX
-            if (_areStackerControlsVisible)
-            {
-                StackerToggleIcon.Kind = MahApps.Metro.IconPacks.PackIconUniconsKind.EyeSlash;
-                ((TextBlock)((StackPanel)StackerToggleButton.Content).Children[1]).Text = "Hide Stacker";
-                StackerToggleButton.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(220, 38, 38)); // Red when visible
-            }
-            else
-            {
-                StackerToggleIcon.Kind = MahApps.Metro.IconPacks.PackIconUniconsKind.Eye;
-                ((TextBlock)((StackPanel)StackerToggleButton.Content).Children[1]).Text = "Show Stacker";
-                StackerToggleButton.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(5, 150, 105)); // Green when hidden
-            }
+            ApplyStackerVisibility(!_areStackerControlsVisible);
         }
 
         /// <summary>
@@ -1112,29 +1309,15 @@ namespace OpenBullet2.Native.Views.Pages.Shared
         /// </summary>
         private void ToggleTabButtons(object sender, RoutedEventArgs e)
         {
-            _areTabButtonsVisible = !_areTabButtonsVisible;
+            ApplyTabUiVisibility(!_areTabButtonsVisible);
+        }
 
-            // Toggle visibility of the three tab buttons
-            LogTabButton.Visibility = _areTabButtonsVisible ? Visibility.Visible : Visibility.Collapsed;
-            VariablesTabButton.Visibility = _areTabButtonsVisible ? Visibility.Visible : Visibility.Collapsed;
-            HtmlTabButton.Visibility = _areTabButtonsVisible ? Visibility.Visible : Visibility.Collapsed;
-
-            // Toggle visibility of the search controls area
-            SearchControlsArea.Visibility = _areTabButtonsVisible ? Visibility.Visible : Visibility.Collapsed;
-
-            // Update the toggle button appearance for better UX
-            if (_areTabButtonsVisible)
-            {
-                TabToggleIcon.Kind = MahApps.Metro.IconPacks.PackIconUniconsKind.EyeSlash;
-                ((TextBlock)((StackPanel)TabToggleButton.Content).Children[1]).Text = "Hide UI";
-                TabToggleButton.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(220, 38, 38)); // Red when visible
-            }
-            else
-            {
-                TabToggleIcon.Kind = MahApps.Metro.IconPacks.PackIconUniconsKind.Eye;
-                ((TextBlock)((StackPanel)TabToggleButton.Content).Children[1]).Text = "Show UI";
-                TabToggleButton.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(5, 150, 105)); // Green when hidden
-            }
+        /// <summary>
+        /// Toggles focus mode to display only the essential debugger surfaces.
+        /// </summary>
+        private void ToggleFocusMode(object sender, RoutedEventArgs e)
+        {
+            ApplyFocusMode(!_isFocusModeEnabled);
         }
         #endregion
 

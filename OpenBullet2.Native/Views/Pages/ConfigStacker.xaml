@@ -63,24 +63,6 @@
                     </Button>
                     <Button Style="{StaticResource DebuggerToolbarButton}"
                             Margin="0,0,8,0"
-                            Background="#0EA5E9"
-                            Foreground="#04131F"
-                            ToolTip="Copy selected block(s)"
-                            mah:ControlsHelper.CornerRadius="8"
-                            Click="CopyBlocks">
-                        <iconPacks:PackIconMaterial Kind="ContentCopy" Width="16" Height="16" />
-                    </Button>
-                    <Button Style="{StaticResource DebuggerToolbarButton}"
-                            Margin="0,0,8,0"
-                            Background="#38BDF8"
-                            Foreground="#05243A"
-                            ToolTip="Paste block(s)"
-                            mah:ControlsHelper.CornerRadius="8"
-                            Click="PasteBlocksFromClipboard">
-                        <iconPacks:PackIconMaterial Kind="ContentPaste" Width="16" Height="16" />
-                    </Button>
-                    <Button Style="{StaticResource DebuggerToolbarButton}"
-                            Margin="0,0,8,0"
                             Background="#F87171"
                             Foreground="#330C0C"
                             ToolTip="Remove selected block(s)"

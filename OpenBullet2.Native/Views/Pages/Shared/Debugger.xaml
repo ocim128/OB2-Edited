@@ -67,7 +67,8 @@
                            MinHeight="320" />
         </Grid.RowDefinitions>
         <!-- Debugger toggles -->
-        <Border Grid.Row="0"
+        <Border x:Name="DebuggerTogglesBorder"
+                Grid.Row="0"
                 Style="{StaticResource DebuggerSectionBorder}"
                 Padding="12"
                 Margin="0,0,0,12">
@@ -132,6 +133,29 @@
                                                    Height="14"
                                                    Margin="0,0,6,0" />
                         <TextBlock Text="Show Stacker"
+                                   VerticalAlignment="Center"
+                                   FontWeight="SemiBold"
+                                   FontSize="11" />
+                    </StackPanel>
+                </Button>
+                <Button x:Name="FocusModeButton"
+                        Click="ToggleFocusMode"
+                        Style="{StaticResource DebuggerCommandButton}"
+                        MinWidth="140"
+                        Margin="0,0,8,0"
+                        Background="#F59E0B"
+                        Foreground="{StaticResource Modern.TextOnAccent}"
+                        ToolTip="Show only the essentials (block inspector, input &amp; log)"
+                        AutomationProperties.Name="Toggle focus mode"
+                        AutomationProperties.AutomationId="DbgToggleFocus">
+                    <StackPanel Orientation="Horizontal">
+                        <iconPacks:PackIconUnicons x:Name="FocusModeIcon"
+                                                   Kind="Crosshair"
+                                                   Width="14"
+                                                   Height="14"
+                                                   Margin="0,0,6,0" />
+                        <TextBlock x:Name="FocusModeText"
+                                   Text="Focus Mode"
                                    VerticalAlignment="Center"
                                    FontWeight="SemiBold"
                                    FontSize="11" />
@@ -339,7 +363,7 @@
                         VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling"
                         SnapsToDevicePixels="True">
                 <!-- Log Tab -->
-                <TabItem>
+                <TabItem x:Name="LogTabItem">
                     <TabItem.Header>
                         <Button Click="ShowLog"
                                 Width="95"
@@ -583,7 +607,7 @@
                     </Grid>
                 </TabItem>
                 <!-- Variables Tab -->
-                <TabItem>
+                <TabItem x:Name="VariablesTabItem">
                     <TabItem.Header>
                         <Button Click="ShowVariables"
                                 Width="105"
@@ -666,7 +690,7 @@
                     </Grid>
                 </TabItem>
                 <!-- HTML Tab -->
-                <TabItem>
+                <TabItem x:Name="HtmlTabItem">
                     <TabItem.Header>
                         <Button Click="ShowHTML"
                                 Width="95"

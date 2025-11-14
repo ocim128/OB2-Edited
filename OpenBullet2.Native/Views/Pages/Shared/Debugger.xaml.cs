@@ -1063,77 +1063,23 @@ namespace OpenBullet2.Native.Views.Pages.Shared
             try
             {
                 var mainWindow = Application.Current.MainWindow as MainWindow;
-                var configEditor = mainWindow?.ConfigEditorPage;
-                if (configEditor != null && configEditor.IsStackerPageActive())
+                var configStacker = mainWindow?.ConfigEditorPage?.GetStackerPage(ensureCreated: true);
+
+                if (configStacker != null)
                 {
-                    var editorFrame = configEditor.editorFrame;
-                    if (editorFrame?.Content is ConfigStacker configStacker)
-                    {
-                        if (configStacker.Content is Grid mainGrid && mainGrid.ColumnDefinitions.Count >= 3)
-                        {
-                            var blockListColumn = mainGrid.ColumnDefinitions[0];
-                            var splitterColumn = mainGrid.ColumnDefinitions[1];
-
-                            Border toolbar = null;
-                            Border blockListContainer = null;
-                            GridSplitter gridSplitter = null;
-                            Border blockInspector = configStacker.BlockInspectorBorder;
-
-                            foreach (var child in mainGrid.Children)
-                            {
-                                if (child is Border border)
-                                {
-                                    if (Grid.GetRow(border) == 0 && Grid.GetColumn(border) == 0)
-                                    {
-                                        toolbar = border;
-                                    }
-                                    else if (Grid.GetRow(border) == 1 && Grid.GetColumn(border) == 0)
-                                    {
-                                        blockListContainer = border;
-                                    }
-                                }
-                                else if (child is GridSplitter splitter && Grid.GetColumn(splitter) == 1)
-                                {
-                                    gridSplitter = splitter;
-                                }
-                            }
-
-                            if (showStacker)
-                            {
-                                blockListColumn.Width = new GridLength(220, GridUnitType.Pixel);
-                                splitterColumn.Width = new GridLength(10, GridUnitType.Pixel);
-                                if (toolbar != null) toolbar.Visibility = Visibility.Visible;
-                                if (blockListContainer != null) blockListContainer.Visibility = Visibility.Visible;
-                                if (gridSplitter != null) gridSplitter.Visibility = Visibility.Visible;
-                                if (blockInspector != null)
-                                {
-                                    Grid.SetColumn(blockInspector, 2);
-                                    Grid.SetColumnSpan(blockInspector, 1);
-                                }
-                            }
-                            else
-                            {
-                                blockListColumn.Width = new GridLength(0);
-                                splitterColumn.Width = new GridLength(0);
-                                if (toolbar != null) toolbar.Visibility = Visibility.Collapsed;
-                                if (blockListContainer != null) blockListContainer.Visibility = Visibility.Collapsed;
-                                if (gridSplitter != null) gridSplitter.Visibility = Visibility.Collapsed;
-                                if (blockInspector != null)
-                                {
-                                    Grid.SetColumn(blockInspector, 0);
-                                    Grid.SetColumnSpan(blockInspector, 3);
-                                }
-                            }
-                        }
-                    }
+                    configStacker.SetStackerPaneVisibility(showStacker);
+                    _areStackerControlsVisible = configStacker.IsStackerPaneVisible;
+                }
+                else
+                {
+                    _areStackerControlsVisible = showStacker;
                 }
             }
             catch
             {
-                // Ignore layout failures, the intention is preserved for the toggle appearance.
+                _areStackerControlsVisible = showStacker;
             }
 
-            _areStackerControlsVisible = showStacker;
             UpdateStackerToggleAppearance();
         }
 

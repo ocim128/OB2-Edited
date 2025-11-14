@@ -35,6 +35,18 @@ namespace OpenBullet2.Native.Views.Pages
         // Public method to check if current content is stacker page
         public bool IsStackerPageActive() => editorFrame.Content == stackerPage;
 
+        // Provide access to the stacker page instance so other components (like the debugger focus mode)
+        // can update its layout even when it's not the active editor content.
+        public ConfigStacker GetStackerPage(bool ensureCreated = false)
+        {
+            if (ensureCreated && stackerPage == null)
+            {
+                stackerPage = new ConfigStacker();
+            }
+
+            return stackerPage;
+        }
+
         // Public method to toggle editor frame visibility for stacker content
         public void SetEditorFrameVisibility(bool isVisible)
         {

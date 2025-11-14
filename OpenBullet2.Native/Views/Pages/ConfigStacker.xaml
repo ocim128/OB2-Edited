@@ -27,13 +27,14 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="220" MinWidth="220" MaxWidth="360" />
-            <ColumnDefinition Width="10" />
-            <ColumnDefinition Width="*" />
+            <ColumnDefinition x:Name="BlockListColumn" Width="220" MinWidth="220" MaxWidth="360" />
+            <ColumnDefinition x:Name="StackerSplitterColumn" Width="10" />
+            <ColumnDefinition x:Name="InspectorColumn" Width="*" />
         </Grid.ColumnDefinitions>
 
         <!-- Toolbar -->
-        <Border Grid.Row="0"
+        <Border x:Name="BlockListToolbar"
+                Grid.Row="0"
                 Grid.Column="0"
                 Grid.ColumnSpan="3"
                 Background="{StaticResource StackerToolbarBackground}"
@@ -134,7 +135,8 @@
         </Border>
 
         <!-- Block list -->
-        <Border Grid.Row="1"
+        <Border x:Name="BlockListContainer"
+                Grid.Row="1"
                 Grid.Column="0"
                 Background="{StaticResource StackerPanelBackground}"
                 BorderBrush="{StaticResource StackerPanelBorder}"
@@ -230,7 +232,8 @@
             </Grid>
         </Border>
 
-        <GridSplitter Grid.Row="1"
+        <GridSplitter x:Name="BlockListGridSplitter"
+                      Grid.Row="1"
                       Grid.Column="1"
                       Width="8"
                       HorizontalAlignment="Center"

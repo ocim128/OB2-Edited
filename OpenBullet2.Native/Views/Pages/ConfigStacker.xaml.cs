@@ -36,6 +36,11 @@ namespace OpenBullet2.Native.Views.Pages
         // Track last clone operation for undo
         private List<(int index, BlockViewModel blockVm)> lastCloneOperation = new List<(int, BlockViewModel)>();
 
+        private GridLength? _storedBlockListWidth;
+        private GridLength? _storedSplitterWidth;
+
+        public bool IsStackerPaneVisible { get; private set; } = true;
+
         public ConfigStacker()
         {
             configService = ServiceLocator.GetService<ConfigService>();
@@ -68,6 +73,48 @@ namespace OpenBullet2.Native.Views.Pages
             {
                 vm.SelectBlock(vm.Stack.First(), false);
             }
+        }
+
+        public void SetStackerPaneVisibility(bool showStacker)
+        {
+            RunOnUiThread(() =>
+            {
+                if (showStacker)
+                {
+                    var restoredListWidth = _storedBlockListWidth ?? new GridLength(220, GridUnitType.Pixel);
+                    var restoredSplitterWidth = _storedSplitterWidth ?? new GridLength(10, GridUnitType.Pixel);
+
+                    BlockListColumn.Width = restoredListWidth;
+                    StackerSplitterColumn.Width = restoredSplitterWidth;
+                    BlockListToolbar.Visibility = Visibility.Visible;
+                    BlockListContainer.Visibility = Visibility.Visible;
+                    BlockListGridSplitter.Visibility = Visibility.Visible;
+                    Grid.SetColumn(BlockInspectorBorder, 2);
+                    Grid.SetColumnSpan(BlockInspectorBorder, 1);
+                }
+                else
+                {
+                    if (!_storedBlockListWidth.HasValue)
+                    {
+                        _storedBlockListWidth = BlockListColumn.Width;
+                    }
+
+                    if (!_storedSplitterWidth.HasValue)
+                    {
+                        _storedSplitterWidth = StackerSplitterColumn.Width;
+                    }
+
+                    BlockListColumn.Width = new GridLength(0);
+                    StackerSplitterColumn.Width = new GridLength(0);
+                    BlockListToolbar.Visibility = Visibility.Collapsed;
+                    BlockListContainer.Visibility = Visibility.Collapsed;
+                    BlockListGridSplitter.Visibility = Visibility.Collapsed;
+                    Grid.SetColumn(BlockInspectorBorder, 0);
+                    Grid.SetColumnSpan(BlockInspectorBorder, 3);
+                }
+
+                IsStackerPaneVisible = showStacker;
+            });
         }
 
         public void CreateBlock(BlockDescriptor descriptor)
@@ -971,6 +1018,17 @@ namespace OpenBullet2.Native.Views.Pages
             ClearPasteUndo();
             ClearCloneUndo();
         }
+
+        private void RunOnUiThread(Action action)
+        {
+            if (Dispatcher.CheckAccess())
+            {
+                action();
+            }
+            else
+            {
+                Dispatcher.Invoke(action);
+            }
+        }
     }
 }
-

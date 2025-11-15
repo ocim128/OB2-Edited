@@ -1,15 +1,18 @@
-﻿using System;
+using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
+using System.IO.Hashing;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -61,15 +64,19 @@ namespace OpenBullet2.Native.Views.Pages
         private string currentOtp = string.Empty;
         private readonly Random modemRandom = new();
         private readonly ObservableCollection<ZipFolderOption> zipOptionFolders = new();
+        private readonly ObservableCollection<LineReducerCompareFile> lineReducerCompareFiles = new();
         private readonly List<LaunchedZipProfile> launchedZipProfiles = new();
         private readonly object zipProfileLock = new();
         private readonly List<ToolCardMetadata> toolCardCatalog = new();
         private string zipArchivePath = string.Empty;
         private bool isLaunchingZip;
         private bool isInitializingFilters;
+        private CancellationTokenSource? lineReducerCts;
+        private bool isLineReducerRunning;
         
         // Performance benchmark fields
         private readonly ComputerInfo computerInfo = new();
+        private static readonly UTF8Encoding Utf8NoBomEncoding = new(false);
 
         public Tools()
         {
@@ -90,6 +97,9 @@ namespace OpenBullet2.Native.Views.Pages
             BookmarkletStatusBorder.Visibility = Visibility.Collapsed;
             TextCleanerStatusBorder.Visibility = Visibility.Collapsed;
             ZipOptionListBox.ItemsSource = zipOptionFolders;
+            LineReducerCompareFilesListBox.ItemsSource = lineReducerCompareFiles;
+            lineReducerCompareFiles.CollectionChanged += (_, _) => UpdateLineReducerCompareSummary();
+            UpdateLineReducerCompareSummary();
 
             // Set initial values for performance display (will be updated lazily)
             InitializePerformanceDisplay();
@@ -216,6 +226,8 @@ namespace OpenBullet2.Native.Views.Pages
                 "javascript", "bookmark", "parser", "payload", "scrubber", "deobfuscate"));
             toolCardCatalog.Add(new ToolCardMetadata(TextCleanerToolCard, "Text Cleaner", "Text",
                 "normalize", "whitespace", "dedupe", "cleanup", "formatter", "text", "sort"));
+            toolCardCatalog.Add(new ToolCardMetadata(LineReducerToolCard, "Line Reducer", "Text",
+                "compare", "dedupe", "difference", "filter", "txt", "large files"));
             toolCardCatalog.Add(new ToolCardMetadata(FirefoxToolCard, "Firefox Switcher", "Browsers",
                 "profile", "browser", "automation", "firefox", "zip", "launcher", "profile manager"));
             toolCardCatalog.Add(new ToolCardMetadata(BenchmarkToolCard, "Performance Benchmark", "Performance",
@@ -516,6 +528,7 @@ namespace OpenBullet2.Native.Views.Pages
             }
         }
 
+
         private static List<string> CleanAndSortLines(string raw)
         {
             var lines = raw.Split(new[] { "\r\n", "\n", "\r" }, StringSplitOptions.None);
@@ -530,9 +543,9 @@ namespace OpenBullet2.Native.Views.Pages
 
                 var normalized = Regex.Replace(line, " {2,}", " ");
                 normalized = normalized.TrimEnd();
-                normalized = normalized.Replace("ÃƒÂ¢Ã¢â€žÂ¢Ã‚Â¦ÃƒÂ¯Ã‚Â¸Ã‚Â", "ÃƒÂ¢Ã¢â€žÂ¢Ã‚Â¦");
-                normalized = normalized.Replace("ÃƒÂ¢Ã¢â€žÂ¢Ã‚Â ÃƒÂ¯Ã‚Â¸Ã‚Â", "ÃƒÂ¢Ã¢â€žÂ¢Ã‚Â ");
-                normalized = normalized.Replace("ÃƒÂ¢Ã¢â€žÂ¢Ã‚Â  ", "ÃƒÂ¢Ã¢â€žÂ¢Ã‚Â ");
+                normalized = normalized.Replace("\u2666\uFE0F", "\u2666");
+                normalized = normalized.Replace("\u2660\uFE0F", "\u2660");
+                normalized = normalized.Replace("\u2660 ", "\u2660");
 
                 if (string.IsNullOrWhiteSpace(normalized))
                 {
@@ -551,7 +564,7 @@ namespace OpenBullet2.Native.Views.Pages
 
         private static int GetTextCleanerSortKey(string line)
         {
-            var match = Regex.Match(line, "ÃƒÂ¢Ã¢â€žÂ¢Ã‚Â¦(\\d+)");
+            var match = Regex.Match(line, "\u2666(\\d+)");
             if (match.Success && int.TryParse(match.Groups[1].Value, out var value))
             {
                 return value;
@@ -566,6 +579,522 @@ namespace OpenBullet2.Native.Views.Pages
             TextCleanerStatusTextBlock.Foreground = brush;
             TextCleanerStatusBorder.Visibility = Visibility.Visible;
         }
+
+        #region Line reducer
+
+        private void BrowseLineReducerSource(object sender, RoutedEventArgs e)
+        {
+            if (isLineReducerRunning)
+            {
+                return;
+            }
+
+            var dialog = new OpenFileDialog
+            {
+                Filter = "Text files (*.txt)|*.txt|All files (*.*)|*.*",
+                CheckFileExists = true,
+                Multiselect = false,
+                Title = "Select main text file"
+            };
+
+            if (dialog.ShowDialog() != true)
+            {
+                return;
+            }
+
+            LineReducerSourcePathTextBox.Text = dialog.FileName;
+
+            if (string.IsNullOrWhiteSpace(LineReducerOutputPathTextBox.Text))
+            {
+                LineReducerOutputPathTextBox.Text = SuggestLineReducerOutputPath(dialog.FileName);
+            }
+        }
+
+        private void BrowseLineReducerOutput(object sender, RoutedEventArgs e)
+        {
+            if (isLineReducerRunning)
+            {
+                return;
+            }
+
+            var dialog = new SaveFileDialog
+            {
+                Filter = "Text files (*.txt)|*.txt|All files (*.*)|*.*",
+                Title = "Choose output file",
+                FileName = !string.IsNullOrWhiteSpace(LineReducerOutputPathTextBox.Text)
+                    ? LineReducerOutputPathTextBox.Text
+                    : SuggestLineReducerOutputPath(LineReducerSourcePathTextBox.Text)
+            };
+
+            if (dialog.ShowDialog() == true)
+            {
+                LineReducerOutputPathTextBox.Text = dialog.FileName;
+            }
+        }
+
+        private void AddLineReducerCompareFiles(object sender, RoutedEventArgs e)
+        {
+            if (isLineReducerRunning)
+            {
+                SetLineReducerStatus("Wait for the current run to finish before editing files.", Brushes.OrangeRed);
+                return;
+            }
+
+            var dialog = new OpenFileDialog
+            {
+                Filter = "Text files (*.txt)|*.txt|All files (*.*)|*.*",
+                CheckFileExists = true,
+                Multiselect = true,
+                Title = "Add comparison files"
+            };
+
+            if (dialog.ShowDialog() != true)
+            {
+                return;
+            }
+
+            var added = 0;
+            var skipped = 0;
+
+            foreach (var fileName in dialog.FileNames)
+            {
+                if (string.IsNullOrWhiteSpace(fileName))
+                {
+                    continue;
+                }
+
+                string normalizedPath;
+                try
+                {
+                    normalizedPath = Path.GetFullPath(fileName);
+                }
+                catch
+                {
+                    skipped++;
+                    continue;
+                }
+
+                if (string.Equals(normalizedPath, LineReducerSourcePathTextBox.Text, StringComparison.OrdinalIgnoreCase))
+                {
+                    skipped++;
+                    continue;
+                }
+
+                if (lineReducerCompareFiles.Any(existing =>
+                        existing.FullPath.Equals(normalizedPath, StringComparison.OrdinalIgnoreCase)))
+                {
+                    skipped++;
+                    continue;
+                }
+
+                try
+                {
+                    var info = new FileInfo(normalizedPath);
+                    if (!info.Exists)
+                    {
+                        skipped++;
+                        continue;
+                    }
+
+                    lineReducerCompareFiles.Add(new LineReducerCompareFile(info.FullName, info.Length));
+                    added++;
+                }
+                catch
+                {
+                    skipped++;
+                }
+            }
+
+            UpdateLineReducerCompareSummary();
+
+            if (added > 0)
+            {
+                SetLineReducerStatus($"Added {added} comparison file(s).", Brushes.LawnGreen);
+            }
+            else if (skipped > 0)
+            {
+                SetLineReducerStatus("No new comparison files were added.", Brushes.OrangeRed);
+            }
+        }
+
+        private void ClearLineReducerCompareFiles(object sender, RoutedEventArgs e)
+        {
+            if (isLineReducerRunning || lineReducerCompareFiles.Count == 0)
+            {
+                return;
+            }
+
+            lineReducerCompareFiles.Clear();
+            UpdateLineReducerCompareSummary();
+            SetLineReducerStatus("Cleared comparison list.", Brushes.OrangeRed);
+        }
+
+        private void RemoveLineReducerCompareFile(object sender, RoutedEventArgs e)
+        {
+            if (isLineReducerRunning || sender is not Button { Tag: LineReducerCompareFile entry })
+            {
+                return;
+            }
+
+            lineReducerCompareFiles.Remove(entry);
+            UpdateLineReducerCompareSummary();
+        }
+
+        private void UpdateLineReducerCompareSummary()
+        {
+            if (LineReducerCompareSummaryTextBlock is null)
+            {
+                return;
+            }
+
+            if (lineReducerCompareFiles.Count == 0)
+            {
+                LineReducerCompareSummaryTextBlock.Text = "No comparison files selected.";
+                return;
+            }
+
+            var totalBytes = lineReducerCompareFiles.Sum(file => file.Length);
+            LineReducerCompareSummaryTextBlock.Text =
+                $"{lineReducerCompareFiles.Count} file(s) • {FormatBytes(totalBytes)} total";
+        }
+
+        private async void RunLineReducer(object sender, RoutedEventArgs e)
+        {
+            if (isLineReducerRunning)
+            {
+                return;
+            }
+
+            var sourcePath = (LineReducerSourcePathTextBox.Text ?? string.Empty).Trim();
+            var outputPath = (LineReducerOutputPathTextBox.Text ?? string.Empty).Trim();
+            var comparisonFiles = lineReducerCompareFiles.Select(file => file.FullPath).ToList();
+
+            if (string.IsNullOrWhiteSpace(sourcePath) || !File.Exists(sourcePath))
+            {
+                SetLineReducerStatus("Select an existing main file to continue.", Brushes.OrangeRed);
+                return;
+            }
+
+            if (comparisonFiles.Count == 0)
+            {
+                SetLineReducerStatus("Add at least one comparison file.", Brushes.OrangeRed);
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(outputPath))
+            {
+                outputPath = SuggestLineReducerOutputPath(sourcePath);
+                LineReducerOutputPathTextBox.Text = outputPath;
+            }
+
+            string normalizedOutput;
+            string normalizedSource;
+
+            try
+            {
+                normalizedOutput = Path.GetFullPath(outputPath);
+                normalizedSource = Path.GetFullPath(sourcePath);
+            }
+            catch (Exception ex)
+            {
+                SetLineReducerStatus($"Invalid path: {ex.Message}", Brushes.OrangeRed);
+                return;
+            }
+
+            if (string.Equals(normalizedOutput, normalizedSource, StringComparison.OrdinalIgnoreCase))
+            {
+                SetLineReducerStatus("Output file must be different from the main file.", Brushes.OrangeRed);
+                return;
+            }
+
+            if (comparisonFiles.Any(file =>
+                    string.Equals(Path.GetFullPath(file), normalizedOutput, StringComparison.OrdinalIgnoreCase)))
+            {
+                SetLineReducerStatus("Output file cannot overwrite a comparison file.", Brushes.OrangeRed);
+                return;
+            }
+
+            try
+            {
+                var outputDirectory = Path.GetDirectoryName(normalizedOutput);
+                if (!string.IsNullOrEmpty(outputDirectory))
+                {
+                    Directory.CreateDirectory(outputDirectory);
+                }
+            }
+            catch (Exception ex)
+            {
+                SetLineReducerStatus($"Unable to create output directory: {ex.Message}", Brushes.OrangeRed);
+                return;
+            }
+
+            SetLineReducerBusyState(true);
+            SetLineReducerStatus("Indexing comparison files...", Brushes.LightSteelBlue);
+            LineReducerProgressBar.Value = 0;
+            LineReducerProgressBar.Visibility = Visibility.Visible;
+            LineReducerProgressTextBlock.Text = "Preparing...";
+
+            lineReducerCts?.Dispose();
+            lineReducerCts = new CancellationTokenSource();
+
+            var options = new LineReducerOptions(
+                TrimWhitespace: LineReducerTrimCheckBox.IsChecked == true,
+                IgnoreCase: LineReducerIgnoreCaseCheckBox.IsChecked == true);
+
+            try
+            {
+                var progress = new Progress<LineReductionProgress>(UpdateLineReducerProgress);
+                var result = await ExecuteLineReducerAsync(sourcePath, comparisonFiles, normalizedOutput, options, progress, lineReducerCts.Token);
+
+                SetLineReducerStatus($"Completed. Removed {result.RemovedLines:N0} line(s).", Brushes.LawnGreen);
+                LineReducerStatsTextBlock.Text =
+                    $"Indexed {result.IndexedLines:N0} comparison lines ({FormatBytes(result.ComparisonBytes)})." +
+                    $"{Environment.NewLine}Processed {result.ProcessedSourceLines:N0} source lines " +
+                    $"({FormatBytes(result.SourceBytes)}): kept {result.WrittenLines:N0}, removed {result.RemovedLines:N0}." +
+                    $"{Environment.NewLine}Elapsed {result.Elapsed:mm\\:ss}. Output saved to {normalizedOutput}.";
+            }
+            catch (OperationCanceledException)
+            {
+                SetLineReducerStatus("Operation cancelled.", Brushes.OrangeRed);
+                TryDeleteFile(normalizedOutput);
+            }
+            catch (Exception ex)
+            {
+                SetLineReducerStatus($"Line reduction failed: {ex.Message}", Brushes.OrangeRed);
+                TryDeleteFile(normalizedOutput);
+            }
+            finally
+            {
+                LineReducerProgressBar.Visibility = Visibility.Collapsed;
+                LineReducerProgressTextBlock.Text = "Idle.";
+                lineReducerCts?.Dispose();
+                lineReducerCts = null;
+                SetLineReducerBusyState(false);
+            }
+        }
+
+        private void CancelLineReducer(object sender, RoutedEventArgs e)
+        {
+            if (!isLineReducerRunning)
+            {
+                return;
+            }
+
+            lineReducerCts?.Cancel();
+        }
+
+        private void SetLineReducerBusyState(bool isBusy)
+        {
+            isLineReducerRunning = isBusy;
+
+            var isEnabled = !isBusy;
+
+            LineReducerSourcePathTextBox.IsEnabled = isEnabled;
+            LineReducerOutputPathTextBox.IsEnabled = isEnabled;
+            LineReducerTrimCheckBox.IsEnabled = isEnabled;
+            LineReducerIgnoreCaseCheckBox.IsEnabled = isEnabled;
+            BrowseLineReducerSourceButton.IsEnabled = isEnabled;
+            BrowseLineReducerOutputButton.IsEnabled = isEnabled;
+            AddLineReducerCompareButton.IsEnabled = isEnabled;
+            ClearLineReducerCompareButton.IsEnabled = isEnabled;
+            LineReducerCompareFilesListBox.IsEnabled = isEnabled;
+            RunLineReducerButton.IsEnabled = isEnabled;
+            CancelLineReducerButton.Visibility = isBusy ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        private void SetLineReducerStatus(string message, Brush brush)
+        {
+            LineReducerStatusTextBlock.Text = message;
+            LineReducerStatusTextBlock.Foreground = brush;
+            LineReducerStatusBorder.Visibility = Visibility.Visible;
+        }
+
+        private void UpdateLineReducerProgress(LineReductionProgress progress)
+        {
+            LineReducerProgressBar.Visibility = Visibility.Visible;
+            LineReducerProgressBar.Value = Math.Max(0, Math.Min(100, progress.Percent));
+
+            var builder = new StringBuilder(progress.Stage);
+            builder.Append($" | Removed {progress.RemovedLines:N0} line(s)");
+            if (progress.ProcessedSourceLines > 0)
+            {
+                builder.Append($", processed {progress.ProcessedSourceLines:N0} line(s)");
+            }
+
+            LineReducerProgressTextBlock.Text = builder.ToString();
+        }
+
+        private static string SuggestLineReducerOutputPath(string? sourcePath)
+        {
+            if (string.IsNullOrWhiteSpace(sourcePath))
+            {
+                return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "reduced.txt");
+            }
+
+            var directory = Path.GetDirectoryName(sourcePath);
+            var fileName = Path.GetFileNameWithoutExtension(sourcePath);
+            var extension = Path.GetExtension(sourcePath);
+
+            var candidateName = $"{fileName}_reduced{extension}";
+            return string.IsNullOrEmpty(directory)
+                ? candidateName
+                : Path.Combine(directory, candidateName);
+        }
+
+        private static async Task<LineReducerResult> ExecuteLineReducerAsync(
+            string sourcePath,
+            IReadOnlyList<string> comparisonFiles,
+            string outputPath,
+            LineReducerOptions options,
+            IProgress<LineReductionProgress>? progress,
+            CancellationToken cancellationToken)
+        {
+            var stopwatch = Stopwatch.StartNew();
+
+            var comparisonBytes = comparisonFiles.Sum(GetFileLengthSafe);
+            var sourceBytes = GetFileLengthSafe(sourcePath);
+            var totalBytes = Math.Max(1, comparisonBytes + sourceBytes);
+
+            var signatures = new HashSet<LineFingerprint>();
+            long indexedLines = 0;
+            long comparisonBytesCompleted = 0;
+
+            foreach (var comparison in comparisonFiles)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                await using var stream = new FileStream(comparison, FileMode.Open, FileAccess.Read, FileShare.Read,
+                    bufferSize: 1 << 20, useAsync: true);
+                using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true,
+                    bufferSize: 1 << 20);
+
+                while (true)
+                {
+                    var line = await reader.ReadLineAsync(cancellationToken).ConfigureAwait(false);
+                    if (line is null)
+                    {
+                        break;
+                    }
+
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    var fingerprint = LineFingerprint.Create(line, options.TrimWhitespace, options.IgnoreCase);
+                    signatures.Add(fingerprint);
+                    indexedLines++;
+
+                    if (indexedLines % 25000 == 0)
+                    {
+                        var percent = (comparisonBytesCompleted + stream.Position) / (double)totalBytes * 100d;
+                        progress?.Report(new LineReductionProgress(
+                            Percent: Math.Min(98, percent),
+                            Stage: $"Indexing comparison files ({indexedLines:N0})",
+                            ProcessedSourceLines: 0,
+                            RemovedLines: 0,
+                            WrittenLines: 0,
+                            IndexedLines: indexedLines));
+                    }
+                }
+
+                comparisonBytesCompleted += stream.Position;
+                var percentAfterFile = comparisonBytesCompleted / (double)totalBytes * 100d;
+                progress?.Report(new LineReductionProgress(
+                    Percent: Math.Min(99, percentAfterFile),
+                    Stage: $"Indexed {indexedLines:N0} comparison lines",
+                    ProcessedSourceLines: 0,
+                    RemovedLines: 0,
+                    WrittenLines: 0,
+                    IndexedLines: indexedLines));
+            }
+
+            var newline = DetectSourceNewLine(sourcePath);
+
+            long processedLines = 0;
+            long removedLines = 0;
+            long writtenLines = 0;
+
+            await using var sourceStream = new FileStream(sourcePath, FileMode.Open, FileAccess.Read, FileShare.Read,
+                bufferSize: 1 << 20, useAsync: true);
+            using var sourceReader = new StreamReader(sourceStream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true,
+                bufferSize: 1 << 20);
+            _ = sourceReader.Peek();
+            var writerEncoding = DetermineOutputEncoding(sourceReader);
+
+            await using var outputStream = new FileStream(outputPath, FileMode.Create, FileAccess.Write, FileShare.None,
+                bufferSize: 1 << 20, useAsync: true);
+            using var writer = new StreamWriter(outputStream, writerEncoding, bufferSize: 1 << 20, leaveOpen: false);
+            writer.NewLine = newline;
+
+            while (true)
+            {
+                var line = await sourceReader.ReadLineAsync(cancellationToken).ConfigureAwait(false);
+                if (line is null)
+                {
+                    break;
+                }
+
+                cancellationToken.ThrowIfCancellationRequested();
+
+                processedLines++;
+
+                var fingerprint = LineFingerprint.Create(line, options.TrimWhitespace, options.IgnoreCase);
+                if (signatures.Contains(fingerprint))
+                {
+                    removedLines++;
+                }
+                else
+                {
+                    await writer.WriteLineAsync(line.AsMemory(), cancellationToken).ConfigureAwait(false);
+                    writtenLines++;
+                }
+
+                if (processedLines % 5000 == 0)
+                {
+                    var percent = (comparisonBytes + sourceStream.Position) / (double)totalBytes * 100d;
+                    progress?.Report(new LineReductionProgress(
+                        Percent: Math.Min(100, percent),
+                        Stage: $"Processing source ({processedLines:N0})",
+                        ProcessedSourceLines: processedLines,
+                        RemovedLines: removedLines,
+                        WrittenLines: writtenLines,
+                        IndexedLines: indexedLines));
+                }
+            }
+
+            await writer.FlushAsync().ConfigureAwait(false);
+            stopwatch.Stop();
+
+            progress?.Report(new LineReductionProgress(
+                Percent: 100,
+                Stage: "Completed",
+                ProcessedSourceLines: processedLines,
+                RemovedLines: removedLines,
+                WrittenLines: writtenLines,
+                IndexedLines: indexedLines));
+
+            return new LineReducerResult(
+                ProcessedSourceLines: processedLines,
+                RemovedLines: removedLines,
+                WrittenLines: writtenLines,
+                IndexedLines: indexedLines,
+                SourceBytes: sourceBytes,
+                ComparisonBytes: comparisonBytes,
+                Elapsed: stopwatch.Elapsed);
+        }
+
+        private static long GetFileLengthSafe(string path)
+        {
+            try
+            {
+                var info = new FileInfo(path);
+                return info.Exists ? info.Length : 0;
+            }
+            catch
+            {
+                return 0;
+            }
+        }
+
+        #endregion
 
         private static string TryParseBookmarkletLine(string line)
         {
@@ -629,7 +1158,7 @@ namespace OpenBullet2.Native.Views.Pages
                 }
             }
 
-            var post = Regex.Match(line, "^(\\d+)ÃƒÂ¢Ã¢â€žÂ¢Ã‚Â ").Groups[1].Value;
+            var post = Regex.Match(line, "^(\\d+)Ã¢â„¢Â ").Groups[1].Value;
             var follower = Regex.Match(line, "(\\d+)~").Groups[1].Value;
             var year = Regex.Match(line, "~\\s*(\\d+)").Groups[1].Value;
 
@@ -641,9 +1170,9 @@ namespace OpenBullet2.Native.Views.Pages
             builder.AppendLine($"check email: akunlama.com/inbox/{usernamePart}");
             builder.AppendLine($"auth_token={authToken ?? "N/A"}");
             builder.AppendLine();
-            builder.Append($"UsernameÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢PostÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢FollowerÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢Tahun = {username ?? "N/A"}ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢{post}");
-            builder.Append($"ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢{(string.IsNullOrEmpty(follower) ? "N/A" : follower)}");
-            builder.Append($"ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢{(string.IsNullOrEmpty(year) ? "N/A" : year)}");
+            builder.Append($"UsernameÃ¢â‚¬Â¢PostÃ¢â‚¬Â¢FollowerÃ¢â‚¬Â¢Tahun = {username ?? "N/A"}Ã¢â‚¬Â¢{post}");
+            builder.Append($"Ã¢â‚¬Â¢{(string.IsNullOrEmpty(follower) ? "N/A" : follower)}");
+            builder.Append($"Ã¢â‚¬Â¢{(string.IsNullOrEmpty(year) ? "N/A" : year)}");
             return builder.ToString();
         }
 
@@ -741,6 +1270,90 @@ namespace OpenBullet2.Native.Views.Pages
             catch
             {
                 // Ignore deletion errors
+            }
+        }
+
+        private static void TryDeleteFile(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+            {
+                return;
+            }
+
+            try
+            {
+                File.Delete(path);
+            }
+            catch
+            {
+                // Ignore deletion failures
+            }
+        }
+
+        private static string FormatBytes(long bytes)
+        {
+            if (bytes <= 0)
+            {
+                return "0 B";
+            }
+
+            var sizes = new[] { "B", "KB", "MB", "GB", "TB" };
+            var magnitude = (int)Math.Floor(Math.Log(bytes, 1024));
+            magnitude = Math.Clamp(magnitude, 0, sizes.Length - 1);
+            var adjusted = bytes / Math.Pow(1024, magnitude);
+            return $"{adjusted:0.##} {sizes[magnitude]}";
+        }
+
+        private static string DetectSourceNewLine(string path)
+        {
+            try
+            {
+                using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read,
+                    bufferSize: 4096, FileOptions.SequentialScan);
+
+                var previous = -1;
+                while (true)
+                {
+                    var current = stream.ReadByte();
+                    if (current == -1)
+                    {
+                        return Environment.NewLine;
+                    }
+
+                    if (current == '\n')
+                    {
+                        return previous == '\r' ? "\r\n" : "\n";
+                    }
+
+                    if (previous == '\r')
+                    {
+                        return "\r";
+                    }
+
+                    previous = current;
+                }
+            }
+            catch
+            {
+                return Environment.NewLine;
+            }
+        }
+
+        private static Encoding DetermineOutputEncoding(StreamReader reader)
+        {
+            try
+            {
+                var encoding = reader.CurrentEncoding;
+                if (encoding is UTF8Encoding)
+                {
+                    return Utf8NoBomEncoding;
+                }
+
+                return encoding ?? Utf8NoBomEncoding;
+            }
+            catch
+            {
+                return Utf8NoBomEncoding;
             }
         }
 
@@ -1099,7 +1712,7 @@ namespace OpenBullet2.Native.Views.Pages
             var authToken = Regex.Match(line, "auth_token=(\\w+)").Groups[1].Value;
             var sessionId = Regex.Match(line, "sessionid=(\\S+)").Groups[1].Value;
             var username = Regex.Match(line, "@(\\S+)").Groups[1].Value;
-            var post = Regex.Match(line, "^(\\d+)ÃƒÂ¢Ã¢â€žÂ¢Ã‚Â ").Groups[1].Value;
+            var post = Regex.Match(line, "^(\\d+)Ã¢â„¢Â ").Groups[1].Value;
             var follower = Regex.Match(line, "(\\d+)~").Groups[1].Value;
             var year = Regex.Match(line, "~\\s*(\\d+)").Groups[1].Value;
 
@@ -1121,7 +1734,7 @@ namespace OpenBullet2.Native.Views.Pages
             if (!string.IsNullOrEmpty(post) || !string.IsNullOrEmpty(follower) || !string.IsNullOrEmpty(year))
             {
                 builder.AppendLine();
-                builder.Append($"UsernameÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢PostÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢FollowerÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢Tahun = {(string.IsNullOrEmpty(username) ? "N/A" : username)}ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢{(string.IsNullOrEmpty(post) ? "N/A" : post)}ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢{(string.IsNullOrEmpty(follower) ? "N/A" : follower)}ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢{(string.IsNullOrEmpty(year) ? "N/A" : year)}");
+                builder.Append($"UsernameÃ¢â‚¬Â¢PostÃ¢â‚¬Â¢FollowerÃ¢â‚¬Â¢Tahun = {(string.IsNullOrEmpty(username) ? "N/A" : username)}Ã¢â‚¬Â¢{(string.IsNullOrEmpty(post) ? "N/A" : post)}Ã¢â‚¬Â¢{(string.IsNullOrEmpty(follower) ? "N/A" : follower)}Ã¢â‚¬Â¢{(string.IsNullOrEmpty(year) ? "N/A" : year)}");
             }
 
             return builder.ToString();
@@ -1153,7 +1766,7 @@ namespace OpenBullet2.Native.Views.Pages
             var password = ModemPasswordBox.Password ?? string.Empty;
 
             RefreshModemIpButton.IsEnabled = false;
-            SetModemStatus("Contacting modemÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦", Brushes.LightSteelBlue);
+            SetModemStatus("Contacting modemÃ¢â‚¬Â¦", Brushes.LightSteelBlue);
             AppendModemLog($"Target: {baseUri}");
 
             try
@@ -1303,7 +1916,7 @@ namespace OpenBullet2.Native.Views.Pages
                 return "(empty)";
             }
 
-            return text.Length > 120 ? text[..120] + "ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦" : text;
+            return text.Length > 120 ? text[..120] + "Ã¢â‚¬Â¦" : text;
         }
 
         private void AppendModemLog(string message)
@@ -2123,6 +2736,121 @@ namespace OpenBullet2.Native.Views.Pages
         }
 
         #endregion
+
+        private sealed class LineReducerCompareFile
+        {
+            public LineReducerCompareFile(string fullPath, long length)
+            {
+                FullPath = fullPath;
+                Length = length;
+                DisplayName = Path.GetFileName(fullPath);
+                Details = $"{FormatBytes(length)} • {fullPath}";
+            }
+
+            public string FullPath { get; }
+            public long Length { get; }
+            public string DisplayName { get; }
+            public string Details { get; }
+        }
+
+        private sealed record LineReducerResult(
+            long ProcessedSourceLines,
+            long RemovedLines,
+            long WrittenLines,
+            long IndexedLines,
+            long SourceBytes,
+            long ComparisonBytes,
+            TimeSpan Elapsed);
+
+        private sealed record LineReductionProgress(
+            double Percent,
+            string Stage,
+            long ProcessedSourceLines,
+            long RemovedLines,
+            long WrittenLines,
+            long IndexedLines);
+
+        private readonly record struct LineReducerOptions(bool TrimWhitespace, bool IgnoreCase);
+
+        private readonly struct LineFingerprint : IEquatable<LineFingerprint>
+        {
+            public LineFingerprint(ulong primary, ulong secondary, int byteLength)
+            {
+                Primary = primary;
+                Secondary = secondary;
+                ByteLength = byteLength;
+            }
+
+            public ulong Primary { get; }
+            public ulong Secondary { get; }
+            public int ByteLength { get; }
+
+            public static LineFingerprint Create(string? line, bool trimWhitespace, bool ignoreCase)
+            {
+                ReadOnlySpan<char> span = line is null
+                    ? ReadOnlySpan<char>.Empty
+                    : line.AsSpan();
+
+                if (trimWhitespace)
+                {
+                    span = span.Trim();
+                }
+
+                if (span.Length == 0)
+                {
+                    return default;
+                }
+
+                char[]? rentedChars = null;
+                if (ignoreCase)
+                {
+                    var normalizedLength = span.Length;
+                    rentedChars = ArrayPool<char>.Shared.Rent(normalizedLength);
+                    for (var i = 0; i < normalizedLength; i++)
+                    {
+                        rentedChars[i] = char.ToUpperInvariant(span[i]);
+                    }
+
+                    span = rentedChars.AsSpan(0, normalizedLength);
+                }
+
+                var byteCount = Encoding.UTF8.GetByteCount(span);
+                if (byteCount == 0)
+                {
+                    if (rentedChars is not null)
+                    {
+                        ArrayPool<char>.Shared.Return(rentedChars);
+                    }
+
+                    return default;
+                }
+
+                var rentedBytes = ArrayPool<byte>.Shared.Rent(byteCount);
+                var bytesWritten = Encoding.UTF8.GetBytes(span, rentedBytes.AsSpan(0, byteCount));
+
+                var fingerprint = new LineFingerprint(
+                    XxHash3.HashToUInt64(rentedBytes.AsSpan(0, bytesWritten)),
+                    XxHash64.HashToUInt64(rentedBytes.AsSpan(0, bytesWritten)),
+                    bytesWritten);
+
+                ArrayPool<byte>.Shared.Return(rentedBytes);
+                if (rentedChars is not null)
+                {
+                    ArrayPool<char>.Shared.Return(rentedChars);
+                }
+
+                return fingerprint;
+            }
+
+            public bool Equals(LineFingerprint other)
+                => Primary == other.Primary && Secondary == other.Secondary && ByteLength == other.ByteLength;
+
+            public override bool Equals(object? obj)
+                => obj is LineFingerprint other && Equals(other);
+
+            public override int GetHashCode()
+                => HashCode.Combine(Primary, Secondary, ByteLength);
+        }
 
         private sealed class ToolCardMetadata
         {

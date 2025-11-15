@@ -165,6 +165,7 @@
         <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.8" />
         <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="8.0.1" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
+        <PackageReference Include="System.IO.Hashing" Version="8.0.0" />
         <PackageReference Include="WpfAnimatedGif" Version="2.0.2" />
         <PackageReference Include="SixLabors.ImageSharp" Version="3.1.11" />
         <PackageReference Include="Microsoft.Playwright" Version="1.54.0" />

@@ -712,6 +712,238 @@
                         </StackPanel>
                     </Border>
 
+                    <Border x:Name="LineReducerToolCard"
+                            Style="{StaticResource ModernCardLite}"
+                            Background="#B0282828"
+                            Padding="20"
+                            Margin="0,0,16,16"
+                            MinWidth="300"
+                            MaxWidth="420"
+                            Width="{Binding ElementName=ToolCardPanel, Path=ItemWidth}"
+                            Tag="Text">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                <iconPacks:PackIconMaterial Kind="FileDocument"
+                                                           Width="20"
+                                                           Height="20"
+                                                           VerticalAlignment="Center"
+                                                           Margin="0,0,8,0"
+                                                           Foreground="#34D399"/>
+                                <TextBlock Text="Line Reducer"
+                                           Style="{StaticResource H3TextStyle}"
+                                           VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <TextBlock Text="Remove every line from a source file that appears in one or more comparison files using streaming-safe fingerprints."
+                                       Style="{StaticResource CaptionTextStyle}"
+                                       Foreground="#94A3B8"
+                                       TextWrapping="Wrap"
+                                       Margin="0,0,0,16"/>
+
+                            <StackPanel Margin="0,0,0,12">
+                                <TextBlock Text="Main file (.txt)"
+                                           Style="{StaticResource BodyTextStyle}"
+                                           Margin="0,0,0,4"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox x:Name="LineReducerSourcePathTextBox"
+                                             Style="{StaticResource MatchingTextBox}"
+                                             Grid.Column="0"
+                                             Margin="0,0,8,0"
+                                             AutomationProperties.Name="Line reducer main file"/>
+                                    <Button x:Name="BrowseLineReducerSourceButton"
+                                            Style="{StaticResource StyledButton}"
+                                            Grid.Column="1"
+                                            Width="100"
+                                            Content="Browse"
+                                            Click="BrowseLineReducerSource"
+                                            AutomationProperties.Name="Browse main text file"/>
+                                </Grid>
+                            </StackPanel>
+
+                            <StackPanel Margin="0,0,0,12">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Comparison file(s)"
+                                               Style="{StaticResource BodyTextStyle}"
+                                               Margin="0,0,0,4"
+                                               VerticalAlignment="Center"/>
+                                    <Button x:Name="AddLineReducerCompareButton"
+                                            Grid.Column="1"
+                                            Style="{StaticResource StyledPrimaryButton}"
+                                            Content="Add file(s)"
+                                            Width="110"
+                                            Margin="8,0,0,0"
+                                            Click="AddLineReducerCompareFiles"
+                                            AutomationProperties.Name="Add comparison files"/>
+                                    <Button x:Name="ClearLineReducerCompareButton"
+                                            Grid.Column="2"
+                                            Style="{StaticResource StyledWarningButton}"
+                                            Content="Clear"
+                                            Width="80"
+                                            Margin="8,0,0,0"
+                                            Click="ClearLineReducerCompareFiles"
+                                            AutomationProperties.Name="Clear comparison files"/>
+                                </Grid>
+                                <Border Background="#1A1A1A"
+                                        BorderBrush="#333333"
+                                        BorderThickness="1"
+                                        CornerRadius="8"
+                                        Padding="8"
+                                        Margin="0,8,0,4"
+                                        MinHeight="120">
+                                    <ListBox x:Name="LineReducerCompareFilesListBox"
+                                             BorderThickness="0"
+                                             Background="Transparent"
+                                             Foreground="#F5F5F5"
+                                             ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                             HorizontalContentAlignment="Stretch">
+                                        <ListBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <Grid Margin="0,4,0,4">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <StackPanel>
+                                                        <TextBlock Text="{Binding DisplayName}"
+                                                                   Style="{StaticResource BodyTextStyle}"
+                                                                   Foreground="#E2E8F0"
+                                                                   TextTrimming="CharacterEllipsis"/>
+                                                        <TextBlock Text="{Binding Details}"
+                                                                   Style="{StaticResource CaptionTextStyle}"
+                                                                   Foreground="#94A3B8"
+                                                                   TextTrimming="CharacterEllipsis"/>
+                                                    </StackPanel>
+                                                    <Button Grid.Column="1"
+                                                            Style="{StaticResource StyledWarningButton}"
+                                                            Width="80"
+                                                            Content="Remove"
+                                                            Tag="{Binding}"
+                                                            Click="RemoveLineReducerCompareFile"
+                                                            AutomationProperties.Name="Remove comparison file"
+                                                            Margin="8,0,0,0"/>
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ListBox.ItemTemplate>
+                                    </ListBox>
+                                </Border>
+                                <TextBlock x:Name="LineReducerCompareSummaryTextBlock"
+                                           Style="{StaticResource CaptionTextStyle}"
+                                           Foreground="#94A3B8"
+                                           Text="No comparison files selected."
+                                           TextWrapping="Wrap"/>
+                            </StackPanel>
+
+                            <StackPanel Margin="0,0,0,12">
+                                <TextBlock Text="Output file"
+                                           Style="{StaticResource BodyTextStyle}"
+                                           Margin="0,0,0,4"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox x:Name="LineReducerOutputPathTextBox"
+                                             Style="{StaticResource MatchingTextBox}"
+                                             Grid.Column="0"
+                                             Margin="0,0,8,0"
+                                             AutomationProperties.Name="Line reducer output file"/>
+                                    <Button x:Name="BrowseLineReducerOutputButton"
+                                            Style="{StaticResource StyledButton}"
+                                            Grid.Column="1"
+                                            Width="110"
+                                            Content="Choose..."
+                                            Click="BrowseLineReducerOutput"
+                                            AutomationProperties.Name="Choose line reducer output file"/>
+                                </Grid>
+                            </StackPanel>
+
+                            <StackPanel Orientation="Vertical" Margin="0,0,0,10">
+                                <StackPanel Orientation="Horizontal">
+                                    <CheckBox x:Name="LineReducerTrimCheckBox"
+                                              Content="Trim whitespace before comparing"
+                                              Margin="0,0,16,0"
+                                              IsChecked="True"/>
+                                    <CheckBox x:Name="LineReducerIgnoreCaseCheckBox"
+                                              Content="Ignore case (abc = ABC)"
+                                              IsChecked="False"/>
+                                </StackPanel>
+                                <TextBlock Text="Comparison is performed via 128-bit fingerprints, keeping memory usage predictable even for huge files."
+                                           Style="{StaticResource CaptionTextStyle}"
+                                           Foreground="#94A3B8"
+                                           TextWrapping="Wrap"
+                                           Margin="0,6,0,0"/>
+                            </StackPanel>
+
+                            <Grid Margin="0,0,0,12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <Button x:Name="RunLineReducerButton"
+                                        Style="{StaticResource StyledPrimaryButton}"
+                                        Content="Process file"
+                                        Width="130"
+                                        Click="RunLineReducer"
+                                        AutomationProperties.Name="Run line reducer"/>
+                                <Button x:Name="CancelLineReducerButton"
+                                        Grid.Column="1"
+                                        Style="{StaticResource StyledWarningButton}"
+                                        Content="Cancel"
+                                        Width="100"
+                                        Margin="12,0,0,0"
+                                        Visibility="Collapsed"
+                                        Click="CancelLineReducer"
+                                        AutomationProperties.Name="Cancel line reducer"/>
+                            </Grid>
+
+                            <ProgressBar x:Name="LineReducerProgressBar"
+                                         Height="6"
+                                         Minimum="0"
+                                         Maximum="100"
+                                         Value="0"
+                                         Margin="0,0,0,8"
+                                         Visibility="Collapsed"/>
+                            <TextBlock x:Name="LineReducerProgressTextBlock"
+                                       Style="{StaticResource CaptionTextStyle}"
+                                       Foreground="#94A3B8"
+                                       Text="Idle."
+                                       TextWrapping="Wrap"
+                                       Margin="0,0,0,10"/>
+
+                            <Border x:Name="LineReducerStatusBorder"
+                                    Background="#0F172A"
+                                    CornerRadius="6"
+                                    Padding="10"
+                                    Margin="0,0,0,10"
+                                    Visibility="Collapsed">
+                                <TextBlock x:Name="LineReducerStatusTextBlock"
+                                           Style="{StaticResource CaptionTextStyle}"
+                                           Foreground="#E2E8F0"
+                                           TextWrapping="Wrap"/>
+                            </Border>
+
+                            <Border Background="#1A1A1A"
+                                    BorderBrush="#333333"
+                                    BorderThickness="1"
+                                    CornerRadius="8"
+                                    Padding="12">
+                                <TextBlock x:Name="LineReducerStatsTextBlock"
+                                           Style="{StaticResource BodyTextStyle}"
+                                           Foreground="#E2E8F0"
+                                           TextWrapping="Wrap"
+                                           Text="Awaiting first run."/>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+
                     <Border x:Name="BenchmarkToolCard"
                             Style="{StaticResource ModernCardLite}"
                             Background="#B0282828"

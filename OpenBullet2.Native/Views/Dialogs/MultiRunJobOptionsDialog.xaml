@@ -20,6 +20,50 @@
 
     <Page.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
+
+        <LinearGradientBrush x:Key="DialogBackgroundBrush" StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Color="#121520" Offset="0"/>
+            <GradientStop Color="#1B1F2C" Offset="0.6"/>
+            <GradientStop Color="#11141E" Offset="1"/>
+        </LinearGradientBrush>
+
+        <DropShadowEffect x:Key="CardShadow"
+                          Color="#AA000000"
+                          BlurRadius="14"
+                          ShadowDepth="0"
+                          Opacity="0.45"/>
+
+        <!-- Shared section card styling -->
+        <Style x:Key="SectionCard" TargetType="Border">
+            <Setter Property="Background">
+                <Setter.Value>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                        <GradientStop Color="#2A2F44" Offset="0"/>
+                        <GradientStop Color="#232839" Offset="1"/>
+                    </LinearGradientBrush>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Padding" Value="16"/>
+            <Setter Property="Margin" Value="0,0,0,16"/>
+            <Setter Property="BorderBrush" Value="#30FFFFFF"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Setter Property="Effect" Value="{StaticResource CardShadow}"/>
+        </Style>
+
+        <Style x:Key="SectionHeaderTextStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="#FF1E90FF"/>
+            <Setter Property="Margin" Value="0,0,0,10"/>
+        </Style>
+
+        <Style x:Key="SecondaryLabelStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="Foreground" Value="#FFB0B0B0"/>
+            <Setter Property="Margin" Value="0,0,0,2"/>
+        </Style>
         
         <!-- Modern ScrollBar Page Button Style -->
         <Style x:Key="ModernScrollBarPageButton" TargetType="{x:Type RepeatButton}">
@@ -174,7 +218,7 @@
         </Style>
     </Page.Resources>
 
-    <Grid Background="Transparent">
+    <Grid Background="{StaticResource DialogBackgroundBrush}">
         <Grid.RowDefinitions>
             <RowDefinition Height="auto" />
             <RowDefinition Height="*" />
@@ -182,15 +226,21 @@
         </Grid.RowDefinitions>
 
         <!-- Modern Header -->
-        <Border Grid.Row="0" Background="#C0353535" Padding="12,8">
+        <Border Grid.Row="0" Style="{StaticResource SectionCard}" Margin="0,0,0,16" Padding="12,8">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="auto"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
                 <ContentControl Content="{StaticResource Icon.Cog}" Width="18" Height="18" Foreground="#FF1E90FF" VerticalAlignment="Center"/>
-                <TextBlock Grid.Column="1" Text="Job Configuration" FontSize="14" FontWeight="SemiBold" 
-                           Foreground="White" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                    <TextBlock Text="Job Configuration" FontSize="14" FontWeight="SemiBold" 
+                               Foreground="White" />
+                    <TextBlock Text="Review the essentials on the left, data sources and outputs on the right."
+                               FontSize="10"
+                               Foreground="#CCFFFFFF"
+                               Margin="0,2,0,0"/>
+                </StackPanel>
             </Grid>
         </Border>
 
@@ -200,7 +250,7 @@
                       VerticalScrollBarVisibility="Auto"
                       Padding="10"
                       Style="{StaticResource ModernScrollViewer}">
-            <Grid>
+            <Grid HorizontalAlignment="Center" MaxWidth="1080">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="auto" />
                         <RowDefinition Height="auto" />
@@ -214,22 +264,31 @@
                     </Grid.ColumnDefinitions>
 
                     <!-- Start Condition Section -->
-                    <Border Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" 
-                            Background="#C0353535" CornerRadius="6" Padding="12" Margin="0,0,0,10">
+                    <Border Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" Style="{StaticResource SectionCard}">
                         <StackPanel>
-                            <TextBlock Text="Start Condition" FontSize="13" FontWeight="SemiBold" 
-                                      Foreground="#FF1E90FF" Margin="0,0,0,8"/>
-                            <StackPanel Orientation="Horizontal">
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                                <ContentControl Style="{StaticResource Icon.Size16}"
+                                                Content="{StaticResource Icon.Clock}"
+                                                Foreground="{StaticResource Icon.SecondaryBlue}"
+                                                VerticalAlignment="Center"/>
+                                <StackPanel Margin="8,0,0,0">
+                                    <TextBlock Text="Start Condition" Style="{StaticResource SectionHeaderTextStyle}"/>
+                                    <TextBlock Text="Choose when the job should begin processing."
+                                               FontSize="10"
+                                               Foreground="#CCFFFFFF"/>
+                                </StackPanel>
+                            </StackPanel>
+                            <WrapPanel>
                                 <RadioButton Content="Start in" x:Name="startInButton"
                 IsChecked="{Binding StartInMode}"
                                            Foreground="White" FontSize="11" Margin="0,0,15,0"/>
                                 <RadioButton Content="Start at" x:Name="startAtButton"
                 IsChecked="{Binding StartAtMode}"
                                            Foreground="White" FontSize="11"/>
-                        </StackPanel>
+                            </WrapPanel>
 
                             <TabControl x:Name="startConditionTabControl" Background="Transparent" 
-                                        BorderThickness="0" Margin="0,8,0,0">
+                                        BorderThickness="0" Margin="0,12,0,0">
                             <TabControl.ItemContainerStyle>
                                 <Style TargetType="{x:Type TabItem}">
                                     <Setter Property="Visibility" Value="Collapsed"/>
@@ -249,14 +308,24 @@
                     </Border>
 
                     <!-- Config Selection Section -->
-                    <Border Grid.Row="1" Grid.Column="0" 
-                            Background="#C0353535" CornerRadius="6" Padding="12" Margin="0,0,8,10">
+                    <Border Grid.Row="1" Grid.Column="0" Style="{StaticResource SectionCard}" Margin="0,0,8,12">
                         <StackPanel>
-                            <TextBlock Text="Configuration" FontSize="13" FontWeight="SemiBold" 
-                                      Foreground="#FF1E90FF" Margin="0,0,0,8"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                                <ContentControl Style="{StaticResource Icon.Size16}"
+                                                Content="{StaticResource Icon.Tune}"
+                                                Foreground="{StaticResource Icon.SecondaryBlue}"
+                                                VerticalAlignment="Center"/>
+                                <StackPanel Margin="8,0,0,0">
+                                    <TextBlock Text="Configuration" Style="{StaticResource SectionHeaderTextStyle}"/>
+                                    <TextBlock Text="Pick the config to run and tweak how the job behaves."
+                                               FontSize="10"
+                                               Foreground="#CCFFFFFF"/>
+                                </StackPanel>
+                            </StackPanel>
                             
                             <!-- Config Display -->
-                            <Border Background="#80404040" CornerRadius="4" Padding="8" Margin="0,0,0,8"
+                            <Border Background="#1C2030" CornerRadius="8" Padding="10" Margin="0,0,0,12"
+                                    BorderBrush="#22FFFFFF" BorderThickness="1"
                                     Visibility="{Binding IsConfigSelected, Converter={StaticResource ResourceKey=BoolToVis}}">
                                 <Grid>
                                     <Grid.ColumnDefinitions>
@@ -272,87 +341,100 @@
                             </Border>
                             
                             <Button Click="SelectConfig" HorizontalAlignment="Left"
-                                    Style="{StaticResource StyledPrimaryButton}" Padding="10,5">
+                                    Style="{StaticResource StyledPrimaryButton}" Padding="10,5" Margin="0,0,0,12">
                             <StackPanel Orientation="Horizontal">
                                     <ContentControl Content="{StaticResource Icon.FolderOpen}" Width="12" Height="12"/>
                                     <TextBlock Text="Select Config" VerticalAlignment="Center" Margin="5,0,0,0" FontSize="11"/>
                             </StackPanel>
                         </Button>
                             <!-- Execution Settings -->
-                            <Grid Margin="0,8,0,0">
+                            <Grid Margin="0,12,0,0">
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
                                 </Grid.ColumnDefinitions>
                                 <Grid.RowDefinitions>
-                                    <RowDefinition Height="auto"/>
-                                    <RowDefinition Height="auto"/>
+                                    <RowDefinition Height="auto" />
+                                    <RowDefinition Height="auto" />
+                                    <RowDefinition Height="auto" />
                                 </Grid.RowDefinitions>
 
-                                <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,4,6">
-                                    <TextBlock Text="Bots" FontSize="10" Foreground="#FFB0B0B0" Margin="0,0,0,1"/>
+                                <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,8,8">
+                                    <TextBlock Text="Bots" Style="{StaticResource SecondaryLabelStyle}"/>
                                     <mah:NumericUpDown Minimum="1" Maximum="{Binding BotLimit}" Interval="1"
-                                                      Value="{Binding Bots, Mode=TwoWay}" Width="75" HorizontalAlignment="Left"/>
-                        </StackPanel>
-                                <StackPanel Grid.Row="0" Grid.Column="1" Margin="4,0,0,6">
-                                    <TextBlock Text="Skip" FontSize="10" Foreground="#FFB0B0B0" Margin="0,0,0,1"/>
+                                                       Value="{Binding Bots, Mode=TwoWay}" Width="90" HorizontalAlignment="Left"/>
+                                </StackPanel>
+                                <StackPanel Grid.Row="0" Grid.Column="1" Margin="8,0,0,8">
+                                    <TextBlock Text="Skip" Style="{StaticResource SecondaryLabelStyle}"/>
                                     <mah:NumericUpDown Minimum="0" Maximum="2147483647" Interval="1"
-                                                      Value="{Binding Skip, Mode=TwoWay}" Width="120" HorizontalAlignment="Left"/>
-                        </StackPanel>
+                                                       Value="{Binding Skip, Mode=TwoWay}" Width="120" HorizontalAlignment="Left"/>
+                                </StackPanel>
 
-                                <StackPanel Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,6">
-                                    <TextBlock Text="Proxy Mode" FontSize="10" Foreground="#FFB0B0B0" Margin="0,0,0,1"/>
+                                <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,8,8">
+                                    <TextBlock Text="Proxy Mode" Style="{StaticResource SecondaryLabelStyle}"/>
                                     <ComboBox ItemsSource="{Binding ProxyModes}" SelectedValue="{Binding ProxyMode}" 
-                                             MinWidth="160" HorizontalAlignment="Left" Style="{StaticResource CleanComboBox}"/>
-                        </StackPanel>
+                                              MinWidth="160" HorizontalAlignment="Left" Style="{StaticResource CleanComboBox}"/>
+                                </StackPanel>
+
+                                <StackPanel Grid.Row="1" Grid.Column="1" Margin="8,0,0,8">
+                                    <TextBlock Text="No Valid Proxy Behaviour" Style="{StaticResource SecondaryLabelStyle}"/>
+                                    <ComboBox ItemsSource="{Binding NoValidProxyBehaviours}" 
+                                              SelectedValue="{Binding NoValidProxyBehaviour}"
+                                              MinWidth="160" HorizontalAlignment="Left" Style="{StaticResource CleanComboBox}"/>
+                                </StackPanel>
+
+                                <Grid Grid.Row="2" Grid.ColumnSpan="2">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                                        <TextBlock Text="Reload Interval (sec, 0 = disabled)" Style="{StaticResource SecondaryLabelStyle}"/>
+                                        <mah:NumericUpDown Minimum="0" Maximum="2147483647" Interval="1"
+                                                          Value="{Binding PeriodicReloadIntervalSeconds}" Width="120" HorizontalAlignment="Left"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                                        <TextBlock Text="Proxy Ban Time (sec)" Style="{StaticResource SecondaryLabelStyle}"/>
+                                        <mah:NumericUpDown Minimum="0" Maximum="2147483647" Interval="1"
+                                                          Value="{Binding ProxyBanTimeSeconds}" Width="120" HorizontalAlignment="Left"/>
+                                    </StackPanel>
+                                </Grid>
                             </Grid>
 
                             <!-- Proxy Behavior Settings -->
                             <StackPanel Margin="0,8,0,0">
-                                <TextBlock Text="Proxy Behavior" FontSize="10" Foreground="#FFB0B0B0" Margin="0,0,0,6"/>
-                                <ComboBox ItemsSource="{Binding NoValidProxyBehaviours}" 
-                                         SelectedValue="{Binding NoValidProxyBehaviour}"
-                                         MinWidth="160" HorizontalAlignment="Left" Margin="0,0,0,6" Style="{StaticResource CleanComboBox}"/>
-                                
-                                <CheckBox Content="Shuffle proxies" IsChecked="{Binding ShuffleProxies}" 
-                                         Foreground="White" FontSize="10" Margin="0,0,0,3"/>
-                                <CheckBox Content="Mark current lines as ToCheck on abort" 
-                                         IsChecked="{Binding MarkAsToCheckOnAbort}" 
-                                         Foreground="White" FontSize="10" Margin="0,0,0,3"/>
-                                <CheckBox Content="Never ban proxies" IsChecked="{Binding NeverBanProxies}" 
-                                         Foreground="White" FontSize="10" Margin="0,0,0,3"/>
-                                <CheckBox Content="Concurrent mode (for rotating proxy services)" 
-                                         IsChecked="{Binding ConcurrentProxyMode}" 
-                                         Foreground="White" FontSize="10" Margin="0,0,0,6"/>
+                                <TextBlock Text="Proxy Options" Style="{StaticResource SecondaryLabelStyle}" Margin="0,0,0,4"/>
+                                <WrapPanel>
+                                    <CheckBox Content="Shuffle proxies" IsChecked="{Binding ShuffleProxies}" 
+                                              Foreground="White" FontSize="10" Margin="0,0,12,6"/>
+                                    <CheckBox Content="Never ban proxies" IsChecked="{Binding NeverBanProxies}" 
+                                              Foreground="White" FontSize="10" Margin="0,0,12,6"/>
+                                    <CheckBox Content="Concurrent mode (rotating services)" 
+                                              IsChecked="{Binding ConcurrentProxyMode}" 
+                                              Foreground="White" FontSize="10" Margin="0,0,12,6"/>
+                                    <CheckBox Content="Mark lines as ToCheck on abort" 
+                                              IsChecked="{Binding MarkAsToCheckOnAbort}" 
+                                              Foreground="White" FontSize="10" Margin="0,0,12,6"/>
+                                </WrapPanel>
                             </StackPanel>
-
-                            <!-- Timing Settings -->
-                            <Grid Margin="0,8,0,0">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-
-                                <StackPanel Grid.Column="0" Margin="0,0,4,0">
-                                    <TextBlock Text="Reload Interval (sec, 0=disabled)" FontSize="10" Foreground="#FFB0B0B0" Margin="0,0,0,1"/>
-                                    <mah:NumericUpDown Minimum="0" Maximum="2147483647" Interval="1"
-                                                      Value="{Binding PeriodicReloadIntervalSeconds}" Width="90" HorizontalAlignment="Left"/>
-                        </StackPanel>
-                                <StackPanel Grid.Column="1" Margin="4,0,0,0">
-                                    <TextBlock Text="Proxy Ban Time (sec)" FontSize="10" Foreground="#FFB0B0B0" Margin="0,0,0,1"/>
-                                    <mah:NumericUpDown Minimum="0" Maximum="2147483647" Interval="1"
-                                                      Value="{Binding ProxyBanTimeSeconds}" Width="90" HorizontalAlignment="Left"/>
-                        </StackPanel>
-                            </Grid>
                         </StackPanel>
                     </Border>
 
                     <!-- Data Pool Section -->
-                    <Border Grid.Row="1" Grid.Column="1" 
-                            Background="#C0353535" CornerRadius="6" Padding="12" Margin="8,0,0,10">
+                    <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource SectionCard}" Margin="8,0,0,12">
                         <StackPanel>
-                            <TextBlock Text="Data Pool" FontSize="13" FontWeight="SemiBold" 
-                                      Foreground="#FF1E90FF" Margin="0,0,0,8"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                                <ContentControl Style="{StaticResource Icon.Size16}"
+                                                Content="{StaticResource Icon.Database}"
+                                                Foreground="{StaticResource Icon.SecondaryBlue}"
+                                                VerticalAlignment="Center"/>
+                                <StackPanel Margin="8,0,0,0">
+                                    <TextBlock Text="Data Pool" Style="{StaticResource SectionHeaderTextStyle}"/>
+                                    <TextBlock Text="Select what data to test and configure the pool source."
+                                               FontSize="10"
+                                               Foreground="#CCFFFFFF"/>
+                                </StackPanel>
+                            </StackPanel>
                             
                                         <!-- Data Pool Type Selection -->
             <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
@@ -548,13 +630,22 @@
                     </Border>
 
                     <!-- Proxy Sources Section -->
-                    <Border Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" 
-                            Background="#C0353535" CornerRadius="6" Padding="12" Margin="0,0,0,10">
+                    <Border Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Style="{StaticResource SectionCard}">
                         <StackPanel>
-                            <TextBlock Text="Proxy Sources" FontSize="13" FontWeight="SemiBold" 
-                                      Foreground="#FF1E90FF" Margin="0,0,0,8"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                                <ContentControl Style="{StaticResource Icon.Size16}"
+                                                Content="{StaticResource Icon.Network}"
+                                                Foreground="{StaticResource Icon.SecondaryBlue}"
+                                                VerticalAlignment="Center"/>
+                                <StackPanel Margin="8,0,0,0">
+                                    <TextBlock Text="Proxy Sources" Style="{StaticResource SectionHeaderTextStyle}"/>
+                                    <TextBlock Text="Add one or more proxy feeds. Sources are processed in order."
+                                               FontSize="10"
+                                               Foreground="#CCFFFFFF"/>
+                                </StackPanel>
+                            </StackPanel>
                             <!-- Add Proxy Source Buttons -->
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                            <WrapPanel Margin="0,0,0,8">
                                 <Button Click="AddGroupProxySource" 
                         Style="{StaticResource StyledPrimaryButton}"
                                         Padding="8,4" Margin="0,0,6,0">
@@ -573,25 +664,28 @@
                             </Button>
                                 <Button Click="AddRemoteProxySource" 
                         Style="{StaticResource StyledPrimaryButton}"
-                                        Padding="8,4">
+                                        Padding="8,4" Margin="0,0,6,0">
                                 <StackPanel Orientation="Horizontal">
                                         <ContentControl Content="{StaticResource Icon.Plus}" Width="10" Height="10"/>
                                         <TextBlock Text="Remote" VerticalAlignment="Center" Margin="3,0,0,0" FontSize="10"/>
                                 </StackPanel>
                             </Button>
-                        </StackPanel>
+                            </WrapPanel>
                             <!-- Proxy Sources List -->
-                            <ScrollViewer Height="120" 
-                                          HorizontalScrollBarVisibility="Disabled"
-                                          VerticalScrollBarVisibility="Auto"
-                                          Background="#80404040" 
-                                          Padding="8"
-                                          BorderThickness="1"
-                                          BorderBrush="#FF404040"
-                                          CanContentScroll="True"
-                                          Focusable="False"
-                                          PreviewMouseWheel="ChildScrollViewer_PreviewMouseWheel"
-                                          Style="{StaticResource ModernScrollViewer}">
+                            <Border Background="#1B1E2B"
+                                    CornerRadius="10"
+                                    Padding="0"
+                                    BorderBrush="#22FFFFFF"
+                                    BorderThickness="1">
+                                <ScrollViewer Height="140" 
+                                              HorizontalScrollBarVisibility="Disabled"
+                                              VerticalScrollBarVisibility="Auto"
+                                              Padding="10"
+                                              Background="Transparent"
+                                              CanContentScroll="True"
+                                              Focusable="False"
+                                              PreviewMouseWheel="ChildScrollViewer_PreviewMouseWheel"
+                                              Style="{StaticResource ModernScrollViewer}">
                             <ItemsControl ItemsSource="{Binding ProxySourcesCollection}">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
@@ -703,18 +797,28 @@
                                     </DataTemplate>
                                 </ItemsControl.Resources>
                             </ItemsControl>
-                        </ScrollViewer>
+                                </ScrollViewer>
+                            </Border>
                     </StackPanel>
                     </Border>
 
                     <!-- Hit Outputs Section -->
-                    <Border Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" 
-                            Background="#C0353535" CornerRadius="6" Padding="12" Margin="0,0,0,10">
+                    <Border Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" Style="{StaticResource SectionCard}">
                         <StackPanel>
-                            <TextBlock Text="Hit Outputs" FontSize="13" FontWeight="SemiBold" 
-                                      Foreground="#FF1E90FF" Margin="0,0,0,8"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                                <ContentControl Style="{StaticResource Icon.Size16}"
+                                                Content="{StaticResource Icon.DatabaseExport}"
+                                                Foreground="{StaticResource Icon.SecondaryBlue}"
+                                                VerticalAlignment="Center"/>
+                                <StackPanel Margin="8,0,0,0">
+                                    <TextBlock Text="Hit Outputs" Style="{StaticResource SectionHeaderTextStyle}"/>
+                                    <TextBlock Text="Route results wherever you need them. Combine multiple outputs if required."
+                                               FontSize="10"
+                                               Foreground="#CCFFFFFF"/>
+                                </StackPanel>
+                            </StackPanel>
                             <!-- Hit Output Buttons -->
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                            <WrapPanel Margin="0,0,0,8">
                                 <Button Click="AddDatabaseHitOutput" 
                         Style="{StaticResource StyledPrimaryButton}"
                                         Padding="6,3" Margin="0,0,4,0">
@@ -749,26 +853,29 @@
                             </Button>
                                 <Button Click="AddCustomWebhookHitOutput" 
                         Style="{StaticResource StyledPrimaryButton}"
-                                        Padding="6,3">
+                                        Padding="6,3" Margin="0,0,4,0">
                                 <StackPanel Orientation="Horizontal">
                                         <ContentControl Content="{StaticResource Icon.Plus}" Width="10" Height="10"/>
                                         <TextBlock Text="Webhook" VerticalAlignment="Center" Margin="2,0,0,0" FontSize="9"/>
                                 </StackPanel>
                             </Button>
-                        </StackPanel>
+                            </WrapPanel>
                             
                             <!-- Hit Outputs List -->
-                            <ScrollViewer Height="80" 
-                                          HorizontalScrollBarVisibility="Disabled"
-                                          VerticalScrollBarVisibility="Auto"
-                                          Background="#FF333333" 
-                                          Padding="8"
-                                          BorderThickness="1"
-                                          BorderBrush="#FF404040"
-                                          CanContentScroll="True"
-                                          Focusable="False"
-                                          PreviewMouseWheel="ChildScrollViewer_PreviewMouseWheel"
-                                          Style="{StaticResource ModernScrollViewer}">
+                            <Border Background="#1B1E2B"
+                                    CornerRadius="10"
+                                    Padding="0"
+                                    BorderBrush="#22FFFFFF"
+                                    BorderThickness="1">
+                                <ScrollViewer Height="110" 
+                                              HorizontalScrollBarVisibility="Disabled"
+                                              VerticalScrollBarVisibility="Auto"
+                                              Padding="10"
+                                              Background="Transparent"
+                                              CanContentScroll="True"
+                                              Focusable="False"
+                                              PreviewMouseWheel="ChildScrollViewer_PreviewMouseWheel"
+                                              Style="{StaticResource ModernScrollViewer}">
                             <ItemsControl ItemsSource="{Binding HitOutputsCollection}">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
@@ -984,23 +1091,28 @@
                                     </DataTemplate>
                                 </ItemsControl.Resources>
                             </ItemsControl>
-                        </ScrollViewer>
+                                </ScrollViewer>
+                            </Border>
                     </StackPanel>
                     </Border>
                 </Grid>
             </ScrollViewer>
 
-            <!-- Modern Footer -->
-            <Border Grid.Row="2" Background="#C0353535" Padding="12,8">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="auto"/>
-                    </Grid.ColumnDefinitions>
+        <!-- Modern Footer -->
+        <Border Grid.Row="2" Style="{StaticResource SectionCard}" Padding="12,8" Margin="0,12,0,0">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="auto"/>
+                </Grid.ColumnDefinitions>
                     
                     <!-- Status/Info Area -->
-                    <TextBlock Grid.Column="0" Text="Configure your job settings above" 
-                              FontSize="10" Foreground="#FFB0B0B0" VerticalAlignment="Center"/>
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="Review your selections before saving." 
+                                   FontSize="10" Foreground="#FFB0B0B0"/>
+                        <TextBlock Text="Changes are applied immediately once you press Save Configuration."
+                                   FontSize="9" Foreground="#99FFFFFF" Margin="0,2,0,0"/>
+                    </StackPanel>
                     
                     <!-- Action Buttons -->
                     <Button Grid.Column="1" Click="Accept"

@@ -77,11 +77,9 @@ public class JobManagerService : IDisposable
 
         if (job is MultiRunJob mrj)
         {
-            mrj.OnCompleted += SaveRecord;
-            mrj.OnTimerTick += SaveRecord;
-            mrj.OnCompleted += SaveMultiRunJobOptionsAsync;
-            mrj.OnTimerTick += SaveMultiRunJobOptionsAsync;
-            mrj.OnBotsChanged += SaveMultiRunJobOptionsAsync;
+            mrj.OnCompleted += MultiRunJobOnCompleted;
+            mrj.OnTimerTick += MultiRunJobOnTimerTick;
+            mrj.OnBotsChanged += MultiRunJobOnBotsChanged;
         }
     }
 
@@ -93,11 +91,9 @@ public class JobManagerService : IDisposable
         {
             try
             {
-                mrj.OnCompleted -= SaveRecord;
-                mrj.OnTimerTick -= SaveRecord;
-                mrj.OnCompleted -= SaveMultiRunJobOptionsAsync;
-                mrj.OnTimerTick -= SaveMultiRunJobOptionsAsync;
-                mrj.OnBotsChanged -= SaveMultiRunJobOptionsAsync;
+                mrj.OnCompleted -= MultiRunJobOnCompleted;
+                mrj.OnTimerTick -= MultiRunJobOnTimerTick;
+                mrj.OnBotsChanged -= MultiRunJobOnBotsChanged;
             }
             catch
             {
@@ -112,16 +108,57 @@ public class JobManagerService : IDisposable
         _jobs.Clear();
     }
 
-    // Saves the record for a MultiRunJob in the IRecordRepository. Thread safe.
-    private async void SaveRecord(object sender, EventArgs e)
+    private async void MultiRunJobOnCompleted(object sender, EventArgs e)
     {
-        using var scope = _scopeFactory.CreateScope();
-        var recordRepo = scope.ServiceProvider.GetRequiredService<IRecordRepository>();
-
-        if (sender is not MultiRunJob job || job.DataPool is not WordlistDataPool pool)
+        if (sender is not MultiRunJob job)
         {
             return;
         }
+
+        await SaveRecordAsync(job, includeRuntimeProgress: false);
+        await SaveMultiRunJobOptionsAsync(job, includeRuntimeProgress: false);
+    }
+
+    private async void MultiRunJobOnTimerTick(object sender, EventArgs e)
+    {
+        if (sender is not MultiRunJob job)
+        {
+            return;
+        }
+
+        var includeRuntimeProgress = IsActivelyProcessing(job.Status);
+        await SaveRecordAsync(job, includeRuntimeProgress);
+        await SaveMultiRunJobOptionsAsync(job, includeRuntimeProgress);
+    }
+
+    private async void MultiRunJobOnBotsChanged(object sender, EventArgs e)
+    {
+        if (sender is not MultiRunJob job)
+        {
+            return;
+        }
+
+        var includeRuntimeProgress = IsActivelyProcessing(job.Status);
+        await SaveMultiRunJobOptionsAsync(job, includeRuntimeProgress);
+    }
+
+    private static bool IsActivelyProcessing(JobStatus status) => status is JobStatus.Starting
+        or JobStatus.Running
+        or JobStatus.Pausing
+        or JobStatus.Paused
+        or JobStatus.Resuming
+        or JobStatus.Stopping;
+
+    // Saves the record for a MultiRunJob in the IRecordRepository. Thread safe.
+    private async Task SaveRecordAsync(MultiRunJob job, bool includeRuntimeProgress)
+    {
+        if (job.DataPool is not WordlistDataPool pool)
+        {
+            return;
+        }
+
+        using var scope = _scopeFactory.CreateScope();
+        var recordRepo = scope.ServiceProvider.GetRequiredService<IRecordRepository>();
 
         await _recordSemaphore.WaitAsync();
 
@@ -130,9 +167,9 @@ public class JobManagerService : IDisposable
             var record = await recordRepo.GetAll()
                     .FirstOrDefaultAsync(r => r.ConfigId == job.Config.Id && r.WordlistId == pool.Wordlist.Id);
 
-            var checkpoint = job.Status == JobStatus.Idle
-                ? job.Skip
-                : job.Skip + job.DataTested;
+            var checkpoint = includeRuntimeProgress
+                ? job.Skip + job.DataTested
+                : job.Skip;
 
             if (record == null)
             {
@@ -159,18 +196,8 @@ public class JobManagerService : IDisposable
         }
     }
 
-    private async void SaveMultiRunJobOptionsAsync(object sender, EventArgs e)
-    {
-        if (sender is not MultiRunJob job)
-        {
-            return;
-        }
-
-        await SaveMultiRunJobOptionsAsync(job);
-    }
-
     // Saves the options for a MultiRunJob in the IJobRepository. Thread safe.
-    public async Task SaveMultiRunJobOptionsAsync(MultiRunJob job)
+    public async Task SaveMultiRunJobOptionsAsync(MultiRunJob job, bool includeRuntimeProgress = true)
     {
         using var scope = _scopeFactory.CreateScope();
         var jobRepo = scope.ServiceProvider.GetRequiredService<IJobRepository>();
@@ -205,10 +232,12 @@ public class JobManagerService : IDisposable
                 return;
             }
 
-            // Update the skip (if not idle, also add the currently tested ones) and the bots
-            options.Skip = job.Status == JobStatus.Idle
-                ? job.Skip
-                : job.Skip + job.DataTested;
+            // Update the skip (optionally include in-flight progress) and the bots
+            var checkpoint = includeRuntimeProgress
+                ? job.Skip + job.DataTested
+                : job.Skip;
+
+            options.Skip = checkpoint;
 
             options.Bots = job.Bots;
 
@@ -237,11 +266,9 @@ public class JobManagerService : IDisposable
             {
                 try
                 {
-                    mrj.OnCompleted -= SaveRecord;
-                    mrj.OnTimerTick -= SaveRecord;
-                    mrj.OnCompleted -= SaveMultiRunJobOptionsAsync;
-                    mrj.OnTimerTick -= SaveMultiRunJobOptionsAsync;
-                    mrj.OnBotsChanged -= SaveMultiRunJobOptionsAsync;
+                    mrj.OnCompleted -= MultiRunJobOnCompleted;
+                    mrj.OnTimerTick -= MultiRunJobOnTimerTick;
+                    mrj.OnBotsChanged -= MultiRunJobOnBotsChanged;
                 }
                 catch
                 {

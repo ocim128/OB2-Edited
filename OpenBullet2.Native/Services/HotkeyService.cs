@@ -458,6 +458,7 @@ namespace OpenBullet2.Native.Services
             Background = System.Windows.Media.Brushes.Transparent;
             Topmost = true;
             ShowInTaskbar = false;
+            ShowActivated = false;
 
             // Position in bottom-right corner
             Left = SystemParameters.PrimaryScreenWidth - Width - 30;
@@ -538,6 +539,63 @@ namespace OpenBullet2.Native.Services
                 Close();
             };
         }
+
+        protected override void OnSourceInitialized(EventArgs e)
+        {
+            base.OnSourceInitialized(e);
+            HideFromAltTab();
+        }
+
+        private void HideFromAltTab()
+        {
+            var helper = new WindowInteropHelper(this);
+            var handle = helper.Handle;
+            if (handle == IntPtr.Zero)
+            {
+                return;
+            }
+
+            var styles = GetExtendedStyles(handle).ToInt64();
+            styles |= WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE;
+            styles &= ~WS_EX_APPWINDOW;
+            SetExtendedStyles(handle, new IntPtr(styles));
+        }
+
+        private static IntPtr GetExtendedStyles(IntPtr handle)
+        {
+            return IntPtr.Size == 8
+                ? GetWindowLongPtr64(handle, GWL_EXSTYLE)
+                : new IntPtr(GetWindowLong(handle, GWL_EXSTYLE));
+        }
+
+        private static void SetExtendedStyles(IntPtr handle, IntPtr styles)
+        {
+            if (IntPtr.Size == 8)
+            {
+                SetWindowLongPtr64(handle, GWL_EXSTYLE, styles);
+            }
+            else
+            {
+                SetWindowLong(handle, GWL_EXSTYLE, styles.ToInt32());
+            }
+        }
+
+        private const int GWL_EXSTYLE = -20;
+        private const int WS_EX_TOOLWINDOW = 0x00000080;
+        private const int WS_EX_APPWINDOW = 0x00040000;
+        private const int WS_EX_NOACTIVATE = 0x08000000;
+
+        [DllImport("user32.dll", EntryPoint = "GetWindowLong")]
+        private static extern int GetWindowLong(IntPtr hWnd, int nIndex);
+
+        [DllImport("user32.dll", EntryPoint = "GetWindowLongPtr")]
+        private static extern IntPtr GetWindowLongPtr64(IntPtr hWnd, int nIndex);
+
+        [DllImport("user32.dll", EntryPoint = "SetWindowLong")]
+        private static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
+
+        [DllImport("user32.dll", EntryPoint = "SetWindowLongPtr")]
+        private static extern IntPtr SetWindowLongPtr64(IntPtr hWnd, int nIndex, IntPtr dwNewLong);
 
         private string GetIconPath(string title)
         {

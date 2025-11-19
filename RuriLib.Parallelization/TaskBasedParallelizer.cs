@@ -163,6 +163,7 @@ namespace RuriLib.Parallelization
 
         private void Cleanup()
         {
+            FinalizeRun();
             try { OnCompleted(); } catch { /* Ignore */ }
             Status = ParallelizerStatus.Idle;
             try { hardCTS?.Dispose(); } catch { /* Ignore */ }

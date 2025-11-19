@@ -92,6 +92,7 @@ public class MultiRunJob(RuriLibSettingsService settings, PluginRepository plugi
     private static readonly char[] _separator = ['\r', '\n'];
     private readonly object _lockObject = new();
     private bool _disposed;
+    private int _fatalTaskErrorFlag;
 
     // Lazy initialization for expensive resources
     private Lazy<dynamic> _pythonEngine;
@@ -437,8 +438,7 @@ public class MultiRunJob(RuriLibSettingsService settings, PluginRepository plugi
         _parallelizer.TaskError += PropagateTaskError;
         _parallelizer.Error += PropagateError;
         _parallelizer.NewResult += PropagateResult;
-        _parallelizer.Completed += PropagateCompleted;
-        _parallelizer.Completed += (s, e) => Skip += DataTested;
+        _parallelizer.Completed += HandleParallelizerCompleted;
     }
 
     public override async Task Stop()
@@ -569,6 +569,11 @@ public class MultiRunJob(RuriLibSettingsService settings, PluginRepository plugi
     {
         OnTaskError?.Invoke(this, details);
         logger?.LogException(Id, details.Exception);
+
+        if (details.Exception is CompilationErrorException)
+        {
+            HandleFatalTaskError(details.Exception);
+        }
     }
 
     private void PropagateError(object _, Exception ex)
@@ -594,6 +599,50 @@ public class MultiRunJob(RuriLibSettingsService settings, PluginRepository plugi
     {
         OnCompleted?.Invoke(this, e);
         logger?.LogInfo(Id, "Execution completed");
+    }
+
+    private void HandleParallelizerCompleted(object sender, EventArgs e)
+    {
+        try
+        {
+            if (Interlocked.CompareExchange(ref _fatalTaskErrorFlag, 0, 0) == 0)
+            {
+                Skip += DataTested;
+            }
+            else
+            {
+                logger?.LogInfo(Id, "Execution aborted due to fatal error. Data pool offset left unchanged.");
+            }
+
+            StopTimers();
+            PropagateCompleted(sender, e);
+        }
+        finally
+        {
+            Interlocked.Exchange(ref _fatalTaskErrorFlag, 0);
+        }
+    }
+
+    private void HandleFatalTaskError(Exception exception)
+    {
+        if (Interlocked.CompareExchange(ref _fatalTaskErrorFlag, 1, 0) != 0)
+        {
+            return;
+        }
+
+        logger?.LogInfo(Id, "Fatal compilation error detected. Aborting job to prevent data skips.");
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Abort().ConfigureAwait(false);
+            }
+            catch (Exception abortEx)
+            {
+                logger?.LogException(Id, abortEx);
+            }
+        });
     }
     #endregion Propagation of Parallelizer events
 

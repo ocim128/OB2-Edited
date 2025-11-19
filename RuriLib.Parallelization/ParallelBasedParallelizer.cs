@@ -151,6 +151,7 @@ public class ParallelBasedParallelizer<TInput, TOutput>(IEnumerable<TInput> work
     {
         if (Status == ParallelizerStatus.Idle) return;
 
+        FinalizeRun();
         OnCompleted();
         Status = ParallelizerStatus.Idle;
         hardCTS?.Dispose();

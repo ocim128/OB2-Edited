@@ -370,10 +370,7 @@ public abstract class Parallelizer<TInput, TOutput> : IDisposable
             throw new RequiredStatusException([ParallelizerStatus.Running, ParallelizerStatus.Paused], Status);
         }
 
-        _updateTimer?.Dispose();
-        _updateTimer = null;
-        stopwatch.Stop();
-        EndTime = DateTime.Now;
+        FinalizeRun();
 
         return Task.CompletedTask;
     }
@@ -390,10 +387,7 @@ public abstract class Parallelizer<TInput, TOutput> : IDisposable
             Status);
         }
 
-        _updateTimer?.Dispose();
-        _updateTimer = null;
-        stopwatch.Stop();
-        EndTime = DateTime.Now;
+        FinalizeRun();
 
         return Task.CompletedTask;
     }
@@ -430,6 +424,25 @@ public abstract class Parallelizer<TInput, TOutput> : IDisposable
     #endregion
 
     #region Protected Methods
+    /// <summary>
+    /// Stops the timers/stopwatch and records the end time. Safe to invoke multiple times.
+    /// </summary>
+    protected void FinalizeRun()
+    {
+        _updateTimer?.Dispose();
+        _updateTimer = null;
+
+        if (stopwatch.IsRunning)
+        {
+            stopwatch.Stop();
+        }
+
+        if (!EndTime.HasValue)
+        {
+            EndTime = DateTime.Now;
+        }
+    }
+
     /// <summary>
     /// Whether the CPM is limited to a certain amount (for throttling purposes).
     /// </summary>

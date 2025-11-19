@@ -695,6 +695,57 @@ navigator.maxTouchPoints = 0;
         return args;
     }
 
+    private static string NormalizeExtensionPath(string extensionValue)
+    {
+        if (string.IsNullOrWhiteSpace(extensionValue))
+        {
+            return extensionValue;
+        }
+
+        var normalizedParts = extensionValue
+            .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+            .Select(part => ResolveBrowserPath(part.Trim()));
+
+        return string.Join(",", normalizedParts);
+    }
+
+    private static string ResolveBrowserPath(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return path;
+        }
+
+        var trimmed = path.Trim().Trim('"');
+        if (string.IsNullOrWhiteSpace(trimmed))
+        {
+            return trimmed;
+        }
+
+        var expanded = Environment.ExpandEnvironmentVariables(trimmed);
+
+        try
+        {
+            if (Path.IsPathRooted(expanded))
+            {
+                return Path.GetFullPath(expanded);
+            }
+
+            var baseDirectory = AppContext.BaseDirectory;
+            if (string.IsNullOrWhiteSpace(baseDirectory))
+            {
+                baseDirectory = Directory.GetCurrentDirectory();
+            }
+
+            var combined = Path.Combine(baseDirectory, expanded);
+            return Path.GetFullPath(combined);
+        }
+        catch
+        {
+            return expanded;
+        }
+    }
+
     // Cache optimized Chrome arguments for better performance
     private static readonly List<string> BaseBrowserArgs = new()
     {
@@ -1128,11 +1179,13 @@ navigator.maxTouchPoints = 0;
                 foreach (var loadExtArg in loadExtensionArgs)
                 {
                     var extensionPath = loadExtArg.Substring("--load-extension=".Length).Trim('"');
-                    browserArgs.Add($"--load-extension=\"{extensionPath}\"");
+                    var normalizedExtensionPath = NormalizeExtensionPath(extensionPath);
+
+                    browserArgs.Add($"--load-extension=\"{normalizedExtensionPath}\"");
 
                     if (!browserArgs.Any(arg => arg.StartsWith("--disable-extensions-except=", StringComparison.OrdinalIgnoreCase)))
                     {
-                        browserArgs.Add($"--disable-extensions-except=\"{extensionPath}\"");
+                        browserArgs.Add($"--disable-extensions-except=\"{normalizedExtensionPath}\"");
                     }
                 }
             }

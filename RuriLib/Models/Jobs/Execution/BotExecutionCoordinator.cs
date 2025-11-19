@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.CodeAnalysis.Scripting;
 using RuriLib.Helpers;
 using RuriLib.Functions.Http;
 
@@ -173,6 +174,11 @@ public class BotExecutionCoordinator
             {
                 outputVariables[kvp.Key] = kvp.Value;
             }
+        }
+        catch (CompilationErrorException)
+        {
+            // Bubble up script compilation errors so the job can stop before consuming more data
+            throw;
         }
         catch (Exception ex)
         {

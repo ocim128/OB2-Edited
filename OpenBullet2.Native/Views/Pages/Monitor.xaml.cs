@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -46,13 +46,6 @@ namespace OpenBullet2.Native.Views.Pages
     public partial class Tools : Page
     {
         private const int TotpPeriodSeconds = TwoFactorUtility.TotpPeriodSeconds;
-        private static readonly string[] ModemTogglePayloads =
-        [
-            "isTest=false&goformId=SET_BEARER_PREFERENCE&BearerPreference=Only_LTE%0ALTE_preferred",
-            "isTest=false&goformId=SET_BEARER_PREFERENCE&BearerPreference=NETWORK_auto%0ALTE_preferred",
-            "isTest=false&goformId=SET_BEARER_PREFERENCE&BearerPreference=Only_LTE%0ALTE_preferred",
-            "isTest=false&goformId=SET_BEARER_PREFERENCE&BearerPreference=NETWORK_auto%0ALTE_preferred"
-        ];
         private const double CardMinWidth = 300;
         private const double CardMaxWidth = 420;
         private const double CardHorizontalSpacing = 16;
@@ -62,7 +55,6 @@ namespace OpenBullet2.Native.Views.Pages
         private readonly DispatcherTimer timer;
         private string normalizedSecret = string.Empty;
         private string currentOtp = string.Empty;
-        private readonly Random modemRandom = new();
         private readonly ObservableCollection<ZipFolderOption> zipOptionFolders = new();
         private readonly ObservableCollection<LineReducerCompareFile> lineReducerCompareFiles = new();
         private readonly List<LaunchedZipProfile> launchedZipProfiles = new();
@@ -104,6 +96,7 @@ namespace OpenBullet2.Native.Views.Pages
             // Set initial values for performance display (will be updated lazily)
             InitializePerformanceDisplay();
             InitializeToolCardCatalogue();
+
         }
 
         private async void Tools_Unloaded(object sender, RoutedEventArgs e)
@@ -218,8 +211,6 @@ namespace OpenBullet2.Native.Views.Pages
             isInitializingFilters = true;
 
             toolCardCatalog.Clear();
-            toolCardCatalog.Add(new ToolCardMetadata(ModemToolCard, "Modem IP Refresher", "Networking",
-                "modem", "router", "wan", "gateway", "ip", "lease", "refresh"));
             toolCardCatalog.Add(new ToolCardMetadata(OtpToolCard, "OTP Toolkit", "Security",
                 "two factor", "authenticator", "totp", "code", "2fa", "token"));
             toolCardCatalog.Add(new ToolCardMetadata(BookmarkletToolCard, "Bookmarklet Parser", "Automation",
@@ -755,7 +746,7 @@ namespace OpenBullet2.Native.Views.Pages
 
             var totalBytes = lineReducerCompareFiles.Sum(file => file.Length);
             LineReducerCompareSummaryTextBlock.Text =
-                $"{lineReducerCompareFiles.Count} file(s) • {FormatBytes(totalBytes)} total";
+                $"{lineReducerCompareFiles.Count} file(s) â€¢ {FormatBytes(totalBytes)} total";
         }
 
         private async void RunLineReducer(object sender, RoutedEventArgs e)
@@ -1158,7 +1149,7 @@ namespace OpenBullet2.Native.Views.Pages
                 }
             }
 
-            var post = Regex.Match(line, "^(\\d+)Ã¢â„¢Â ").Groups[1].Value;
+            var post = Regex.Match(line, "^(\\d+)ÃƒÂ¢Ã¢â€žÂ¢Ã‚Â ").Groups[1].Value;
             var follower = Regex.Match(line, "(\\d+)~").Groups[1].Value;
             var year = Regex.Match(line, "~\\s*(\\d+)").Groups[1].Value;
 
@@ -1170,9 +1161,9 @@ namespace OpenBullet2.Native.Views.Pages
             builder.AppendLine($"check email: akunlama.com/inbox/{usernamePart}");
             builder.AppendLine($"auth_token={authToken ?? "N/A"}");
             builder.AppendLine();
-            builder.Append($"UsernameÃ¢â‚¬Â¢PostÃ¢â‚¬Â¢FollowerÃ¢â‚¬Â¢Tahun = {username ?? "N/A"}Ã¢â‚¬Â¢{post}");
-            builder.Append($"Ã¢â‚¬Â¢{(string.IsNullOrEmpty(follower) ? "N/A" : follower)}");
-            builder.Append($"Ã¢â‚¬Â¢{(string.IsNullOrEmpty(year) ? "N/A" : year)}");
+            builder.Append($"UsernameÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢PostÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢FollowerÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢Tahun = {username ?? "N/A"}ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢{post}");
+            builder.Append($"ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢{(string.IsNullOrEmpty(follower) ? "N/A" : follower)}");
+            builder.Append($"ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢{(string.IsNullOrEmpty(year) ? "N/A" : year)}");
             return builder.ToString();
         }
 
@@ -1712,7 +1703,7 @@ namespace OpenBullet2.Native.Views.Pages
             var authToken = Regex.Match(line, "auth_token=(\\w+)").Groups[1].Value;
             var sessionId = Regex.Match(line, "sessionid=(\\S+)").Groups[1].Value;
             var username = Regex.Match(line, "@(\\S+)").Groups[1].Value;
-            var post = Regex.Match(line, "^(\\d+)Ã¢â„¢Â ").Groups[1].Value;
+            var post = Regex.Match(line, "^(\\d+)ÃƒÂ¢Ã¢â€žÂ¢Ã‚Â ").Groups[1].Value;
             var follower = Regex.Match(line, "(\\d+)~").Groups[1].Value;
             var year = Regex.Match(line, "~\\s*(\\d+)").Groups[1].Value;
 
@@ -1734,211 +1725,13 @@ namespace OpenBullet2.Native.Views.Pages
             if (!string.IsNullOrEmpty(post) || !string.IsNullOrEmpty(follower) || !string.IsNullOrEmpty(year))
             {
                 builder.AppendLine();
-                builder.Append($"UsernameÃ¢â‚¬Â¢PostÃ¢â‚¬Â¢FollowerÃ¢â‚¬Â¢Tahun = {(string.IsNullOrEmpty(username) ? "N/A" : username)}Ã¢â‚¬Â¢{(string.IsNullOrEmpty(post) ? "N/A" : post)}Ã¢â‚¬Â¢{(string.IsNullOrEmpty(follower) ? "N/A" : follower)}Ã¢â‚¬Â¢{(string.IsNullOrEmpty(year) ? "N/A" : year)}");
+                builder.Append($"UsernameÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢PostÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢FollowerÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢Tahun = {(string.IsNullOrEmpty(username) ? "N/A" : username)}ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢{(string.IsNullOrEmpty(post) ? "N/A" : post)}ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢{(string.IsNullOrEmpty(follower) ? "N/A" : follower)}ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢{(string.IsNullOrEmpty(year) ? "N/A" : year)}");
             }
 
             return builder.ToString();
         }
 
-        private async void RefreshModemIp(object sender, RoutedEventArgs e)
-        {
-            var addressText = ModemAddressTextBox.Text?.Trim() ?? string.Empty;
-            if (string.IsNullOrEmpty(addressText))
-            {
-                SetModemStatus("Router address is required.", Brushes.OrangeRed);
-                return;
-            }
-
-            if (!addressText.StartsWith("http", StringComparison.OrdinalIgnoreCase))
-            {
-                addressText = $"http://{addressText}";
-            }
-
-            if (!Uri.TryCreate(addressText, UriKind.Absolute, out var baseUri))
-            {
-                SetModemStatus("Router address is invalid.", Brushes.OrangeRed);
-                return;
-            }
-
-            var username = string.IsNullOrWhiteSpace(ModemUsernameTextBox.Text)
-                ? "admin"
-                : ModemUsernameTextBox.Text.Trim();
-            var password = ModemPasswordBox.Password ?? string.Empty;
-
-            RefreshModemIpButton.IsEnabled = false;
-            SetModemStatus("Contacting modemÃ¢â‚¬Â¦", Brushes.LightSteelBlue);
-            AppendModemLog($"Target: {baseUri}");
-
-            try
-            {
-                var cookieContainer = new CookieContainer();
-                using var handler = new HttpClientHandler
-                {
-                    CookieContainer = cookieContainer,
-                    AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate
-                };
-                using var client = new HttpClient(handler)
-                {
-                    Timeout = TimeSpan.FromSeconds(5)
-                };
-
-                ConfigureModemClient(client);
-
-                var loginPayload = BuildLoginPayload(username, password);
-                AppendModemLog("Sending login request.");
-                var loginResponse = await SendModemRequest(client, baseUri, loginPayload);
-                var loginBody = await loginResponse.Content.ReadAsStringAsync();
-                AppendModemLog($"Login response {(int)loginResponse.StatusCode}: {Summarize(loginBody)}");
-
-                loginResponse.EnsureSuccessStatusCode();
-
-                var sessionCookie = FindSessionCookie(cookieContainer, baseUri);
-                if (sessionCookie == null)
-                {
-                    throw new InvalidOperationException("Modem did not return a session cookie.");
-                }
-
-                var successCount = 0;
-                foreach (var payload in ModemTogglePayloads.OrderBy(_ => modemRandom.Next()))
-                {
-                    var preference = ExtractPreferenceName(payload);
-                    AppendModemLog($"Applying preference '{preference}'.");
-                    var response = await SendModemRequest(client, baseUri, payload);
-                    var responseBody = await response.Content.ReadAsStringAsync();
-                    AppendModemLog($"Response {(int)response.StatusCode}: {Summarize(responseBody)}");
-
-                    response.EnsureSuccessStatusCode();
-
-                    if (responseBody.Contains("success", StringComparison.OrdinalIgnoreCase))
-                    {
-                        successCount++;
-                    }
-                }
-
-                if (successCount > 0)
-                {
-                    SetModemStatus("Network toggles sent to modem.", Brushes.LawnGreen);
-                }
-                else
-                {
-                    SetModemStatus("Modem did not acknowledge the toggle requests.", Brushes.OrangeRed);
-                }
-            }
-            catch (Exception ex)
-            {
-                AppendModemLog($"Error: {ex.Message}");
-                SetModemStatus($"Failed: {ex.Message}", Brushes.OrangeRed);
-            }
-            finally
-            {
-                RefreshModemIpButton.IsEnabled = true;
-            }
-        }
-
-        private void ClearModemLog(object sender, RoutedEventArgs e)
-        {
-            ModemLogTextBox.Clear();
-            ModemStatusBorder.Visibility = Visibility.Collapsed;
-        }
-
-        private static void ConfigureModemClient(HttpClient client)
-        {
-            client.DefaultRequestHeaders.Accept.Clear();
-            client.DefaultRequestHeaders.Accept.ParseAdd("application/json, text/javascript, */*; q=0.01");
-            client.DefaultRequestHeaders.AcceptEncoding.Clear();
-            client.DefaultRequestHeaders.AcceptEncoding.ParseAdd("gzip, deflate");
-            client.DefaultRequestHeaders.AcceptLanguage.Clear();
-            client.DefaultRequestHeaders.AcceptLanguage.ParseAdd("en-US,en;q=0.9");
-            client.DefaultRequestHeaders.Add("Connection", "keep-alive");
-            client.DefaultRequestHeaders.Add("DNT", "1");
-            client.DefaultRequestHeaders.Add("X-Requested-With", "XMLHttpRequest");
-            client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.60 Safari/537.36");
-        }
-
-        private static async Task<HttpResponseMessage> SendModemRequest(HttpClient client, Uri baseUri, string payload)
-        {
-            var endpoint = new Uri(baseUri, "/goform/goform_set_cmd_process");
-            using var request = new HttpRequestMessage(HttpMethod.Post, endpoint)
-            {
-                Content = new StringContent(payload, Encoding.UTF8, "application/x-www-form-urlencoded")
-            };
-
-            request.Headers.TryAddWithoutValidation("Origin", baseUri.GetLeftPart(UriPartial.Authority));
-            request.Headers.Referrer = new Uri(baseUri, "/");
-
-            return await client.SendAsync(request).ConfigureAwait(false);
-        }
-
-        private static System.Net.Cookie? FindSessionCookie(CookieContainer container, Uri baseUri)
-        {
-            foreach (System.Net.Cookie cookie in container.GetCookies(baseUri))
-            {
-                if (string.Equals(cookie.Name, "JSESSIONID", StringComparison.OrdinalIgnoreCase))
-                {
-                    return cookie;
-                }
-            }
-
-            return null;
-        }
-
-        private static string BuildLoginPayload(string username, string password)
-        {
-            var credential = $"{username}\n{password}";
-            var base64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(credential));
-            return $"isTest=false&goformId=LOGIN&password={Uri.EscapeDataString(base64)}";
-        }
-
-        private static string ExtractPreferenceName(string payload)
-        {
-            const string key = "BearerPreference=";
-            var start = payload.IndexOf(key, StringComparison.OrdinalIgnoreCase);
-            if (start < 0)
-            {
-                return payload;
-            }
-
-            var value = payload[(start + key.Length)..];
-            var end = value.IndexOf('%');
-            if (end >= 0)
-            {
-                value = value[..end];
-            }
-
-            return value.Replace('_', ' ');
-        }
-
-        private static string Summarize(string input)
-        {
-            var text = input.Trim();
-            if (text.Length == 0)
-            {
-                return "(empty)";
-            }
-
-            return text.Length > 120 ? text[..120] + "Ã¢â‚¬Â¦" : text;
-        }
-
-        private void AppendModemLog(string message)
-        {
-            if (ModemLogTextBox == null)
-            {
-                return;
-            }
-
-            var timestamp = DateTime.Now.ToString("HH:mm:ss");
-            ModemLogTextBox.AppendText($"[{timestamp}] {message}{Environment.NewLine}");
-            ModemLogTextBox.ScrollToEnd();
-        }
-
-        private void SetModemStatus(string message, Brush brush)
-        {
-            ModemStatusTextBlock.Text = message;
-            ModemStatusTextBlock.Foreground = brush;
-            ModemStatusBorder.Visibility = Visibility.Visible;
-        }
-
-        #region Performance Benchmark
+#region Performance Benchmark
         
         private DispatcherTimer benchmarkUpdateTimer;
         private DateTime benchmarkStartTime;
@@ -2744,7 +2537,7 @@ namespace OpenBullet2.Native.Views.Pages
                 FullPath = fullPath;
                 Length = length;
                 DisplayName = Path.GetFileName(fullPath);
-                Details = $"{FormatBytes(length)} • {fullPath}";
+                Details = $"{FormatBytes(length)} â€¢ {fullPath}";
             }
 
             public string FullPath { get; }
@@ -2903,3 +2696,7 @@ namespace OpenBullet2.Native.Views.Pages
         }
     }
 }
+
+
+
+

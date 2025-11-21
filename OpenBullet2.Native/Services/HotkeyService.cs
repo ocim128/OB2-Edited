@@ -33,9 +33,11 @@ namespace OpenBullet2.Native.Services
 
         // Virtual key codes
         private const uint VK_Q = 0x51;
+        private const uint VK_Y = 0x59;
 
         // Hotkey IDs
         private const int HOTKEY_CTRL_ALT_Q = 1;
+        private const int HOTKEY_CTRL_SHIFT_ALT_Y = 2;
 
         private IntPtr windowHandle;
         private HwndSource hwndSource;
@@ -52,6 +54,8 @@ namespace OpenBullet2.Native.Services
 
         // OTP validation for "disavow" or 6-digit numbers only
         private const int MAX_CLIPBOARD_LENGTH = 1000;
+        private readonly ModemRefreshService modemRefreshService = new();
+        private readonly ModemPluginSettingsProvider modemSettingsProvider = new();
 
         public bool IsEnabled
         {
@@ -153,8 +157,9 @@ namespace OpenBullet2.Native.Services
             {
                 // Ctrl+Alt+Q for OTP file functionality
                 RegisterHotKey(windowHandle, HOTKEY_CTRL_ALT_Q, MOD_CONTROL | MOD_ALT, VK_Q);
+                RegisterHotKey(windowHandle, HOTKEY_CTRL_SHIFT_ALT_Y, MOD_CONTROL | MOD_ALT | MOD_SHIFT, VK_Y);
 
-                ShowTrayNotification("OTP Hotkey Enabled", "Ctrl+Alt+Q is now active for OTP file writing");
+                ShowTrayNotification("Plugin Hotkeys Enabled", "Ctrl+Alt+Q and Ctrl+Shift+Alt+Y are now active.");
             }
             catch (Exception ex)
             {
@@ -172,8 +177,9 @@ namespace OpenBullet2.Native.Services
             try
             {
                 UnregisterHotKey(windowHandle, HOTKEY_CTRL_ALT_Q);
+                UnregisterHotKey(windowHandle, HOTKEY_CTRL_SHIFT_ALT_Y);
 
-                ShowTrayNotification("OTP Hotkey Disabled", "Ctrl+Alt+Q is now inactive");
+                ShowTrayNotification("Plugin Hotkeys Disabled", "Global plugin hotkeys are now inactive.");
             }
             catch (Exception ex)
             {
@@ -181,62 +187,69 @@ namespace OpenBullet2.Native.Services
             }
         }
 
-        private void HandleHotkey(int hotkeyId)
+        private async void HandleHotkey(int hotkeyId)
         {
             lock (executionLock)
             {
-                try
+                // Check if already executing a hotkey
+                if (isExecutingHotkey)
                 {
-                    // Check if already executing a hotkey
-                    if (isExecutingHotkey)
-                    {
-                        Debug.WriteLine($"Hotkey {hotkeyId} ignored - another hotkey is executing");
-                        return;
-                    }
-
-                    // Debouncing: prevent rapid successive executions
-                    var now = DateTime.Now;
-                    var timeSinceLastHotkey = (now - lastHotkeyTime).TotalMilliseconds;
-
-                    if (timeSinceLastHotkey < DEBOUNCE_INTERVAL_MS && lastHotkeyId == hotkeyId)
-                    {
-                        Debug.WriteLine($"Hotkey {hotkeyId} ignored - debounce interval not met ({timeSinceLastHotkey}ms < {DEBOUNCE_INTERVAL_MS}ms)");
-                        return;
-                    }
-
-                    // Update execution state
-                    isExecutingHotkey = true;
-                    lastHotkeyTime = now;
-                    lastHotkeyId = hotkeyId;
-
-                    Debug.WriteLine($"Executing hotkey ID: {hotkeyId} at {now:HH:mm:ss.fff}");
-
-                    switch (hotkeyId)
-                    {
-                        case HOTKEY_CTRL_ALT_Q:
-                            Debug.WriteLine("Executing Ctrl+Alt+Q");
-                            HandleCtrlAltQ();
-                            break;
-                        default:
-                            Debug.WriteLine($"Unknown hotkey ID: {hotkeyId}");
-                            break;
-                    }
+                    Debug.WriteLine($"Hotkey {hotkeyId} ignored - another hotkey is executing");
+                    return;
                 }
-                catch (Exception ex)
+
+                // Debouncing: prevent rapid successive executions
+                var now = DateTime.Now;
+                var timeSinceLastHotkey = (now - lastHotkeyTime).TotalMilliseconds;
+
+                if (timeSinceLastHotkey < DEBOUNCE_INTERVAL_MS && lastHotkeyId == hotkeyId)
                 {
-                    Debug.WriteLine($"Error handling hotkey {hotkeyId}: {ex.Message}");
-                    ShowTrayNotification("Hotkey Error", $"Error in hotkey {hotkeyId}: {ex.Message}");
+                    Debug.WriteLine($"Hotkey {hotkeyId} ignored - debounce interval not met ({timeSinceLastHotkey}ms < {DEBOUNCE_INTERVAL_MS}ms)");
+                    return;
                 }
-                finally
+
+                // Update execution state
+                isExecutingHotkey = true;
+                lastHotkeyTime = now;
+                lastHotkeyId = hotkeyId;
+            }
+
+            Debug.WriteLine($"Executing hotkey ID: {hotkeyId} at {DateTime.Now:HH:mm:ss.fff}");
+
+            try
+            {
+                switch (hotkeyId)
                 {
-                    // Always reset execution state
+                    case HOTKEY_CTRL_ALT_Q:
+                        Debug.WriteLine("Executing Ctrl+Alt+Q");
+                        await HandleCtrlAltQAsync();
+                        break;
+                    case HOTKEY_CTRL_SHIFT_ALT_Y:
+                        Debug.WriteLine("Executing Ctrl+Shift+Alt+Y");
+                        await HandleCtrlShiftAltYAsync();
+                        break;
+                    default:
+                        Debug.WriteLine($"Unknown hotkey ID: {hotkeyId}");
+                        break;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error handling hotkey {hotkeyId}: {ex.Message}");
+                ShowTrayNotification("Hotkey Error", $"Error in hotkey {hotkeyId}: {ex.Message}");
+            }
+            finally
+            {
+                lock (executionLock)
+                {
                     isExecutingHotkey = false;
-                    Debug.WriteLine($"Hotkey {hotkeyId} execution completed");
                 }
+
+                Debug.WriteLine($"Hotkey {hotkeyId} execution completed");
             }
         }
 
-        private void HandleCtrlAltQ()
+        private Task HandleCtrlAltQAsync()
         {
             try
             {
@@ -246,7 +259,7 @@ namespace OpenBullet2.Native.Services
                 if (string.IsNullOrEmpty(clipboardContent))
                 {
                     ShowTrayNotification("OTP", "Clipboard is empty");
-                    return;
+                    return Task.CompletedTask;
                 }
 
                 // Check if clipboard contains "disavow" or a 6-digit number
@@ -285,6 +298,40 @@ namespace OpenBullet2.Native.Services
             catch (Exception ex)
             {
                 ShowTrayNotification("OTP Error", $"Failed to process clipboard: {ex.Message}");
+            }
+
+            return Task.CompletedTask;
+        }
+
+        private async Task HandleCtrlShiftAltYAsync()
+        {
+            try
+            {
+                var settings = modemSettingsProvider.Load();
+                var result = await modemRefreshService.RefreshAsync(new ModemRefreshRequest
+                {
+                    RouterAddress = settings.RouterAddress,
+                    Username = settings.Username,
+                    Password = "admin"
+                }).ConfigureAwait(false);
+
+                modemSettingsProvider.Save(new ModemPluginSettings
+                {
+                    RouterAddress = result.TargetAddress ?? settings.RouterAddress,
+                    Username = result.Username ?? settings.Username
+                });
+
+                var title = result.IsSuccess ? "Modem Refresh" : "Modem Refresh Failed";
+                ShowTrayNotification(title, result.StatusMessage);
+            }
+            catch (ArgumentException ex)
+            {
+                ShowTrayNotification("Modem Refresh Error", ex.Message);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Ctrl+Shift+Alt+Y failed: {ex.Message}");
+                ShowTrayNotification("Modem Refresh Error", ex.Message);
             }
         }
 

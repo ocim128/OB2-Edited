@@ -32,6 +32,12 @@ namespace OpenBullet2.Native.Views.Pages
         private IEnumerable<HitViewModel> GetSelectedHits() => resultsListView.SelectedItems.Cast<HitViewModel>().ToList();
         private IEnumerable<BotViewModel> GetSelectedBots() => botsListView.SelectedItems.Cast<BotViewModel>().ToList();
 
+        private void BotsListView_PreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)
+            => SelectListViewItemUnderMouse(botsListView, e);
+
+        private void ResultsListView_PreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)
+            => SelectListViewItemUnderMouse(resultsListView, e);
+
         public MultiRunJobViewer()
         {
             mainWindow = ServiceLocator.GetService<MainWindow>();
@@ -228,6 +234,39 @@ namespace OpenBullet2.Native.Views.Pages
                     ToCheckTabButton.Foreground = Brushes.White;
                     break;
             }
+        }
+
+        private static void SelectListViewItemUnderMouse(ListView listView, MouseButtonEventArgs e)
+        {
+            var container = FindAncestor<ListViewItem>(e.OriginalSource as DependencyObject);
+            if (container is null)
+            {
+                return;
+            }
+
+            if (!container.IsSelected)
+            {
+                listView.SelectedItems.Clear();
+                container.IsSelected = true;
+            }
+
+            container.Focus();
+        }
+
+        private static T? FindAncestor<T>(DependencyObject? current)
+            where T : DependencyObject
+        {
+            while (current is not null)
+            {
+                if (current is T match)
+                {
+                    return match;
+                }
+
+                current = VisualTreeHelper.GetParent(current);
+            }
+
+            return null;
         }
 
         // Bot context menu methods

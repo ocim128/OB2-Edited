@@ -343,6 +343,15 @@ internal class AutoMapperProfile : Profile
             .IncludeAllDerived();
 
         CreateMap<AutoBlockInstance, AutoBlockInstanceDto>();
+        CreateMap<ConditionalConstantStringCase, ConditionalConstantCaseDto>()
+            .ForMember(dto => dto.Keys, e => e.MapFrom(
+                (s, d, i, ctx) => PolyMapper.MapAllFrom(s.Keys, ctx.Mapper)));
+        CreateMap<ConditionalConstantStringBlockInstance, AutoBlockInstanceDto>()
+            .IncludeBase<AutoBlockInstance, AutoBlockInstanceDto>()
+            .AfterMap((src, dest, ctx) =>
+            {
+                dest.ConditionalCases = ctx.Mapper.Map<List<ConditionalConstantCaseDto>>(src.ConditionalCases);
+            });
         CreateMap<ParseBlockInstance, ParseBlockInstanceDto>();
         CreateMap<ScriptBlockInstance, ScriptBlockInstanceDto>();
         CreateMap<KeycheckBlockInstance, KeycheckBlockInstanceDto>();

@@ -1,6 +1,7 @@
 using OpenBullet2.Native.Helpers;
 using OpenBullet2.Native.ViewModels;
 using RuriLib.Models.Blocks;
+using RuriLib.Models.Blocks.Custom;
 using RuriLib.Models.Blocks.Settings;
 using System;
 using System.Linq;
@@ -85,6 +86,16 @@ namespace OpenBullet2.Native.Controls
 
                 blockHeaderAction.Content = CreateAddVariableButton(createMultipleViewer);
                 blockHeaderAction.Visibility = Visibility.Visible;
+                return;
+            }
+            else if (vm.Block.Descriptor.Id == "ConstantString" && vm.Block is ConditionalConstantStringBlockInstance)
+            {
+                var conditionalViewer = new ConditionalConstantStringViewer
+                {
+                    BlockVM = vm.BlockVM,
+                    Margin = new Thickness(0, 4, 0, 0)
+                };
+                settingsPanel.Children.Add(conditionalViewer);
                 return;
             }
 

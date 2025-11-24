@@ -1,4 +1,6 @@
-﻿namespace OpenBullet2.Web.Dtos.Config.Blocks;
+using System.Collections.Generic;
+
+namespace OpenBullet2.Web.Dtos.Config.Blocks;
 
 /// <summary>
 /// DTO that represents an auto block instance.
@@ -21,4 +23,9 @@ public class AutoBlockInstanceDto : BlockInstanceDto
     /// interrupting the execution.
     /// </summary>
     public bool Safe { get; set; }
+
+    /// <summary>
+    /// Optional conditional overrides used by specific auto blocks.
+    /// </summary>
+    public List<ConditionalConstantCaseDto> ConditionalCases { get; set; } = new();
 }

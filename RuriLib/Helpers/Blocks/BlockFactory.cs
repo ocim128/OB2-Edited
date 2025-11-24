@@ -29,6 +29,7 @@ namespace RuriLib.Helpers.Blocks
 
             BlockInstance instance = descriptor switch
             {
+                AutoBlockDescriptor x when x.Id == "ConstantString" => new ConditionalConstantStringBlockInstance(x),
                 AutoBlockDescriptor x => new AutoBlockInstance(x),
                 KeycheckBlockDescriptor x => new KeycheckBlockInstance(x),
                 HttpRequestBlockDescriptor x => new HttpRequestBlockInstance(x),

@@ -129,6 +129,7 @@ export interface AutoBlockInstanceDto extends BlockInstanceDto {
   isCapture: boolean;
   safe: boolean;
   type: BlockInstanceType.Auto;
+  conditionalCases?: ConditionalConstantCaseDto[];
 }
 
 export interface ParseBlockInstanceDto extends BlockInstanceDto {
@@ -189,6 +190,13 @@ export interface StringKeyDto extends KeyDto {
 }
 
 export type KeyTypes = BoolKeyDto | DictionaryKeyDto | ListKeyDto | IntKeyDto | FloatKeyDto | StringKeyDto;
+
+export interface ConditionalConstantCaseDto {
+  name: string;
+  mode: KeychainMode;
+  value: BlockSettingDto;
+  keys: KeyTypes[];
+}
 
 export interface KeychainDto {
   keys: KeyTypes[];

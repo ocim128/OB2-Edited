@@ -82,7 +82,9 @@ static internal class BlockMapper
                 default:
                     var autoDescriptor = RuriLib.Globals
                         .DescriptorsRepository.GetAs<AutoBlockDescriptor>(id);
-                    var autoBlock = new AutoBlockInstance(autoDescriptor);
+                    AutoBlockInstance autoBlock = id == "ConstantString"
+                        ? new ConditionalConstantStringBlockInstance(autoDescriptor)
+                        : new AutoBlockInstance(autoDescriptor);
                     var autoBlockDto = jsonElement
                         .Deserialize<AutoBlockInstanceDto>(Globals.JsonOptions);
                     MapBlock(autoBlockDto!, autoBlock);
@@ -102,6 +104,11 @@ static internal class BlockMapper
         block.OutputVariable = dto.OutputVariable;
         block.IsCapture = dto.IsCapture;
         block.Safe = dto.Safe;
+
+        if (block is ConditionalConstantStringBlockInstance conditionalBlock)
+        {
+            MapConditionalCases(dto, conditionalBlock);
+        }
     }
 
     private static void MapBlock(ScriptBlockInstanceDto dto, ScriptBlockInstance block)
@@ -139,18 +146,22 @@ static internal class BlockMapper
             foreach (var k in keychainDto.Keys)
             {
                 var keyDto = PolyMapper.ConvertPolyDto<KeyDto>((JsonElement)k);
-                Key key = keyDto switch {
-                    StringKeyDto x => new StringKey { Comparison = x.Comparison },
-                    IntKeyDto x => new IntKey { Comparison = x.Comparison },
-                    FloatKeyDto x => new FloatKey { Comparison = x.Comparison },
-                    ListKeyDto x => new ListKey { Comparison = x.Comparison },
-                    BoolKeyDto x => new BoolKey { Comparison = x.Comparison },
-                    DictionaryKeyDto x => new DictionaryKey { Comparison = x.Comparison },
-                    _ => throw new NotImplementedException()
-                };
+                if (keyDto is null)
+                {
+                    continue;
+                }
 
-                MapSetting(keyDto.Left, key.Left);
-                MapSetting(keyDto.Right, key.Right);
+                var key = CreateKeyFromDto(keyDto);
+
+                if (keyDto.Left is not null)
+                {
+                    MapSetting(keyDto.Left, key.Left);
+                }
+
+                if (keyDto.Right is not null)
+                {
+                    MapSetting(keyDto.Right, key.Right);
+                }
 
                 keychain.Keys.Add(key);
             }
@@ -250,6 +261,60 @@ static internal class BlockMapper
         }
     }
 
+    private static void MapConditionalCases(AutoBlockInstanceDto dto, ConditionalConstantStringBlockInstance block)
+    {
+        block.ConditionalCases.Clear();
+
+        if (dto.ConditionalCases == null || dto.ConditionalCases.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var caseDto in dto.ConditionalCases)
+        {
+            var conditionalCase = new ConditionalConstantStringCase
+            {
+                Name = caseDto.Name,
+                Mode = caseDto.Mode
+            };
+
+            if (caseDto.Value is not null)
+            {
+                MapSetting(caseDto.Value, conditionalCase.Value);
+            }
+
+            foreach (var entry in caseDto.Keys)
+            {
+                if (entry is not JsonElement element)
+                {
+                    continue;
+                }
+
+                var keyDto = PolyMapper.ConvertPolyDto<KeyDto>(element);
+                if (keyDto is null)
+                {
+                    continue;
+                }
+
+                var key = CreateKeyFromDto(keyDto);
+
+                if (keyDto.Left is not null)
+                {
+                    MapSetting(keyDto.Left, key.Left);
+                }
+
+                if (keyDto.Right is not null)
+                {
+                    MapSetting(keyDto.Right, key.Right);
+                }
+
+                conditionalCase.Keys.Add(key);
+            }
+
+            block.ConditionalCases.Add(conditionalCase);
+        }
+    }
+
     private static void MapBaseBlock(BlockInstanceDto dto, BlockInstance block)
     {
         block.Disabled = dto.Disabled;
@@ -313,5 +378,19 @@ static internal class BlockMapper
                 ((EnumSetting)setting.FixedSetting).Value = value.GetString();
                 break;
         }
+    }
+
+    private static Key CreateKeyFromDto(KeyDto keyDto)
+    {
+        return keyDto switch
+        {
+            StringKeyDto x => new StringKey { Comparison = x.Comparison },
+            IntKeyDto x => new IntKey { Comparison = x.Comparison },
+            FloatKeyDto x => new FloatKey { Comparison = x.Comparison },
+            ListKeyDto x => new ListKey { Comparison = x.Comparison },
+            BoolKeyDto x => new BoolKey { Comparison = x.Comparison },
+            DictionaryKeyDto x => new DictionaryKey { Comparison = x.Comparison },
+            _ => throw new NotImplementedException()
+        };
     }
 }

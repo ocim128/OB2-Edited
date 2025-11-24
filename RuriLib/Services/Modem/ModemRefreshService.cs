@@ -7,8 +7,11 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace OpenBullet2.Native.Services
+namespace RuriLib.Services.Modem
 {
+    /// <summary>
+    /// Provides the same automation flow used by the native plugin hotkey to refresh the modem IP.
+    /// </summary>
     public sealed class ModemRefreshService
     {
         private static readonly string[] ModemTogglePayloads =
@@ -110,7 +113,9 @@ namespace OpenBullet2.Native.Services
             }
 
             var username = string.IsNullOrWhiteSpace(request.Username) ? "admin" : request.Username.Trim();
-            var password = request.Password ?? string.Empty;
+            var password = string.IsNullOrWhiteSpace(request.Password)
+                ? "admin"
+                : request.Password.Trim();
 
             return (baseUri, username, password);
         }

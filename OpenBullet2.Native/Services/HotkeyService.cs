@@ -9,6 +9,7 @@ using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Controls;
 using System.Collections.Generic;
+using RuriLib.Services.Modem;
 
 namespace OpenBullet2.Native.Services
 {

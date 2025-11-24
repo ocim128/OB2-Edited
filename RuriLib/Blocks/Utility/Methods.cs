@@ -2,6 +2,7 @@ using DeviceId;
 using RuriLib.Attributes;
 using RuriLib.Logging;
 using RuriLib.Models.Bots;
+using RuriLib.Services.Modem;
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
@@ -168,6 +169,38 @@ namespace RuriLib.Blocks.Utility
             data.Logger.LogHeader();
             await Task.Delay(delay, data.CancellationToken).ConfigureAwait(false);
             data.Logger.Log($"Waited randomly for {delay} ms (range {minMilliseconds}-{maxMilliseconds})", LogColors.DeepChampagne);
+        }
+
+        [Block("Runs the modem automation to toggle network preferences and refresh the IP", name = "Refresh Modem IP")]
+        public static async Task<bool> RefreshModemIp(BotData data, [Interpolated] string routerAddress = "http://192.168.0.1", [Interpolated] string username = "admin", [Interpolated] string password = "admin")
+        {
+            data.Logger.LogHeader();
+
+            var service = new ModemRefreshService();
+
+            try
+            {
+                var result = await service.RefreshAsync(new ModemRefreshRequest
+                {
+                    RouterAddress = routerAddress ?? string.Empty,
+                    Username = string.IsNullOrWhiteSpace(username) ? "admin" : username,
+                    Password = string.IsNullOrWhiteSpace(password) ? "admin" : password
+                }, data.CancellationToken).ConfigureAwait(false);
+
+                foreach (var entry in result.Logs)
+                {
+                    data.Logger.Log(entry, LogColors.SlateGray);
+                }
+
+                var color = result.IsSuccess ? LogColors.SpringGreen : LogColors.Crimson;
+                data.Logger.Log(result.StatusMessage, color);
+                return result.IsSuccess;
+            }
+            catch (Exception ex)
+            {
+                data.Logger.LogError($"Modem refresh failed: {ex.Message}", ex);
+                return false;
+            }
         }
 
         [Block("Generates a 6-digit OTP code from a Base32 secret", name = "2FA Solver")]

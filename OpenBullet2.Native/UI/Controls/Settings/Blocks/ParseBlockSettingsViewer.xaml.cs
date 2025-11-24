@@ -2,7 +2,9 @@ using OpenBullet2.Native.ViewModels;
 using RuriLib.Models.Blocks.Custom;
 using RuriLib.Models.Blocks.Custom.Parse;
 using System;
+using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 
 namespace OpenBullet2.Native.Controls
 {
@@ -28,6 +30,7 @@ namespace OpenBullet2.Native.Controls
 
             tabControl.SelectedIndex = (int)vm.Mode;
             BindSettings();
+            ReloadConditionalCases();
         }
 
         // TODO: Find a way to automatically scout the visual tree and get the settings viewers by Tag
@@ -59,6 +62,152 @@ namespace OpenBullet2.Native.Controls
             patternSetting.Setting = vm.ParseBlock.Settings["pattern"];
             outputFormatSetting.Setting = vm.ParseBlock.Settings["outputFormat"];
             multiLineSetting.Setting = vm.ParseBlock.Settings["multiLine"];
+        }
+
+        private void ReloadConditionalCases()
+        {
+            conditionalCasesPanel.Children.Clear();
+            foreach (var conditionalCase in vm.ParseBlock.ConditionalCases)
+            {
+                AddCaseViewer(conditionalCase);
+            }
+        }
+
+        private void AddCaseViewer(ParseBlockInstance.ParseConditionalCase conditionalCase)
+        {
+            var container = new Border
+            {
+                BorderBrush = new SolidColorBrush(Color.FromArgb(40, 255, 255, 255)),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(6),
+                Margin = new Thickness(0, 6, 0, 0),
+                Padding = new Thickness(6)
+            };
+
+            var stack = new StackPanel();
+            container.Child = stack;
+
+            var conditionViewer = new ConditionalCaseViewer(conditionalCase)
+            {
+                Margin = new Thickness(0, 0, 0, 6)
+            };
+
+            conditionViewer.OnDeleted += (s, e) => DeleteCase(conditionalCase, container);
+            conditionViewer.OnMoveUp += (s, e) => MoveCase(conditionalCase, -1);
+            conditionViewer.OnMoveDown += (s, e) => MoveCase(conditionalCase, 1);
+            stack.Children.Add(conditionViewer);
+
+            var overridePanel = new StackPanel();
+
+            overridePanel.Children.Add(new TextBlock
+            {
+                Text = "Override Parse Mode",
+                Foreground = new SolidColorBrush(Color.FromRgb(254, 195, 77)),
+                FontSize = 11,
+                FontWeight = FontWeights.SemiBold
+            });
+
+            var modeTabs = CreateModeTabs(conditionalCase);
+
+            var modeCombo = new ComboBox
+            {
+                ItemsSource = Enum.GetValues(typeof(ParseMode)),
+                SelectedItem = conditionalCase.OverrideMode,
+                Margin = new Thickness(0, 4, 0, 8),
+                Width = 160
+            };
+            modeCombo.SelectionChanged += (s, e) =>
+            {
+                if (modeCombo.SelectedItem is ParseMode mode)
+                {
+                    conditionalCase.OverrideMode = mode;
+                    modeTabs.SelectedIndex = (int)mode;
+                }
+            };
+            overridePanel.Children.Add(modeCombo);
+
+            overridePanel.Children.Add(new StringSettingViewer { Setting = conditionalCase.Settings["prefix"] });
+            overridePanel.Children.Add(new StringSettingViewer { Setting = conditionalCase.Settings["suffix"] });
+            overridePanel.Children.Add(modeTabs);
+
+            stack.Children.Add(overridePanel);
+
+            conditionalCasesPanel.Children.Add(container);
+        }
+
+        private TabControl CreateModeTabs(ParseBlockInstance.ParseConditionalCase conditionalCase)
+        {
+            var tabs = new TabControl
+            {
+                SelectedIndex = (int)conditionalCase.OverrideMode,
+                Margin = new Thickness(0, 6, 0, 0),
+                Background = Brushes.Transparent,
+                BorderThickness = new Thickness(0)
+            };
+
+            var tabStyle = new Style(typeof(TabItem));
+            tabStyle.Setters.Add(new Setter(TabItem.VisibilityProperty, Visibility.Collapsed));
+            tabs.ItemContainerStyle = tabStyle;
+
+            var lrPanel = new StackPanel();
+            lrPanel.Children.Add(new StringSettingViewer { Setting = conditionalCase.Settings["leftDelim"] });
+            lrPanel.Children.Add(new StringSettingViewer { Setting = conditionalCase.Settings["rightDelim"] });
+            lrPanel.Children.Add(new BoolSettingViewer { Setting = conditionalCase.Settings["caseSensitive"] });
+            tabs.Items.Add(new TabItem { Content = lrPanel });
+
+            var cssPanel = new StackPanel();
+            cssPanel.Children.Add(new StringSettingViewer { Setting = conditionalCase.Settings["cssSelector"] });
+            cssPanel.Children.Add(new StringSettingViewer { Setting = conditionalCase.Settings["attributeName"] });
+            tabs.Items.Add(new TabItem { Content = cssPanel });
+
+            var xPathPanel = new StackPanel();
+            xPathPanel.Children.Add(new StringSettingViewer { Setting = conditionalCase.Settings["xPath"] });
+            xPathPanel.Children.Add(new StringSettingViewer { Setting = conditionalCase.Settings["attributeName"] });
+            tabs.Items.Add(new TabItem { Content = xPathPanel });
+
+            var jsonPanel = new StackPanel();
+            jsonPanel.Children.Add(new StringSettingViewer { Setting = conditionalCase.Settings["jToken"] });
+            tabs.Items.Add(new TabItem { Content = jsonPanel });
+
+            var regexPanel = new StackPanel();
+            regexPanel.Children.Add(new StringSettingViewer { Setting = conditionalCase.Settings["pattern"] });
+            regexPanel.Children.Add(new StringSettingViewer { Setting = conditionalCase.Settings["outputFormat"] });
+            regexPanel.Children.Add(new BoolSettingViewer { Setting = conditionalCase.Settings["multiLine"] });
+            tabs.Items.Add(new TabItem { Content = regexPanel });
+
+            return tabs;
+        }
+
+        private void DeleteCase(ParseBlockInstance.ParseConditionalCase conditionalCase, FrameworkElement container)
+        {
+            if (vm.ParseBlock.ConditionalCases.Remove(conditionalCase))
+            {
+                conditionalCasesPanel.Children.Remove(container);
+            }
+        }
+
+        private void MoveCase(ParseBlockInstance.ParseConditionalCase conditionalCase, int offset)
+        {
+            var index = vm.ParseBlock.ConditionalCases.IndexOf(conditionalCase);
+            var newIndex = index + offset;
+
+            if (index < 0 || newIndex < 0 || newIndex >= vm.ParseBlock.ConditionalCases.Count)
+            {
+                return;
+            }
+
+            vm.ParseBlock.ConditionalCases.RemoveAt(index);
+            vm.ParseBlock.ConditionalCases.Insert(newIndex, conditionalCase);
+            ReloadConditionalCases();
+        }
+
+        private void AddCondition(object sender, RoutedEventArgs e)
+        {
+            var conditionalCase = vm.ParseBlock.CreateConditionalCase();
+            conditionalCase.Name = $"Condition {vm.ParseBlock.ConditionalCases.Count + 1}";
+
+            vm.ParseBlock.ConditionalCases.Add(conditionalCase);
+            AddCaseViewer(conditionalCase);
         }
     }
 

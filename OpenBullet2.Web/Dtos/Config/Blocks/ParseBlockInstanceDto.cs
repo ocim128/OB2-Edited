@@ -1,4 +1,5 @@
-﻿using RuriLib.Models.Blocks.Custom.Parse;
+using System.Collections.Generic;
+using RuriLib.Models.Blocks.Custom.Parse;
 
 namespace OpenBullet2.Web.Dtos.Config.Blocks;
 
@@ -33,4 +34,9 @@ public class ParseBlockInstanceDto : BlockInstanceDto
     /// The parsing mode.
     /// </summary>
     public ParseMode Mode { get; set; }
+
+    /// <summary>
+    /// Optional conditional overrides for the parsed value.
+    /// </summary>
+    public List<ConditionalConstantCaseDto> ConditionalCases { get; set; } = new();
 }

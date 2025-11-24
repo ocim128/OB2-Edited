@@ -138,6 +138,7 @@ export interface ParseBlockInstanceDto extends BlockInstanceDto {
   isCapture: boolean;
   safe: boolean;
   mode: ParseMode;
+  conditionalCases?: ConditionalConstantCaseDto[];
   type: BlockInstanceType.Parse;
 }
 
@@ -196,6 +197,8 @@ export interface ConditionalConstantCaseDto {
   mode: KeychainMode;
   value: BlockSettingDto;
   keys: KeyTypes[];
+  parseModeOverride?: ParseMode;
+  parseSettings?: { [key: string]: BlockSettingDto };
 }
 
 export interface KeychainDto {

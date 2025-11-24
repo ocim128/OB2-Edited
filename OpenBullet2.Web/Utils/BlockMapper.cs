@@ -1,4 +1,5 @@
-﻿using AutoMapper;
+using AutoMapper;
+using System.Collections.Generic;
 using OpenBullet2.Web.Dtos.Config.Blocks;
 using OpenBullet2.Web.Dtos.Config.Blocks.HttpRequest;
 using OpenBullet2.Web.Dtos.Config.Blocks.Keycheck;
@@ -107,7 +108,7 @@ static internal class BlockMapper
 
         if (block is ConditionalConstantStringBlockInstance conditionalBlock)
         {
-            MapConditionalCases(dto, conditionalBlock);
+            MapConditionalCases(dto.ConditionalCases, conditionalBlock.ConditionalCases);
         }
     }
 
@@ -134,6 +135,7 @@ static internal class BlockMapper
         block.IsCapture = dto.IsCapture;
         block.Safe = dto.Safe;
         block.Mode = dto.Mode;
+        MapConditionalCases(dto.ConditionalCases, block);
     }
 
     private static void MapBlock(KeycheckBlockInstanceDto dto, KeycheckBlockInstance block)
@@ -261,16 +263,16 @@ static internal class BlockMapper
         }
     }
 
-    private static void MapConditionalCases(AutoBlockInstanceDto dto, ConditionalConstantStringBlockInstance block)
+    private static void MapConditionalCases(List<ConditionalConstantCaseDto>? cases, List<ConditionalConstantStringCase> target)
     {
-        block.ConditionalCases.Clear();
+        target.Clear();
 
-        if (dto.ConditionalCases == null || dto.ConditionalCases.Count == 0)
+        if (cases == null || cases.Count == 0)
         {
             return;
         }
 
-        foreach (var caseDto in dto.ConditionalCases)
+        foreach (var caseDto in cases)
         {
             var conditionalCase = new ConditionalConstantStringCase
             {
@@ -309,6 +311,70 @@ static internal class BlockMapper
                 }
 
                 conditionalCase.Keys.Add(key);
+            }
+
+            target.Add(conditionalCase);
+        }
+    }
+
+    private static void MapConditionalCases(List<ConditionalConstantCaseDto>? cases, ParseBlockInstance block)
+    {
+        block.ConditionalCases.Clear();
+
+        if (cases == null || cases.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var caseDto in cases)
+        {
+            var conditionalCase = block.CreateConditionalCase();
+            conditionalCase.Name = caseDto.Name;
+            conditionalCase.Mode = caseDto.Mode;
+            conditionalCase.OverrideMode = caseDto.ParseModeOverride ?? block.Mode;
+
+            if (caseDto.Value is not null)
+            {
+                MapSetting(caseDto.Value, conditionalCase.Value);
+            }
+
+            foreach (var entry in caseDto.Keys)
+            {
+                if (entry is not JsonElement element)
+                {
+                    continue;
+                }
+
+                var keyDto = PolyMapper.ConvertPolyDto<KeyDto>(element);
+                if (keyDto is null)
+                {
+                    continue;
+                }
+
+                var key = CreateKeyFromDto(keyDto);
+
+                if (keyDto.Left is not null)
+                {
+                    MapSetting(keyDto.Left, key.Left);
+                }
+
+                if (keyDto.Right is not null)
+                {
+                    MapSetting(keyDto.Right, key.Right);
+                }
+
+                conditionalCase.Keys.Add(key);
+            }
+
+            if (caseDto.ParseSettings != null)
+            {
+                foreach (var kvp in caseDto.ParseSettings)
+                {
+                    if (conditionalCase.Settings.TryGetValue(kvp.Key, out var setting))
+                    {
+                        MapSetting(kvp.Value, setting);
+                    }
+                }
             }
 
             block.ConditionalCases.Add(conditionalCase);
@@ -394,3 +460,6 @@ static internal class BlockMapper
         };
     }
 }
+
+
+

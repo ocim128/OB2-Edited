@@ -22,6 +22,7 @@
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
@@ -185,6 +186,32 @@
                     </TabControl>
                 </Border>
             </Grid>
+
+            <!-- Conditional Overrides -->
+            <Border Grid.Row="7"
+                    Margin="0 10 0 0"
+                    Padding="8"
+                    BorderThickness="1"
+                    BorderBrush="#40FFFFFF"
+                    CornerRadius="6"
+                    Background="#19000000">
+                <StackPanel>
+                    <DockPanel Margin="0 0 0 6">
+                        <TextBlock Text="Conditional Overrides"
+                                   DockPanel.Dock="Left"
+                                   Foreground="#fec34d"
+                                   FontWeight="SemiBold"
+                                   FontSize="11"
+                                   VerticalAlignment="Center"/>
+                        <Button Content="Add Condition"
+                                DockPanel.Dock="Right"
+                                Style="{StaticResource ModernButton}"
+                                Padding="10 4"
+                                Click="AddCondition"/>
+                    </DockPanel>
+                    <StackPanel x:Name="conditionalCasesPanel"/>
+                </StackPanel>
+            </Border>
         </Grid>
     </Border>
 </UserControl>

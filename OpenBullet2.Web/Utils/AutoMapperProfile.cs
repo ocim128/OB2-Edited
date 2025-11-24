@@ -47,6 +47,7 @@ using RuriLib.Models.Jobs.Monitor.Triggers;
 using RuriLib.Models.Jobs.StartConditions;
 using RuriLib.Models.Settings;
 using System.Reflection;
+using System.Linq;
 using System.Text.Json;
 using Action = RuriLib.Models.Jobs.Monitor.Actions.Action;
 using Endpoint = OpenBullet2.Core.Models.Sharing.Endpoint;
@@ -346,13 +347,26 @@ internal class AutoMapperProfile : Profile
         CreateMap<ConditionalConstantStringCase, ConditionalConstantCaseDto>()
             .ForMember(dto => dto.Keys, e => e.MapFrom(
                 (s, d, i, ctx) => PolyMapper.MapAllFrom(s.Keys, ctx.Mapper)));
+        CreateMap<ParseBlockInstance.ParseConditionalCase, ConditionalConstantCaseDto>()
+            .IncludeBase<ConditionalConstantStringCase, ConditionalConstantCaseDto>()
+            .AfterMap((src, dest, ctx) =>
+            {
+                dest.ParseModeOverride = src.OverrideMode;
+                dest.ParseSettings = src.Settings.ToDictionary(
+                    kvp => kvp.Key,
+                    kvp => ctx.Mapper.Map<BlockSettingDto>(kvp.Value));
+            });
         CreateMap<ConditionalConstantStringBlockInstance, AutoBlockInstanceDto>()
             .IncludeBase<AutoBlockInstance, AutoBlockInstanceDto>()
             .AfterMap((src, dest, ctx) =>
             {
                 dest.ConditionalCases = ctx.Mapper.Map<List<ConditionalConstantCaseDto>>(src.ConditionalCases);
             });
-        CreateMap<ParseBlockInstance, ParseBlockInstanceDto>();
+        CreateMap<ParseBlockInstance, ParseBlockInstanceDto>()
+            .AfterMap((src, dest, ctx) =>
+            {
+                dest.ConditionalCases = ctx.Mapper.Map<List<ConditionalConstantCaseDto>>(src.ConditionalCases);
+            });
         CreateMap<ScriptBlockInstance, ScriptBlockInstanceDto>();
         CreateMap<KeycheckBlockInstance, KeycheckBlockInstanceDto>();
         CreateMap<LoliCodeBlockInstance, LoliCodeBlockInstanceDto>();

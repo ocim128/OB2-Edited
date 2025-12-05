@@ -10,7 +10,7 @@ public class PlaywrightSettings
     public bool DrawMouseMovement { get; set; } = true;
     public int TimeoutMilliseconds { get; set; } = 30000;
     public bool IgnoreHTTPSErrors { get; set; } = true;
-    public string[] ExtraArgs { get; set; } = new string[0];
+    public string[] ExtraArgs { get; set; } = new[] { "--no-sandbox" };
 }
 
 public enum PlaywrightBrowserType

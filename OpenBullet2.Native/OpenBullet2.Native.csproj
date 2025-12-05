@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
         <OutputType>WinExe</OutputType>
         <TargetFramework>net8.0-windows</TargetFramework>
@@ -95,14 +95,6 @@
         <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
         <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
     </PropertyGroup>
-    <PropertyGroup>
-        <BundlePlaywrightRuntime Condition="'$(BundlePlaywrightRuntime)' == ''">false</BundlePlaywrightRuntime>
-        <PlaywrightBundleBrowsers Condition="'$(PlaywrightBundleBrowsers)' == ''">chromium firefox</PlaywrightBundleBrowsers>
-        <PlaywrightShellExecutable Condition="'$(PlaywrightShellExecutable)' == '' and Exists('$(ProgramFiles)\PowerShell\7\pwsh.exe')">$(ProgramFiles)\PowerShell\7\pwsh.exe</PlaywrightShellExecutable>
-        <PlaywrightShellExecutable Condition="'$(PlaywrightShellExecutable)' == '' and Exists('$(ProgramFiles(x86))\PowerShell\7\pwsh.exe')">$(ProgramFiles(x86))\PowerShell\7\pwsh.exe</PlaywrightShellExecutable>
-        <PlaywrightShellExecutable Condition="'$(PlaywrightShellExecutable)' == '' and '$(OS)' == 'Windows_NT'">$(SystemRoot)\System32\WindowsPowerShell\v1.0\powershell.exe</PlaywrightShellExecutable>
-        <PlaywrightShellExecutable Condition="'$(PlaywrightShellExecutable)' == ''">pwsh</PlaywrightShellExecutable>
-    </PropertyGroup>
     <!-- Essential Content Files -->
     <ItemGroup>
         <Content Include="appsettings.json">
@@ -176,7 +168,7 @@
         <PackageReference Include="System.IO.Hashing" Version="8.0.0" />
         <PackageReference Include="WpfAnimatedGif" Version="2.0.2" />
         <PackageReference Include="SixLabors.ImageSharp" Version="3.1.11" />
-        <PackageReference Include="Microsoft.Playwright" Version="1.54.0" />
+        <PackageReference Include="Microsoft.Playwright" Version="1.40.0" />
     </ItemGroup>
     
     <!-- Exclude non-Windows runtimes to save disk space -->
@@ -207,19 +199,6 @@
         <Delete Files="@(IronPythonLibFiles)" ContinueOnError="true" />
         <RemoveDir Directories="@(IronPythonLibDir)" ContinueOnError="true" />
         <Message Text="Removed IronPython lib folder to reduce build size" Importance="high" />
-    </Target>
-    <Target Name="BundlePlaywrightRuntimeAssets"
-            AfterTargets="Publish"
-            Condition="'$(BundlePlaywrightRuntime)' == 'true' and Exists('$(PublishDir)playwright.ps1')">
-        <PropertyGroup>
-            <_PlaywrightPublishRoot>$([MSBuild]::EnsureTrailingSlash('$(PublishDir)'))ms-playwright</_PlaywrightPublishRoot>
-            <_PlaywrightScript>$(PublishDir)playwright.ps1</_PlaywrightScript>
-        </PropertyGroup>
-        <MakeDir Directories="$(_PlaywrightPublishRoot)" />
-        <Message Text="Bundling Playwright browsers ($(PlaywrightBundleBrowsers)) into $(PublishDir)" Importance="high" />
-        <Exec Command="&quot;$(PlaywrightShellExecutable)&quot; -NoLogo -NoProfile -ExecutionPolicy Bypass -File &quot;$(_PlaywrightScript)&quot; install $(PlaywrightBundleBrowsers)"
-              WorkingDirectory="$(PublishDir)"
-              EnvironmentVariables="PLAYWRIGHT_BROWSERS_PATH=$(_PlaywrightPublishRoot)" />
     </Target>
     <!-- Project References -->
     <ItemGroup>
@@ -286,3 +265,4 @@
         <TrimmerRootAssembly Include="RuriLib" />
     </ItemGroup>
 </Project>
+

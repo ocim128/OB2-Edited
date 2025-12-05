@@ -3,6 +3,7 @@ using RuriLib.Attributes;
 using RuriLib.Logging;
 using RuriLib.Models.Bots;
 using RuriLib.Models.Settings;
+using RuriLib.Providers.Playwright;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -11,7 +12,6 @@ using System.Threading.Tasks;
 using System.Threading;
 using System.Net.Http;
 using NAudio.Wave;
-using RuriLib.Providers.Playwright;
 using System.Speech.Recognition;
 
 namespace RuriLib.Blocks.Playwright.Browser
@@ -80,14 +80,6 @@ namespace RuriLib.Blocks.Playwright.Browser
                 }
             }
 
-            var executablePath = GetExecutablePath(actualBrowserType, data);
-            var playwright = await PlaywrightRuntimeService.CreateAsync(
-                actualBrowserType,
-                executablePath,
-                message => data.Logger.Log(message, LogColors.DimGray),
-                data.CancellationToken);
-            data.SetObject("playwrightInstance", playwright);
-
             var launchOptions = new BrowserTypeLaunchOptions
             {
                 Headless = actualHeadless,
@@ -96,10 +88,16 @@ namespace RuriLib.Blocks.Playwright.Browser
             };
 
             // Efficient browser executable path handling
-            launchOptions.ExecutablePath = executablePath;
+            launchOptions.ExecutablePath = GetExecutablePath(actualBrowserType, data);
 
             // Validate and correct browser type if needed
             actualBrowserType = ValidateBrowserType(actualBrowserType, launchOptions.ExecutablePath, data);
+
+            // Ensure runtime path and required browsers exist before creating the Playwright instance
+            Action<string> runtimeLog = message => data.Logger.Log(message, LogColors.MediumPurple);
+            await PlaywrightRuntimeService.EnsureBrowserInstalledAsync(actualBrowserType, launchOptions.ExecutablePath, runtimeLog);
+            var playwright = await PlaywrightRuntimeService.CreateAsync(actualBrowserType, launchOptions.ExecutablePath, runtimeLog);
+            data.SetObject("playwrightInstance", playwright);
 
             IBrowser browser = null;
             IBrowserContext context = null;

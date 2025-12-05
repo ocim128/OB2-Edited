@@ -888,8 +888,6 @@ namespace OpenBullet2.Native.Views.Pages.Shared
         {
             try
             {
-                // Reset logger state before starting to avoid lingering trimming slowdowns
-                _viewModel.ClearLog();
                 logRTB.Clear();
                 await _viewModel.RunAsync();
             }

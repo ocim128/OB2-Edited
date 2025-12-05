@@ -23,11 +23,10 @@ public static class PlaywrightRuntimeService
         { PlaywrightBrowserType.Webkit, new[] { "webkit" } }
     };
 
-    private static readonly Lazy<string> PackagedRuntimePath = new(() =>
-        Path.Combine(AppContext.BaseDirectory ?? AppDomain.CurrentDomain.BaseDirectory, "ms-playwright"));
-
+    // Both packaged and fallback runtimes now point to the default user-local directory used by Playwright.
     private static readonly Lazy<string> UserRuntimePath = new(() =>
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "OpenBullet2", "ms-playwright"));
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ms-playwright"));
+    private static readonly Lazy<string> PackagedRuntimePath = new(() => UserRuntimePath.Value);
 
     private static string _activeRuntimePath = string.Empty;
     private static bool _environmentPrepared;

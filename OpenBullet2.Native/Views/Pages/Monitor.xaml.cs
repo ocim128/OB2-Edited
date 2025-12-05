@@ -36,7 +36,6 @@ using RuriLib.Models.Bots;
 using RuriLib.Logging;
 using RuriLib.Models.Environment;
 using RuriLib.Models.Settings;
-using RuriLib.Providers.Playwright;
 using RuriLib.Services;
 
 namespace OpenBullet2.Native.Views.Pages
@@ -1479,14 +1478,11 @@ namespace OpenBullet2.Native.Views.Pages
             var settingsService = ServiceLocator.GetService<RuriLibSettingsService>();
             var playwrightSettings = settingsService.RuriLibSettings?.PlaywrightSettings ?? new PlaywrightSettings();
             var firefoxBinary = playwrightSettings.FirefoxBinaryLocation;
-            var executablePath = string.IsNullOrWhiteSpace(firefoxBinary) || !File.Exists(firefoxBinary)
-                ? null
-                : firefoxBinary;
-            void ReportRuntimeStatus(string message) => Dispatcher.Invoke(() => SetZipOptionStatus(message, Brushes.LightSteelBlue));
 
-            if (executablePath is null)
+            if (string.IsNullOrWhiteSpace(firefoxBinary) || !File.Exists(firefoxBinary))
             {
-                ReportRuntimeStatus("Using Playwright's packaged Firefox runtime (no custom binary configured).");
+                SetZipOptionStatus("Firefox binary path in RL settings is invalid.", Brushes.OrangeRed);
+                return;
             }
 
             var profileRoot = Path.Combine(Path.GetTempPath(), "ob2-zip-profile", Guid.NewGuid().ToString("N"));
@@ -1506,16 +1502,12 @@ namespace OpenBullet2.Native.Views.Pages
 
                 SetZipOptionStatus($"Launching Firefox for '{option.Name}'...", Brushes.LightSteelBlue);
 
-                var playwright = await PlaywrightRuntimeService.CreateAsync(
-                    PlaywrightBrowserType.Firefox,
-                    executablePath,
-                    ReportRuntimeStatus,
-                    CancellationToken.None);
+                var playwright = await Microsoft.Playwright.Playwright.CreateAsync();
 
                 var launchOptions = new BrowserTypeLaunchPersistentContextOptions
                 {
                     Headless = playwrightSettings.Headless,
-                    ExecutablePath = executablePath,
+                    ExecutablePath = firefoxBinary,
                     Timeout = playwrightSettings.TimeoutMilliseconds <= 0 ? 30000 : playwrightSettings.TimeoutMilliseconds,
                     Args = playwrightSettings.ExtraArgs ?? Array.Empty<string>()
                 };

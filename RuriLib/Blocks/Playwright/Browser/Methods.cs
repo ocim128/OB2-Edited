@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using System.Threading;
 using System.Net.Http;
 using NAudio.Wave;
+using RuriLib.Providers.Playwright;
 using System.Speech.Recognition;
 
 namespace RuriLib.Blocks.Playwright.Browser
@@ -40,8 +41,6 @@ namespace RuriLib.Blocks.Playwright.Browser
             var tempEntriesBeforeLaunch = CapturePlaywrightTempEntries();
 
             var provider = data.Providers.PlaywrightBrowser;
-            var playwright = await Microsoft.Playwright.Playwright.CreateAsync();
-            data.SetObject("playwrightInstance", playwright);
 
             // Use provider settings or override with parameters
             var actualBrowserType = browserType ?? provider.BrowserType;
@@ -81,6 +80,14 @@ namespace RuriLib.Blocks.Playwright.Browser
                 }
             }
 
+            var executablePath = GetExecutablePath(actualBrowserType, data);
+            var playwright = await PlaywrightRuntimeService.CreateAsync(
+                actualBrowserType,
+                executablePath,
+                message => data.Logger.Log(message, LogColors.DimGray),
+                data.CancellationToken);
+            data.SetObject("playwrightInstance", playwright);
+
             var launchOptions = new BrowserTypeLaunchOptions
             {
                 Headless = actualHeadless,
@@ -89,7 +96,7 @@ namespace RuriLib.Blocks.Playwright.Browser
             };
 
             // Efficient browser executable path handling
-            launchOptions.ExecutablePath = GetExecutablePath(actualBrowserType, data);
+            launchOptions.ExecutablePath = executablePath;
 
             // Validate and correct browser type if needed
             actualBrowserType = ValidateBrowserType(actualBrowserType, launchOptions.ExecutablePath, data);

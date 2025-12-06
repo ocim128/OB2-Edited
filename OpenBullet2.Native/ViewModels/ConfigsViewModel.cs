@@ -105,11 +105,13 @@ namespace OpenBullet2.Native.ViewModels
 
         public int Total => ConfigsCollection.Count;
 
-        public ConfigsViewModel()
+        public ConfigsViewModel(
+            ConfigService configService,
+            IConfigRepository configRepository)
         {
-            configService = ServiceLocator.GetService<ConfigService>();
-            configService.OnRemotesLoaded += (s, e) => CreateCollection();
-            configRepo = ServiceLocator.GetService<IConfigRepository>();
+            this.configService = configService ?? throw new ArgumentNullException(nameof(configService));
+            this.configService.OnRemotesLoaded += (s, e) => CreateCollection();
+            configRepo = configRepository ?? throw new ArgumentNullException(nameof(configRepository));
             CreateCollection();
         }
 

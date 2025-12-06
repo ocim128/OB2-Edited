@@ -32,9 +32,9 @@ namespace OpenBullet2.Native.ViewModels;
         }
     }
 
-    public ConfigStackerViewModel()
+    public ConfigStackerViewModel(ConfigService configService)
     {
-        configService = ServiceLocator.GetService<ConfigService>();
+        this.configService = configService ?? throw new ArgumentNullException(nameof(configService));
     }
 
     public void CreateBlock(BlockDescriptor descriptor)

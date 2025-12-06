@@ -1,5 +1,6 @@
 using RuriLib.Services;
 using OpenBullet2.Native.Services;
+using System;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
@@ -23,10 +24,12 @@ namespace OpenBullet2.Native.ViewModels
             }
         }
 
-        public PluginsViewModel()
+        public PluginsViewModel(
+            PluginRepository pluginRepository,
+            HotkeyService hotkeyService)
         {
-            pluginRepo = ServiceLocator.GetService<PluginRepository>();
-            hotkeyService = ServiceLocator.GetService<HotkeyService>();
+            pluginRepo = pluginRepository ?? throw new ArgumentNullException(nameof(pluginRepository));
+            this.hotkeyService = hotkeyService ?? throw new ArgumentNullException(nameof(hotkeyService));
             
             RefreshList();
         }

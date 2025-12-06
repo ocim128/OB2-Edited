@@ -203,14 +203,20 @@ public class DebuggerViewModel : OpenBullet2.Native.ViewModels.Infrastructure.Vi
 
     public string AutoScrollButtonText => IsAutoScrollEnabled ? "Stop Scroll" : "Start Scroll";
 
-    public DebuggerViewModel()
+    public DebuggerViewModel(
+        RuriLibSettingsService ruriLibSettingsService,
+        OpenBulletSettingsService openBulletSettingsService,
+        ConfigService configService,
+        IRandomUAProvider randomUserAgentProvider,
+        IRNGProvider rngProvider,
+        PluginRepository pluginRepository)
     {
-        rlSettingsService = ServiceLocator.GetService<RuriLibSettingsService>();
-        obSettingsService = ServiceLocator.GetService<OpenBulletSettingsService>();
-        configService = ServiceLocator.GetService<ConfigService>();
-        randomUAProvider = ServiceLocator.GetService<IRandomUAProvider>();
-        rngProvider = ServiceLocator.GetService<IRNGProvider>();
-        pluginRepo = ServiceLocator.GetService<PluginRepository>();
+        rlSettingsService = ruriLibSettingsService ?? throw new ArgumentNullException(nameof(ruriLibSettingsService));
+        obSettingsService = openBulletSettingsService ?? throw new ArgumentNullException(nameof(openBulletSettingsService));
+        this.configService = configService ?? throw new ArgumentNullException(nameof(configService));
+        randomUAProvider = randomUserAgentProvider ?? throw new ArgumentNullException(nameof(randomUserAgentProvider));
+        this.rngProvider = rngProvider ?? throw new ArgumentNullException(nameof(rngProvider));
+        pluginRepo = pluginRepository ?? throw new ArgumentNullException(nameof(pluginRepository));
 
         WordlistType = WordlistTypes.First();
     }

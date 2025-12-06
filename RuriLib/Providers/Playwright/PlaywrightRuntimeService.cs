@@ -62,41 +62,182 @@ public static class PlaywrightRuntimeService
         if (!string.IsNullOrEmpty(executableOverride) && File.Exists(executableOverride))
         {
             // Custom executable provided by the user, nothing to install.
+            log?.Invoke($"Using custom browser executable: {executableOverride}");
             return;
         }
 
         var runtimePath = EnsureRuntimePath();
         if (IsBrowserInstalled(runtimePath, browserType))
         {
+            log?.Invoke($"Browser {browserType} is already installed at '{runtimePath}'");
             return;
         }
 
         await InstallGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
+            // Double-check after acquiring the lock
             if (IsBrowserInstalled(runtimePath, browserType))
             {
+                log?.Invoke($"Browser {browserType} was installed by another thread");
                 return;
             }
 
+            // Validate system requirements before installation
+            ValidateSystemRequirements(runtimePath, log);
+
             log?.Invoke($"Installing Playwright {browserType} browser bundle to '{runtimePath}'...");
-            var installArgs = new[] { "install", GetBrowserCliName(browserType) };
-            var exitCode = await Task.Run(() => Microsoft.Playwright.Program.Main(installArgs), cancellationToken)
-                .ConfigureAwait(false);
-
-            if (exitCode != 0)
+            log?.Invoke($"This may take a few minutes depending on your internet connection...");
+            
+            var browserCliName = GetBrowserCliName(browserType);
+            var installArgs = new[] { "install", browserCliName };
+            
+            try
             {
-                throw new InvalidOperationException(
-                    $"Playwright CLI exited with code {exitCode} while installing {browserType}. " +
-                    $"See earlier logs for details.");
-            }
+                var exitCode = await Task.Run(() => Microsoft.Playwright.Program.Main(installArgs), cancellationToken)
+                    .ConfigureAwait(false);
 
-            log?.Invoke($"Playwright {browserType} installation completed.");
+                if (exitCode != 0)
+                {
+                    throw new InvalidOperationException(
+                        $"Playwright CLI exited with code {exitCode} while installing {browserType}.\n" +
+                        BuildManualInstallationMessage(browserType, browserCliName, runtimePath));
+                }
+
+                // Verify installation was successful
+                if (!IsBrowserInstalled(runtimePath, browserType))
+                {
+                    throw new InvalidOperationException(
+                        $"Browser installation reported success but {browserType} was not found in '{runtimePath}'.\n" +
+                        BuildManualInstallationMessage(browserType, browserCliName, runtimePath));
+                }
+
+                log?.Invoke($"✅ Playwright {browserType} installation completed successfully!");
+            }
+            catch (Exception ex) when (ex is not InvalidOperationException)
+            {
+                // Wrap unexpected exceptions with helpful context
+                throw new InvalidOperationException(
+                    $"Failed to install Playwright {browserType} browser: {ex.Message}\n" +
+                    BuildManualInstallationMessage(browserType, browserCliName, runtimePath),
+                    ex);
+            }
         }
         finally
         {
             InstallGate.Release();
         }
+    }
+
+    /// <summary>
+    /// Validates system requirements before attempting browser installation.
+    /// </summary>
+    private static void ValidateSystemRequirements(string runtimePath, Action<string>? log)
+    {
+        // Check disk space (need at least 500MB per browser)
+        try
+        {
+            var drive = new DriveInfo(Path.GetPathRoot(runtimePath) ?? runtimePath);
+            const long minimumBytes = 500_000_000; // 500 MB
+            
+            if (drive.AvailableFreeSpace < minimumBytes)
+            {
+                var availableMB = drive.AvailableFreeSpace / 1_000_000;
+                var requiredMB = minimumBytes / 1_000_000;
+                throw new InvalidOperationException(
+                    $"Insufficient disk space on drive {drive.Name}. " +
+                    $"Available: {availableMB} MB, Required: {requiredMB} MB. " +
+                    $"Please free up disk space and try again.");
+            }
+        }
+        catch (Exception ex) when (ex is not InvalidOperationException)
+        {
+            log?.Invoke($"⚠️ Warning: Could not verify disk space: {ex.Message}");
+        }
+
+        // Check write permissions
+        try
+        {
+            Directory.CreateDirectory(runtimePath);
+            var testFile = Path.Combine(runtimePath, $".playwright_write_test_{Guid.NewGuid():N}");
+            File.WriteAllText(testFile, "test");
+            File.Delete(testFile);
+        }
+        catch (Exception ex)
+        {
+            throw new UnauthorizedAccessException(
+                $"No write permission to browser installation directory '{runtimePath}'. " +
+                $"Error: {ex.Message}\n" +
+                $"Solution: Run the application as administrator or choose a different installation directory.",
+                ex);
+        }
+    }
+
+    /// <summary>
+    /// Builds a helpful error message with manual installation instructions.
+    /// </summary>
+    private static string BuildManualInstallationMessage(
+        PlaywrightBrowserType browserType, 
+        string browserCliName, 
+        string runtimePath)
+    {
+        return $"\n" +
+               $"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+               $"MANUAL INSTALLATION OPTIONS:\n" +
+               $"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+               $"\n" +
+               $"Option 1: Install using PowerShell (Recommended)\n" +
+               $"  1. Open PowerShell as Administrator\n" +
+               $"  2. Navigate to your output directory (bin/Debug or bin/Release)\n" +
+               $"  3. Run: .\\playwright.ps1 install {browserCliName}\n" +
+               $"\n" +
+               $"Option 2: Install using dotnet tool\n" +
+               $"  1. Open Command Prompt or PowerShell as Administrator\n" +
+               $"  2. Run: pwsh -Command \"& {{dotnet tool install -g Microsoft.Playwright.CLI}}\"\n" +
+               $"  3. Run: playwright install {browserCliName}\n" +
+               $"\n" +
+               $"Option 3: Use a custom browser executable\n" +
+               $"  1. Download {browserType} browser manually\n" +
+               $"  2. In OpenBullet2 settings, go to RL Settings > Playwright\n" +
+               $"  3. Set the '{browserType} Binary Location' to your browser executable\n" +
+               $"     Example paths:\n" +
+               GetExampleBrowserPaths(browserType) +
+               $"\n" +
+               $"Option 4: Download from official website\n" +
+               $"  Visit: https://playwright.dev/dotnet/docs/browsers\n" +
+               $"\n" +
+               $"Installation Directory: {runtimePath}\n" +
+               $"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+               $"\n" +
+               $"If the problem persists, check:\n" +
+               $"  • Your internet connection\n" +
+               $"  • Firewall/antivirus settings\n" +
+               $"  • Available disk space (need ~500MB)\n" +
+               $"  • Write permissions to: {runtimePath}";
+    }
+
+    /// <summary>
+    /// Returns example paths for manually installed browsers based on browser type.
+    /// </summary>
+    private static string GetExampleBrowserPaths(PlaywrightBrowserType browserType)
+    {
+        return browserType switch
+        {
+            PlaywrightBrowserType.Chromium => 
+                $"     - Chrome: C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe\n" +
+                $"     - Edge: C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\n" +
+                $"     - Brave: C:\\Program Files\\BraveSoftware\\Brave-Browser\\Application\\brave.exe\n",
+            
+            PlaywrightBrowserType.Firefox => 
+                $"     - Firefox: C:\\Program Files\\Mozilla Firefox\\firefox.exe\n" +
+                $"     - LibreWolf: C:\\Program Files\\LibreWolf\\librewolf.exe\n",
+            
+            PlaywrightBrowserType.Webkit => 
+                $"     - Webkit browsers are not commonly available on Windows\n" +
+                $"     - Consider using Chromium or Firefox instead\n",
+            
+            _ => string.Empty
+        };
     }
 
     private static string EnsureRuntimePath()
@@ -136,15 +277,51 @@ public static class PlaywrightRuntimeService
 
         try
         {
-            return Directory.EnumerateDirectories(runtimePath, "*", SearchOption.TopDirectoryOnly)
+            // Method 1: Check by directory name (primary method)
+            var hasDirectoryMatch = Directory.EnumerateDirectories(runtimePath, "*", SearchOption.TopDirectoryOnly)
                 .Select(Path.GetFileName)
                 .Any(folderName => folderName != null &&
                                    tokens.Any(token => folderName.StartsWith(token, StringComparison.OrdinalIgnoreCase)));
+
+            if (hasDirectoryMatch)
+            {
+                return true;
+            }
+
+            // Method 2: Fallback - look for browser executables
+            // This provides resilience if Playwright changes its directory structure
+            var executableName = GetBrowserExecutableName(browserType);
+            if (!string.IsNullOrEmpty(executableName))
+            {
+                var hasExecutable = Directory.EnumerateFiles(runtimePath, executableName, SearchOption.AllDirectories)
+                    .Any();
+
+                if (hasExecutable)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
         catch
         {
             return false;
         }
+    }
+
+    /// <summary>
+    /// Returns the expected executable name for a browser type on Windows.
+    /// </summary>
+    private static string GetBrowserExecutableName(PlaywrightBrowserType browserType)
+    {
+        return browserType switch
+        {
+            PlaywrightBrowserType.Chromium => "chrome.exe",
+            PlaywrightBrowserType.Firefox => "firefox.exe",
+            PlaywrightBrowserType.Webkit => "Playwright.exe",
+            _ => string.Empty
+        };
     }
 
     private static string GetBrowserCliName(PlaywrightBrowserType browserType) => browserType switch

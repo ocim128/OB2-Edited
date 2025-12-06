@@ -26,6 +26,7 @@ using OpenBullet2.Core.Services;
 using RuriLib;
 using RuriLib.Blocks.Utility;
 using RuriLib.Helpers;
+using RuriLib.Helpers.Playwright;
 using RuriLib.Helpers.Transpilers;
 using RuriLib.Models.Blocks;
 using RuriLib.Models.Blocks.Custom;
@@ -1503,23 +1504,86 @@ namespace OpenBullet2.Native.Views.Pages
                 SetZipOptionStatus($"Launching Firefox for '{option.Name}'...", Brushes.LightSteelBlue);
 
                 var playwright = await Microsoft.Playwright.Playwright.CreateAsync();
+                IBrowserContext context; // Declare outside try block
+
+                var sanitizedArgs = (playwrightSettings.ExtraArgs ?? Array.Empty<string>()).ToList();
+                PlaywrightLaunchConfigurator.EnsureSandboxFlags(sanitizedArgs);
 
                 var launchOptions = new BrowserTypeLaunchPersistentContextOptions
                 {
                     Headless = playwrightSettings.Headless,
                     ExecutablePath = firefoxBinary,
-                    Timeout = playwrightSettings.TimeoutMilliseconds <= 0 ? 30000 : playwrightSettings.TimeoutMilliseconds,
-                    Args = playwrightSettings.ExtraArgs ?? Array.Empty<string>()
+                    Timeout = playwrightSettings.TimeoutMilliseconds <= 0 ? 60000 : playwrightSettings.TimeoutMilliseconds, // Default 60s for Firefox
+                    Args = sanitizedArgs.ToArray(),
+                    // Firefox-specific options to prevent hanging
+                    IgnoreHTTPSErrors = playwrightSettings.IgnoreHTTPSErrors,
+                    AcceptDownloads = false,
+                    JavaScriptEnabled = true
                 };
+                PlaywrightLaunchConfigurator.ApplyFirefoxSafeDefaults(launchOptions);
 
-                var context = await playwright.Firefox.LaunchPersistentContextAsync(profileRoot, launchOptions);
+                SetZipOptionStatus($"Launching Firefox with timeout: {launchOptions.Timeout}ms...", Brushes.LightBlue);
+
+                try
+                {
+                    // Add cancellation token with timeout to prevent indefinite hang
+                    var timeoutMs = playwrightSettings.TimeoutMilliseconds <= 0 ? 60000 : playwrightSettings.TimeoutMilliseconds;
+                    using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(timeoutMs));
+                    
+                    SetZipOptionStatus($"Creating Firefox persistent context...", Brushes.LightBlue);
+                    
+                    // Use Task.WhenAny to implement timeout
+                    var launchTask = playwright.Firefox.LaunchPersistentContextAsync(profileRoot, launchOptions);
+                    
+                    if (await Task.WhenAny(launchTask, Task.Delay(timeoutMs, cts.Token)) == launchTask)
+                    {
+                        // Launch completed successfully
+                        context = await launchTask;
+                        SetZipOptionStatus($"Firefox context created successfully!", Brushes.LawnGreen);
+                    }
+                    else
+                    {
+                        // Timeout occurred
+                        throw new TimeoutException(
+                            $"Firefox launch timed out after {timeoutMs}ms. " +
+                            $"Try increasing timeout in RL Settings > Playwright > Timeout " +
+                            $"or use a system-installed Firefox browser instead.");
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    throw new TimeoutException(
+                        $"Firefox launch timed out after {launchOptions.Timeout}ms. " +
+                        $"Try increasing timeout in RL Settings > Playwright > Timeout " +
+                        $"or use a system-installed Firefox browser instead.");
+                }
+                catch (TimeoutException)
+                {
+                    // Re-throw timeout exceptions as-is
+                    throw;
+                }
+                catch (Exception launchEx)
+                {
+                    throw new Exception(
+                        $"Failed to launch Firefox persistent context: {launchEx.Message}\n" +
+                        $"Timeout: {launchOptions.Timeout}ms\n" +
+                        $"Profile: {profileRoot}\n" +
+                        $"Binary: {firefoxBinary}\n" +
+                        $"Headless: {playwrightSettings.Headless}\n" +
+                        $"Suggested solutions:\n" +
+                        $"1. Increase timeout in RL Settings > Playwright\n" +
+                        $"2. Use system Firefox: C:\\Program Files\\Mozilla Firefox\\firefox.exe\n" +
+                        $"3. Use Chromium browser instead", 
+                        launchEx);
+                }
 
                 // Navigate to Gmail after launching browser
                 try
                 {
+                    SetZipOptionStatus($"Navigating to Gmail...", Brushes.LightBlue);
                     var pages = context.Pages;
                     var page = pages.Count > 0 ? pages[0] : await context.NewPageAsync();
-                    await page.GotoAsync("https://gmail.com");
+                    await page.GotoAsync("https://gmail.com", new() { Timeout = 30000 });
                     SetZipOptionStatus($"Launched Firefox profile '{option.Name}' and navigated to Gmail.", Brushes.LawnGreen);
                 }
                 catch (Exception navEx)
@@ -1546,7 +1610,10 @@ namespace OpenBullet2.Native.Views.Pages
             catch (Exception ex)
             {
                 TryDeleteDirectory(profileRoot);
-                SetZipOptionStatus($"Launch failed: {ex.Message}", Brushes.OrangeRed);
+                var errorMessage = ex is TimeoutException 
+                    ? ex.Message 
+                    : $"Launch failed: {ex.Message}";
+                SetZipOptionStatus(errorMessage, Brushes.OrangeRed);
             }
             finally
             {

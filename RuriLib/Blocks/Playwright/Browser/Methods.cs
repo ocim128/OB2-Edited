@@ -1,13 +1,16 @@
 using Microsoft.Playwright;
 using RuriLib.Attributes;
+using RuriLib.Helpers.Playwright;
 using RuriLib.Logging;
 using RuriLib.Models.Bots;
 using RuriLib.Models.Settings;
 using RuriLib.Providers.Playwright;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Threading;
 using System.Net.Http;
@@ -20,6 +23,7 @@ namespace RuriLib.Blocks.Playwright.Browser
     public static class Methods
     {
         private const string PlaywrightCleanupStateKey = "playwright.cleanupState";
+        private static readonly TimeSpan ManualClosePollInterval = TimeSpan.FromMilliseconds(750);
 
         [Block("Opens a new playwright browser", name = "Open Browser")]
         public static async Task PlaywrightOpenBrowser(BotData data, PlaywrightBrowserType? browserType = null,
@@ -39,6 +43,7 @@ namespace RuriLib.Blocks.Playwright.Browser
             previousCleanupState?.Cleanup(null);
 
             var tempEntriesBeforeLaunch = CapturePlaywrightTempEntries();
+            Dictionary<int, string> firefoxProcessesBeforeLaunch = null;
 
             var provider = data.Providers.PlaywrightBrowser;
 
@@ -80,10 +85,14 @@ namespace RuriLib.Blocks.Playwright.Browser
                 }
             }
 
+            PlaywrightLaunchConfigurator.EnsureSandboxFlags(finalArgs);
+            var sanitizedArgs = finalArgs.ToArray();
+            actualExtraArgs = sanitizedArgs;
+
             var launchOptions = new BrowserTypeLaunchOptions
             {
                 Headless = actualHeadless,
-                Args = finalArgs.ToArray(),
+                Args = sanitizedArgs,
                 Timeout = provider.TimeoutMilliseconds
             };
 
@@ -92,6 +101,12 @@ namespace RuriLib.Blocks.Playwright.Browser
 
             // Validate and correct browser type if needed
             actualBrowserType = ValidateBrowserType(actualBrowserType, launchOptions.ExecutablePath, data);
+            if (actualBrowserType == PlaywrightBrowserType.Firefox && firefoxProcessesBeforeLaunch == null)
+            {
+                firefoxProcessesBeforeLaunch = CaptureFirefoxProcessSnapshot();
+                PlaywrightLaunchConfigurator.ApplyFirefoxSafeDefaults(launchOptions);
+                data.Logger.Log("Firefox GPU disabled and sandbox relaxed to avoid RADAR_PRE_LEAK_64.", LogColors.MediumPurple);
+            }
 
             // Ensure runtime path and required browsers exist before creating the Playwright instance
             Action<string> runtimeLog = message => data.Logger.Log(message, LogColors.MediumPurple);
@@ -118,10 +133,11 @@ namespace RuriLib.Blocks.Playwright.Browser
                     var persistentOptions = new BrowserTypeLaunchPersistentContextOptions
                     {
                         Headless = actualHeadless,
-                        Args = finalArgs.ToArray(),
+                        Args = sanitizedArgs,
                         Timeout = provider.TimeoutMilliseconds,
                         ExecutablePath = launchOptions.ExecutablePath
                     };
+                    PlaywrightLaunchConfigurator.ApplyFirefoxSafeDefaults(persistentOptions);
                     context = await playwright.Firefox.LaunchPersistentContextAsync(firefoxProfilePath, persistentOptions);
                     data.SetObject("playwrightContext", context);
                     // For persistent contexts, we don't need to set the browser object as it may be null
@@ -136,7 +152,7 @@ namespace RuriLib.Blocks.Playwright.Browser
                     var persistentOptions = new BrowserTypeLaunchPersistentContextOptions
                     {
                         Headless = actualHeadless,
-                        Args = finalArgs.ToArray(),
+                        Args = sanitizedArgs,
                         Timeout = provider.TimeoutMilliseconds,
                         ExecutablePath = launchOptions.ExecutablePath
                     };
@@ -160,10 +176,11 @@ namespace RuriLib.Blocks.Playwright.Browser
                     var fallbackPersistentOptions = new BrowserTypeLaunchPersistentContextOptions
                     {
                         Headless = actualHeadless,
-                        Args = finalArgs.ToArray(),
+                        Args = sanitizedArgs,
                         Timeout = provider.TimeoutMilliseconds
                         // ExecutablePath is intentionally omitted to use built-in Firefox
                     };
+                    PlaywrightLaunchConfigurator.ApplyFirefoxSafeDefaults(fallbackPersistentOptions);
                     context = await playwright.Firefox.LaunchPersistentContextAsync(firefoxProfilePath, fallbackPersistentOptions);
                     data.SetObject("playwrightContext", context);
                     data.Logger.Log($"✅ Successfully launched Playwright's built-in Firefox with profile", LogColors.Green);
@@ -193,6 +210,7 @@ namespace RuriLib.Blocks.Playwright.Browser
                         Timeout = provider.TimeoutMilliseconds
                         // ExecutablePath is intentionally omitted to use built-in Firefox
                     };
+                    PlaywrightLaunchConfigurator.ApplyFirefoxSafeDefaults(fallbackOptions);
                     browser = await playwright.Firefox.LaunchAsync(fallbackOptions);
                     data.Logger.Log($"✅ Successfully launched Playwright's built-in Firefox", LogColors.Green);
                 }
@@ -252,6 +270,10 @@ namespace RuriLib.Blocks.Playwright.Browser
             }
 
             RegisterCleanupState(data, browser ?? context?.Browser, tempEntriesBeforeLaunch);
+            StoreFirefoxProcessDelta(data, firefoxProcessesBeforeLaunch);
+            var manualCloseWatcherEnabled = !actualHeadless && actualBrowserType == PlaywrightBrowserType.Firefox;
+            var cleanupState = data.TryGetObject<PlaywrightCleanupState>(PlaywrightCleanupStateKey);
+            cleanupState?.StartManualCloseWatcher(manualCloseWatcherEnabled);
         }
 
         [Block("Closes an open playwright browser", name = "Close Browser")]
@@ -264,6 +286,7 @@ namespace RuriLib.Blocks.Playwright.Browser
             var cleanupState = data.TryGetObject<PlaywrightCleanupState>(PlaywrightCleanupStateKey);
 
             cleanupState?.SuppressBrowserDisconnect();
+            cleanupState?.StopManualCloseWatcher();
 
             if (context != null)
             {
@@ -279,6 +302,12 @@ namespace RuriLib.Blocks.Playwright.Browser
             {
                 throw new Exception("No browser or context open to close");
             }
+
+            // Wait a moment for processes to exit gracefully
+            await Task.Delay(500);
+
+            // ALWAYS kill Firefox processes (even after successful close)
+            KillPlaywrightFirefoxProcesses(data);
 
             var cleanupHandled = cleanupState?.Cleanup(null) ?? false;
             if (!cleanupHandled)
@@ -1339,6 +1368,9 @@ namespace RuriLib.Blocks.Playwright.Browser
 
         private static void PerformCleanup(BotData data)
         {
+            var cleanupState = data.TryGetObject<PlaywrightCleanupState>(PlaywrightCleanupStateKey);
+            cleanupState?.StopManualCloseWatcher();
+
             var playwrightInstance = data.TryGetObject<IPlaywright>("playwrightInstance");
             if (playwrightInstance != null)
             {
@@ -1371,6 +1403,10 @@ namespace RuriLib.Blocks.Playwright.Browser
                 data.SetObject("playwright.realBrowserProcessId", null);
             }
 
+            // ALWAYS kill Playwright Firefox processes on cleanup (even if Close Browser wasn't called)
+            // This handles cases where bot stops/errors without explicit browser close
+            KillPlaywrightFirefoxProcesses(data);
+
             DeleteDirectoryIfExists(data, "playwright.tempFirefoxProfile", "temporary Firefox profile");
             DeleteDirectoryIfExists(data, "playwright.tempChromiumUserData", "temporary Chromium user data");
             DeleteTrackedArtifacts(data);
@@ -1382,6 +1418,7 @@ namespace RuriLib.Blocks.Playwright.Browser
             data.Objects.Remove("playwright.tempFirefoxProfile");
             data.Objects.Remove("playwright.tempChromiumUserData");
             data.Objects.Remove("playwright.tempArtifacts");
+            data.Objects.Remove("playwright.firefoxProcessIds");
             data.Objects.Remove(PlaywrightCleanupStateKey);
         }
 
@@ -1492,6 +1529,95 @@ namespace RuriLib.Blocks.Playwright.Browser
                 || name.StartsWith("ms-playwright", StringComparison.OrdinalIgnoreCase);
         }
 
+        private static readonly string[] FirefoxProcessNames =
+        {
+            "firefox",
+            "nightly",
+            "librewolf",
+            "camoufox",
+            "waterfox"
+        };
+
+        private static Dictionary<int, string> CaptureFirefoxProcessSnapshot()
+        {
+            var snapshot = new Dictionary<int, string>();
+            try
+            {
+                foreach (var process in Process.GetProcesses())
+                {
+                    if (!IsFirefoxProcessName(process.ProcessName))
+                    {
+                        continue;
+                    }
+
+                    snapshot[process.Id] = SafeGetProcessPath(process);
+                }
+            }
+            catch
+            {
+                // Swallow - failing to capture snapshot should not block launch
+            }
+
+            return snapshot;
+        }
+
+        private static void StoreFirefoxProcessDelta(BotData data, Dictionary<int, string> baseline)
+        {
+            if (baseline == null)
+            {
+                data.Objects.Remove("playwright.firefoxProcessIds");
+                return;
+            }
+
+            try
+            {
+                var current = CaptureFirefoxProcessSnapshot();
+                var delta = current.Keys.Except(baseline.Keys).ToArray();
+                if (delta.Length > 0)
+                {
+                    data.SetObject("playwright.firefoxProcessIds", delta, false);
+                }
+                else
+                {
+                    data.Objects.Remove("playwright.firefoxProcessIds");
+                }
+            }
+            catch
+            {
+                data.Objects.Remove("playwright.firefoxProcessIds");
+            }
+        }
+
+        private static bool IsFirefoxProcessName(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                return false;
+            }
+
+            foreach (var alias in FirefoxProcessNames)
+            {
+                if (name.Equals(alias, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static string SafeGetProcessPath(Process process)
+        {
+            try
+            {
+                return process.MainModule?.FileName ?? string.Empty;
+            }
+            catch
+            {
+                return string.Empty;
+            }
+        }
+
         private sealed class PlaywrightCleanupState
         {
             private readonly BotData _data;
@@ -1499,6 +1625,7 @@ namespace RuriLib.Blocks.Playwright.Browser
             private EventHandler<IBrowser>? _browserDisconnectedHandler;
             private int _cleanupTriggered;
             private HashSet<string> _tempSnapshotBeforeLaunch = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            private CancellationTokenSource? _manualCloseWatcherCts;
 
             public PlaywrightCleanupState(BotData data)
             {
@@ -1539,6 +1666,7 @@ namespace RuriLib.Blocks.Playwright.Browser
                 }
 
                 SuppressBrowserDisconnect();
+                StopManualCloseWatcher();
                 AppDomain.CurrentDomain.ProcessExit -= OnProcessExit;
 
                 if (!string.IsNullOrWhiteSpace(logMessage))
@@ -1555,7 +1683,241 @@ namespace RuriLib.Blocks.Playwright.Browser
             {
                 Cleanup(null);
             }
+
+            public void StartManualCloseWatcher(bool enabled)
+            {
+                StopManualCloseWatcher();
+
+                if (!enabled)
+                {
+                    return;
+                }
+
+                var tracked = _data.TryGetObject<int[]>("playwright.firefoxProcessIds");
+                if (tracked == null || tracked.Length == 0)
+                {
+                    return;
+                }
+
+                _manualCloseWatcherCts = new CancellationTokenSource();
+                _ = Task.Run(() => MonitorFirefoxManualCloseAsync(_data, tracked, _manualCloseWatcherCts.Token), _manualCloseWatcherCts.Token);
+            }
+
+            public void StopManualCloseWatcher()
+            {
+                if (_manualCloseWatcherCts != null)
+                {
+                    try
+                    {
+                        _manualCloseWatcherCts.Cancel();
+                    }
+                    catch
+                    {
+                    }
+                    finally
+                    {
+                        _manualCloseWatcherCts.Dispose();
+                        _manualCloseWatcherCts = null;
+                    }
+                }
+            }
         }
+
+        /// <summary>
+        /// Kills all Firefox processes and deletes Playwright temp profiles.
+        /// Aggressive cleanup to ensure no zombie processes or temp files remain.
+        /// </summary>
+        private static void KillPlaywrightFirefoxProcesses(BotData data)
+        {
+            var cleanupState = data.TryGetObject<PlaywrightCleanupState>(PlaywrightCleanupStateKey);
+            cleanupState?.StopManualCloseWatcher();
+            data.Logger.Log("Attempting Firefox cleanup...", LogColors.Yellow);
+
+            try
+            {
+                var killedPids = KillTrackedFirefoxProcesses(data);
+
+                // Step 2: Delete all Playwright temp profiles from %TEMP%
+                try
+                {
+                    var tempPath = Path.GetTempPath();
+                    var patterns = new[] { "playwright-*", "playwright-firefox-*", "playwright_*", "tmp*playwright*" };
+                    var deletedCount = 0;
+                    
+                    foreach (var pattern in patterns)
+                    {
+                        var dirs = Directory.GetDirectories(tempPath, pattern, SearchOption.TopDirectoryOnly);
+                        foreach (var dir in dirs)
+                        {
+                            try
+                            {
+                                Directory.Delete(dir, true);
+                                deletedCount++;
+                            }
+                            catch
+                            {
+                                // In use or permission denied
+                            }
+                        }
+                    }
+
+                    if (deletedCount > 0)
+                    {
+                        data.Logger.Log($"Deleted {deletedCount} temp profile folder(s)", LogColors.Yellow);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    data.Logger.Log($"Temp cleanup error: {ex.Message}", LogColors.Orange);
+                }
+
+                if (killedPids.Count > 0)
+                {
+                    data.Logger.Log($"✅ Killed {killedPids.Count} Playwright Firefox process(es)", LogColors.Green);
+                }
+                else
+                {
+                    data.Logger.Log("No Playwright Firefox processes to kill", LogColors.Yellow);
+                }
+            }
+            catch (Exception ex)
+            {
+                data.Logger.Log($"Cleanup failed: {ex.Message}", LogColors.Red);
+            }
+        }
+
+        private static HashSet<int> KillTrackedFirefoxProcesses(BotData data)
+        {
+            var killed = new HashSet<int>();
+            var tracked = data.TryGetObject<int[]>("playwright.firefoxProcessIds");
+            if (tracked == null || tracked.Length == 0)
+            {
+                return killed;
+            }
+
+            foreach (var pid in tracked)
+            {
+                try
+                {
+                    var proc = Process.GetProcessById(pid);
+                    if (proc.HasExited)
+                    {
+                        continue;
+                    }
+
+                    proc.Kill(true);
+                    killed.Add(pid);
+                    data.Logger.Log($"  Killed tracked Firefox PID {pid}", LogColors.Yellow);
+                }
+                catch (Exception ex)
+                {
+                    data.Logger.Log($"  Failed to kill tracked PID {pid}: {ex.Message}", LogColors.Orange);
+                }
+            }
+
+            data.Objects.Remove("playwright.firefoxProcessIds");
+            return killed;
+        }
+
+        private static async Task MonitorFirefoxManualCloseAsync(BotData data, int[] trackedPids, CancellationToken token)
+        {
+            var logger = data.Logger;
+            var seenWindows = new HashSet<int>();
+
+            try
+            {
+                while (!token.IsCancellationRequested)
+                {
+                    var anyRunning = false;
+                    var manualCloseDetected = false;
+
+                    foreach (var pid in trackedPids)
+                    {
+                        Process proc;
+                        try
+                        {
+                            proc = Process.GetProcessById(pid);
+                        }
+                        catch
+                        {
+                            continue;
+                        }
+
+                        if (proc.HasExited)
+                        {
+                            continue;
+                        }
+
+                        anyRunning = true;
+
+                        var handle = SafeGetMainWindowHandle(proc);
+                        if (HasVisibleWindow(handle))
+                        {
+                            seenWindows.Add(pid);
+                            continue;
+                        }
+
+                        if (seenWindows.Contains(pid))
+                        {
+                            manualCloseDetected = true;
+                            break;
+                        }
+                    }
+
+                    if (manualCloseDetected)
+                    {
+                        logger.Log("Detected manual Firefox window close. Cleaning up Playwright resources...", LogColors.Yellow);
+                        var cleanupState = data.TryGetObject<PlaywrightCleanupState>(PlaywrightCleanupStateKey);
+                        if (cleanupState != null)
+                        {
+                            cleanupState.Cleanup("Firefox window closed manually. Cleaning up.");
+                        }
+                        else
+                        {
+                            KillPlaywrightFirefoxProcesses(data);
+                        }
+                        return;
+                    }
+
+                    if (!anyRunning)
+                    {
+                        break;
+                    }
+
+                    await Task.Delay(ManualClosePollInterval, token);
+                }
+            }
+            catch (TaskCanceledException)
+            {
+            }
+            catch (Exception ex)
+            {
+                logger.Log($"Manual close watcher error: {ex.Message}", LogColors.Orange);
+            }
+        }
+
+        private static IntPtr SafeGetMainWindowHandle(Process process)
+        {
+            try
+            {
+                return process.MainWindowHandle;
+            }
+            catch
+            {
+                return IntPtr.Zero;
+            }
+        }
+
+        private static bool HasVisibleWindow(IntPtr handle)
+        {
+            return handle != IntPtr.Zero && IsWindow(handle) && IsWindowVisible(handle);
+        }
+
+        [DllImport("user32.dll")]
+        private static extern bool IsWindow(IntPtr hWnd);
+
+        [DllImport("user32.dll")]
+        private static extern bool IsWindowVisible(IntPtr hWnd);
     }
 }
 

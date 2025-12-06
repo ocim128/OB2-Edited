@@ -79,7 +79,7 @@ public class MultiRunJobViewerViewModel : OpenBullet2.Native.ViewModels.Infrastr
         _ => throw new NotImplementedException()
     };
 
-    private string proxySourcesInfo;
+    private string proxySourcesInfo = string.Empty;
     public string ProxySourcesInfo
     {
         get => proxySourcesInfo;
@@ -90,7 +90,7 @@ public class MultiRunJobViewerViewModel : OpenBullet2.Native.ViewModels.Infrastr
         }
     }
 
-    private string hitOutputsInfo;
+    private string hitOutputsInfo = string.Empty;
     public string HitOutputsInfo
     {
         get => hitOutputsInfo;
@@ -139,7 +139,7 @@ public class MultiRunJobViewerViewModel : OpenBullet2.Native.ViewModels.Infrastr
     #endregion Properties that need to be updated when a new result comes in
 
     #region Collections
-    private ObservableCollection<BotViewModel> botsCollection;
+    private ObservableCollection<BotViewModel> botsCollection = new();
     public ObservableCollection<BotViewModel> BotsCollection
     {
         get => botsCollection;
@@ -150,7 +150,7 @@ public class MultiRunJobViewerViewModel : OpenBullet2.Native.ViewModels.Infrastr
         }
     }
 
-    private ObservableCollection<HitViewModel> hitsCollection;
+    private ObservableCollection<HitViewModel> hitsCollection = new();
     public ObservableCollection<HitViewModel> HitsCollection
     {
         get => hitsCollection;
@@ -297,12 +297,12 @@ public class MultiRunJobViewerViewModel : OpenBullet2.Native.ViewModels.Infrastr
     /// <summary>
     /// Updates everything (only when a job completes, just to be safe, not expensive)
     /// </summary>
-    private void UpdateOnCompleted(object sender, EventArgs e) => UpdateViewModel();
+    private void UpdateOnCompleted(object? sender, EventArgs e) => UpdateViewModel();
 
     /// <summary>
     /// Updates the stats after every successful check
     /// </summary>
-    private void UpdateViewModel(object sender, ResultDetails<MultiRunInput, CheckResult> details)
+    private void UpdateViewModel(object? sender, ResultDetails<MultiRunInput, CheckResult> details)
     {
         OnPropertyChanged(nameof(Progress));
         Job.UpdateStats();
@@ -311,7 +311,7 @@ public class MultiRunJobViewerViewModel : OpenBullet2.Native.ViewModels.Infrastr
     /// <summary>
     /// Update the stuff related to a job's status change
     /// </summary>
-    private void UpdateStatus(object sender, JobStatus status)
+    private void UpdateStatus(object? sender, JobStatus status)
     {
         Job.UpdateStatus();
 
@@ -328,9 +328,9 @@ public class MultiRunJobViewerViewModel : OpenBullet2.Native.ViewModels.Infrastr
         OnPropertyChanged(nameof(IsPausing));
     }
 
-    private void UpdateViewModel(object sender, float progress) => UpdateViewModel();
+    private void UpdateViewModel(object? sender, float progress) => UpdateViewModel();
 
-    private void OnHit(object sender, Hit hit)
+    private void OnHit(object? sender, Hit hit)
     {
         // Only add hits that match the current filter to avoid performance issues
         var shouldAdd = HitsFilter switch
@@ -402,7 +402,7 @@ public class MultiRunJobViewerViewModel : OpenBullet2.Native.ViewModels.Infrastr
     #endregion Update methods
 
     #region Logging
-    private void OnResult(object sender, ResultDetails<MultiRunInput, CheckResult> details)
+    private void OnResult(object? sender, ResultDetails<MultiRunInput, CheckResult> details)
     {
         var botData = details.Result.BotData;
         var data = botData.Line.Data;
@@ -425,7 +425,7 @@ public class MultiRunJobViewerViewModel : OpenBullet2.Native.ViewModels.Infrastr
         NewMessage?.Invoke(this, message, color);
     }
 
-    private void OnTaskError(object sender, ErrorDetails<MultiRunInput> details)
+    private void OnTaskError(object? sender, ErrorDetails<MultiRunInput> details)
     {
         var botData = details.Item.BotData;
         var data = botData.Line.Data;
@@ -437,11 +437,11 @@ public class MultiRunJobViewerViewModel : OpenBullet2.Native.ViewModels.Infrastr
         NewMessage?.Invoke(this, message, Colors.Tomato);
     }
 
-    private void OnError(object sender, Exception ex)
+    private void OnError(object? sender, Exception ex)
         => NewMessage?.Invoke(this, $"Job error: {ex.Message}", Colors.Tomato);
     #endregion Logging
 
-    private void PlayHitSound(object sender, ResultDetails<MultiRunInput, CheckResult> details)
+    private void PlayHitSound(object? sender, ResultDetails<MultiRunInput, CheckResult> details)
     {
         if (obSettingsService.Settings.CustomizationSettings.PlaySoundOnHit && details.Result.BotData.STATUS == "SUCCESS")
         {

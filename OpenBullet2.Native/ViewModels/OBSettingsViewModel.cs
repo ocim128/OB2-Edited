@@ -17,9 +17,9 @@ namespace OpenBullet2.Native.ViewModels
         private RemoteSettings Remote => service.Settings.RemoteSettings;
         private CustomizationSettings Customization => service.Settings.CustomizationSettings;
 
-        public OBSettingsViewModel()
+        public OBSettingsViewModel(OpenBulletSettingsService openBulletSettingsService)
         {
-            service = ServiceLocator.GetService<OpenBulletSettingsService>();
+            service = openBulletSettingsService ?? throw new ArgumentNullException(nameof(openBulletSettingsService));
             CreateCollections();
         }
 

@@ -142,11 +142,14 @@ namespace OpenBullet2.Native.ViewModels;
         }
     }
 
-    public ProxiesViewModel()
+    public ProxiesViewModel(
+        IProxyGroupRepository proxyGroupRepository,
+        IProxyRepository proxyRepository,
+        JobManagerService jobManagerService)
     {
-        proxyGroupRepo = ServiceLocator.GetService<IProxyGroupRepository>();
-        proxyRepo = ServiceLocator.GetService<IProxyRepository>();
-        jobManager = ServiceLocator.GetService<JobManagerService>();
+        proxyGroupRepo = proxyGroupRepository ?? throw new ArgumentNullException(nameof(proxyGroupRepository));
+        proxyRepo = proxyRepository ?? throw new ArgumentNullException(nameof(proxyRepository));
+        jobManager = jobManagerService ?? throw new ArgumentNullException(nameof(jobManagerService));
         ProxyGroupsCollection =
         [
             allGroup
@@ -211,11 +214,12 @@ namespace OpenBullet2.Native.ViewModels;
     private bool ProxiesFilter(object item)
     {
         var proxy = item as ProxyEntity;
+        if (proxy == null) return false;
         
         var searchOk = string.IsNullOrEmpty(searchString) || 
-                       proxy.Host.Contains(searchString, StringComparison.OrdinalIgnoreCase) ||
-                       proxy.Username.Contains(searchString, StringComparison.OrdinalIgnoreCase) ||
-                       proxy.Country.Contains(searchString, StringComparison.OrdinalIgnoreCase);
+                       proxy.Host?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true ||
+                       proxy.Username?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true ||
+                       proxy.Country?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true;
         
         var typeOk = typeFilter == "All" || proxy.Type.ToString() == typeFilter;
         var countryOk = countryFilter == "All" || proxy.Country == countryFilter;
@@ -308,7 +312,7 @@ namespace OpenBullet2.Native.ViewModels;
         foreach (var f in firstProxies)
         {
             // If we find that a proxy which is in use by a job belongs to the group to delete
-            if (ProxiesCollection.Any(p => p.Id == f.Id))
+            if (f != null && ProxiesCollection.Any(p => p.Id == f.Id))
             {
                 // Prompt error and return
                 throw new Exception("Group in use by a proxy check job");

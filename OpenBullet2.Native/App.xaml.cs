@@ -239,6 +239,23 @@ public partial class App : Application
 
         // Critical services (loaded immediately)
         services.AddSingleton<VolatileSettingsService>();
+        
+        // ViewModels - registered as singletons for ViewModelsService
+        services.AddSingleton<JobsViewModel>();
+        services.AddSingleton<ProxiesViewModel>();
+        services.AddSingleton<WordlistsViewModel>();
+        services.AddSingleton<ConfigsViewModel>();
+        services.AddSingleton<HitsViewModel>();
+        services.AddSingleton<OBSettingsViewModel>();
+        services.AddSingleton<RLSettingsViewModel>();
+        services.AddSingleton<PluginsViewModel>();
+        services.AddSingleton<ConfigMetadataViewModel>();
+        services.AddSingleton<ConfigReadmeViewModel>();
+        services.AddSingleton<ConfigStackerViewModel>();
+        services.AddSingleton<ConfigSettingsViewModel>();
+        services.AddSingleton<DebuggerViewModel>();
+        
+        // ViewModelsService depends on all ViewModels
         services.AddSingleton<ViewModelsService>();
         services.AddSingleton<ConfigService>();
 

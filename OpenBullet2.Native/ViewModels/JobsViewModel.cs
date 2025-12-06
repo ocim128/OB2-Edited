@@ -47,11 +47,14 @@ public class JobsViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewMo
         }
     }
 
-    public JobsViewModel()
+    public JobsViewModel(
+        IJobRepository jobRepository,
+        JobManagerService jobManagerService,
+        JobFactoryService jobFactoryService)
     {
-        jobRepo = ServiceLocator.GetService<IJobRepository>();
-        jobManager = ServiceLocator.GetService<JobManagerService>();
-        jobFactory = ServiceLocator.GetService<JobFactoryService>();
+        jobRepo = jobRepository ?? throw new ArgumentNullException(nameof(jobRepository));
+        jobManager = jobManagerService ?? throw new ArgumentNullException(nameof(jobManagerService));
+        jobFactory = jobFactoryService ?? throw new ArgumentNullException(nameof(jobFactoryService));
 
         CreateCollection();
         _timer = new Timer(new TimerCallback(_ => RefreshJobs()), null, 2000, 2000);

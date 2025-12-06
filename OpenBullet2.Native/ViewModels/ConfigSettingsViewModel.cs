@@ -174,10 +174,12 @@ namespace OpenBullet2.Native.ViewModels
             }
         }
 
-        public ConfigSettingsViewModel()
+        public ConfigSettingsViewModel(
+            ConfigService configService,
+            RuriLibSettingsService rlSettingsService)
         {
-            configService = ServiceLocator.GetService<ConfigService>();
-            rlSettingsService = ServiceLocator.GetService<RuriLibSettingsService>();
+            this.configService = configService ?? throw new ArgumentNullException(nameof(configService));
+            this.rlSettingsService = rlSettingsService ?? throw new ArgumentNullException(nameof(rlSettingsService));
             // Defer initialization until needed
         }
 

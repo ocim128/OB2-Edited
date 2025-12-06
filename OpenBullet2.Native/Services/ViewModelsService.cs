@@ -5,32 +5,48 @@ namespace OpenBullet2.Native.Services
 {
     public class ViewModelsService
     {
-        private readonly Lazy<JobsViewModel> _jobs = new(() => new JobsViewModel());
-        private readonly Lazy<ProxiesViewModel> _proxies = new(() => new ProxiesViewModel());
-        private readonly Lazy<WordlistsViewModel> _wordlists = new(() => new WordlistsViewModel());
-        private readonly Lazy<ConfigsViewModel> _configs = new(() => new ConfigsViewModel());
-        private readonly Lazy<HitsViewModel> _hits = new(() => new HitsViewModel());
-        private readonly Lazy<OBSettingsViewModel> _obSettings = new(() => new OBSettingsViewModel());
-        private readonly Lazy<RLSettingsViewModel> _rlSettings = new(() => new RLSettingsViewModel());
-        private readonly Lazy<PluginsViewModel> _plugins = new(() => new PluginsViewModel());
-        private readonly Lazy<ConfigMetadataViewModel> _configMetadata = new(() => new ConfigMetadataViewModel());
-        private readonly Lazy<ConfigReadmeViewModel> _configReadme = new(() => new ConfigReadmeViewModel());
-        private readonly Lazy<ConfigStackerViewModel> _configStacker = new(() => new ConfigStackerViewModel());
-        private readonly Lazy<ConfigSettingsViewModel> _configSettings = new(() => new ConfigSettingsViewModel());
-        private readonly Lazy<DebuggerViewModel> _debugger = new(() => new DebuggerViewModel());
+        public JobsViewModel Jobs { get; }
+        public ProxiesViewModel Proxies { get; }
+        public WordlistsViewModel Wordlists { get; }
+        public ConfigsViewModel Configs { get; }
+        public HitsViewModel Hits { get; }
+        public OBSettingsViewModel OBSettings { get; }
+        public RLSettingsViewModel RLSettings { get; }
+        public PluginsViewModel Plugins { get; }
+        public ConfigMetadataViewModel ConfigMetadata { get; }
+        public ConfigReadmeViewModel ConfigReadme { get; }
+        public ConfigStackerViewModel ConfigStacker { get; }
+        public ConfigSettingsViewModel ConfigSettings { get; }
+        public DebuggerViewModel Debugger { get; }
 
-        public JobsViewModel Jobs => _jobs.Value;
-        public ProxiesViewModel Proxies => _proxies.Value;
-        public WordlistsViewModel Wordlists => _wordlists.Value;
-        public ConfigsViewModel Configs => _configs.Value;
-        public HitsViewModel Hits => _hits.Value;
-        public OBSettingsViewModel OBSettings => _obSettings.Value;
-        public RLSettingsViewModel RLSettings => _rlSettings.Value;
-        public PluginsViewModel Plugins => _plugins.Value;
-        public ConfigMetadataViewModel ConfigMetadata => _configMetadata.Value;
-        public ConfigReadmeViewModel ConfigReadme => _configReadme.Value;
-        public ConfigStackerViewModel ConfigStacker => _configStacker.Value;
-        public ConfigSettingsViewModel ConfigSettings => _configSettings.Value;
-        public DebuggerViewModel Debugger => _debugger.Value;
+        public ViewModelsService(
+            JobsViewModel jobs,
+            ProxiesViewModel proxies,
+            WordlistsViewModel wordlists,
+            ConfigsViewModel configs,
+            HitsViewModel hits,
+            OBSettingsViewModel obSettings,
+            RLSettingsViewModel rlSettings,
+            PluginsViewModel plugins,
+            ConfigMetadataViewModel configMetadata,
+            ConfigReadmeViewModel configReadme,
+            ConfigStackerViewModel configStacker,
+            ConfigSettingsViewModel configSettings,
+            DebuggerViewModel debugger)
+        {
+            Jobs = jobs ?? throw new ArgumentNullException(nameof(jobs));
+            Proxies = proxies ?? throw new ArgumentNullException(nameof(proxies));
+            Wordlists = wordlists ?? throw new ArgumentNullException(nameof(wordlists));
+            Configs = configs ?? throw new ArgumentNullException(nameof(configs));
+            Hits = hits ?? throw new ArgumentNullException(nameof(hits));
+            OBSettings = obSettings ?? throw new ArgumentNullException(nameof(obSettings));
+            RLSettings = rlSettings ?? throw new ArgumentNullException(nameof(rlSettings));
+            Plugins = plugins ?? throw new ArgumentNullException(nameof(plugins));
+            ConfigMetadata = configMetadata ?? throw new ArgumentNullException(nameof(configMetadata));
+            ConfigReadme = configReadme ?? throw new ArgumentNullException(nameof(configReadme));
+            ConfigStacker = configStacker ?? throw new ArgumentNullException(nameof(configStacker));
+            ConfigSettings = configSettings ?? throw new ArgumentNullException(nameof(configSettings));
+            Debugger = debugger ?? throw new ArgumentNullException(nameof(debugger));
+        }
     }
 }

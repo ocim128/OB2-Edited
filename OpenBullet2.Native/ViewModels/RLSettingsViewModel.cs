@@ -12,7 +12,7 @@ namespace OpenBullet2.Native.ViewModels;
 
 public class RLSettingsViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
 {
-    private readonly RuriLibSettingsService _service = ServiceLocator.GetService<RuriLibSettingsService>();
+    private readonly RuriLibSettingsService _service;
     private GeneralSettings General => _service.RuriLibSettings.GeneralSettings;
     private ProxySettings Proxy => _service.RuriLibSettings.ProxySettings;
     private CaptchaSettings Captcha => _service.RuriLibSettings.CaptchaSettings;
@@ -21,6 +21,11 @@ public class RLSettingsViewModel : OpenBullet2.Native.ViewModels.Infrastructure.
     private SeleniumSettings Selenium => _service.RuriLibSettings.SeleniumSettings;
 
     public event Action<CaptchaServiceType> CaptchaServiceChanged;
+
+    public RLSettingsViewModel(RuriLibSettingsService ruriLibSettingsService)
+    {
+        _service = ruriLibSettingsService ?? throw new ArgumentNullException(nameof(ruriLibSettingsService));
+    }
 
     public static IEnumerable<ParallelizerType> ParallelizerTypes => Enum.GetValues(typeof(ParallelizerType)).Cast<ParallelizerType>();
 

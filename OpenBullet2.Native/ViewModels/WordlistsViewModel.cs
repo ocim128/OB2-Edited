@@ -42,9 +42,9 @@ namespace OpenBullet2.Native.ViewModels;
         }
     }
 
-    public WordlistsViewModel()
+    public WordlistsViewModel(IWordlistRepository wordlistRepository)
     {
-        wordlistRepo = ServiceLocator.GetService<IWordlistRepository>();
+        wordlistRepo = wordlistRepository ?? throw new ArgumentNullException(nameof(wordlistRepository));
         WordlistsCollection = [];
     }
 

@@ -91,10 +91,12 @@ namespace OpenBullet2.Native.ViewModels
             }
         }
 
-        public HitsViewModel()
+        public HitsViewModel(
+            OpenBulletSettingsService openBulletSettingsService,
+            IHitRepository hitRepository)
         {
-            obSettingsService = ServiceLocator.GetService<OpenBulletSettingsService>();
-            hitRepo = ServiceLocator.GetService<IHitRepository>();
+            obSettingsService = openBulletSettingsService ?? throw new ArgumentNullException(nameof(openBulletSettingsService));
+            hitRepo = hitRepository ?? throw new ArgumentNullException(nameof(hitRepository));
             HitsCollection = new ObservableCollection<HitEntity>();
         }
 

@@ -11,8 +11,12 @@
         <!-- Memory-Efficient Build Settings -->
         <DisableImplicitNuGetFallbackFolder>true</DisableImplicitNuGetFallbackFolder>
         <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
-        <WarningLevel>0</WarningLevel>
-        <NoWarn>CS8618;CS8600;CS8602;CS8604;CS8625;CS8622;CS8601;CS8603;CS0618;SYSLIB0039;CA1416</NoWarn>
+        <!-- Re-enabled warnings for better code quality -->
+        <WarningLevel>4</WarningLevel>
+        <!-- Suppress noise warnings (nullable types, WPF analyzer) but keep real bug warnings -->
+        <NoWarn>CS0618;CA1416;CS8600;CS8601;CS8602;CS8603;CS8604;CS8618;CS8622;CS8625;WFAC010</NoWarn>
+        <!-- Enable nullable reference types for better null safety -->
+        <Nullable>enable</Nullable>
         <!-- Balanced Performance Settings - Low Memory Impact -->
         <UseSharedCompilation>true</UseSharedCompilation>
         <BuildInParallel>true</BuildInParallel>
@@ -22,7 +26,7 @@
         <!-- Fast Build Optimizations -->
         <UseIncrementalCompilation>true</UseIncrementalCompilation>
         <CheckForOverflowUnderflow>false</CheckForOverflowUnderflow>
-        <Deterministic>false</Deterministic>
+        <Deterministic>true</Deterministic>
         <UseRidGraph>false</UseRidGraph>
         <GenerateResourceUsePreserializedResources>true</GenerateResourceUsePreserializedResources>
         <!-- Runtime Optimizations - Memory Conservative -->
@@ -34,10 +38,10 @@
         <Optimize>true</Optimize>
         <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
         <IncludeAllContentForSelfExtract>false</IncludeAllContentForSelfExtract>
-        <!-- Skip unnecessary analysis -->
-        <EnableNETAnalyzers>false</EnableNETAnalyzers>
-        <AnalysisLevel>none</AnalysisLevel>
-        <RunAnalyzersDuringBuild>false</RunAnalyzersDuringBuild>
+        <!-- Re-enable analyzers for code quality -->
+        <EnableNETAnalyzers>true</EnableNETAnalyzers>
+        <AnalysisLevel>latest</AnalysisLevel>
+        <RunAnalyzersDuringBuild>true</RunAnalyzersDuringBuild>
         <!-- Additional Build Optimizations -->
         <GenerateDocumentationFile>false</GenerateDocumentationFile>
         <GenerateSerializationAssemblies>Off</GenerateSerializationAssemblies>

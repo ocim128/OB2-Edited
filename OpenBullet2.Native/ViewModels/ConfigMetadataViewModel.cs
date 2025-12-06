@@ -48,9 +48,9 @@ namespace OpenBullet2.Native.ViewModels
 
         public BitmapImage Icon => Config is null ? null : Images.Base64ToBitmapImage(Config.Metadata.Base64Image);
 
-        public ConfigMetadataViewModel()
+        public ConfigMetadataViewModel(ConfigService configService)
         {
-            configService = ServiceLocator.GetService<ConfigService>();
+            this.configService = configService ?? throw new ArgumentNullException(nameof(configService));
         }
 
         public void SetIconFromFile(string fileName)

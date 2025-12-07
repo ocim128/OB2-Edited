@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows;
@@ -40,6 +41,21 @@ namespace OpenBullet2.Native.ViewModels.Infrastructure
             {
                 OnPropertyChanged(property.Name);
             }
+        }
+
+        /// <summary>
+        /// Utility method to update backing fields while raising change notifications.
+        /// </summary>
+        protected bool SetProperty<T>(ref T storage, T value, [CallerMemberName] string propertyName = null)
+        {
+            if (EqualityComparer<T>.Default.Equals(storage, value))
+            {
+                return false;
+            }
+
+            storage = value;
+            OnPropertyChanged(propertyName);
+            return true;
         }
     }
 

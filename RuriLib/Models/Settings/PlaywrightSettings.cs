@@ -3,8 +3,8 @@ namespace RuriLib.Models.Settings;
 public class PlaywrightSettings
 {
     public PlaywrightBrowserType BrowserType { get; set; } = PlaywrightBrowserType.Chromium;
-    public string ChromiumBinaryLocation { get; set; } = @"C:\Program Files\Google\Chrome\Application\chrome.exe";
-    public string FirefoxBinaryLocation { get; set; } = @"C:\Program Files\Mozilla Firefox\firefox.exe";
+    public string ChromiumBinaryLocation { get; set; } = string.Empty;
+    public string FirefoxBinaryLocation { get; set; } = string.Empty;
     public string WebkitBinaryLocation { get; set; } = string.Empty;
     public bool Headless { get; set; } = false;
     public bool DrawMouseMovement { get; set; } = true;

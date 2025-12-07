@@ -169,8 +169,8 @@
                                      Margin="0,0,0,10"
                                      AutomationProperties.Name="Secret key"
                                      ToolTip="Enter a Base32 encoded secret key"
-                                     TextChanged="SecretKeyTextChanged"
                                      CharacterCasing="Upper"
+                                     Text="{Binding Secret, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                      TextWrapping="NoWrap"
                                      AcceptsReturn="False"
                                      VerticalContentAlignment="Center"
@@ -187,7 +187,7 @@
                                         Width="80"
                                         Grid.Column="0"
                                         HorizontalAlignment="Left"
-                                        Click="ClearSecret"
+                                        Command="{Binding ClearSecretCommand}"
                                         AutomationProperties.Name="Clear secret"
                                         ToolTip="Clear the current secret"/>
                                 <Button x:Name="PasteSecretButton"
@@ -195,7 +195,7 @@
                                         Content="Paste"
                                         Width="80"
                                         Grid.Column="1"
-                                        Click="PasteSecret"
+                                        Command="{Binding PasteSecretCommand}"
                                         AutomationProperties.Name="Paste secret"
                                         ToolTip="Paste a secret from the clipboard"/>
                             </Grid>
@@ -205,10 +205,11 @@
                                     CornerRadius="6"
                                     Padding="10"
                                     Margin="0,0,0,10"
-                                    Visibility="Collapsed">
+                                    Visibility="{Binding HasError, Converter={StaticResource BoolToVis}}">
                                 <TextBlock x:Name="SecretErrorTextBlock"
                                            Style="{StaticResource CaptionTextStyle}"
                                            Foreground="#FCA5A5"
+                                           Text="{Binding ErrorMessage}"
                                            TextWrapping="Wrap"/>
                             </Border>
 
@@ -228,7 +229,7 @@
                                                Style="{StaticResource BodyTextStyle}"/>
                                     <TextBlock x:Name="OtpTextBlock"
                                                Grid.Row="1"
-                                               Text="------"
+                                               Text="{Binding CurrentOtp}"
                                                FontSize="36"
                                                FontFamily="Segoe UI Semibold"
                                                HorizontalAlignment="Center"
@@ -239,7 +240,7 @@
                                                  Height="6"
                                                  Minimum="0"
                                                  Maximum="30"
-                                                 Value="0"
+                                                 Value="{Binding ProgressValue, Mode=OneWay}"
                                                  AutomationProperties.Name="OTP progress"/>
                                     <Grid Grid.Row="3" Margin="0,10,0,0">
                                         <Grid.ColumnDefinitions>
@@ -247,14 +248,16 @@
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
                                         <TextBlock x:Name="OtpStatusTextBlock"
-                                                   Style="{StaticResource CaptionTextStyle}"/>
+                                                   Style="{StaticResource CaptionTextStyle}"
+                                                   Text="{Binding StatusMessage}"/>
                                         <Button x:Name="CopyOtpButton"
                                                 Grid.Column="1"
                                                 Style="{StaticResource StyledSuccessButton}"
                                                 Content="Copy"
                                                 Width="70"
                                                 Margin="12,0,0,0"
-                                                Click="CopyOtp"
+                                                Command="{Binding CopyOtpCommand}"
+                                                IsEnabled="{Binding CanCopy}"
                                                 AutomationProperties.Name="Copy OTP button"
                                                 ToolTip="Copy the current OTP to the clipboard"/>
                                     </Grid>

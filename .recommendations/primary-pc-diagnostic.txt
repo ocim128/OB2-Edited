@@ -1,0 +1,125 @@
+=== PLAYWRIGHT FIREFOX DIAGNOSTIC ===
+PC Name: DESKTOP-NE8ADSU
+User: user
+Date: 12/05/2025 18:59:44
+
+[1] WINDOWS VERSION & EDITION
+  Edition: Microsoft Windows 11 Education
+  Version: 10.0.26100
+  Build: 26100
+  Architecture: 64-bit
+  Install Date: 02/06/2025 06:17:55
+
+[2] GRAPHICS DRIVERS
+  Name: NVIDIA GeForce RTX 4070 Ti SUPER
+  Driver Version: 32.0.15.8108
+  Driver Date: 20250815000000.000000-000
+  Status: OK
+  ---
+  Name: Intel(R) UHD Graphics 770
+  Driver Version: 32.0.101.7026
+  Driver Date: 20250819000000.000000-000
+  Status: OK
+  ---
+
+[3] .NET RUNTIME
+  Microsoft.AspNetCore.App 8.0.8 [C:\Program Files\dotnet\shared\Microsoft.AspNetCore.App]
+  Microsoft.NETCore.App 8.0.8 [C:\Program Files\dotnet\shared\Microsoft.NETCore.App]
+  Microsoft.WindowsDesktop.App 8.0.8 [C:\Program Files\dotnet\shared\Microsoft.WindowsDesktop.App]
+
+[4] VISUAL C++ REDISTRIBUTABLES
+  Microsoft Visual C++ 2008 Redistributable - x64 9.0.30729.17 - 9.0.30729
+  Microsoft Visual C++ 2008 Redistributable - x64 9.0.30729.6161 - 9.0.30729.6161
+  Microsoft Visual C++ 2008 Redistributable - x86 9.0.30729.6161 - 9.0.30729.6161
+  Microsoft Visual C++ 2010  x64 Redistributable - 10.0.40219 - 10.0.40219
+  Microsoft Visual C++ 2010  x86 Redistributable - 10.0.40219 - 10.0.40219
+  Microsoft Visual C++ 2012 Redistributable (x64) - 11.0.61030 - 11.0.61030.0
+  Microsoft Visual C++ 2012 Redistributable (x86) - 11.0.61030 - 11.0.61030.0
+  Microsoft Visual C++ 2012 x64 Additional Runtime - 11.0.61030 - 11.0.61030
+  Microsoft Visual C++ 2012 x64 Minimum Runtime - 11.0.61030 - 11.0.61030
+  Microsoft Visual C++ 2012 x86 Additional Runtime - 11.0.61030 - 11.0.61030
+  Microsoft Visual C++ 2012 x86 Minimum Runtime - 11.0.61030 - 11.0.61030
+  Microsoft Visual C++ 2013 Redistributable (x64) - 12.0.40660 - 12.0.40660.0
+  Microsoft Visual C++ 2013 Redistributable (x86) - 12.0.40660 - 12.0.40660.0
+  Microsoft Visual C++ 2013 x64 Additional Runtime - 12.0.40660 - 12.0.40660
+  Microsoft Visual C++ 2013 x64 Minimum Runtime - 12.0.40660 - 12.0.40660
+  Microsoft Visual C++ 2013 x86 Additional Runtime - 12.0.40660 - 12.0.40660
+  Microsoft Visual C++ 2013 x86 Minimum Runtime - 12.0.40660 - 12.0.40660
+  Microsoft Visual C++ 2015-2022 Redistributable (x64) - 14.44.35211 - 14.44.35211.0
+  Microsoft Visual C++ 2015-2022 Redistributable (x86) - 14.44.35211 - 14.44.35211.0
+  Microsoft Visual C++ 2022 X64 Additional Runtime - 14.44.35211 - 14.44.35211
+  Microsoft Visual C++ 2022 X64 Debug Runtime - 14.44.35211 - 14.44.35211
+  Microsoft Visual C++ 2022 X64 Minimum Runtime - 14.44.35211 - 14.44.35211
+  Microsoft Visual C++ 2022 X86 Additional Runtime - 14.44.35211 - 14.44.35211
+  Microsoft Visual C++ 2022 X86 Debug Runtime - 14.44.35211 - 14.44.35211
+  Microsoft Visual C++ 2022 X86 Minimum Runtime - 14.44.35211 - 14.44.35211
+
+[5] WINDOWS MEDIA FOUNDATION
+  ERROR: The requested operation requires elevation.
+
+
+[6] FIREFOX PROCESSES
+  No Firefox processes running
+
+[7] PLAYWRIGHT INSTALLATION
+  Path: C:\Users\user\AppData\Local\ms-playwright
+  .links: 0 MB
+  chromium-1091: 284.68 MB
+  chromium_headless_shell-1181: 198.99 MB
+  chromium_headless_shell-1193: 202.33 MB
+  ffmpeg-1009: 3.61 MB
+  firefox-1429: 216.88 MB
+  webkit-1944: 127.7 MB
+  winldd-1007: 0.25 MB
+
+[8] FIREFOX BINARY VALIDATION
+  âœ… Found: C:\Users\user\AppData\Local\ms-playwright\firefox-1429\firefox\firefox.exe
+     Size: 0.65 MB
+     Modified: 12/05/2025 12:56:45
+     Version: 119.0
+     Checking dependencies...
+       âœ… xul.dll
+       âœ… mozglue.dll
+       âœ… nss3.dll
+
+[9] SECURITY SOFTWARE
+  Windows Defender Status:
+    Real-time Protection: True
+    Antivirus Enabled: True
+    Behavior Monitor: True
+    IoavProtection: True
+  Installed Antivirus:
+    Windows Defender
+
+[10] RELEVANT ENVIRONMENT VARIABLES
+  PLAYWRIGHT_BROWSERS_PATH = (not set)
+  MOZ_HEADLESS = (not set)
+  DISPLAY = (not set)
+  MOZ_DISABLE_CONTENT_SANDBOX = (not set)
+
+[11] DISK SPACE
+  C: Drive - Free: 55753.48 MB / Total: 952961 MB
+
+[12] USER PERMISSIONS
+  Running as Administrator: False
+  Write access to Playwright folder: âœ… OK
+
+[13] SYSTEM LOCALE
+  Current Culture: en-US
+  Display Name: English (United States)
+
+[14] FIREFOX MANUAL LAUNCH TEST
+  Attempting to launch Firefox manually...
+  Path: C:\Users\user\AppData\Local\ms-playwright\firefox-1429\firefox\firefox.exe
+  âœ… Firefox Version: Mozilla Firefox 119.0
+
+=== DIAGNOSTIC COMPLETE ===
+
+Save this output and compare with the other PC!
+Look for differences in:
+  - Windows version/edition
+  - Graphics drivers
+  - Visual C++ versions
+  - Media Foundation status
+  - Antivirus settings
+  - Missing DLL files

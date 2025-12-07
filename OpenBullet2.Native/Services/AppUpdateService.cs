@@ -2,7 +2,6 @@ using Newtonsoft.Json;
 using OpenBullet2.Native.Helpers;
 using System;
 using System.Diagnostics;
-using System.Globalization;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -584,15 +583,15 @@ public class AppUpdateService : IAppUpdateService
                 {
                     lastUiUpdate = elapsed;
                     var speed = elapsed.TotalSeconds > 0 ? totalRead / elapsed.TotalSeconds : 0;
-                    var downloadedText = FormatBytes(totalRead);
-                    var speedText = speed > 0 ? $"{FormatBytes(speed)}/s" : "0 B/s";
+                    var downloadedText = HumanReadable.Bytes(totalRead);
+                    var speedText = speed > 0 ? $"{HumanReadable.Bytes(speed)}/s" : "0 B/s";
 
                     if (totalBytes > 0)
                     {
                         var progress = (double)totalRead / totalBytes * 100;
                         var eta = speed > 0 ? TimeSpan.FromSeconds(Math.Max(0, (totalBytes - totalRead) / speed)) : TimeSpan.Zero;
                         var etaText = speed > 0 ? $" ETA {FormatDuration(eta)}" : string.Empty;
-                        var totalText = FormatBytes(totalBytes);
+                        var totalText = HumanReadable.Bytes(totalBytes);
 
                         if (!progressBar.Dispatcher.HasShutdownStarted)
                         {
@@ -626,8 +625,8 @@ public class AppUpdateService : IAppUpdateService
         stopwatch.Stop();
 
         var finalSpeed = stopwatch.Elapsed.TotalSeconds > 0 ? totalRead / stopwatch.Elapsed.TotalSeconds : 0;
-        var finalSpeedText = finalSpeed > 0 ? $"{FormatBytes(finalSpeed)}/s" : "0 B/s";
-        var finalDownloadText = FormatBytes(totalRead);
+        var finalSpeedText = finalSpeed > 0 ? $"{HumanReadable.Bytes(finalSpeed)}/s" : "0 B/s";
+        var finalDownloadText = HumanReadable.Bytes(totalRead);
         var durationText = FormatDuration(stopwatch.Elapsed);
 
         if (!progressBar.Dispatcher.HasShutdownStarted)
@@ -792,27 +791,6 @@ public class AppUpdateService : IAppUpdateService
             logFailure?.Invoke($"Integrity check failed for '{filePath}': exception during validation ({ex.Message}).");
             return false;
         }
-    }
-
-    private static string FormatBytes(long bytes) => FormatBytes((double)bytes);
-
-    private static string FormatBytes(double bytes)
-    {
-        if (bytes <= 0)
-            return "0 B";
-
-        string[] units = new[] { "B", "KB", "MB", "GB", "TB" };
-        var value = bytes;
-        var unitIndex = 0;
-
-        while (value >= 1024 && unitIndex < units.Length - 1)
-        {
-            value /= 1024;
-            unitIndex++;
-        }
-
-        var format = value >= 100 || unitIndex == 0 ? "0" : "0.0";
-        return $"{value.ToString(format, CultureInfo.InvariantCulture)} {units[unitIndex]}";
     }
 
     private static string FormatDuration(TimeSpan span)

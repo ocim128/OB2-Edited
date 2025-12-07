@@ -18,15 +18,15 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Threading;
-using Microsoft.Playwright;
 using Microsoft.VisualBasic.Devices;
 using Microsoft.Win32;
-using OpenBullet2.Native.Infrastructure.DependencyInjection;
 using OpenBullet2.Core.Services;
+using OpenBullet2.Native.Infrastructure.DependencyInjection;
+using OpenBullet2.Native.Services;
+using OpenBullet2.Native.ViewModels.Pages;
 using RuriLib;
 using RuriLib.Blocks.Utility;
 using RuriLib.Helpers;
-using RuriLib.Helpers.Playwright;
 using RuriLib.Helpers.Transpilers;
 using RuriLib.Models.Blocks;
 using RuriLib.Models.Blocks.Custom;
@@ -38,6 +38,7 @@ using RuriLib.Logging;
 using RuriLib.Models.Environment;
 using RuriLib.Models.Settings;
 using RuriLib.Services;
+using HumanReadable = OpenBullet2.Native.Helpers.HumanReadable;
 
 namespace OpenBullet2.Native.Views.Pages
 {
@@ -53,14 +54,18 @@ namespace OpenBullet2.Native.Views.Pages
         private const int CardMaxColumns = 3;
         private const string AllCategoriesLabel = "All categories";
 
-        private readonly DispatcherTimer timer;
-        private string normalizedSecret = string.Empty;
-        private string currentOtp = string.Empty;
+        private readonly ToolsPageViewModel viewModel;
         private readonly ObservableCollection<ZipFolderOption> zipOptionFolders = new();
         private readonly ObservableCollection<LineReducerCompareFile> lineReducerCompareFiles = new();
         private readonly List<LaunchedZipProfile> launchedZipProfiles = new();
+        private readonly ZipProfileLauncher zipProfileLauncher = new();
         private readonly object zipProfileLock = new();
         private readonly List<ToolCardMetadata> toolCardCatalog = new();
+        private static readonly Encoding LegacyEncoding;
+        private const char DiamondGlyph = '\u2666';
+        private const char SpadeGlyph = '\u2660';
+        private const string LegacyDiamondMarker = "\u00C3\u00A2\u00E2\u201E\u00A2\u00C2\u00A6";
+        private const string LegacySpadeMarker = "\u00C3\u00A2\u00E2\u201E\u00A2\u00C2\u00A0";
         private string zipArchivePath = string.Empty;
         private bool isLaunchingZip;
         private bool isInitializingFilters;
@@ -71,22 +76,23 @@ namespace OpenBullet2.Native.Views.Pages
         private readonly ComputerInfo computerInfo = new();
         private static readonly UTF8Encoding Utf8NoBomEncoding = new(false);
 
+        static Tools()
+        {
+            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+            LegacyEncoding = Encoding.GetEncoding(1252);
+        }
+
         public Tools()
         {
             InitializeComponent();
 
-            timer = new DispatcherTimer
-            {
-                Interval = TimeSpan.FromSeconds(1)
-            };
-            timer.Tick += (_, _) => UpdateOtp();
+            viewModel = new ToolsPageViewModel();
+            OtpToolCard.DataContext = viewModel.OtpTool;
             Unloaded += Tools_Unloaded;
 
             // Performance monitoring will be lazily initialized only when needed
             // This prevents expensive operations during page load and reduces navigation lag
 
-            SetOtpDisplay("------", "Enter a secret key to generate codes.", 0);
-            CopyOtpButton.IsEnabled = false;
             BookmarkletStatusBorder.Visibility = Visibility.Collapsed;
             TextCleanerStatusBorder.Visibility = Visibility.Collapsed;
             ZipOptionListBox.ItemsSource = zipOptionFolders;
@@ -102,110 +108,9 @@ namespace OpenBullet2.Native.Views.Pages
 
         private async void Tools_Unloaded(object sender, RoutedEventArgs e)
         {
-            timer.Stop();
+            viewModel.Dispose();
             await CleanupZipProfilesAsync();
         }
-
-        private void SecretKeyTextChanged(object sender, TextChangedEventArgs e)
-        {
-            normalizedSecret = TwoFactorUtility.NormalizeSecret(SecretKeyTextBox.Text);
-            ValidateAndStart();
-        }
-
-        private void PasteSecret(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                if (Clipboard.ContainsText())
-                {
-                    SecretKeyTextBox.Text = Clipboard.GetText();
-                }
-            }
-            catch (Exception ex)
-            {
-                SecretErrorTextBlock.Text = $"Clipboard unavailable: {ex.Message}";
-                SecretErrorBorder.Visibility = Visibility.Visible;
-            }
-        }
-
-        private void ClearSecret(object sender, RoutedEventArgs e)
-        {
-            SecretKeyTextBox.Clear();
-        }
-
-        private void CopyOtp(object sender, RoutedEventArgs e)
-        {
-            if (string.IsNullOrEmpty(currentOtp) || currentOtp.Contains('-'))
-            {
-                return;
-            }
-
-            try
-            {
-                Clipboard.SetText(currentOtp);
-            }
-            catch (Exception ex)
-            {
-                SecretErrorTextBlock.Text = $"Unable to copy OTP: {ex.Message}";
-                SecretErrorBorder.Visibility = Visibility.Visible;
-            }
-        }
-
-        private void ValidateAndStart()
-        {
-            if (string.IsNullOrWhiteSpace(normalizedSecret))
-            {
-                timer.Stop();
-                SecretErrorBorder.Visibility = Visibility.Collapsed;
-                SetOtpDisplay("------", "Enter a secret key to generate codes.", 0);
-                CopyOtpButton.IsEnabled = false;
-                return;
-            }
-
-            if (TwoFactorUtility.TryGenerateOtp(normalizedSecret, DateTime.UtcNow, out var otp, out var secondsRemaining, out var error))
-            {
-                SecretErrorBorder.Visibility = Visibility.Collapsed;
-                SetOtpDisplay(otp, BuildExpiryMessage(secondsRemaining), TotpPeriodSeconds - secondsRemaining);
-                CopyOtpButton.IsEnabled = true;
-                timer.Start();
-            }
-            else
-            {
-                timer.Stop();
-                SecretErrorTextBlock.Text = error;
-                SecretErrorBorder.Visibility = Visibility.Visible;
-                SetOtpDisplay("------", "Invalid secret.", 0);
-                CopyOtpButton.IsEnabled = false;
-            }
-        }
-
-        private void UpdateOtp()
-        {
-            if (string.IsNullOrEmpty(normalizedSecret))
-            {
-                timer.Stop();
-                return;
-            }
-
-            if (TwoFactorUtility.TryGenerateOtp(normalizedSecret, DateTime.UtcNow, out var otp, out var secondsRemaining, out var error))
-            {
-                SetOtpDisplay(otp, BuildExpiryMessage(secondsRemaining), TotpPeriodSeconds - secondsRemaining);
-                CopyOtpButton.IsEnabled = true;
-            }
-            else
-            {
-                timer.Stop();
-                SecretErrorTextBlock.Text = error;
-                SecretErrorBorder.Visibility = Visibility.Visible;
-                SetOtpDisplay("------", "Invalid secret.", 0);
-                CopyOtpButton.IsEnabled = false;
-            }
-        }
-
-        private static string BuildExpiryMessage(int secondsRemaining)
-            => secondsRemaining <= 1
-                ? "Expires in 1 second"
-                : $"Expires in {secondsRemaining} seconds";
 
         private void InitializeToolCardCatalogue()
         {
@@ -374,14 +279,6 @@ namespace OpenBullet2.Native.Views.Pages
             };
 
             ToolFilterStatusTextBlock.Visibility = Visibility.Visible;
-        }
-
-        private void SetOtpDisplay(string otp, string statusMessage, int elapsedSeconds)
-        {
-            currentOtp = otp;
-            OtpTextBlock.Text = otp;
-            OtpStatusTextBlock.Text = statusMessage;
-            OtpProgressBar.Value = Math.Max(0, Math.Min(TotpPeriodSeconds, elapsedSeconds));
         }
 
         private void ParseBookmarklet(object sender, RoutedEventArgs e)
@@ -747,7 +644,7 @@ namespace OpenBullet2.Native.Views.Pages
 
             var totalBytes = lineReducerCompareFiles.Sum(file => file.Length);
             LineReducerCompareSummaryTextBlock.Text =
-                $"{lineReducerCompareFiles.Count} file(s) â€¢ {FormatBytes(totalBytes)} total";
+                $"{lineReducerCompareFiles.Count} file(s) \u2022 {HumanReadable.Bytes(totalBytes)} total";
         }
 
         private async void RunLineReducer(object sender, RoutedEventArgs e)
@@ -840,9 +737,9 @@ namespace OpenBullet2.Native.Views.Pages
 
                 SetLineReducerStatus($"Completed. Removed {result.RemovedLines:N0} line(s).", Brushes.LawnGreen);
                 LineReducerStatsTextBlock.Text =
-                    $"Indexed {result.IndexedLines:N0} comparison lines ({FormatBytes(result.ComparisonBytes)})." +
+                    $"Indexed {result.IndexedLines:N0} comparison lines ({HumanReadable.Bytes(result.ComparisonBytes)})." +
                     $"{Environment.NewLine}Processed {result.ProcessedSourceLines:N0} source lines " +
-                    $"({FormatBytes(result.SourceBytes)}): kept {result.WrittenLines:N0}, removed {result.RemovedLines:N0}." +
+                    $"({HumanReadable.Bytes(result.SourceBytes)}): kept {result.WrittenLines:N0}, removed {result.RemovedLines:N0}." +
                     $"{Environment.NewLine}Elapsed {result.Elapsed:mm\\:ss}. Output saved to {normalizedOutput}.";
             }
             catch (OperationCanceledException)
@@ -1095,6 +992,8 @@ namespace OpenBullet2.Native.Views.Pages
                 return "Invalid input";
             }
 
+            line = NormalizeBookmarkletLine(line);
+
             var authTokenPattern = ExtractAuthTokenLine(line);
             if (authTokenPattern != null)
             {
@@ -1114,6 +1013,29 @@ namespace OpenBullet2.Native.Views.Pages
             }
 
             return "Invalid input";
+        }
+
+        private static string NormalizeBookmarkletLine(string line)
+        {
+            if (string.IsNullOrEmpty(line))
+            {
+                return string.Empty;
+            }
+
+            var normalized = line;
+
+            if (normalized.IndexOf('Ã', StringComparison.Ordinal) >= 0)
+            {
+                var bytes = LegacyEncoding.GetBytes(normalized);
+                normalized = Encoding.UTF8.GetString(bytes);
+            }
+
+            normalized = normalized
+                .Replace(LegacyDiamondMarker, DiamondGlyph.ToString(), StringComparison.Ordinal)
+                .Replace(LegacySpadeMarker, SpadeGlyph.ToString(), StringComparison.Ordinal)
+                .Replace('\u00A0', ' ');
+
+            return normalized.Trim();
         }
 
         private static string? ExtractAuthTokenLine(string line)
@@ -1150,7 +1072,7 @@ namespace OpenBullet2.Native.Views.Pages
                 }
             }
 
-            var post = Regex.Match(line, "^(\\d+)ÃƒÂ¢Ã¢â€žÂ¢Ã‚Â ").Groups[1].Value;
+            var post = Regex.Match(line, @$"^(\d+){DiamondGlyph}").Groups[1].Value;
             var follower = Regex.Match(line, "(\\d+)~").Groups[1].Value;
             var year = Regex.Match(line, "~\\s*(\\d+)").Groups[1].Value;
 
@@ -1162,9 +1084,9 @@ namespace OpenBullet2.Native.Views.Pages
             builder.AppendLine($"check email: akunlama.com/inbox/{usernamePart}");
             builder.AppendLine($"auth_token={authToken ?? "N/A"}");
             builder.AppendLine();
-            builder.Append($"UsernameÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢PostÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢FollowerÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢Tahun = {username ?? "N/A"}ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢{post}");
-            builder.Append($"ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢{(string.IsNullOrEmpty(follower) ? "N/A" : follower)}");
-            builder.Append($"ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢{(string.IsNullOrEmpty(year) ? "N/A" : year)}");
+            builder.Append($"Username•Post•Follower•Tahun = {username ?? "N/A"}•{post}");
+            builder.Append($"•{(string.IsNullOrEmpty(follower) ? "N/A" : follower)}");
+            builder.Append($"•{(string.IsNullOrEmpty(year) ? "N/A" : year)}");
             return builder.ToString();
         }
 
@@ -1280,20 +1202,6 @@ namespace OpenBullet2.Native.Views.Pages
             {
                 // Ignore deletion failures
             }
-        }
-
-        private static string FormatBytes(long bytes)
-        {
-            if (bytes <= 0)
-            {
-                return "0 B";
-            }
-
-            var sizes = new[] { "B", "KB", "MB", "GB", "TB" };
-            var magnitude = (int)Math.Floor(Math.Log(bytes, 1024));
-            magnitude = Math.Clamp(magnitude, 0, sizes.Length - 1);
-            var adjusted = bytes / Math.Pow(1024, magnitude);
-            return $"{adjusted:0.##} {sizes[magnitude]}";
         }
 
         private static string DetectSourceNewLine(string path)
@@ -1486,133 +1394,25 @@ namespace OpenBullet2.Native.Views.Pages
                 return;
             }
 
-            var profileRoot = Path.Combine(Path.GetTempPath(), "ob2-zip-profile", Guid.NewGuid().ToString("N"));
-            Directory.CreateDirectory(profileRoot);
+            var progress = new Progress<ZipLaunchStatus>(ReportZipLaunchStatus);
 
             try
             {
                 isLaunchingZip = true;
-                SetZipOptionStatus($"Preparing profile '{option.Name}'...", Brushes.LightSteelBlue);
 
-                await Task.Run(() => ExtractZipFolder(zipArchivePath, option.Name, profileRoot));
+                var request = new ZipProfileLaunchRequest(
+                    zipArchivePath,
+                    option.Name,
+                    playwrightSettings,
+                    firefoxBinary,
+                    "https://gmail.com");
 
-                if (!Directory.EnumerateFileSystemEntries(profileRoot).Any())
-                {
-                    throw new InvalidOperationException("The selected folder was not found in the archive.");
-                }
-
-                SetZipOptionStatus($"Launching Firefox for '{option.Name}'...", Brushes.LightSteelBlue);
-
-                var playwright = await Microsoft.Playwright.Playwright.CreateAsync();
-                IBrowserContext context; // Declare outside try block
-
-                var sanitizedArgs = (playwrightSettings.ExtraArgs ?? Array.Empty<string>()).ToList();
-                PlaywrightLaunchConfigurator.EnsureSandboxFlags(sanitizedArgs);
-
-                var launchOptions = new BrowserTypeLaunchPersistentContextOptions
-                {
-                    Headless = playwrightSettings.Headless,
-                    ExecutablePath = firefoxBinary,
-                    Timeout = playwrightSettings.TimeoutMilliseconds <= 0 ? 60000 : playwrightSettings.TimeoutMilliseconds, // Default 60s for Firefox
-                    Args = sanitizedArgs.ToArray(),
-                    // Firefox-specific options to prevent hanging
-                    IgnoreHTTPSErrors = playwrightSettings.IgnoreHTTPSErrors,
-                    AcceptDownloads = false,
-                    JavaScriptEnabled = true
-                };
-                PlaywrightLaunchConfigurator.ApplyFirefoxSafeDefaults(launchOptions);
-
-                SetZipOptionStatus($"Launching Firefox with timeout: {launchOptions.Timeout}ms...", Brushes.LightBlue);
-
-                try
-                {
-                    // Add cancellation token with timeout to prevent indefinite hang
-                    var timeoutMs = playwrightSettings.TimeoutMilliseconds <= 0 ? 60000 : playwrightSettings.TimeoutMilliseconds;
-                    using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(timeoutMs));
-                    
-                    SetZipOptionStatus($"Creating Firefox persistent context...", Brushes.LightBlue);
-                    
-                    // Use Task.WhenAny to implement timeout
-                    var launchTask = playwright.Firefox.LaunchPersistentContextAsync(profileRoot, launchOptions);
-                    
-                    if (await Task.WhenAny(launchTask, Task.Delay(timeoutMs, cts.Token)) == launchTask)
-                    {
-                        // Launch completed successfully
-                        context = await launchTask;
-                        SetZipOptionStatus($"Firefox context created successfully!", Brushes.LawnGreen);
-                    }
-                    else
-                    {
-                        // Timeout occurred
-                        throw new TimeoutException(
-                            $"Firefox launch timed out after {timeoutMs}ms. " +
-                            $"Try increasing timeout in RL Settings > Playwright > Timeout " +
-                            $"or use a system-installed Firefox browser instead.");
-                    }
-                }
-                catch (OperationCanceledException)
-                {
-                    throw new TimeoutException(
-                        $"Firefox launch timed out after {launchOptions.Timeout}ms. " +
-                        $"Try increasing timeout in RL Settings > Playwright > Timeout " +
-                        $"or use a system-installed Firefox browser instead.");
-                }
-                catch (TimeoutException)
-                {
-                    // Re-throw timeout exceptions as-is
-                    throw;
-                }
-                catch (Exception launchEx)
-                {
-                    throw new Exception(
-                        $"Failed to launch Firefox persistent context: {launchEx.Message}\n" +
-                        $"Timeout: {launchOptions.Timeout}ms\n" +
-                        $"Profile: {profileRoot}\n" +
-                        $"Binary: {firefoxBinary}\n" +
-                        $"Headless: {playwrightSettings.Headless}\n" +
-                        $"Suggested solutions:\n" +
-                        $"1. Increase timeout in RL Settings > Playwright\n" +
-                        $"2. Use system Firefox: C:\\Program Files\\Mozilla Firefox\\firefox.exe\n" +
-                        $"3. Use Chromium browser instead", 
-                        launchEx);
-                }
-
-                // Navigate to Gmail after launching browser
-                try
-                {
-                    SetZipOptionStatus($"Navigating to Gmail...", Brushes.LightBlue);
-                    var pages = context.Pages;
-                    var page = pages.Count > 0 ? pages[0] : await context.NewPageAsync();
-                    await page.GotoAsync("https://gmail.com", new() { Timeout = 30000 });
-                    SetZipOptionStatus($"Launched Firefox profile '{option.Name}' and navigated to Gmail.", Brushes.LawnGreen);
-                }
-                catch (Exception navEx)
-                {
-                    SetZipOptionStatus($"Launched Firefox profile '{option.Name}' but failed to navigate to Gmail: {navEx.Message}", Brushes.Khaki);
-                }
-
-                var profile = new LaunchedZipProfile(playwright, context, profileRoot, option.Name);
+                var profile = await zipProfileLauncher.LaunchAsync(request, progress);
                 RegisterZipProfile(profile);
-
-                var cookiesPath = Path.Combine(profileRoot, "cookies.sqlite");
-                if (!File.Exists(cookiesPath))
-                {
-                    SetZipOptionStatus($"Launched '{option.Name}' but cookies.sqlite was not found.", Brushes.Khaki);
-                }
-                else
-                {
-                    if (!ZipOptionStatusBorder.Visibility.ToString().Contains("failed"))
-                    {
-                        SetZipOptionStatus($"Launched Firefox profile '{option.Name}' and navigated to Gmail.", Brushes.LawnGreen);
-                    }
-                }
             }
             catch (Exception ex)
             {
-                TryDeleteDirectory(profileRoot);
-                var errorMessage = ex is TimeoutException 
-                    ? ex.Message 
-                    : $"Launch failed: {ex.Message}";
+                var errorMessage = ex is TimeoutException ? ex.Message : $"Launch failed: {ex.Message}";
                 SetZipOptionStatus(errorMessage, Brushes.OrangeRed);
             }
             finally
@@ -1621,44 +1421,17 @@ namespace OpenBullet2.Native.Views.Pages
             }
         }
 
-        private static void ExtractZipFolder(string archivePath, string folderName, string destination)
+        private void ReportZipLaunchStatus(ZipLaunchStatus status)
         {
-            using var stream = File.OpenRead(archivePath);
-            using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: false);
-
-            var prefix = folderName.TrimEnd('/') + "/";
-            Directory.CreateDirectory(destination);
-
-            foreach (var entry in archive.Entries)
+            var brush = status.Level switch
             {
-                var normalized = entry.FullName.Replace('\\', '/');
-                if (!normalized.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-                {
-                    continue;
-                }
+                ZipLaunchStatusLevel.Success => Brushes.LawnGreen,
+                ZipLaunchStatusLevel.Warning => Brushes.Khaki,
+                ZipLaunchStatusLevel.Error => Brushes.OrangeRed,
+                _ => Brushes.LightSteelBlue
+            };
 
-                var relative = normalized[prefix.Length..];
-                if (string.IsNullOrEmpty(relative))
-                {
-                    continue;
-                }
-
-                var targetPath = Path.Combine(destination, relative.Replace('/', Path.DirectorySeparatorChar));
-
-                if (normalized.EndsWith("/", StringComparison.Ordinal))
-                {
-                    Directory.CreateDirectory(targetPath);
-                    continue;
-                }
-
-                var targetDirectory = Path.GetDirectoryName(targetPath);
-                if (!string.IsNullOrEmpty(targetDirectory))
-                {
-                    Directory.CreateDirectory(targetDirectory);
-                }
-
-                entry.ExtractToFile(targetPath, overwrite: true);
-            }
+            SetZipOptionStatus(status.Message, brush);
         }
 
         private void SetZipOptionStatus(string message, Brush brush)
@@ -1679,52 +1452,38 @@ namespace OpenBullet2.Native.Views.Pages
             public override string ToString() => Name;
         }
 
-        private sealed class LaunchedZipProfile
-        {
-            public LaunchedZipProfile(IPlaywright playwright, IBrowserContext context, string profilePath, string optionName)
-            {
-                Playwright = playwright;
-                Context = context;
-                ProfilePath = profilePath;
-                OptionName = optionName;
-            }
-
-            public IPlaywright Playwright { get; }
-            public IBrowserContext Context { get; }
-            public string ProfilePath { get; }
-            public string OptionName { get; }
-        }
-
         private static string? ExtractDetailedPatternLine(string line)
         {
-            const string SeparatorMarker = "\u00C3\u00A2\u00E2\u201E\u00A2\u00C2\u00A6";
-
-            if (!line.Contains(SeparatorMarker, StringComparison.Ordinal) || !line.Contains('='))
+            if (string.IsNullOrEmpty(line) || !line.Contains('='))
             {
                 return null;
             }
 
-            var pattern = new Regex($@"^(.*?){SeparatorMarker}(\d+)\s*\*(\d+)\s*{SeparatorMarker}(\S*)\s*@([^\s=]+)\s*=(\S+)(?:\s+(.*))?$");
+            var pattern = new Regex(
+                $@"^(?<user>.+?){DiamondGlyph}\s*(?<posts>\d+)\s*\*(?<count>\d+)\s*{SpadeGlyph}\s*(?<year>\d+)\s*@(?<handle>[^\s=]+)\s*=(?<session>\S+)(?:\s+(?<tail>.*))?$",
+                RegexOptions.CultureInvariant);
+
             var match = pattern.Match(line);
             if (!match.Success)
             {
                 return null;
             }
 
-            var rawUsername = match.Groups[1].Value.Trim();
-            var handle = match.Groups[5].Value.Trim('@');
-            var sessionId = match.Groups[6].Value;
-            var remainder = match.Groups[7].Value;
-
-            var password = rawUsername.Length >= 3 ? rawUsername[^3..] + "@asem777" : "asem777";
+            var rawUsername = match.Groups["user"].Value.Trim();
+            var handle = match.Groups["handle"].Value.Trim();
+            var sessionId = match.Groups["session"].Value.Trim();
+            var password = rawUsername.Length >= 3
+                ? rawUsername[^3..] + "@asem777"
+                : $"{rawUsername}@asem777";
             string? twoFaSecret = null;
 
-            if (!string.IsNullOrWhiteSpace(remainder))
+            var tail = match.Groups["tail"].Value?.Trim();
+            if (!string.IsNullOrWhiteSpace(tail))
             {
-                var twoFaMatch = Regex.Match(remainder, "2FA:(.*)", RegexOptions.IgnoreCase);
+                var twoFaMatch = Regex.Match(tail, "2FA:(.*)", RegexOptions.IgnoreCase);
                 if (twoFaMatch.Success)
                 {
-                    var before = remainder[..twoFaMatch.Index].Trim();
+                    var before = tail[..twoFaMatch.Index].Trim();
                     if (!string.IsNullOrEmpty(before))
                     {
                         password = before;
@@ -1734,7 +1493,7 @@ namespace OpenBullet2.Native.Views.Pages
                 }
                 else
                 {
-                    password = remainder.Trim();
+                    password = tail;
                 }
             }
 
@@ -1770,7 +1529,7 @@ namespace OpenBullet2.Native.Views.Pages
             var authToken = Regex.Match(line, "auth_token=(\\w+)").Groups[1].Value;
             var sessionId = Regex.Match(line, "sessionid=(\\S+)").Groups[1].Value;
             var username = Regex.Match(line, "@(\\S+)").Groups[1].Value;
-            var post = Regex.Match(line, "^(\\d+)ÃƒÂ¢Ã¢â€žÂ¢Ã‚Â ").Groups[1].Value;
+            var post = Regex.Match(line, @$"^(\d+){DiamondGlyph}").Groups[1].Value;
             var follower = Regex.Match(line, "(\\d+)~").Groups[1].Value;
             var year = Regex.Match(line, "~\\s*(\\d+)").Groups[1].Value;
 
@@ -1792,7 +1551,8 @@ namespace OpenBullet2.Native.Views.Pages
             if (!string.IsNullOrEmpty(post) || !string.IsNullOrEmpty(follower) || !string.IsNullOrEmpty(year))
             {
                 builder.AppendLine();
-                builder.Append($"UsernameÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢PostÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢FollowerÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢Tahun = {(string.IsNullOrEmpty(username) ? "N/A" : username)}ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢{(string.IsNullOrEmpty(post) ? "N/A" : post)}ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢{(string.IsNullOrEmpty(follower) ? "N/A" : follower)}ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢{(string.IsNullOrEmpty(year) ? "N/A" : year)}");
+                builder.Append(
+                    $"Username•Post•Follower•Tahun = {(string.IsNullOrEmpty(username) ? "N/A" : username)}•{(string.IsNullOrEmpty(post) ? "N/A" : post)}•{(string.IsNullOrEmpty(follower) ? "N/A" : follower)}•{(string.IsNullOrEmpty(year) ? "N/A" : year)}");
             }
 
             return builder.ToString();
@@ -2604,7 +2364,7 @@ namespace OpenBullet2.Native.Views.Pages
                 FullPath = fullPath;
                 Length = length;
                 DisplayName = Path.GetFileName(fullPath);
-                Details = $"{FormatBytes(length)} â€¢ {fullPath}";
+                Details = $"{HumanReadable.Bytes(length)} \u2022 {fullPath}";
             }
 
             public string FullPath { get; }

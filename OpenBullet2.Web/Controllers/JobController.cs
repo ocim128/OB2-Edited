@@ -566,7 +566,7 @@ public class JobController : ApiController
                 $"The job with id {jobId} is not a multi run job");
         }
 
-        var hit = mrJob.Hits.Find(h => h.Id == hitId);
+        var hit = mrJob.Hits.FirstOrDefault(h => h.Id == hitId);
 
         if (hit is null)
         {

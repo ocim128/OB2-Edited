@@ -13,6 +13,7 @@ using RuriLib.Services;
 using RuriLib.Parallelization;
 using RuriLib.Parallelization.Models;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Dynamic;
@@ -91,6 +92,7 @@ public class MultiRunJob(RuriLibSettingsService settings, PluginRepository plugi
     // Performance optimizations
     private static readonly char[] _separator = ['\r', '\n'];
     private readonly object _lockObject = new();
+    private readonly ConcurrentQueue<Hit> hits = new();
     private bool _disposed;
     private int _fatalTaskErrorFlag;
 
@@ -103,7 +105,7 @@ public class MultiRunJob(RuriLibSettingsService settings, PluginRepository plugi
     /// <summary>
     /// Instance properties and stats
     /// </summary>
-    public List<Hit> Hits { get; private set; } = [];
+    public IReadOnlyCollection<Hit> Hits => hits;
 
     /// <summary>
     /// Events
@@ -689,7 +691,7 @@ public class MultiRunJob(RuriLibSettingsService settings, PluginRepository plugi
     private void ResetStats()
     {
         Statistics.Reset();
-        Hits = [];
+        hits.Clear();
     }
 
     private void StatusChanged(object sender, ParallelizerStatus status)
@@ -770,7 +772,7 @@ public class MultiRunJob(RuriLibSettingsService settings, PluginRepository plugi
             OwnerId = OwnerId
         };
 
-        Hits.Add(hit);
+        hits.Enqueue(hit);
         OnHit?.Invoke(this, hit);
 
         foreach (var hitOutput in HitOutputs)

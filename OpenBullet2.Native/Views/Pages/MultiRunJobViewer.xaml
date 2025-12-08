@@ -706,6 +706,7 @@
                     BorderThickness="0"
                     Margin="6"
                     PreviewMouseRightButtonDown="ResultsListView_PreviewMouseRightButtonDown"
+                    PreviewKeyDown="ResultsListView_PreviewKeyDown"
                     VirtualizingPanel.IsVirtualizing="True"
                     VirtualizingPanel.VirtualizationMode="Recycling"
                     VirtualizingPanel.ScrollUnit="Item"

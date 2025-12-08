@@ -38,6 +38,23 @@ namespace OpenBullet2.Native.Views.Pages
         private void ResultsListView_PreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)
             => SelectListViewItemUnderMouse(resultsListView, e);
 
+        private void ResultsListView_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.C && Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
+            {
+                if (Keyboard.Modifiers.HasFlag(ModifierKeys.Shift))
+                {
+                    CopySelectedHitsCapture(sender, e);
+                }
+                else
+                {
+                    CopySelectedHits(sender, e);
+                }
+
+                e.Handled = true;
+            }
+        }
+
         public MultiRunJobViewer()
         {
             mainWindow = ServiceLocator.GetService<MainWindow>();
@@ -111,14 +128,14 @@ namespace OpenBullet2.Native.Views.Pages
             }, "resetting skip count");
         }
 
-        private void CopySelectedHits(object sender, RoutedEventArgs e)
-            => GetSelectedHits().CopyToClipboard(h => h.Data);
+        private async void CopySelectedHits(object sender, RoutedEventArgs e)
+            => await CopyHitsToClipboardAsync(h => h.Data, "hit", "hits");
 
-        private void CopySelectedProxies(object sender, RoutedEventArgs e)
-            => GetSelectedHits().CopyToClipboard(h => h.Proxy);
+        private async void CopySelectedProxies(object sender, RoutedEventArgs e)
+            => await CopyHitsToClipboardAsync(h => h.Proxy, "hit proxy", "hit proxies");
 
-        private void CopySelectedHitsCapture(object sender, RoutedEventArgs e)
-            => GetSelectedHits().CopyToClipboard(h => $"{h.Data} | {h.Capture}");
+        private async void CopySelectedHitsCapture(object sender, RoutedEventArgs e)
+            => await CopyHitsToClipboardAsync(h => $"{h.Data} | {h.Capture}", "hit entry with capture", "hit entries with capture");
 
         private void SendToDebugger(object sender, RoutedEventArgs e)
         {
@@ -270,14 +287,32 @@ namespace OpenBullet2.Native.Views.Pages
         }
 
         // Bot context menu methods
-        private void CopySelectedBotData(object sender, RoutedEventArgs e)
-            => GetSelectedBots().CopyToClipboard(b => b.Data);
+        private async void CopySelectedBotData(object sender, RoutedEventArgs e)
+            => await GetSelectedBots().CopyToClipboardAsync(b => b.Data);
 
-        private void CopySelectedBotProxy(object sender, RoutedEventArgs e)
-            => GetSelectedBots().CopyToClipboard(b => b.Proxy);
+        private async void CopySelectedBotProxy(object sender, RoutedEventArgs e)
+            => await GetSelectedBots().CopyToClipboardAsync(b => b.Proxy);
 
-        private void CopySelectedBotInfo(object sender, RoutedEventArgs e)
-            => GetSelectedBots().CopyToClipboard(b => b.Info ?? "");
+        private async void CopySelectedBotInfo(object sender, RoutedEventArgs e)
+            => await GetSelectedBots().CopyToClipboardAsync(b => b.Info ?? "");
+
+        private async Task CopyHitsToClipboardAsync(Func<HitViewModel, string> mapping, string singular, string plural = null)
+        {
+            var hits = GetSelectedHits().ToList();
+            if (!hits.Any())
+            {
+                return;
+            }
+
+            await hits.CopyToClipboardAsync(mapping);
+            ShowClipboardNotification(hits.Count, singular, plural);
+        }
+
+        private static void ShowClipboardNotification(int count, string singular, string plural = null)
+        {
+            var label = count == 1 ? singular : plural ?? $"{singular}s";
+            Alert.Success("Clipboard", $"Copied {count} {label} to clipboard.");
+        }
 
         private void SelectAllBots(object sender, RoutedEventArgs e) => botsListView.SelectAll();
 

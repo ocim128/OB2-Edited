@@ -248,22 +248,22 @@ namespace OpenBullet2.Native.Views.Pages
             });
         }
 
-        private void CopySelected(object sender, RoutedEventArgs e)
-            => SelectedHits.CopyToClipboard(h => h.Data);
+        private async void CopySelected(object sender, RoutedEventArgs e)
+            => await SelectedHits.CopyToClipboardAsync(h => h.Data);
 
-        private void CopySelectedProxies(object sender, RoutedEventArgs e)
-            => SelectedHits.CopyToClipboard(h => h.Proxy);
+        private async void CopySelectedProxies(object sender, RoutedEventArgs e)
+            => await SelectedHits.CopyToClipboardAsync(h => h.Proxy);
 
-        private void CopySelectedWithCapture(object sender, RoutedEventArgs e)
-            => SelectedHits.CopyToClipboard(captureMapping);
+        private async void CopySelectedWithCapture(object sender, RoutedEventArgs e)
+            => await SelectedHits.CopyToClipboardAsync(captureMapping);
 
-        private void CopySelectedFull(object sender, RoutedEventArgs e)
-            => SelectedHits.CopyToClipboard(fullMapping);
+        private async void CopySelectedFull(object sender, RoutedEventArgs e)
+            => await SelectedHits.CopyToClipboardAsync(fullMapping);
 
-        private void CopySelectedCustom(object sender, RoutedEventArgs e)
+        private async void CopySelectedCustom(object sender, RoutedEventArgs e)
         {
             var format = (sender as MenuItem).Header.ToString().Unescape();
-            SelectedHits.CopyToClipboard(h => ApplyCustomFormat(h, format));
+            await SelectedHits.CopyToClipboardAsync(h => ApplyCustomFormat(h, format));
         }
 
         private static string GetSaveFile()

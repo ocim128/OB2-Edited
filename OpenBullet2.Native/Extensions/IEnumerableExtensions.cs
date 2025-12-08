@@ -84,13 +84,6 @@ namespace OpenBullet2.Native.Extensions
             }
         }
 
-        /// <summary>
-        /// Synchronous wrapper for CopyToClipboardAsync. Not recommended for use in async contexts.
-        /// </summary>
-        public static void CopyToClipboard<T>(this IEnumerable<T> items, Func<T, string> mapping)
-        {
-            // For backward compatibility, but this is a blocking call
-            CopyToClipboardAsync(items, mapping).GetAwaiter().GetResult();
-        }
+        // Intentionally no synchronous wrapper: awaiting CopyToClipboardAsync avoids dispatcher deadlocks under contention.
     }
 }

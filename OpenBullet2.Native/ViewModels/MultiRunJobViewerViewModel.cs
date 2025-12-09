@@ -175,6 +175,23 @@ public class MultiRunJobViewerViewModel : OpenBullet2.Native.ViewModels.Infrastr
         }
     }
 
+    private string searchQuery = string.Empty;
+    public string SearchQuery
+    {
+        get => searchQuery;
+        set
+        {
+            if (searchQuery == value)
+            {
+                return;
+            }
+
+            searchQuery = value;
+            OnPropertyChanged();
+            UpdateHitsCollection();
+        }
+    }
+
     #endregion Collections
 
     public MultiRunJobViewerViewModel(MultiRunJobViewModel jobVM)
@@ -341,7 +358,10 @@ public class MultiRunJobViewerViewModel : OpenBullet2.Native.ViewModels.Infrastr
             _ => false
         };
 
-        if (shouldAdd)
+        var query = SearchQuery;
+        var matchesSearch = string.IsNullOrWhiteSpace(query) || HitMatchesSearch(hit, query);
+
+        if (shouldAdd && matchesSearch)
         {
             Application.Current.Dispatcher.Invoke(() => HitsCollection?.Add(new HitViewModel(hit)));
         }
@@ -373,7 +393,9 @@ public class MultiRunJobViewerViewModel : OpenBullet2.Native.ViewModels.Infrastr
                 _ => throw new NotImplementedException()
             };
 
-            HitsCollection = new ObservableCollection<HitViewModel>(hits.Where(static h => h != null).Select(static h => new HitViewModel(h)));
+            var filteredHits = ApplySearchFilter(hits);
+
+            HitsCollection = new ObservableCollection<HitViewModel>(filteredHits.Select(static h => new HitViewModel(h)));
         }
         catch (InvalidOperationException)
         {
@@ -390,7 +412,9 @@ public class MultiRunJobViewerViewModel : OpenBullet2.Native.ViewModels.Infrastr
                     _ => throw new NotImplementedException()
                 };
 
-                HitsCollection = new ObservableCollection<HitViewModel>(hits.Where(static h => h != null).Select(static h => new HitViewModel(h)));
+                var filteredHits = ApplySearchFilter(hits);
+
+                HitsCollection = new ObservableCollection<HitViewModel>(filteredHits.Select(static h => new HitViewModel(h)));
             }
             catch
             {
@@ -523,6 +547,34 @@ public class MultiRunJobViewerViewModel : OpenBullet2.Native.ViewModels.Infrastr
     #endregion Controls
 
     #region Utils
+    private IEnumerable<Hit> ApplySearchFilter(IEnumerable<Hit?> hits)
+    {
+        var query = SearchQuery;
+
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            return hits.Where(static h => h is not null)!;
+        }
+
+        return hits.Where(h => h is not null && HitMatchesSearch(h, query))!;
+    }
+
+    private static bool HitMatchesSearch(Hit hit, string query)
+    {
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            return true;
+        }
+
+        return ContainsIgnoreCase(hit.Data?.Data, query)
+            || ContainsIgnoreCase(hit.Proxy?.ToString(), query)
+            || ContainsIgnoreCase(hit.Type, query)
+            || ContainsIgnoreCase(hit.CapturedDataString, query);
+    }
+
+    private static bool ContainsIgnoreCase(string? source, string query)
+        => !string.IsNullOrEmpty(source) && source.IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0;
+
     private void AskCustomInputs()
     {
         var customInputs = MultiRunJob.Config?.Settings.InputSettings.CustomInputs;

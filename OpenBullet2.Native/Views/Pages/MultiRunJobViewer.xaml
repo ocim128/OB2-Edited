@@ -670,18 +670,41 @@
                 <Border Grid.Row="0" Background="#FF1E1E1E" CornerRadius="10" Padding="12,8" Margin="0,0,0,4">
                     <Grid>
                         <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
                         
-                        <StackPanel Grid.Column="0" Orientation="Horizontal">
+                        <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
                             <iconPacks:PackIconMaterial Kind="Target" Width="18" Height="18" Foreground="#FF10B981" VerticalAlignment="Center"/>
                             <TextBlock Text="Results &amp; Hits Dashboard" FontSize="15" FontWeight="SemiBold" 
                                        Foreground="#FF10B981" VerticalAlignment="Center" Margin="10,0,0,0"/>
                         </StackPanel>
+
+                        <!-- Search box -->
+                        <Border Grid.Column="1" Background="#FF151515" CornerRadius="8" Padding="8,4" Margin="16,0"
+                                VerticalAlignment="Center">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <iconPacks:PackIconMaterial Kind="Magnify" Width="14" Height="14" Foreground="#FF9CA3AF" VerticalAlignment="Center"/>
+                                <TextBox Grid.Column="1"
+                                         Margin="6,0,0,0"
+                                         Background="Transparent"
+                                         BorderThickness="0"
+                                         Foreground="#FFF"
+                                         FontSize="12"
+                                         Padding="0"
+                                         VerticalContentAlignment="Center"
+                                         Text="{Binding SearchQuery, UpdateSourceTrigger=PropertyChanged}"
+                                         ToolTip="Search data, proxy, type or capture"/>
+                            </Grid>
+                        </Border>
                         
                         <!-- Enhanced Result Type Tabs -->
-                        <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="8,0,0,0">
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="8,0,0,0">
                             <Button x:Name="HitsTabButton" Click="ShowHitsTab"
                                     Background="#FF10B981" Foreground="White" BorderThickness="0"
                                     Padding="12,6" Margin="0,0,3,0" FontSize="10" FontWeight="SemiBold">

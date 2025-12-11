@@ -152,7 +152,8 @@ namespace RuriLib.Blocks.Playwright.Page
             data.Logger.LogHeader();
 
             var frame = GetFrame(data);
-            var response = await frame.EvaluateAsync(expression);
+            // Use eval on the page side so large snippets (with quotes/backticks) do not break Playwright parsing
+            var response = await frame.EvaluateAsync<object>("(script) => eval(script)", expression);
 
             var json = response != null ? response.ToString() : "undefined";
 

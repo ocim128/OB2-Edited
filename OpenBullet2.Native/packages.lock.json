@@ -158,9 +158,9 @@
       },
       "Microsoft.Playwright": {
         "type": "Direct",
-        "requested": "[1.40.0, )",
-        "resolved": "1.40.0",
-        "contentHash": "Eg4a4m5JG27T+tSueaGboQBALxB4fyzn0yDSd8bc8UZLHD/XdklHCQjsgsD5iBrVLVIjnEiIbDI0DPmsEn91Cg==",
+        "requested": "[1.41.0, )",
+        "resolved": "1.41.0",
+        "contentHash": "ez0fwsYAyAUZ9V64DOVLPQijRPibod/Ue6QHq0nqwqL633iVVRrpo+yGFIarMgD3p0q9ODqDr6jAQxNv9ld8Rw==",
         "dependencies": {
           "Microsoft.Bcl.AsyncInterfaces": "6.0.0",
           "System.ComponentModel.Annotations": "5.0.0",
@@ -1219,7 +1219,7 @@
           "Microsoft.CodeAnalysis.CSharp": "[4.5.0, )",
           "Microsoft.CodeAnalysis.CSharp.Scripting": "[4.5.0, )",
           "Microsoft.CodeAnalysis.Workspaces.Common": "[4.5.0, )",
-          "Microsoft.Playwright": "[1.40.0, )",
+          "Microsoft.Playwright": "[1.41.0, )",
           "NAudio": "[2.2.1, )",
           "Newtonsoft.Json": "[13.0.3, )",
           "PuppeteerExtraSharp": "[3.0.1, )",

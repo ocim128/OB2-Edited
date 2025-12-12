@@ -91,11 +91,16 @@ public sealed class ZipProfileLauncher
     {
         var playwright = await Microsoft.Playwright.Playwright.CreateAsync().ConfigureAwait(false);
         var timeoutMs = settings.TimeoutMilliseconds <= 0 ? 60000 : settings.TimeoutMilliseconds;
+        if (timeoutMs < 60000)
+        {
+            timeoutMs = 60000;
+        }
 
         try
         {
             var sanitizedArgs = new List<string>(settings.ExtraArgs ?? Array.Empty<string>());
-            PlaywrightLaunchConfigurator.EnsureSandboxFlags(sanitizedArgs);
+            PlaywrightLaunchConfigurator.StripIncompatibleFlags(sanitizedArgs, PlaywrightBrowserType.Firefox);
+            PlaywrightLaunchConfigurator.EnsureSandboxFlags(sanitizedArgs, PlaywrightBrowserType.Firefox);
 
             var launchOptions = new BrowserTypeLaunchPersistentContextOptions
             {

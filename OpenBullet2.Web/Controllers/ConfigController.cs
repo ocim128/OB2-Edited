@@ -513,7 +513,7 @@ public class ConfigController : ApiController
         return new DebugConfigResultDto
         {
             Log = debugger.Logger.Entries.ToList(),
-            Variables = debugger.Options.Variables.Select(ConfigDebuggerService.MapVariable).ToList(),
+            Variables = debugger.Variables.Select(ConfigDebuggerService.MapVariable).ToList(),
             Error = error
         };
     }

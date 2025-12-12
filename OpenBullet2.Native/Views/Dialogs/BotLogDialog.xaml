@@ -5,7 +5,7 @@
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
       xmlns:local="clr-namespace:OpenBullet2.Native.Views.Dialogs"
       xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
-      xmlns:wf="clr-namespace:System.Windows.Forms;assembly=System.Windows.Forms"  
+      xmlns:avalonEdit="http://icsharpcode.net/sharpdevelop/avalonedit"
       mc:Ignorable="d"
       Width="800"
       Height="600"
@@ -17,16 +17,18 @@
             <RowDefinition Height="*" />
             <RowDefinition Height="auto" />
         </Grid.RowDefinitions>
-        <WindowsFormsHost Grid.Row="0">
-            <wf:RichTextBox 
-                x:Name="logRTB"
-                Dock="Fill"
-                ForeColor="Gainsboro"
-                ReadOnly="True"
-                ScrollBars="Vertical"
-                BorderStyle="None"
-                DetectUrls="False"/>
-        </WindowsFormsHost>
+        <avalonEdit:TextEditor Grid.Row="0"
+                               x:Name="logRTB"
+                               IsReadOnly="True"
+                               ShowLineNumbers="False"
+                               FontFamily="Consolas"
+                               FontSize="13"
+                               Background="#161616"
+                               Foreground="Gainsboro"
+                               HorizontalScrollBarVisibility="Auto"
+                               VerticalScrollBarVisibility="Auto"
+                               WordWrap="True"
+                               Padding="10" />
         <Grid Grid.Row="1" Margin="0 2 0 0">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />

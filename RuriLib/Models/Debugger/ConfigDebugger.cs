@@ -68,6 +68,8 @@ public partial class ConfigDebugger : IDisposable
     private readonly object _statusLock = new();
     private readonly StringBuilder _logBuilder = new(1024); // Reusable StringBuilder
 
+    public List<Variable> Variables { get; } = new();
+
     public ConfigDebugger(Config config, DebuggerOptions options = null, BotLogger logger = null)
     {
         Config = config;
@@ -107,7 +109,7 @@ public partial class ConfigDebugger : IDisposable
         }
 
 
-        Options.Variables.Clear();
+        Variables.Clear();
         ChangeStatus(ConfigDebuggerStatus.Running);
         _cts = new CancellationTokenSource();
         var sw = Stopwatch.StartNew();
@@ -268,7 +270,7 @@ public partial class ConfigDebugger : IDisposable
                     {
                         var variable = DescriptorsRepository.ToVariable(scriptVar.Name, actualType, scriptVar.Value);
                         variable.MarkedForCapture = markedForCapture.Contains(scriptVar.Name);
-                        Options.Variables.Add(variable);
+                        Variables.Add(variable);
                     }
                 }
                 catch

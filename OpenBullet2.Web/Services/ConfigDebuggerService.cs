@@ -134,7 +134,7 @@ public sealed class ConfigDebuggerService : IDisposable
         // update the variables.
         // TODO: In the future it would be nice to update them more often.
         var varMessage = new DbgVariablesChangedMessage {
-            Variables = (sender as ConfigDebugger)!.Options.Variables.Select(MapVariable)
+            Variables = (sender as ConfigDebugger)!.Variables.Select(MapVariable)
         };
 
         await _hub.Clients.Clients(_connections[debugger!]).SendAsync(

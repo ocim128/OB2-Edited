@@ -9,6 +9,8 @@
       xmlns:wf="clr-namespace:System.Windows.Forms;assembly=System.Windows.Forms"
       xmlns:uc="clr-namespace:OpenBullet2.Native.Controls"
       xmlns:mah="http://metro.mahapps.com/winfx/xaml/controls"
+      xmlns:avalonEdit="http://icsharpcode.net/sharpdevelop/avalonedit"
+
       mc:Ignorable="d"
       d:DesignHeight="450"
       d:DesignWidth="800"
@@ -407,15 +409,19 @@
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
                         <!-- Optimized Log Content with virtualization -->
-                        <Border Grid.Row="0" Background="{StaticResource Modern.BackgroundSecondary}" BorderBrush="{StaticResource Modern.BorderSecondary}" BorderThickness="1" CornerRadius="8" Padding="8"
+                        <Border Grid.Row="0" Background="{StaticResource Modern.BackgroundSecondary}" BorderBrush="{StaticResource Modern.BorderSecondary}" BorderThickness="1" CornerRadius="8" Padding="0"
                                 RenderOptions.BitmapScalingMode="HighQuality" UseLayoutRounding="True"
                                 SnapsToDevicePixels="True">
                             <!-- Remove outer ScrollViewer to avoid double scrollbars; rely on inner WinForms RichTextBox scrollbar -->
-                            <WindowsFormsHost>
-                                <wf:RichTextBox x:Name="logRTB" Dock="Fill" ForeColor="Gainsboro" ReadOnly="True"
-                                                ScrollBars="Vertical" BorderStyle="None" DetectUrls="False"
-                                                MaxLength="1000000" />
-                            </WindowsFormsHost>
+                            <!-- AvalonEdit Log -->
+                            <avalonEdit:TextEditor x:Name="logRTB" IsReadOnly="True"
+                                                   ShowLineNumbers="False"
+                                                   FontFamily="Consolas" FontSize="13"
+                                                   Background="#161616" Foreground="Gainsboro"
+                                                   HorizontalScrollBarVisibility="Auto"
+                                                   VerticalScrollBarVisibility="Auto"
+                                                   WordWrap="True"
+                                                   Padding="10"/>
                         </Border>
                         <!-- Search Controls - Reshaped UI -->
                         <Border Grid.Row="2"
@@ -655,7 +661,7 @@
                                 UseLayoutRounding="True">
                             <Border Background="{StaticResource Modern.BackgroundTertiary}"
                                     CornerRadius="7"
-                                    Padding="8">
+                                    Padding="0">
                                 <Grid>
                                     <!-- Optimized Variable Count Indicator -->
                                     <Border HorizontalAlignment="Right"
@@ -674,16 +680,15 @@
                                                    RenderOptions.ClearTypeHint="Enabled" />
                                     </Border>
                                     <!-- Remove outer ScrollViewer to avoid double scrollbars; rely on inner WinForms RichTextBox scrollbar -->
-                                    <WindowsFormsHost>
-                                        <wf:RichTextBox x:Name="variablesRTB"
-                                                        Dock="Fill"
-                                                        ForeColor="Gainsboro"
-                                                        ReadOnly="True"
-                                                        ScrollBars="Vertical"
-                                                        BorderStyle="None"
-                                                        DetectUrls="False"
-                                                        MaxLength="500000" />
-                                    </WindowsFormsHost>
+                                    <!-- AvalonEdit Variables -->
+                                    <avalonEdit:TextEditor x:Name="variablesRTB" IsReadOnly="True"
+                                                           ShowLineNumbers="False"
+                                                           FontFamily="Consolas" FontSize="13"
+                                                           Background="#161616" Foreground="Gainsboro"
+                                                           HorizontalScrollBarVisibility="Auto"
+                                                           VerticalScrollBarVisibility="Auto"
+                                                           WordWrap="True"
+                                                           Padding="10"/>
                                 </Grid>
                             </Border>
                         </Border>

@@ -39,11 +39,7 @@ namespace RuriLib.Models.Debugger
         /// </summary>
         public bool PersistLog { get; set; } = false;
 
-        /// <summary>
-        /// The list of variables that were found during the last debug.
-        /// </summary>
-        // TODO: Move this outside of the options
-        public List<Variable> Variables { get; set; } = new List<Variable>();
+
 
         /// <summary>
         /// Whether to debug the config in step by step mode, waiting for

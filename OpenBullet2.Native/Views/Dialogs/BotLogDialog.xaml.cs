@@ -1,10 +1,12 @@
-using OpenBullet2.Native.Extensions;
-using OpenBullet2.Native.ViewModels;
+using ICSharpCode.AvalonEdit.Document;
+using OpenBullet2.Native.Views.Pages.Shared;
 using RuriLib.Logging;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 
 namespace OpenBullet2.Native.Views.Dialogs
 {
@@ -14,6 +16,11 @@ namespace OpenBullet2.Native.Views.Dialogs
     public partial class BotLogDialog : Page
     {
         private readonly BotLogDialogViewModel vm;
+        private readonly List<LogSegment> _segments = new();
+        private readonly DebuggerLogColorizer _colorizer;
+        private readonly Dictionary<string, Brush> _brushCache = new();
+        
+        private readonly List<int> _searchMatches = new();
 
         public BotLogDialog(IBotLogger logger)
         {
@@ -21,130 +28,114 @@ namespace OpenBullet2.Native.Views.Dialogs
             DataContext = vm;
 
             InitializeComponent();
-
-            logRTB.Font = new System.Drawing.Font("Consolas", 10);
-            logRTB.BackColor = System.Drawing.Color.FromArgb(22, 22, 22);
-            logRTB.HandleCreated += (_, _) => FixAutoWordSelection(logRTB);
+            
+            // Initialize Syntax Highlighting
+            _colorizer = new DebuggerLogColorizer(_segments);
+            logRTB.TextArea.TextView.LineTransformers.Add(_colorizer);
 
             if (logger is null)
             {
-                logRTB.AppendText("Bot log was not enabled when this hit was obtained", LogColors.Tomato);
+                AppendLog("Bot log was not enabled when this hit was obtained" + Environment.NewLine, "#FF6347"); // Tomato
                 return;
             }
 
             foreach (var entry in logger.Entries)
             {
-                // Append the log message
-                logRTB.AppendText(entry.Message + Environment.NewLine, entry.Color);
+                AppendLog(entry.Message + Environment.NewLine, entry.Color);
             }
-
+            
             try
             {
-                logRTB.SelectionStart = logRTB.TextLength;
-                logRTB.ScrollToCaret();
-                logRTB.ClearUndoHistory();
+                logRTB.ScrollToEnd();
             }
-            catch
-            {
-                // ignored
-            }
+            catch { }
         }
         
-        private void FixAutoWordSelection(System.Windows.Forms.RichTextBox rtb)
+        private void AppendLog(string text, string hexColor)
         {
-            // Stupid ass workaround because WinForms RichTextBox is broken
-            // https://stackoverflow.com/questions/3678620/c-sharp-richtextbox-selection-problem
-            rtb.AutoWordSelection = true;
-            rtb.AutoWordSelection = false;
+            int startOffset = logRTB.Document.TextLength;
+            logRTB.AppendText(text);
+            
+            var brush = GetBrush(hexColor);
+            _segments.Add(new LogSegment
+            {
+                StartOffset = startOffset,
+                Length = text.Length,
+                Color = brush
+            });
+        }
+        
+        private Brush GetBrush(string hexColor)
+        {
+            if (_brushCache.TryGetValue(hexColor, out var brush)) return brush;
+            try 
+            {
+                var color = (Color)ColorConverter.ConvertFromString(hexColor);
+                brush = new SolidColorBrush(color);
+                brush.Freeze();
+                _brushCache[hexColor] = brush;
+                return brush;
+            } 
+            catch { return Brushes.Gainsboro; }
         }
 
         #region Search
         private void Search(object sender, RoutedEventArgs e)
         {
-            // Reset all highlights
-            logRTB.SelectAll();
-            logRTB.SelectionBackColor = System.Drawing.Color.FromArgb(22, 22, 22);
-            logRTB.DeselectAll();
-
-            // Check for empty search
             if (string.IsNullOrWhiteSpace(vm.SearchString))
             {
+                _searchMatches.Clear();
+                vm.Indices = Array.Empty<int>();
                 return;
             }
 
-            var selectionStart = logRTB.SelectionStart;
-            var startIndex = 0;
-            var indices = new List<int>();
-            int index;
-
-            while ((index = logRTB.Text.IndexOf(vm.SearchString, startIndex, StringComparison.InvariantCultureIgnoreCase)) != -1)
+            _searchMatches.Clear();
+            var docText = logRTB.Document.Text;
+            int index = 0;
+            
+            while ((index = docText.IndexOf(vm.SearchString, index, StringComparison.InvariantCultureIgnoreCase)) != -1)
             {
-                logRTB.Select(index, vm.SearchString.Length);
-                logRTB.SelectionColor = System.Drawing.Color.White;
-                logRTB.SelectionBackColor = System.Drawing.Color.Navy;
-
-                startIndex = index + vm.SearchString.Length;
-                indices.Add(startIndex);
-
-                // If it's the first match, immediately scroll to it
-                if (indices.Count == 1)
-                {
-                    logRTB.ScrollToCaret();
-                }
+                _searchMatches.Add(index);
+                index += vm.SearchString.Length;
             }
 
-            vm.Indices = indices.ToArray();
-
-            // Reset the selection
-            logRTB.SelectionStart = selectionStart;
-            logRTB.SelectionLength = 0;
-            logRTB.SelectionColor = System.Drawing.Color.Black;
+            vm.Indices = _searchMatches.ToArray();
+            
+            if (_searchMatches.Count > 0)
+            {
+                // Select first match
+                SelectMatch(0);
+            }
         }
 
         private void PreviousMatch(object sender, RoutedEventArgs e)
         {
-            // If no matches, do nothing
-            if (vm.Indices.Length == 0)
-            {
-                return;
-            }
+            if (vm.Indices.Length == 0) return;
 
-            // If we need to loop around
-            if (vm.CurrentMatchIndex == 0)
-            {
-                vm.CurrentMatchIndex = vm.Indices.Length - 1;
-            }
-            else
-            {
-                vm.CurrentMatchIndex--;
-            }
-
-            logRTB.DeselectAll();
-            logRTB.Select(vm.Indices[vm.CurrentMatchIndex], 0);
-            logRTB.ScrollToCaret();
+            int newIndex = vm.CurrentMatchIndex - 1;
+            if (newIndex < 0) newIndex = vm.Indices.Length - 1;
+            
+            SelectMatch(newIndex);
         }
 
         private void NextMatch(object sender, RoutedEventArgs e)
         {
-            // If no matches, do nothing
-            if (vm.Indices.Length == 0)
-            {
-                return;
-            }
+            if (vm.Indices.Length == 0) return;
 
-            // If we need to loop around
-            if (vm.CurrentMatchIndex == vm.Indices.Length - 1)
-            {
-                vm.CurrentMatchIndex = 0;
-            }
-            else
-            {
-                vm.CurrentMatchIndex++;
-            }
-
-            logRTB.DeselectAll();
-            logRTB.Select(vm.Indices[vm.CurrentMatchIndex], 0);
-            logRTB.ScrollToCaret();
+            int newIndex = vm.CurrentMatchIndex + 1;
+            if (newIndex >= vm.Indices.Length) newIndex = 0;
+            
+            SelectMatch(newIndex);
+        }
+        
+        private void SelectMatch(int index)
+        {
+            vm.CurrentMatchIndex = index;
+            int textIndex = vm.Indices[index];
+            
+            logRTB.Select(textIndex, vm.SearchString.Length);
+            var line = logRTB.Document.GetLineByOffset(textIndex);
+            logRTB.ScrollToLine(line.LineNumber);
         }
         #endregion
     }

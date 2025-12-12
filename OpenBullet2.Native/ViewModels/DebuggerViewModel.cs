@@ -23,12 +23,12 @@ public class DebuggerViewModel : OpenBullet2.Native.ViewModels.Infrastructure.Vi
     private readonly IRNGProvider rngProvider;
     private readonly PluginRepository pluginRepo;
 
-    private DebuggerOptions options;
-    private BotLogger logger;
-    private ConfigDebugger debugger;
+    private DebuggerOptions? options;
+    private BotLogger? logger;
+    private ConfigDebugger? debugger;
 
-    public event EventHandler<BotLoggerEntry> NewLogEntry;
-    public event EventHandler LogCleared;
+    public event EventHandler<BotLoggerEntry>? NewLogEntry;
+    public event EventHandler? LogCleared;
 
     private string testData = string.Empty;
     public string TestData
@@ -130,9 +130,17 @@ public class DebuggerViewModel : OpenBullet2.Native.ViewModels.Infrastructure.Vi
     public bool CanTakeStep => status is ConfigDebuggerStatus.WaitingForStep;
     public bool CanStop => status is ConfigDebuggerStatus.Running or ConfigDebuggerStatus.WaitingForStep;
 
-    public List<Variable> Variables => obSettingsService.Settings.GeneralSettings.GroupCapturesInDebugger
-        ? [.. options.Variables.OrderBy(static v => v.MarkedForCapture)]
-        : options.Variables;
+    public List<Variable> Variables
+    {
+        get
+        {
+            if (debugger == null) return new List<Variable>();
+
+            return obSettingsService.Settings.GeneralSettings.GroupCapturesInDebugger
+                ? [.. debugger.Variables.OrderBy(static v => v.MarkedForCapture)]
+                : debugger.Variables;
+        }
+    }
 
     private string searchString = string.Empty;
     public string SearchString
@@ -219,11 +227,12 @@ public class DebuggerViewModel : OpenBullet2.Native.ViewModels.Infrastructure.Vi
         pluginRepo = pluginRepository ?? throw new ArgumentNullException(nameof(pluginRepository));
 
         WordlistType = WordlistTypes.First();
+        wordlistType = WordlistType; // Initialize backing field to avoid warning
     }
 
     public async Task RunAsync()
     {
-        if (!PersistLog)
+        if (logger == null || !PersistLog)
         {
             logger = new();
         }
@@ -279,6 +288,6 @@ public class DebuggerViewModel : OpenBullet2.Native.ViewModels.Infrastructure.Vi
         LogCleared?.Invoke(this, EventArgs.Empty);
     }
 
-    private void OnStatusChanged(object sender, ConfigDebuggerStatus status) => Status = status;
-    private void OnNewLogEntry(object sender, BotLoggerEntry e) => NewLogEntry?.Invoke(this, e);
+    private void OnStatusChanged(object? sender, ConfigDebuggerStatus status) => Status = status;
+    private void OnNewLogEntry(object? sender, BotLoggerEntry e) => NewLogEntry?.Invoke(this, e);
 }

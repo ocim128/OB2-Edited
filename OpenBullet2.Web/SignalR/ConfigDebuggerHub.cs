@@ -134,7 +134,7 @@ public class ConfigDebuggerHub : AuthorizedHub
             state = new DbgStateDto {
                 Log = debugger.Logger.Entries,
                 Status = debugger.Status,
-                Variables = debugger.Options.Variables.Select(
+                Variables = debugger.Variables.Select(
                     ConfigDebuggerService.MapVariable)
             };
         }

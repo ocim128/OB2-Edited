@@ -140,7 +140,16 @@ public abstract class Parallelizer<TInput, TOutput> : IDisposable
     /// The queue of timestamps for CPM calculation. Using a ConcurrentQueue for thread safety
     /// and efficient enqueue/dequeue operations.
     /// </summary>
-    protected readonly ConcurrentQueue<long> checkedTimestamps = new();
+    /// <summary>
+    /// The slots for CPM calculation.
+    /// </summary>
+    private readonly CpmSlot[] _cpmSlots = Enumerable.Range(0, 60).Select(_ => new CpmSlot()).ToArray();
+
+    private class CpmSlot
+    {
+        public long Second;
+        public int Count;
+    }
 
     /// <summary>
     /// A timer that periodically updates the CPM and progress.
@@ -291,7 +300,25 @@ public abstract class Parallelizer<TInput, TOutput> : IDisposable
             }
             finally
             {
-                checkedTimestamps.Enqueue(Environment.TickCount64);
+                // Increment CPM
+                var now = Environment.TickCount64;
+                var second = now / 1000;
+                var slotIndex = (int)(second % 60);
+                var slot = _cpmSlots[slotIndex];
+
+                if (slot.Second != second)
+                {
+                    lock (slot)
+                    {
+                        if (slot.Second != second)
+                        {
+                            slot.Second = second;
+                            slot.Count = 0;
+                        }
+                    }
+                }
+                
+                Interlocked.Increment(ref slot.Count);
                 _ = Interlocked.Increment(ref processed);
             }
         };
@@ -313,8 +340,12 @@ public abstract class Parallelizer<TInput, TOutput> : IDisposable
         StartTime = DateTime.Now;
         EndTime = null;
 
-        // Clear the queue efficiently
-        while (checkedTimestamps.TryDequeue(out _)) ;
+        // Clear the slots
+        foreach (var slot in _cpmSlots)
+        {
+            slot.Second = 0;
+            slot.Count = 0;
+        }
 
         softCTS = new CancellationTokenSource();
         hardCTS = new CancellationTokenSource();
@@ -454,18 +485,23 @@ public abstract class Parallelizer<TInput, TOutput> : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     protected void UpdateCPM(long nowTicks)
     {
-        // Attempt to update CPM without blocking; if another thread is updating, skip this tick
         if (!Monitor.TryEnter(cpmLock)) return;
 
         try
         {
-            const int windowMs = 60_000;
+            var nowSec = nowTicks / 1000;
+            var cpm = 0;
 
-            // Dequeue timestamps older than the time window
-            while (checkedTimestamps.TryPeek(out var timestamp) && nowTicks - timestamp >= windowMs)
-                checkedTimestamps.TryDequeue(out _);
+            for (var i = 0; i < 60; i++)
+            {
+                var slot = _cpmSlots[i];
+                if (slot.Second > nowSec - 60 && slot.Second <= nowSec)
+                {
+                    cpm += slot.Count;
+                }
+            }
 
-            CPM = checkedTimestamps.Count;
+            CPM = cpm;
         }
         finally
         {

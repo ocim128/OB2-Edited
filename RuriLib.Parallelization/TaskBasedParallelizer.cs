@@ -15,6 +15,8 @@ namespace RuriLib.Parallelization
     {
         private SemaphoreSlim _semaphore;
         private int _activeTaskCount;
+        private Task _executionTask;
+        private volatile TaskCompletionSource _allTasksCompletedTcs;
 
         /// <inheritdoc/>
         public TaskBasedParallelizer(IEnumerable<TInput> workItems, Func<TInput, CancellationToken, Task<TOutput>> workFunction,
@@ -29,7 +31,7 @@ namespace RuriLib.Parallelization
             await base.Start().ConfigureAwait(false);
 
             Status = ParallelizerStatus.Running;
-            _ = Task.Run(RunAsync).ConfigureAwait(false);
+            _executionTask = RunAsync();
         }
 
         /// <inheritdoc/>
@@ -62,7 +64,11 @@ namespace RuriLib.Parallelization
 
             Status = ParallelizerStatus.Stopping;
             softCTS.Cancel();
-            await WaitForTasksCompletion().ConfigureAwait(false);
+
+            if (_executionTask != null)
+            {
+                await _executionTask.ConfigureAwait(false);
+            }
         }
 
         /// <inheritdoc/>
@@ -73,7 +79,18 @@ namespace RuriLib.Parallelization
             Status = ParallelizerStatus.Stopping;
             hardCTS.Cancel();
             softCTS.Cancel();
-            await WaitForTasksCompletion().ConfigureAwait(false);
+
+            if (_executionTask != null)
+            {
+                try
+                {
+                    await _executionTask.ConfigureAwait(false);
+                }
+                catch (TaskCanceledException)
+                {
+                    // Ignore cancellation
+                }
+            }
         }
 
         /// <inheritdoc/>
@@ -101,6 +118,7 @@ namespace RuriLib.Parallelization
         {
             _semaphore = new SemaphoreSlim(degreeOfParallelism, MaxDegreeOfParallelism);
             _activeTaskCount = 0;
+            _allTasksCompletedTcs = null;
 
             try
             {
@@ -145,19 +163,40 @@ namespace RuriLib.Parallelization
             finally
             {
                 _semaphore.Release();
-                Interlocked.Decrement(ref _activeTaskCount);
+                if (Interlocked.Decrement(ref _activeTaskCount) == 0)
+                {
+                    _allTasksCompletedTcs?.TrySetResult();
+                }
             }
         }
 
         private async Task WaitForTasksCompletion()
         {
-            // Wait for all tasks to complete with exponential backoff
-            var delay = 10;
-            while (Interlocked.CompareExchange(ref _activeTaskCount, 0, 0) > 0)
+            if (Interlocked.CompareExchange(ref _activeTaskCount, 0, 0) == 0)
             {
-                if (hardCTS.IsCancellationRequested) break;
-                await Task.Delay(delay).ConfigureAwait(false);
-                delay = Math.Min(delay * 2, 100);
+                return;
+            }
+
+            var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            _allTasksCompletedTcs = tcs;
+
+            // Double check in case it finished while we were setting TCS
+            if (Interlocked.CompareExchange(ref _activeTaskCount, 0, 0) == 0)
+            {
+                return;
+            }
+
+            // Wait for completion or hard cancellation
+            using (hardCTS.Token.Register(() => tcs.TrySetCanceled()))
+            {
+                try
+                {
+                    await tcs.Task.ConfigureAwait(false);
+                }
+                catch (TaskCanceledException)
+                {
+                    // Ignore
+                }
             }
         }
 

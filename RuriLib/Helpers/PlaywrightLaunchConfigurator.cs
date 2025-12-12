@@ -2,6 +2,8 @@ using Microsoft.Playwright;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
+using RuriLib.Models.Settings;
 
 namespace RuriLib.Helpers.Playwright
 {
@@ -11,11 +13,8 @@ namespace RuriLib.Helpers.Playwright
     /// </summary>
     public static class PlaywrightLaunchConfigurator
     {
-        private static readonly string[] RequiredSandboxFlags = new[]
-        {
-            "--no-sandbox",
-            "--disable-setuid-sandbox"
-        };
+        private static readonly string[] CrossPlatformSandboxFlags = { "--no-sandbox" };
+        private static readonly string[] NonWindowsSandboxFlags = { "--disable-setuid-sandbox", "--disable-dev-shm-usage" };
 
         private static readonly IReadOnlyDictionary<string, string> FirefoxSafeEnvironment =
             new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
@@ -42,21 +41,54 @@ namespace RuriLib.Helpers.Playwright
                 ["media.ffmpeg.vaapi.enabled"] = false
             };
 
+        private static readonly string[] FirefoxIncompatibleFlags = { "--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage" };
+
         /// <summary>
         /// Makes sure sandbox-disabling flags are always present.
         /// </summary>
-        public static void EnsureSandboxFlags(ICollection<string> args)
+        public static void EnsureSandboxFlags(ICollection<string> args, PlaywrightBrowserType browserType)
         {
             if (args == null)
             {
                 return;
             }
 
-            foreach (var flag in RequiredSandboxFlags)
+            foreach (var flag in GetSandboxFlagsForPlatform(browserType))
             {
-                if (!args.Any(arg => arg.Equals(flag, StringComparison.OrdinalIgnoreCase)))
+                if (string.IsNullOrWhiteSpace(flag))
                 {
-                    args.Add(flag);
+                    continue;
+                }
+
+                var normalizedFlag = flag.Trim();
+                var hasFlag = args.Any(arg =>
+                    !string.IsNullOrWhiteSpace(arg) &&
+                    string.Equals(arg.Trim(), normalizedFlag, StringComparison.OrdinalIgnoreCase));
+
+                if (!hasFlag)
+                {
+                    args.Add(normalizedFlag);
+                }
+            }
+        }
+
+        private static IEnumerable<string> GetSandboxFlagsForPlatform(PlaywrightBrowserType browserType)
+        {
+            if (browserType != PlaywrightBrowserType.Chromium)
+            {
+                yield break;
+            }
+
+            foreach (var flag in CrossPlatformSandboxFlags)
+            {
+                yield return flag;
+            }
+
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                foreach (var flag in NonWindowsSandboxFlags)
+                {
+                    yield return flag;
                 }
             }
         }
@@ -115,6 +147,32 @@ namespace RuriLib.Helpers.Playwright
             }
 
             return prefs;
+        }
+
+        public static void StripIncompatibleFlags(IList<string> args, PlaywrightBrowserType browserType)
+        {
+            if (args == null || browserType != PlaywrightBrowserType.Firefox)
+            {
+                return;
+            }
+
+            for (var i = args.Count - 1; i >= 0; i--)
+            {
+                var arg = args[i];
+                if (string.IsNullOrWhiteSpace(arg))
+                {
+                    continue;
+                }
+
+                foreach (var invalid in FirefoxIncompatibleFlags)
+                {
+                    if (arg.Trim().Equals(invalid, StringComparison.OrdinalIgnoreCase))
+                    {
+                        args.RemoveAt(i);
+                        break;
+                    }
+                }
+            }
         }
     }
 }

@@ -2,9 +2,13 @@ using Microsoft.Playwright;
 using RuriLib.Attributes;
 using RuriLib.Logging;
 using RuriLib.Models.Bots;
+using RuriLib.Models.Settings;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
+using System.Text.Json;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 
 namespace RuriLib.Blocks.Playwright.Page
@@ -163,6 +167,115 @@ namespace RuriLib.Blocks.Playwright.Page
             return json;
         }
 
+        private static async Task<bool> TryResizeChromiumWindowAsync(IPage page, int width, int height)
+        {
+            try
+            {
+                var session = await page.Context.NewCDPSessionAsync(page).ConfigureAwait(false);
+                var windowInfo = await session.SendAsync("Browser.getWindowForTarget").ConfigureAwait(false);
+                var windowId = ExtractWindowId(windowInfo);
+
+                if (windowId == 0)
+                    return false;
+
+                var parameters = new Dictionary<string, object>
+                {
+                    ["windowId"] = windowId,
+                    ["bounds"] = new Dictionary<string, object>
+                    {
+                        ["width"] = width,
+                        ["height"] = height,
+                        ["windowState"] = "normal"
+                    }
+                };
+
+                await session.SendAsync("Browser.setWindowBounds", parameters).ConfigureAwait(false);
+
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private static int ExtractWindowId(object windowInfo)
+        {
+            if (windowInfo == null)
+                return 0;
+
+            if (windowInfo is JsonElement json && json.ValueKind == JsonValueKind.Object && json.TryGetProperty("windowId", out var idElement))
+            {
+                return idElement.GetInt32();
+            }
+
+            if (windowInfo is IDictionary<string, object> dict && dict.TryGetValue("windowId", out var dictValue))
+            {
+                return Convert.ToInt32(dictValue);
+            }
+
+            var type = windowInfo.GetType();
+            var property = type.GetProperty("windowId") ?? type.GetProperty("WindowId");
+            if (property?.GetValue(windowInfo) is object value)
+            {
+                return Convert.ToInt32(value);
+            }
+
+            return 0;
+        }
+
+        private static async Task<bool> TryResizeFirefoxWindowAsync(BotData data, IPage page, int width, int height)
+        {
+            try
+            {
+                var chromeOffsets = await page.EvaluateAsync<JsonElement>(@"() => ({
+                    width: window.outerWidth - window.innerWidth,
+                    height: window.outerHeight - window.innerHeight
+                })").ConfigureAwait(false);
+
+                var chromeWidth = chromeOffsets.TryGetProperty("width", out var wProp) ? wProp.GetInt32() : 0;
+                var chromeHeight = chromeOffsets.TryGetProperty("height", out var hProp) ? hProp.GetInt32() : 0;
+
+                var targetWidth = width + chromeWidth;
+                var targetHeight = height + chromeHeight;
+
+                var trackedPids = data.TryGetObject<int[]>("playwright.firefoxProcessIds");
+                if (trackedPids == null || trackedPids.Length == 0)
+                {
+                    return false;
+                }
+
+                foreach (var pid in trackedPids)
+                {
+                    try
+                    {
+                        var proc = Process.GetProcessById(pid);
+                        if (proc.HasExited)
+                            continue;
+
+                        var handle = SafeGetMainWindowHandle(proc);
+                        if (!HasVisibleWindow(handle))
+                            continue;
+
+                        if (!GetWindowRect(handle, out var rect))
+                            continue;
+
+                        MoveWindow(handle, rect.Left, rect.Top, targetWidth, targetHeight, true);
+                        return true;
+                    }
+                    catch
+                    {
+                        // Ignore and continue with next process
+                    }
+                }
+            }
+            catch
+            {
+            }
+
+            return false;
+        }
+
         private static IFrame GetFrame(BotData data)
         {
             var frame = data.TryGetObject<IFrame>("playwrightFrame");
@@ -175,6 +288,32 @@ namespace RuriLib.Blocks.Playwright.Page
             data.Logger.LogHeader();
 
             var page = GetPage(data);
+            var headlessObj = data.TryGetObject<object>("playwrightHeadless");
+            var headless = headlessObj is bool storedHeadless ? storedHeadless : data.Providers.PlaywrightBrowser.Headless;
+            var browserTypeObj = data.TryGetObject<object>("playwrightBrowserType");
+            var browserType = browserTypeObj is PlaywrightBrowserType storedType ? storedType : data.Providers.PlaywrightBrowser.BrowserType;
+
+            if (!headless && browserType == PlaywrightBrowserType.Chromium)
+            {
+                if (await TryResizeChromiumWindowAsync(page, width, height))
+                {
+                    data.Logger.Log($"Resized browser window to {width}x{height}", LogColors.MediumPurple);
+                    return;
+                }
+
+                data.Logger.Log("Failed to resize Chromium window via DevTools, falling back to viewport resize", LogColors.Orange);
+            }
+            else if (!headless && browserType == PlaywrightBrowserType.Firefox)
+            {
+                if (await TryResizeFirefoxWindowAsync(data, page, width, height))
+                {
+                    data.Logger.Log($"Resized browser window to {width}x{height}", LogColors.MediumPurple);
+                    return;
+                }
+
+                data.Logger.Log("Failed to resize Firefox window, falling back to viewport resize", LogColors.Orange);
+            }
+
             await page.SetViewportSizeAsync(width, height);
 
             data.Logger.Log($"Set viewport to {width}x{height}", LogColors.MediumPurple);
@@ -226,6 +365,44 @@ namespace RuriLib.Blocks.Playwright.Page
         private static PageWaitForLoadStateOptions CreateWaitOptions(int timeoutSeconds)
         {
             return new PageWaitForLoadStateOptions { Timeout = timeoutSeconds * 1000f };
+        }
+
+        private static IntPtr SafeGetMainWindowHandle(Process process)
+        {
+            try
+            {
+                return process.MainWindowHandle;
+            }
+            catch
+            {
+                return IntPtr.Zero;
+            }
+        }
+
+        private static bool HasVisibleWindow(IntPtr handle)
+        {
+            return handle != IntPtr.Zero && IsWindow(handle) && IsWindowVisible(handle);
+        }
+
+        [DllImport("user32.dll")]
+        private static extern bool GetWindowRect(IntPtr hWnd, out Rect lpRect);
+
+        [DllImport("user32.dll")]
+        private static extern bool MoveWindow(IntPtr hWnd, int X, int Y, int nWidth, int nHeight, bool bRepaint);
+
+        [DllImport("user32.dll")]
+        private static extern bool IsWindow(IntPtr hWnd);
+
+        [DllImport("user32.dll")]
+        private static extern bool IsWindowVisible(IntPtr hWnd);
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct Rect
+        {
+            public int Left;
+            public int Top;
+            public int Right;
+            public int Bottom;
         }
     }
 }

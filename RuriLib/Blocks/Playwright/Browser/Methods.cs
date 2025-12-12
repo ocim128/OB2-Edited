@@ -79,16 +79,27 @@ namespace RuriLib.Blocks.Playwright.Browser
                     data.Logger.Log($"📁 Created temporary Firefox profile for addon installation: {firefoxProfilePath}", LogColors.Yellow);
                 }
             }
+            if (actualBrowserType == PlaywrightBrowserType.Firefox && string.IsNullOrEmpty(firefoxProfilePath) && !actualHeadless)
+            {
+                firefoxProfilePath = Path.Combine(Path.GetTempPath(), "firefox_visible_profile_" + Guid.NewGuid().ToString("N")[..8]);
+                Directory.CreateDirectory(firefoxProfilePath);
+                data.SetObject("playwright.tempFirefoxProfile", firefoxProfilePath);
+                data.Logger.Log($"Created dedicated Firefox profile for visible mode: {firefoxProfilePath}", LogColors.MediumPurple);
+            }
 
-            PlaywrightLaunchConfigurator.EnsureSandboxFlags(finalArgs);
+
+
+            PlaywrightLaunchConfigurator.StripIncompatibleFlags(finalArgs, actualBrowserType);
+            PlaywrightLaunchConfigurator.EnsureSandboxFlags(finalArgs, actualBrowserType);
             var sanitizedArgs = finalArgs.ToArray();
             actualExtraArgs = sanitizedArgs;
 
+            var resolvedTimeout = ResolveLaunchTimeout(provider.TimeoutMilliseconds, actualBrowserType);
             var launchOptions = new BrowserTypeLaunchOptions
             {
                 Headless = actualHeadless,
                 Args = sanitizedArgs,
-                Timeout = provider.TimeoutMilliseconds
+                Timeout = resolvedTimeout
             };
 
             // Efficient browser executable path handling
@@ -96,6 +107,7 @@ namespace RuriLib.Blocks.Playwright.Browser
 
             // Validate and correct browser type if needed
             actualBrowserType = ValidateBrowserType(actualBrowserType, launchOptions.ExecutablePath, data);
+            StoreBrowserRuntimeState(data, actualBrowserType, actualHeadless);
             if (actualBrowserType == PlaywrightBrowserType.Firefox && firefoxProcessesBeforeLaunch == null)
             {
                 firefoxProcessesBeforeLaunch = CaptureFirefoxProcessSnapshot();
@@ -129,9 +141,14 @@ namespace RuriLib.Blocks.Playwright.Browser
                     {
                         Headless = actualHeadless,
                         Args = sanitizedArgs,
-                        Timeout = provider.TimeoutMilliseconds,
-                        ExecutablePath = launchOptions.ExecutablePath
+                        Timeout = resolvedTimeout,
+                        ExecutablePath = launchOptions.ExecutablePath,
+                        IgnoreHTTPSErrors = provider.IgnoreHTTPSErrors
                     };
+                    if (!actualHeadless)
+                    {
+                        persistentOptions.ViewportSize = ViewportSize.NoViewport;
+                    }
                     PlaywrightLaunchConfigurator.ApplyFirefoxSafeDefaults(persistentOptions);
                     context = await playwright.Firefox.LaunchPersistentContextAsync(firefoxProfilePath, persistentOptions);
                     data.SetObject("playwrightContext", context);
@@ -148,9 +165,14 @@ namespace RuriLib.Blocks.Playwright.Browser
                     {
                         Headless = actualHeadless,
                         Args = sanitizedArgs,
-                        Timeout = provider.TimeoutMilliseconds,
-                        ExecutablePath = launchOptions.ExecutablePath
+                        Timeout = resolvedTimeout,
+                        ExecutablePath = launchOptions.ExecutablePath,
+                        IgnoreHTTPSErrors = provider.IgnoreHTTPSErrors
                     };
+                    if (!actualHeadless)
+                    {
+                        persistentOptions.ViewportSize = ViewportSize.NoViewport;
+                    }
                     context = await playwright.Chromium.LaunchPersistentContextAsync(tempUserDataDir, persistentOptions);
                     data.SetObject("playwrightContext", context);
                 }
@@ -172,9 +194,14 @@ namespace RuriLib.Blocks.Playwright.Browser
                     {
                         Headless = actualHeadless,
                         Args = sanitizedArgs,
-                        Timeout = provider.TimeoutMilliseconds
+                        Timeout = resolvedTimeout,
+                        IgnoreHTTPSErrors = provider.IgnoreHTTPSErrors
                         // ExecutablePath is intentionally omitted to use built-in Firefox
                     };
+                    if (!actualHeadless)
+                    {
+                        fallbackPersistentOptions.ViewportSize = ViewportSize.NoViewport;
+                    }
                     PlaywrightLaunchConfigurator.ApplyFirefoxSafeDefaults(fallbackPersistentOptions);
                     context = await playwright.Firefox.LaunchPersistentContextAsync(firefoxProfilePath, fallbackPersistentOptions);
                     data.SetObject("playwrightContext", context);
@@ -202,7 +229,7 @@ namespace RuriLib.Blocks.Playwright.Browser
                     {
                         Headless = actualHeadless,
                         Args = actualExtraArgs,
-                        Timeout = provider.TimeoutMilliseconds
+                        Timeout = resolvedTimeout
                         // ExecutablePath is intentionally omitted to use built-in Firefox
                     };
                     PlaywrightLaunchConfigurator.ApplyFirefoxSafeDefaults(fallbackOptions);
@@ -230,10 +257,12 @@ namespace RuriLib.Blocks.Playwright.Browser
                 data.SetObject("playwright", browser);
                 data.Logger.Log($"Opened {actualBrowserType} browser (headless: {actualHeadless})", LogColors.MediumPurple);
 
-                // Automatically create a new page to prevent immediate bot termination
-                var page = await browser.NewPageAsync();
+                var contextOptions = CreateContextOptions(actualHeadless, provider.IgnoreHTTPSErrors);
+                var freshContext = await browser.NewContextAsync(contextOptions);
+                data.SetObject("playwrightContext", freshContext);
+                var page = await freshContext.NewPageAsync();
                 data.SetObject("playwrightPage", page);
-                data.Logger.Log("Automatically created a new page", LogColors.MediumPurple);
+                data.Logger.Log("Created new browser context and page", LogColors.MediumPurple);
             }
             else if (context != null)
             {
@@ -378,6 +407,22 @@ namespace RuriLib.Blocks.Playwright.Browser
             data.Logger.Log($"Switched to page {index}", LogColors.MediumPurple);
         }
 
+        private static BrowserNewContextOptions CreateContextOptions(bool headless, bool ignoreHttpsErrors)
+        {
+            var options = new BrowserNewContextOptions
+            {
+                IgnoreHTTPSErrors = ignoreHttpsErrors
+            };
+
+            if (!headless)
+            {
+                // Allow manual window resizes to control the viewport by disabling the default fixed size
+                options.ViewportSize = ViewportSize.NoViewport;
+            }
+
+            return options;
+        }
+
         private static IBrowser GetBrowser(BotData data)
         {
             var browser = data.TryGetObject<IBrowser>("playwright");
@@ -388,6 +433,23 @@ namespace RuriLib.Blocks.Playwright.Browser
         {
             var page = data.TryGetObject<IPage>("playwrightPage");
             return page ?? throw new Exception("No page available. Use the 'New Page' block first");
+        }
+
+        private static int ResolveLaunchTimeout(int configuredTimeout, PlaywrightBrowserType browserType)
+        {
+            var baseline = configuredTimeout > 0 ? configuredTimeout : 30000;
+            if (browserType == PlaywrightBrowserType.Firefox)
+            {
+                return Math.Max(baseline, 60000);
+            }
+
+            return baseline;
+        }
+
+        private static void StoreBrowserRuntimeState(BotData data, PlaywrightBrowserType browserType, bool headless)
+        {
+            data.SetObject("playwrightBrowserType", browserType);
+            data.SetObject("playwrightHeadless", headless);
         }
 
     }

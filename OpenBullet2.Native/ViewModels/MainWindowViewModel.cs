@@ -1,4 +1,6 @@
 using OpenBullet2.Core.Services;
+using OpenBullet2.Native.Services;
+using OpenBullet2.Native.Enums;
 using OpenBullet2.Native.Helpers;
 using OpenBullet2.Native.ViewModels.Infrastructure;
 using RuriLib.Models.Configs;
@@ -14,6 +16,7 @@ public class MainWindowViewModel : ViewModelBase
     private readonly JobManagerService jobManagerService;
     private readonly ConfigService configService;
     private readonly OpenBulletSettingsService openBulletSettingsService;
+    private readonly INavigationService navigationService;
 
     public event Action<Config>? ConfigSelected;
 
@@ -40,11 +43,13 @@ public class MainWindowViewModel : ViewModelBase
     public MainWindowViewModel(
         JobManagerService jobManagerService,
         ConfigService configService,
-        OpenBulletSettingsService openBulletSettingsService)
+        OpenBulletSettingsService openBulletSettingsService,
+        INavigationService navigationService)
     {
         this.jobManagerService = jobManagerService;
         this.configService = configService;
         this.openBulletSettingsService = openBulletSettingsService;
+        this.navigationService = navigationService;
 
         configService.OnConfigSelected += (_, config) =>
         {

@@ -20,6 +20,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using static OpenBullet2.Native.MainWindow;
 
+using OpenBullet2.Native.Enums;
+
 namespace OpenBullet2.Native.Views.Pages
 {
     /// <summary>

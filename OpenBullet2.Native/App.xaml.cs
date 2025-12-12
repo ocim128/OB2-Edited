@@ -12,6 +12,7 @@ using OpenBullet2.Native.Infrastructure.Diagnostics;
 using OpenBullet2.Native.Services;
 using OpenBullet2.Native.Utils;
 using OpenBullet2.Native.ViewModels;
+using OpenBullet2.Native.Enums;
 using OpenBullet2.Native.Views.Dialogs;
 using OpenBullet2.Native.Views.Pages;
 using OpenBullet2.Shared.DependencyInjection;
@@ -258,6 +259,9 @@ public partial class App : Application
         // ViewModelsService depends on all ViewModels
         services.AddSingleton<ViewModelsService>();
         services.AddSingleton<ConfigService>();
+        services.AddSingleton<INavigationService, NavigationService>();
+        services.AddSingleton<IWindowLayoutService, WindowLayoutService>();
+        services.AddSingleton<IThemeService, ThemeService>();
 
         // Non-critical services (lazy loaded for performance)
         services.AddSingleton<Lazy<ProxyReloadService>>(provider => new Lazy<ProxyReloadService>(() => provider.GetRequiredService<ProxyReloadService>()));

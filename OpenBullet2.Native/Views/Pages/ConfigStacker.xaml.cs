@@ -20,6 +20,8 @@ using System.Windows.Controls; // Make sure this is included for TextBox and Tex
 using System.Windows.Input;
 using OpenBullet2.Native.Infrastructure.DependencyInjection;
 
+using OpenBullet2.Native.Enums;
+
 namespace OpenBullet2.Native.Views.Pages
 {
     /// <summary>

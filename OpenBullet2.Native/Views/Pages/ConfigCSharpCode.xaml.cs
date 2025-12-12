@@ -15,6 +15,8 @@ using System.Windows.Media;
 using System.Xml;
 using OpenBullet2.Native.Infrastructure.DependencyInjection;
 
+using OpenBullet2.Native.Enums;
+
 namespace OpenBullet2.Native.Views.Pages
 {
     /// <summary>

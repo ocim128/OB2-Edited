@@ -4,6 +4,7 @@ using OpenBullet2.Core.Repositories;
 using OpenBullet2.Core.Services;
 using OpenBullet2.Native.Helpers;
 using OpenBullet2.Native.Services;
+using OpenBullet2.Native.Enums;
 using OpenBullet2.Native.ViewModels;
 using OpenBullet2.Native.Views.Pages;
 using RuriLib.Models.Configs;
@@ -42,54 +43,19 @@ public partial class MainWindow : MetroWindow
     private readonly ConfigService configService;
     private readonly IConfigRepository configRepository;
     private readonly IAppUpdateService appUpdateService;
+    private readonly INavigationService navigationService;
+    private readonly IWindowLayoutService windowLayoutService;
+    private readonly IThemeService themeService;
+    private readonly Dictionary<MainWindowPage, Button> pageButtonMap = new();
 
     private AccessibilitySettings AccessibilitySettings => openBulletSettingsService.Settings.AccessibilitySettings ?? new AccessibilitySettings();
 
-    private Home homePage;
-    private Jobs jobsPage;
-    private Tools toolsPage;
-    private MultiRunJobViewer multiRunJobViewerPage;
-    private ProxyCheckJobViewer proxyCheckJobViewerPage;
-    private Proxies proxiesPage;
-    private Wordlists wordlistsPage;
-    private Configs configsPage;
-    private Views.Pages.ConfigMetadata configMetadataPage;
-    private ConfigReadme configReadmePage;
-    private ConfigEditor configEditorPage;
-    private Views.Pages.ConfigSettings configSettingsPage;
-    private Hits hitsPage;
-    private OBSettings obSettingsPage;
-    private RLSettings rlSettingsPage;
-    private Plugins pluginsPage;
-    private About aboutPage;
-
+    // Pages are now managed by NavigationService
     public Page CurrentPage { get; private set; }
-
-    // Centralized navigation mapping to eliminate duplication
-    private static readonly Dictionary<string, MainWindowPage> MenuNavigationMap = new()
-    {
-        ["menuOptionHome"] = MainWindowPage.Home,
-        ["menuOptionJobs"] = MainWindowPage.Jobs,
-        ["menuOptionTools"] = MainWindowPage.Tools,
-        ["menuOptionProxies"] = MainWindowPage.Proxies,
-        ["menuOptionWordlists"] = MainWindowPage.Wordlists,
-        ["menuOptionConfigs"] = MainWindowPage.Configs,
-        ["menuOptionHits"] = MainWindowPage.Hits,
-        ["menuOptionPlugins"] = MainWindowPage.Plugins,
-        ["menuOptionSettings"] = MainWindowPage.OBSettings,
-        ["menuOptionRLSettings"] = MainWindowPage.RLSettings,
-        ["menuOptionCheckUpdate"] = MainWindowPage.CheckUpdate,
-        ["menuOptionAbout"] = MainWindowPage.About,
-        ["menuOptionMetadata"] = MainWindowPage.ConfigMetadata,
-        ["menuOptionReadme"] = MainWindowPage.ConfigReadme,
-        ["menuOptionStacker"] = MainWindowPage.ConfigStacker,
-        ["menuOptionLoliCode"] = MainWindowPage.ConfigLoliCode,
-        ["menuOptionConfigSettings"] = MainWindowPage.ConfigSettings,
-        ["menuOptionCSharpCode"] = MainWindowPage.ConfigCSharpCode
-    };
-
-    // Public property to access the config editor page
-    public ConfigEditor ConfigEditorPage => configEditorPage;
+    
+    // ConfigEditor property for accessing shared instance if needed (e.g. by ViewModelsService or similar?)
+    // Originally exposed for some reason. Let's redirect to NavigationService or Cast current page.
+    public ConfigEditor ConfigEditorPage => navigationService.CurrentPage as ConfigEditor;
 
     /// <summary>
     /// Responsive design properties
@@ -101,7 +67,10 @@ public partial class MainWindow : MetroWindow
         OpenBulletSettingsService openBulletSettingsService,
         ConfigService configService,
         IConfigRepository configRepository,
-        IAppUpdateService appUpdateService)
+        IAppUpdateService appUpdateService,
+        INavigationService navigationService,
+        IWindowLayoutService windowLayoutService,
+        IThemeService themeService)
     {
         vm = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
         this.hotkeyService = hotkeyService ?? throw new ArgumentNullException(nameof(hotkeyService));
@@ -109,6 +78,13 @@ public partial class MainWindow : MetroWindow
         this.configService = configService ?? throw new ArgumentNullException(nameof(configService));
         this.configRepository = configRepository ?? throw new ArgumentNullException(nameof(configRepository));
         this.appUpdateService = appUpdateService ?? throw new ArgumentNullException(nameof(appUpdateService));
+        this.navigationService = navigationService ?? throw new ArgumentNullException(nameof(navigationService));
+        this.windowLayoutService = windowLayoutService ?? throw new ArgumentNullException(nameof(windowLayoutService));
+        this.themeService = themeService ?? throw new ArgumentNullException(nameof(themeService));
+        
+        this.themeService.Initialize(this);
+        
+        this.navigationService.Navigated += OnNavigated;
 
         DataContext = vm;
         Closing += vm.OnWindowClosing;
@@ -121,21 +97,24 @@ public partial class MainWindow : MetroWindow
         LocationChanged += OnWindowLocationChanged;
 
         // Command Bindings for Configs
+        // Command Bindings
         _ = CommandBindings.Add(new CommandBinding(CustomCommands.NewConfig, OnNewConfigExecuted, OnCanExecuteConfigCommand));
         _ = CommandBindings.Add(new CommandBinding(CustomCommands.OpenConfig, OnOpenConfigExecuted, OnCanExecuteConfigCommand));
         _ = CommandBindings.Add(new CommandBinding(CustomCommands.SaveConfig, OnSaveConfigExecuted, OnCanExecuteConfigCommand));
         _ = CommandBindings.Add(new CommandBinding(CustomCommands.Refresh, OnRefreshExecuted, OnCanExecuteRefreshCommand));
         _ = CommandBindings.Add(new CommandBinding(CustomCommands.Quit, OnQuitExecuted));
-        _ = CommandBindings.Add(new CommandBinding(CustomCommands.NavigateToHome, OnNavigateToHomeExecuted));
-        _ = CommandBindings.Add(new CommandBinding(CustomCommands.NavigateToJobs, OnNavigateToJobsExecuted));
-        _ = CommandBindings.Add(new CommandBinding(CustomCommands.NavigateToTools, OnNavigateToToolsExecuted));
-        _ = CommandBindings.Add(new CommandBinding(CustomCommands.NavigateToProxies, OnNavigateToProxiesExecuted));
-        _ = CommandBindings.Add(new CommandBinding(CustomCommands.NavigateToWordlists, OnNavigateToWordlistsExecuted));
-        _ = CommandBindings.Add(new CommandBinding(CustomCommands.NavigateToConfigs, OnNavigateToConfigsExecuted));
-        _ = CommandBindings.Add(new CommandBinding(CustomCommands.NavigateToHits, OnNavigateToHitsExecuted));
-        _ = CommandBindings.Add(new CommandBinding(CustomCommands.NavigateToPlugins, OnNavigateToPluginsExecuted));
-        _ = CommandBindings.Add(new CommandBinding(CustomCommands.NavigateToOBSettings, OnNavigateToOBSettingsExecuted));
-        _ = CommandBindings.Add(new CommandBinding(CustomCommands.NavigateToRLSettings, OnNavigateToRLSettingsExecuted));
+
+        // Navigation Commands
+        BindNavigationCommand(CustomCommands.NavigateToHome, MainWindowPage.Home);
+        BindNavigationCommand(CustomCommands.NavigateToJobs, MainWindowPage.Jobs);
+        BindNavigationCommand(CustomCommands.NavigateToTools, MainWindowPage.Tools);
+        BindNavigationCommand(CustomCommands.NavigateToProxies, MainWindowPage.Proxies);
+        BindNavigationCommand(CustomCommands.NavigateToWordlists, MainWindowPage.Wordlists);
+        BindNavigationCommand(CustomCommands.NavigateToConfigs, MainWindowPage.Configs);
+        BindNavigationCommand(CustomCommands.NavigateToHits, MainWindowPage.Hits);
+        BindNavigationCommand(CustomCommands.NavigateToPlugins, MainWindowPage.Plugins);
+        BindNavigationCommand(CustomCommands.NavigateToOBSettings, MainWindowPage.OBSettings);
+        BindNavigationCommand(CustomCommands.NavigateToRLSettings, MainWindowPage.RLSettings);
 
         labels =
         [
@@ -184,7 +163,7 @@ public partial class MainWindow : MetroWindow
         this.hotkeyService.Initialize(this);
 
         var customization = this.openBulletSettingsService.Settings.CustomizationSettings;
-        SetTheme(customization);
+        this.themeService.SetTheme(customization);
         ApplyAccessibilitySettings();
     }
 
@@ -192,130 +171,28 @@ public partial class MainWindow : MetroWindow
 
     private void OnWindowLoaded(object sender, RoutedEventArgs e)
     {
-            var customizationSettings = openBulletSettingsService.Settings.CustomizationSettings;
-
-        if (customizationSettings.RememberWindowState)
-        {
-            // Load saved window state
-            Width = Math.Max(MinWidth, customizationSettings.WindowWidth);
-            Height = Math.Max(MinHeight, customizationSettings.WindowHeight);
-
-            var workingArea = SystemParameters.WorkArea;
-
-            // Ensure window position is within screen bounds
-            Left = Math.Max(0, Math.Min(customizationSettings.WindowLeft, workingArea.Right - Width));
-            Top = Math.Max(0, Math.Min(customizationSettings.WindowTop, workingArea.Bottom - Height));
-
-            // Restore window state
-            WindowState = (WindowState)customizationSettings.WindowState;
-        }
-        else
-        {
-            // Use default sizing logic for new installations
-            var workingArea = SystemParameters.WorkArea;
-            // Calculate responsive base size based on current screen dimensions
-            var screenWidth = workingArea.Width;
-            var screenHeight = workingArea.Height;
-
-            // Responsive sizing: medium screens use ~80%, small screens ~90%, ultra-wide ~72%
-            var widthPercentage = screenWidth <= 1366
-                ? 0.90
-                : screenWidth <= 1920
-                    ? 0.80
-                    : 0.72;
-
-            var heightPercentage = screenHeight <= 768
-                ? 0.90
-                : screenHeight <= 1080
-                    ? 0.80
-                    : 0.75;
-
-            var baseWidth = screenWidth * widthPercentage;
-            var baseHeight = screenHeight * heightPercentage;
-
-            // Keep the window within a comfortable range across resolutions
-            var minComfortableWidth = Math.Min(screenWidth * 0.55, 1024);
-            var maxComfortableWidth = Math.Min(screenWidth * 0.95, 1920);
-            var minComfortableHeight = Math.Min(screenHeight * 0.55, 720);
-            var maxComfortableHeight = Math.Min(screenHeight * 0.95, 1100);
-
-            var balancedWidth = Math.Max(minComfortableWidth, Math.Min(baseWidth, maxComfortableWidth));
-            var balancedHeight = Math.Max(minComfortableHeight, Math.Min(baseHeight, maxComfortableHeight));
-
-            Width = Math.Max(MinWidth, balancedWidth);
-            Height = Math.Max(MinHeight, balancedHeight);
-
-            // Center window with better positioning
-            Left = Math.Max(0, (workingArea.Width - Width) / 2 + workingArea.Left);
-            Top = Math.Max(0, (workingArea.Height - Height) / 2 + workingArea.Top);
-
-            // Ensure window is fully visible on screen
-            if (Left + Width > workingArea.Right)
-                Left = workingArea.Right - Width;
-            if (Top + Height > workingArea.Bottom)
-                Top = workingArea.Bottom - Height;
-        }
+        // Initialize layout service
+        windowLayoutService.Initialize(this, Root);
+        windowLayoutService.RestoreWindowState();
+        
+        // Initialize button map dynamically
+        InitializePageButtonMap();
     }
-
+    
+    // Kept for event handler signature compatibility but delegates to service
     private void OnWindowSizeChanged(object sender, SizeChangedEventArgs e)
     {
         UpdateConfigSubmenuPosition();
-        UpdateResponsiveLayout();
-        SaveWindowState();
+        // Layout service handles the rest via its own subscription or we can call it here if needed per original logic
+        // The service subscribes to SizeChanged, so we just handle local UI logic
     }
     
-    /// <summary>
-    /// Updates responsive layout elements based on current window size
-    /// </summary>
-    private void UpdateResponsiveLayout()
-    {
-        try
-        {
-            // Force update of data triggers by refreshing the binding context
-            // This ensures responsive styles are re-evaluated when window size changes
-            var currentWidth = ActualWidth;
-            
-            // Trigger layout update for responsive elements
-            if (Root != null)
-            {
-                Root.UpdateLayout();
-            }
-            
-            // Update navigation menu responsiveness
-            UpdateNavigationResponsiveness(currentWidth);
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"Error updating responsive layout: {ex.Message}");
-        }
-    }
-    
-    /// <summary>
-    /// Updates navigation menu responsiveness based on window width
-    /// </summary>
-    private void UpdateNavigationResponsiveness(double windowWidth)
-    {
-        try
-        {
-            // Additional responsive logic can be added here if needed
-            // For now, the XAML data triggers handle most of the responsive behavior
-            
-            // Force refresh of config submenu position if it's visible
-            if (configSubmenu?.Visibility == Visibility.Visible)
-            {
-                UpdateConfigSubmenuPosition();
-            }
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"Error updating navigation responsiveness: {ex.Message}");
-        }
-    }
+
 
     private void OnWindowStateChanged(object sender, EventArgs e)
     {
         // Suspend/resume debugger updates during minimize/restore to improve performance
-        SaveWindowState();
+        // WindowState saving handled by WindowLayoutService
         NotifyDebuggerWindowStateChanged(WindowState == WindowState.Minimized);
     }
 
@@ -324,7 +201,7 @@ public partial class MainWindow : MetroWindow
         try
         {
             // Check if we're on a config editor page that contains the debugger
-            if (configEditorPage?.debuggerFrame?.Content is Views.Pages.Shared.Debugger debugger)
+            if (CurrentPage is ConfigEditor editor && editor.debuggerFrame?.Content is Views.Pages.Shared.Debugger debugger)
             {
                 // Directly access the debugger from the debuggerFrame
                 debugger.SetWindowMinimized(isMinimized);
@@ -339,37 +216,7 @@ public partial class MainWindow : MetroWindow
 
     private void OnWindowLocationChanged(object sender, EventArgs e)
     {
-        SaveWindowState();
-    }
-
-    private void SaveWindowState()
-    {
-        try
-        {
-            var customizationSettings = openBulletSettingsService.Settings.CustomizationSettings;
-
-            if (customizationSettings.RememberWindowState && WindowState != WindowState.Minimized)
-            {
-                // Only save size and position when not minimized
-                if (WindowState == WindowState.Normal)
-                {
-                    customizationSettings.WindowWidth = Width;
-                    customizationSettings.WindowHeight = Height;
-                    customizationSettings.WindowLeft = Left;
-                    customizationSettings.WindowTop = Top;
-                }
-
-                customizationSettings.WindowState = (int)WindowState;
-
-                // Save settings to disk
-                _ = Task.Run(() => openBulletSettingsService.SaveAsync());
-            }
-        }
-        catch (Exception ex)
-        {
-            // Log error but don't crash the application
-            System.Diagnostics.Debug.WriteLine($"Error saving window state: {ex.Message}");
-        }
+        // WindowState saving handled by WindowLayoutService
     }
 
 
@@ -385,317 +232,109 @@ public partial class MainWindow : MetroWindow
 
     #endregion Responsive Design Methods
 
-    public async Task NavigateTo(MainWindowPage page)
+    public Task NavigateTo(MainWindowPage page)
     {
         vm.IsLoading = true;
+        navigationService.NavigateTo(page);
+        return Task.CompletedTask;
+    }
 
-        // Needed to save the content of the LoliCode editor when changing page
-        if (CurrentPage == configEditorPage)
-        {
-            configEditorPage?.OnPageChanged();
-        }
-
-        // Handle Jobs page navigation directly to avoid threading issues
-        if (page == MainWindowPage.Jobs)
-        {
-            await HandleJobsPageNavigation();
-            vm.IsLoading = false;
-            return;
-        }
-
-        // Handle page navigation
-        HandleOtherPageNavigation(page);
-
+    private void OnNavigated(object sender, NavigationEventArgs e)
+    {
+        CurrentPage = e.Page;
+        MainFrame.Content = e.Page;
+        
+        UpdateMenuHighlight(e.PageEnum);
+        
         vm.IsLoading = false;
     }
 
-    private async Task HandleJobsPageNavigation()
+    private void UpdateMenuHighlight(MainWindowPage page)
     {
-        try
+        var button = GetButtonForPage(page);
+        
+        if (button != currentSelectedButton)
         {
-            System.Diagnostics.Debug.WriteLine("Direct Jobs navigation");
-            jobsPage ??= new();
-            System.Diagnostics.Debug.WriteLine("Jobs page created successfully");
-            ChangePage(jobsPage, menuOptionJobs);
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"Direct Jobs navigation error: {ex.Message}");
-            Alert.Exception(ex);
-        }
-    }
+            if (currentSelectedButton != null)
+            {
+                currentSelectedButton.Tag = null;
+            }
 
-    private void HandleOtherPageNavigation(MainWindowPage page)
-    {
-        // Consolidated page navigation with consistent patterns
-        switch (page)
-        {
-            case MainWindowPage.Home:
-                CreateAndNavigateToPage(() => new Home(), ref homePage, menuOptionHome);
-                break;
-            case MainWindowPage.Tools:
-                CreateAndNavigateToPage(() => new Tools(), ref toolsPage, menuOptionTools);
-                break;
-            case MainWindowPage.Proxies:
-                CreateAndNavigateToPage(() => new Proxies(), ref proxiesPage, menuOptionProxies, updateViewModel: true);
-                break;
-            case MainWindowPage.Wordlists:
-                CreateAndNavigateToPage(() => new Wordlists(), ref wordlistsPage, menuOptionWordlists);
-                break;
-            case MainWindowPage.Configs:
-                CreateAndNavigateToPage(() => new Configs(), ref configsPage, menuOptionConfigs, updateViewModel: true);
-                break;
-            case MainWindowPage.Hits:
-                CreateAndNavigateToPage(() => new Hits(), ref hitsPage, menuOptionHits, updateViewModel: true);
-                break;
-            case MainWindowPage.Plugins:
-                CreateAndNavigateToPage(() => new Plugins(), ref pluginsPage, menuOptionPlugins);
-                break;
-            case MainWindowPage.OBSettings:
-                CreateAndNavigateToPage(() => new OBSettings(), ref obSettingsPage, menuOptionSettings);
-                break;
-            case MainWindowPage.RLSettings:
-                CreateAndNavigateToPage(() => new RLSettings(), ref rlSettingsPage, menuOptionRLSettings);
-                break;
-
-
-            // Config-related pages use separate methods for complex logic
-            case MainWindowPage.About:
-                NavigateToAboutPage();
-                break;
-            case MainWindowPage.ConfigMetadata:
-                NavigateToConfigMetadataPage();
-                break;
-            case MainWindowPage.ConfigReadme:
-                NavigateToConfigReadmePage();
-                break;
-            case MainWindowPage.ConfigStacker:
-                NavigateToConfigStackerPage();
-                break;
-            case MainWindowPage.ConfigLoliCode:
-                NavigateToConfigLoliCodePage();
-                break;
-            case MainWindowPage.ConfigSettings:
-                NavigateToConfigSettingsPage();
-                break;
-            case MainWindowPage.ConfigCSharpCode:
-                NavigateToConfigCSharpCodePage();
-                break;
+            if (button != null)
+            {
+                button.Tag = "Selected";
+                currentSelectedButton = button;
+            }
         }
     }
 
-    // Helper method to consolidate repetitive page creation patterns
-    private void CreateAndNavigateToPage<T>(Func<T> pageFactory, ref T pageField, Button menuButton, bool updateViewModel = false)
-        where T : Page
+    private void InitializePageButtonMap()
     {
-        var pageTypeName = typeof(T).Name;
-        try
+        // Automatically map standard buttons
+        MapButton(MainWindowPage.Home, menuOptionHome);
+        MapButton(MainWindowPage.Jobs, menuOptionJobs);
+        MapButton(MainWindowPage.Tools, menuOptionTools);
+        MapButton(MainWindowPage.Proxies, menuOptionProxies);
+        MapButton(MainWindowPage.Wordlists, menuOptionWordlists);
+        MapButton(MainWindowPage.Configs, menuOptionConfigs);
+        MapButton(MainWindowPage.Hits, menuOptionHits);
+        MapButton(MainWindowPage.Plugins, menuOptionPlugins);
+        MapButton(MainWindowPage.OBSettings, menuOptionSettings);
+        MapButton(MainWindowPage.RLSettings, menuOptionRLSettings);
+        MapButton(MainWindowPage.CheckUpdate, menuOptionCheckUpdate);
+        MapButton(MainWindowPage.About, menuOptionAbout);
+        
+        // Map config submenu buttons
+        MapButton(MainWindowPage.ConfigMetadata, menuOptionMetadata);
+        MapButton(MainWindowPage.ConfigReadme, menuOptionReadme);
+        MapButton(MainWindowPage.ConfigStacker, menuOptionStacker);
+        MapButton(MainWindowPage.ConfigLoliCode, menuOptionLoliCode);
+        MapButton(MainWindowPage.ConfigSettings, menuOptionConfigSettings);
+        MapButton(MainWindowPage.ConfigCSharpCode, menuOptionCSharpCode);
+    }
+
+    private void MapButton(MainWindowPage page, Button button)
+    {
+        if (button != null)
         {
-            System.Diagnostics.Debug.WriteLine($"Starting navigation to {pageTypeName}");
-
-            // Enhanced logging for page creation
-            if (pageField == null)
+            pageButtonMap[page] = button;
+            // Ensure Tag is set for reverse lookup
+            if (button.Tag == null)
             {
-                System.Diagnostics.Debug.WriteLine($"Creating new instance of {pageTypeName}");
-                try
-                {
-                    pageField = pageFactory();
-                    System.Diagnostics.Debug.WriteLine($"Successfully created {pageTypeName}");
-                }
-                catch (Exception createEx)
-                {
-                    // Enhanced error logging for page creation failures
-                    var errorDetails = $"Failed to create {pageTypeName}: {createEx.GetType().Name} - {createEx.Message}";
-                    if (createEx.InnerException != null)
-                    {
-                        errorDetails += $" | Inner: {createEx.InnerException.GetType().Name} - {createEx.InnerException.Message}";
-                    }
-
-                    System.Diagnostics.Debug.WriteLine(errorDetails);
-
-                    // Log to crash system for better debugging
-                    try
-                    {
-                        var geh = Resources["GlobalExceptionHandler"] as Infrastructure.Diagnostics.GlobalExceptionHandler;
-                        if (geh != null)
-                        {
-                            Infrastructure.Diagnostics.CrashLoggingService.Instance.LogCrash(
-                                createEx,
-                                $"MainWindow.CreateAndNavigateToPage<{pageTypeName}>",
-                                $"Page creation failed during navigation to {pageTypeName}. Menu: {menuButton?.Name ?? "Unknown"}",
-                                false);
-                        }
-                    }
-                    catch { /* Ignore logging errors */ }
-
-                    throw; // Re-throw to be caught by outer try-catch
-                }
+                button.Tag = page;
             }
-            else
-            {
-                System.Diagnostics.Debug.WriteLine($"Reusing existing instance of {pageTypeName}");
-            }
-
-            // Call UpdateViewModel if the page supports it and updateViewModel is true
-            if (updateViewModel)
-            {
-                System.Diagnostics.Debug.WriteLine($"Updating ViewModel for {pageTypeName}");
-                try
-                {
-                    var updateMethod = pageField?.GetType().GetMethod("UpdateViewModel", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
-                    if (updateMethod != null)
-                    {
-                        updateMethod.Invoke(pageField, null);
-                        System.Diagnostics.Debug.WriteLine($"Successfully updated ViewModel for {pageTypeName}");
-                    }
-                    else
-                    {
-                        System.Diagnostics.Debug.WriteLine($"No UpdateViewModel method found for {pageTypeName}");
-                    }
-                }
-                catch (Exception updateEx)
-                {
-                    var errorDetails = $"Failed to update ViewModel for {pageTypeName}: {updateEx.GetType().Name} - {updateEx.Message}";
-                    if (updateEx.InnerException != null)
-                    {
-                        errorDetails += $" | Inner: {updateEx.InnerException.GetType().Name} - {updateEx.InnerException.Message}";
-                    }
-
-                    System.Diagnostics.Debug.WriteLine(errorDetails);
-
-                    // Log ViewModel update failures
-                    try
-                    {
-                        Infrastructure.Diagnostics.CrashLoggingService.Instance.LogCrash(
-                            updateEx,
-                            $"MainWindow.UpdateViewModel<{pageTypeName}>",
-                            $"ViewModel update failed for {pageTypeName}. Menu: {menuButton?.Name ?? "Unknown"}",
-                            false);
-                    }
-                    catch { /* Ignore logging errors */ }
-
-                    throw; // Re-throw to be caught by outer try-catch
-                }
-            }
-
-            System.Diagnostics.Debug.WriteLine($"Calling ChangePage for {pageTypeName}");
-            ChangePage(pageField, menuButton);
-            System.Diagnostics.Debug.WriteLine($"Successfully navigated to {pageTypeName}");
-        }
-        catch (Exception ex)
-        {
-            var errorDetails = $"Navigation to {pageTypeName} failed: {ex.GetType().Name} - {ex.Message}";
-            if (ex.InnerException != null)
-            {
-                errorDetails += $" | Inner: {ex.InnerException.GetType().Name} - {ex.InnerException.Message}";
-            }
-
-            System.Diagnostics.Debug.WriteLine(errorDetails);
-            System.Diagnostics.Debug.WriteLine($"Full stack trace: {ex}");
-
-            // Enhanced crash logging with full context
-            try
-            {
-                Infrastructure.Diagnostics.CrashLoggingService.Instance.LogCrash(
-                        ex,
-                        $"MainWindow.CreateAndNavigateToPage<{pageTypeName}>",
-                        $"Complete navigation failure for {pageTypeName}. Menu: {menuButton?.Name ?? "Unknown"}, UpdateViewModel: {updateViewModel}",
-                        false);
-            }
-            catch { /* Ignore logging errors */ }
-
-            // Show enhanced error message to user
-            var userMessage = $"Failed to open {pageTypeName} page.\n\nError: {ex.Message}";
-            if (ex.InnerException != null)
-            {
-                userMessage += $"\n\nInner Error: {ex.InnerException.Message}";
-            }
-            userMessage += $"\n\nCheck the crash logs in UserData/Logs/Crashes for detailed information.";
-
-            Alert.Error("Navigation Error", userMessage);
         }
     }
-    private void NavigateToAboutPage()
+
+    private Button GetButtonForPage(MainWindowPage page)
     {
-        if (aboutPage == null) aboutPage = new About();
-        ChangePage(aboutPage, menuOptionAbout);
-    }
-    private void NavigateToConfigMetadataPage()
-    {
-        CloseSubmenu();
-        if (configMetadataPage == null) configMetadataPage = new Views.Pages.ConfigMetadata();
-        configMetadataPage.UpdateViewModel();
-        ChangePage(configMetadataPage, menuOptionMetadata);
-    }
-    private void NavigateToConfigReadmePage()
-    {
-        CloseSubmenu();
-        if (configReadmePage == null) configReadmePage = new ConfigReadme();
-        configReadmePage.UpdateViewModel();
-        ChangePage(configReadmePage, menuOptionReadme);
-    }
-    private void NavigateToConfigStackerPage()
-    {
-        CloseSubmenu();
-        HandleConfigEditorNavigation(ConfigEditorSection.Stacker, menuOptionStacker);
-    }
-    private void NavigateToConfigLoliCodePage()
-    {
-        CloseSubmenu();
-        HandleConfigEditorNavigation(ConfigEditorSection.LoliCode, menuOptionLoliCode);
-    }
-    private void NavigateToConfigSettingsPage()
-    {
-        CloseSubmenu();
-        if (configSettingsPage == null) configSettingsPage = new Views.Pages.ConfigSettings();
-        configSettingsPage.UpdateViewModel();
-        ChangePage(configSettingsPage, menuOptionConfigSettings);
-    }
-    private void NavigateToConfigCSharpCodePage()
-    {
-        CloseSubmenu();
-        HandleConfigEditorNavigation(ConfigEditorSection.CSharp, menuOptionCSharpCode);
+        return pageButtonMap.TryGetValue(page, out var button) ? button : null;
     }
 
 
-    private void HandleConfigEditorNavigation(ConfigEditorSection section, Button menuButton)
-    {
-        if (vm.Config != null && (vm.Config.Mode is ConfigMode.Stack or ConfigMode.LoliCode || (section == ConfigEditorSection.CSharp && vm.Config.Mode == ConfigMode.CSharp)))
-        {
-            if (configEditorPage == null)
-            {
-                configEditorPage = new ConfigEditor();
-            }
-            configEditorPage.NavigateTo(section);
-            ChangePage(configEditorPage, menuButton);
-
-            // Update UI to ensure buttons are visible
-            configEditorPage.UpdateUI();
-        }
-    }
 
     public void DisplayJob(JobViewModel jobVM)
     {
+        // For job display, we might need a way to navigate to job viewer via service or just set content manually if it's transient.
+        // Or add JobViewer pages to NavigationService?
+        // NavigationService handles main pages. JobViewer is a sub-page or variant.
+        // For now, let's keep it manual or use service if we create a JobViewer page type.
+        // But NavigationService takes an Enum.
+        // Let's create the page and set it manually, updating CurrentPage.
+        // This bypasses NavigationService cache which might be desired for transient job views.
+        
         switch (jobVM)
         {
             case MultiRunJobViewModel mrj:
-                if (multiRunJobViewerPage == null)
-                {
-                    multiRunJobViewerPage = new MultiRunJobViewer();
-                }
-                multiRunJobViewerPage.BindViewModel(mrj);
-                ChangePage(multiRunJobViewerPage, null);
+                var mrjPage = new MultiRunJobViewer();
+                mrjPage.BindViewModel(mrj);
+                ChangePage(mrjPage, null);
                 break;
 
             case ProxyCheckJobViewModel pcj:
-                if (proxyCheckJobViewerPage == null)
-                {
-                    proxyCheckJobViewerPage = new ProxyCheckJobViewer();
-                }
-                proxyCheckJobViewerPage.BindViewModel(pcj);
-                ChangePage(proxyCheckJobViewerPage, null);
-                break;
-            default:
+                var pcjPage = new ProxyCheckJobViewer();
+                pcjPage.BindViewModel(pcj);
+                ChangePage(pcjPage, null);
                 break;
         }
     }
@@ -703,7 +342,15 @@ public partial class MainWindow : MetroWindow
     public void EditJob(JobViewModel jobVM)
     {
         NavigateTo(MainWindowPage.Jobs);
-        jobsPage.EditJob(jobVM);
+        // Note: This relies on NavigateTo(Jobs) to set the page. 
+        // Then we get the page instance and call EditJob.
+        // Since we didn't expose GetPage from Service, we can rely on CurrentPage after navigation...
+        // But NavigateTo is async waiting for Navigated probably?
+        // My implementation fires Navigated synchronously.
+        if (navigationService.CurrentPage is Jobs initialJobsPage) // Use NavigationService.CurrentPage
+        {
+             initialJobsPage.EditJob(jobVM);
+        }
     }
 
     // Modern navigation handler for button clicks
@@ -721,168 +368,148 @@ public partial class MainWindow : MetroWindow
         // Use Tag property for navigation mapping - more reliable for buttons
         if (button?.Tag != null && Enum.TryParse<MainWindowPage>(button.Tag.ToString(), out var targetPage))
         {
-            NavigateTo(targetPage);
+            await NavigateTo(targetPage);
         }
         else
         {
-            // Fallback to name-based mapping for compatibility
-            var page = MenuNavigationMap.TryGetValue(button?.Name ?? "", out var fallbackPage)
-                ? fallbackPage
-                : MainWindowPage.Home;
-            NavigateTo(page);
+            // Fallback mapping via our helper if Tag fails or is missing
+            // We can't easily reverse GetButtonForPage without a map.
+            // But we can check button names.
+            // Or just assume if Tag is missing it might be mapped by name if we support it.
+            // Simplified:
+            if (button != null)
+            {
+                 // Try to find which page this button corresponds to
+                 // Iterate Enum?
+                 foreach (MainWindowPage page in Enum.GetValues(typeof(MainWindowPage)))
+                 {
+                     if (GetButtonForPage(page) == button)
+                     {
+                         await NavigateTo(page);
+                         return;
+                     }
+                 }
+            }
+            
+            await NavigateTo(MainWindowPage.Home);
         }
     }
 
+    // Helper for transient pages (Job Viewing) that aren't in the main navigation enum
     private void ChangePage(Page newPage, Button newButton)
     {
-        try
+        CurrentPage = newPage;
+        MainFrame.Content = newPage;
+
+        if (newButton != currentSelectedButton)
         {
-            System.Diagnostics.Debug.WriteLine($"ChangePage: Setting page to {newPage?.GetType().Name ?? "null"}");
-            CurrentPage = newPage;
-            MainFrame.Content = newPage;
-
-            // Optimized button selection - only update if different from current
-            if (newButton != currentSelectedButton)
+            if (currentSelectedButton != null)
             {
-                if (currentSelectedButton != null)
-                {
-                    // Clear previous selection visual state
-                    currentSelectedButton.Tag = null;
-                }
-
-                if (newButton != null)
-                {
-                    // Mark as selected. XAML style triggers will update appearance accordingly
-                    newButton.Tag = "Selected";
-                    currentSelectedButton = newButton;
-                }
+                currentSelectedButton.Tag = null;
             }
-            vm.IsLoading = false;
-            System.Diagnostics.Debug.WriteLine($"ChangePage: Successfully changed to {newPage?.GetType().Name ?? "null"}");
+
+            if (newButton != null)
+            {
+                newButton.Tag = "Selected";
+                currentSelectedButton = newButton;
+            }
         }
-        catch (Exception ex)
-        {
-            var errorDetails = $"ChangePage failed for {newPage?.GetType().Name ?? "unknown"}: {ex.GetType().Name} - {ex.Message}";
-            if (ex.InnerException != null)
-            {
-                errorDetails += $" | Inner: {ex.InnerException.GetType().Name} - {ex.InnerException.Message}";
-            }
-
-            System.Diagnostics.Debug.WriteLine(errorDetails);
-            System.Diagnostics.Debug.WriteLine($"Full ChangePage error: {ex}");
-
-            // Log navigation failures
-            try
-            {
-                Infrastructure.Diagnostics.CrashLoggingService.Instance.LogCrash(
-                    ex,
-                    "MainWindow.ChangePage",
-                    $"Failed to change page to {newPage?.GetType().Name ?? "unknown"}. Button: {newButton?.Name ?? "Unknown"}",
-                    false);
-            }
-            catch { /* Ignore logging errors */ }
-
-            vm.IsLoading = false;
-            throw; // Re-throw so calling code can handle it
-        }
+        vm.IsLoading = false;
     }
 
-    private void OnCanExecuteConfigCommand(object sender, CanExecuteRoutedEventArgs e) => e.CanExecute = CurrentPage == configsPage ||
-                      CurrentPage == configEditorPage ||
-                      CurrentPage == configMetadataPage ||
-                      CurrentPage == configReadmePage ||
-                      CurrentPage == configSettingsPage;
+    private void OnCanExecuteConfigCommand(object sender, CanExecuteRoutedEventArgs e) 
+        => e.CanExecute = navigationService.CurrentPageEnum is 
+            MainWindowPage.Configs or 
+            MainWindowPage.ConfigStacker or 
+            MainWindowPage.ConfigLoliCode or 
+            MainWindowPage.ConfigCSharpCode or
+            MainWindowPage.ConfigMetadata or 
+            MainWindowPage.ConfigReadme or 
+            MainWindowPage.ConfigSettings;
 
-    private void OnNewConfigExecuted(object sender, ExecutedRoutedEventArgs e) => configsPage.Create(null, null);
+    private void OnNewConfigExecuted(object sender, ExecutedRoutedEventArgs e) 
+    {
+        if (CurrentPage is Configs page) 
+            page.Create(null, null);
+    }
 
-    private void OnOpenConfigExecuted(object sender, ExecutedRoutedEventArgs e) => configsPage.Edit(null, null);
+    private void OnOpenConfigExecuted(object sender, ExecutedRoutedEventArgs e) 
+    {
+        if (CurrentPage is Configs page) 
+            page.Edit(null, null);
+    }
 
     private void OnSaveConfigExecuted(object sender, ExecutedRoutedEventArgs e)
     {
-        if (CurrentPage == configsPage)
+        if (CurrentPage is Configs configs)
         {
-            configsPage.Save(null, null);
+            configs.Save(null, null);
+            return;
         }
-        else if (CurrentPage == configEditorPage)
+        
+        if (CurrentPage is ConfigEditor editor)
         {
-            configEditorPage.Save(null, null);
+            editor.Save(null, null);
+            return;
         }
-        // For other config pages like metadata, readme, settings, we can also trigger save via the configEditorPage
-        else if (CurrentPage == configMetadataPage ||
-                 CurrentPage == configReadmePage ||
-                 CurrentPage == configSettingsPage)
+
+        // Fallback for other pages
+        if (configService.SelectedConfig != null)
         {
-            // Create a temporary configEditor if needed and save
-            if (configEditorPage != null)
+            _ = Task.Run(async () =>
             {
-                configEditorPage.Save(null, null);
-            }
-            else
-            {
-                // Fallback to using ConfigService directly
-                if (configService.SelectedConfig != null)
+                try
                 {
-                    _ = Task.Run(async () =>
-                    {
-                        try
-                        {
-                            await configRepository.SaveAsync(configService.SelectedConfig);
-                            configService.SelectedConfig.UpdateHashes();
-                            Application.Current.Dispatcher.Invoke(() => Alert.Success("Saved", $"{configService.SelectedConfig.Metadata.Name} was saved successfully!"));
-                        }
-                        catch (Exception ex)
-                        {
-                            Application.Current.Dispatcher.Invoke(() => Alert.Exception(ex));
-                        }
-                    });
+                    await configRepository.SaveAsync(configService.SelectedConfig);
+                    configService.SelectedConfig.UpdateHashes();
+                    Application.Current.Dispatcher.Invoke(() => Alert.Success("Saved", $"{configService.SelectedConfig.Metadata.Name} was saved successfully!"));
                 }
-            }
+                catch (Exception ex)
+                {
+                    Application.Current.Dispatcher.Invoke(() => Alert.Exception(ex));
+                }
+            });
         }
     }
 
     private async void OnRefreshExecuted(object sender, ExecutedRoutedEventArgs e)
     {
-        if (CurrentPage == configsPage)
+        if (CurrentPage is Configs configs)
         {
-            configsPage.Rescan(null, null);
+            configs.Rescan(null, null);
         }
-        else if (CurrentPage == hitsPage)
+        else if (CurrentPage is Hits hits)
         {
-            await hitsPage.Refresh();
+            await hits.Refresh();
         }
-        else if (CurrentPage == proxiesPage)
+        else if (CurrentPage is Proxies proxies)
         {
-            await proxiesPage.Refresh();
+            await proxies.Refresh();
         }
-        else if (CurrentPage == wordlistsPage)
+        else if (CurrentPage is Wordlists wordlists)
         {
-            await wordlistsPage.Refresh();
+            await wordlists.Refresh();
         }
-        else if (CurrentPage == pluginsPage)
+        else if (CurrentPage is Plugins plugins)
         {
-            pluginsPage.Refresh();
+            plugins.Refresh();
         }
     }
 
-    private void OnCanExecuteRefreshCommand(object sender, CanExecuteRoutedEventArgs e) => e.CanExecute = CurrentPage == configsPage ||
-                       CurrentPage == hitsPage ||
-                       CurrentPage == proxiesPage ||
-                       CurrentPage == wordlistsPage ||
-                       CurrentPage == pluginsPage;
+    private void OnCanExecuteRefreshCommand(object sender, CanExecuteRoutedEventArgs e) 
+        => e.CanExecute = navigationService.CurrentPageEnum is 
+            MainWindowPage.Configs or 
+            MainWindowPage.Hits or 
+            MainWindowPage.Proxies or 
+            MainWindowPage.Wordlists or 
+            MainWindowPage.Plugins;
 
     private void OnQuitExecuted(object sender, ExecutedRoutedEventArgs e) => Application.Current.Shutdown();
 
-    // Consolidated navigation handlers - removed 10 redundant methods
-    private void OnNavigateToHomeExecuted(object sender, ExecutedRoutedEventArgs e) => NavigateTo(MainWindowPage.Home);
-    private void OnNavigateToJobsExecuted(object sender, ExecutedRoutedEventArgs e) => NavigateTo(MainWindowPage.Jobs);
-    private void OnNavigateToToolsExecuted(object sender, ExecutedRoutedEventArgs e) => NavigateTo(MainWindowPage.Tools);
-    private void OnNavigateToProxiesExecuted(object sender, ExecutedRoutedEventArgs e) => NavigateTo(MainWindowPage.Proxies);
-    private void OnNavigateToWordlistsExecuted(object sender, ExecutedRoutedEventArgs e) => NavigateTo(MainWindowPage.Wordlists);
-    private void OnNavigateToConfigsExecuted(object sender, ExecutedRoutedEventArgs e) => NavigateTo(MainWindowPage.Configs);
-    private void OnNavigateToHitsExecuted(object sender, ExecutedRoutedEventArgs e) => NavigateTo(MainWindowPage.Hits);
-    private void OnNavigateToPluginsExecuted(object sender, ExecutedRoutedEventArgs e) => NavigateTo(MainWindowPage.Plugins);
-    private void OnNavigateToOBSettingsExecuted(object sender, ExecutedRoutedEventArgs e) => NavigateTo(MainWindowPage.OBSettings);
-    private void OnNavigateToRLSettingsExecuted(object sender, ExecutedRoutedEventArgs e) => NavigateTo(MainWindowPage.RLSettings);
+    private void BindNavigationCommand(ICommand command, MainWindowPage page)
+    {
+        _ = CommandBindings.Add(new CommandBinding(command, (s, e) => NavigateTo(page)));
+    }
 
 
 
@@ -948,38 +575,7 @@ public partial class MainWindow : MetroWindow
     private void CloseSubmenu() => configSubmenu.Visibility = Visibility.Collapsed;
     #endregion Dropdown submenu logic
 
-    public void SetTheme(CustomizationSettings customization)
-    {
-        Brush.SetAppColor("BackgroundMain", customization.BackgroundMain);
-        Brush.SetAppColor("BackgroundSecondary", customization.BackgroundSecondary);
-        Brush.SetAppColor("BackgroundInput", customization.BackgroundInput);
-        Brush.SetAppColor("ForegroundMain", customization.ForegroundMain);
-        Brush.SetAppColor("ForegroundInput", customization.ForegroundInput);
-        Brush.SetAppColor("ForegroundGood", customization.ForegroundGood);
-        Brush.SetAppColor("ForegroundBad", customization.ForegroundBad);
-        Brush.SetAppColor("ForegroundCustom", customization.ForegroundCustom);
-        Brush.SetAppColor("ForegroundRetry", customization.ForegroundRetry);
-        Brush.SetAppColor("ForegroundBanned", customization.ForegroundBanned);
-        Brush.SetAppColor("ForegroundToCheck", customization.ForegroundToCheck);
-        Brush.SetAppColor("ForegroundMenuSelected", customization.ForegroundMenuSelected);
-        Brush.SetAppColor("SuccessButton", customization.SuccessButton);
-        Brush.SetAppColor("PrimaryButton", customization.PrimaryButton);
-        Brush.SetAppColor("WarningButton", customization.WarningButton);
-        Brush.SetAppColor("DangerButton", customization.DangerButton);
-        Brush.SetAppColor("ForegroundButton", customization.ForegroundButton);
-        Brush.SetAppColor("BackgroundButton", customization.BackgroundButton);
 
-        // BACKGROUND
-        Background = File.Exists(customization.BackgroundImagePath)
-            ? new System.Windows.Media.ImageBrush(
-                new System.Windows.Media.Imaging.BitmapImage(
-                    new Uri(customization.BackgroundImagePath)))
-            {
-                Opacity = customization.BackgroundOpacity / 100,
-                Stretch = System.Windows.Media.Stretch.UniformToFill
-            }
-            : Brush.Get("BackgroundMain");
-    }
 
     private void ApplyAccessibilitySettings()
     {
@@ -989,16 +585,14 @@ public partial class MainWindow : MetroWindow
             openBulletSettingsService.Settings.AccessibilitySettings = accessibility;
         }
 
-        if (Root != null)
-        {
-            Root.LayoutTransform = accessibility.UiScale <= 0.1 || Math.Abs(accessibility.UiScale - 1.0) < 0.01
-                ? Media.Transform.Identity
-                : new Media.ScaleTransform(accessibility.UiScale, accessibility.UiScale);
-        }
+        themeService.ApplyAccessibilitySettings();
 
+        // Control-specific accessibility
         if (accessibility.EnableHighContrast)
         {
-            ApplyHighContrastPalette();
+            // Already handled by themeService.ApplyAccessibilitySettings() calling ApplyHighContrastPalette internally?
+            // Wait, ThemeService.ApplyAccessibilitySettings calls ApplyHighContrastPalette.
+            // So we don't need to call it here.
         }
 
         var focusStyle = accessibility.AlwaysShowFocusVisuals
@@ -1035,23 +629,7 @@ public partial class MainWindow : MetroWindow
         }
     }
 
-    private void ApplyHighContrastPalette()
-    {
-        Application.Current.Resources["Modern.BackgroundMain"] = Brush.FromHex("#000000");
-        Application.Current.Resources["Modern.BackgroundSecondary"] = Brush.FromHex("#111111");
-        Application.Current.Resources["Modern.BackgroundInput"] = Brush.FromHex("#141414");
-        Application.Current.Resources["Modern.ForegroundMain"] = Brush.FromHex("#FFFFFF");
-        Application.Current.Resources["Modern.ForegroundSecondary"] = Brush.FromHex("#F5F5F5");
-        Application.Current.Resources["Modern.BorderFocus"] = Brush.FromHex("#FFFFFF");
-        Application.Current.Resources["Modern.ThemeMain"] = Brush.FromHex("#FFD700");
 
-        Brush.SetAppColor("BackgroundMain", "#000000");
-        Brush.SetAppColor("BackgroundSecondary", "#111111");
-        Brush.SetAppColor("ForegroundMain", "#FFFFFF");
-        Brush.SetAppColor("ForegroundInput", "#FFFFFF");
-        Brush.SetAppColor("ForegroundMenuSelected", "#FFD700");
-        Brush.SetAppColor("BackgroundInput", "#141414");
-    }
 
     private static void ApplyButtonSpacing(Button button, bool comfortable)
     {
@@ -1085,25 +663,4 @@ public partial class MainWindow : MetroWindow
     }
 
 }
-public enum MainWindowPage
-{
-    Home = 0,
-    Jobs = 1,
-    Tools = 2,
-    Proxies = 3,
-    Wordlists = 4,
-    Configs = 5,
-    ConfigMetadata = 6,
-    ConfigReadme = 7,
-    ConfigStacker = 8,
-    ConfigLoliCode = 9,
-    ConfigSettings = 10,
-    ConfigCSharpCode = 11,
 
-    Hits = 13,
-    Plugins = 14,
-    OBSettings = 15,
-    RLSettings = 16,
-    CheckUpdate = 17,
-    About = 18
-}

@@ -13,6 +13,8 @@ using System.Windows.Threading;
 using System.Windows.Media;
 using OpenBullet2.Native.Infrastructure.DependencyInjection;
 
+using OpenBullet2.Native.Enums;
+
 namespace OpenBullet2.Native.Views.Pages
 {
     /// <summary>

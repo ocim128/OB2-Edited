@@ -22,6 +22,8 @@ using Microsoft.Win32;
 using RuriLib.Helpers;
 using OpenBullet2.Native.Infrastructure.DependencyInjection;
 
+using OpenBullet2.Native.Enums;
+
 namespace OpenBullet2.Native.Views.Pages
 {
     /// <summary>

@@ -7,6 +7,8 @@ using System.Windows.Controls;
 using OpenBullet2.Native.Infrastructure.DependencyInjection;
 using OpenBullet2.Native.Helpers;
 
+using OpenBullet2.Native.Enums;
+
 namespace OpenBullet2.Native.ViewModels.Infrastructure
 {
     /// <summary>

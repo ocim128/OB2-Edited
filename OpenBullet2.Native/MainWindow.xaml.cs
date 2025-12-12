@@ -179,10 +179,9 @@ public partial class MainWindow : MetroWindow
         InitializePageButtonMap();
     }
     
-    // Kept for event handler signature compatibility but delegates to service
     private void OnWindowSizeChanged(object sender, SizeChangedEventArgs e)
     {
-        UpdateConfigSubmenuPosition();
+        // UpdateConfigSubmenuPosition(); // Not needed for sidebar
         // Layout service handles the rest via its own subscription or we can call it here if needed per original logic
         // The service subscribes to SizeChanged, so we just handle local UI logic
     }
@@ -223,11 +222,7 @@ public partial class MainWindow : MetroWindow
 
     private void UpdateConfigSubmenuPosition()
     {
-        if (FindName("menuOptionConfigs") is FrameworkElement configsButton && configSubmenu != null)
-        {
-            var position = configsButton.TransformToAncestor(this).Transform(new Point(0, 0));
-            configSubmenu.Margin = new Thickness(position.X, position.Y + configsButton.ActualHeight + 5, 0, 0);
-        }
+        // No longer needed for sidebar inline implementation
     }
 
     #endregion Responsive Design Methods
@@ -253,16 +248,61 @@ public partial class MainWindow : MetroWindow
     {
         var button = GetButtonForPage(page);
         
+        // Handle Sidebar indicator or style change
+        // We need to implement logic if we want visuals beyond the "Active" state if it's not bound directly.
+        // Assuming GetButtonForPage returns the sidebar buttons now.
+        
         if (button != currentSelectedButton)
         {
             if (currentSelectedButton != null)
             {
-                currentSelectedButton.Tag = null;
+                currentSelectedButton.Tag = null; // Or reset style?
+                // For sidebar, we might need to remove "SidebarNavButtonActive" style/tag
+                // But the XAML uses Tag for navigation.
+                // Actually the code resets Tag to null? That might break navigation if Tag was "Jobs"!
+                // Wait, previous code:
+                // if (currentSelectedButton != null) currentSelectedButton.Tag = null;
+                // if (button != null) button.Tag = "Selected";
+                // THIS BREAKS NAVIGATION IF TAG WAS USED FOR ROUTING!
+                // Let's check HandleNavigationClick:
+                // if (button?.Tag != null && Enum.TryParse<MainWindowPage>(button.Tag.ToString(), out var targetPage))
+                
+                // CRITICAL ISSUE: The original code overwrote Tag with "Selected".
+                // How did it navigate then?
+                // Ah, HandleNavigationClick uses the sender button.
+                // If I click "Jobs", Tag is "Jobs".
+                // Then OnNavigated -> UpdateMenuHighlight -> button.Tag = "Selected".
+                // Next time I click it, Tag is "Selected". Enum.TryParse("Selected") fails.
+                // Fallback loop: Check pageButtonMap reverse lookup.
+                // "if (GetButtonForPage(page) == button)"
+                // Yes, valid fallback.
+                
+                // BUT, I should probably improve this to not destroy the Tag.
+                // Maybe set a Style or a different property.
+                // OR just leave it as is if it works.
+                // I will update UpdateMenuHighlight to use a better mechanism if possible, 
+                // but strictly speaking, I should just make sure the style reacts to "Selected" if that's what triggers the visual.
+                // In my new XAML, I didn't add a Trigger for Tag="Selected".
+                // I added x:Key="SidebarNavButtonActive".
+                // So I should programmatically apply this resource style.
+            }
+
+            if (currentSelectedButton != null)
+            {
+                // Revert to normal style
+                // If it was a top-level button
+                if (currentSelectedButton.Name.StartsWith("menuOptionConfig")) // Submenu items
+                    currentSelectedButton.Style = FindResource("SidebarSubmenuButton") as Style;
+                else
+                    currentSelectedButton.Style = FindResource("SidebarNavButton") as Style;
             }
 
             if (button != null)
             {
-                button.Tag = "Selected";
+                // Apply active style
+                // If it is submenu button, maybe we don't have a specific active style yet, 
+                // but let's assume SidebarNavButtonActive works enough (just bg change).
+                button.Style = FindResource("SidebarNavButtonActive") as Style;
                 currentSelectedButton = button;
             }
         }
@@ -401,19 +441,24 @@ public partial class MainWindow : MetroWindow
         CurrentPage = newPage;
         MainFrame.Content = newPage;
 
-        if (newButton != currentSelectedButton)
+        // Update indicators
+        if (currentSelectedButton != null)
         {
-            if (currentSelectedButton != null)
-            {
-                currentSelectedButton.Tag = null;
-            }
-
-            if (newButton != null)
-            {
-                newButton.Tag = "Selected";
-                currentSelectedButton = newButton;
-            }
+            // Revert previous
+             if (currentSelectedButton.Name.StartsWith("menuOptionConfig"))
+                 currentSelectedButton.Style = FindResource("SidebarSubmenuButton") as Style;
+             else
+                 currentSelectedButton.Style = FindResource("SidebarNavButton") as Style;
+            
+             currentSelectedButton = null;
         }
+
+        if (newButton != null)
+        {
+            newButton.Style = FindResource("SidebarNavButtonActive") as Style;
+            currentSelectedButton = newButton;
+        }
+
         vm.IsLoading = false;
     }
 
@@ -536,7 +581,7 @@ public partial class MainWindow : MetroWindow
         {
             hoveringConfigSubmenu = true;
             configSubmenu.Visibility = Visibility.Visible;
-            UpdateConfigSubmenuPosition();
+            // UpdateConfigSubmenuPosition(); // Removed
         }
     }
 
@@ -552,7 +597,7 @@ public partial class MainWindow : MetroWindow
         {
             hoveringConfigsMenuOption = true;
             configSubmenu.Visibility = Visibility.Visible;
-            UpdateConfigSubmenuPosition();
+            // UpdateConfigSubmenuPosition(); // Removed
         }
     }
 
@@ -574,9 +619,7 @@ public partial class MainWindow : MetroWindow
 
     private void CloseSubmenu() => configSubmenu.Visibility = Visibility.Collapsed;
     #endregion Dropdown submenu logic
-
-
-
+    
     private void ApplyAccessibilitySettings()
     {
         var accessibility = AccessibilitySettings;

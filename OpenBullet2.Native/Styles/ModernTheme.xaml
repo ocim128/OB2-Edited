@@ -334,18 +334,29 @@
         <Setter Property="Foreground" Value="{StaticResource Modern.ThemeMain}" />
     </Style>
 
-    <!-- Performance-Optimized Navigation Button -->
-    <Style x:Key="ModernNavButton" TargetType="{x:Type Button}">
+    <!-- Sidebar Container Style -->
+    <Style x:Key="ModernSidebar" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource Modern.BackgroundSecondary}" />
+        <Setter Property="BorderBrush" Value="{StaticResource Modern.BorderMain}" />
+        <Setter Property="BorderThickness" Value="0,0,1,0" />
+        <Setter Property="UseLayoutRounding" Value="True" />
+        <Setter Property="SnapsToDevicePixels" Value="True" />
+    </Style>
+
+    <!-- Sidebar Navigation Button Style -->
+    <Style x:Key="SidebarNavButton" TargetType="{x:Type Button}">
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="BorderBrush" Value="Transparent" />
         <Setter Property="BorderThickness" Value="0" />
         <Setter Property="HorizontalAlignment" Value="Stretch" />
         <Setter Property="HorizontalContentAlignment" Value="Left" />
-        <Setter Property="Padding" Value="12,8" />
-        <Setter Property="MinHeight" Value="32" />
+        <Setter Property="Padding" Value="16,10" />
+        <Setter Property="Margin" Value="8,2" />
+        <Setter Property="MinHeight" Value="40" />
         <Setter Property="FontWeight" Value="Medium" />
-        <Setter Property="FontSize" Value="13" />
+        <Setter Property="FontSize" Value="14" />
         <Setter Property="Foreground" Value="{StaticResource Modern.ForegroundSecondary}" />
+        <Setter Property="Cursor" Value="Hand" />
         <Setter Property="UseLayoutRounding" Value="True" />
         <Setter Property="SnapsToDevicePixels" Value="True" />
         <Setter Property="Template">
@@ -358,23 +369,46 @@
                            CornerRadius="6"
                            UseLayoutRounding="True"
                            SnapsToDevicePixels="True">
-                        <ContentPresenter x:Name="ContentPresenter"
-                                        Margin="{TemplateBinding Padding}"
-                                        HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                        VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
-                                        Content="{TemplateBinding Content}"
-                                        UseLayoutRounding="True"
-                                        SnapsToDevicePixels="True" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            
+                            <!-- Active Indicator (Left Bar) - Hidden by default -->
+                            <Border x:Name="ActiveIndicator" 
+                                    Width="3" 
+                                    Height="20" 
+                                    HorizontalAlignment="Left"
+                                    Background="{StaticResource Modern.ThemeMain}"
+                                    CornerRadius="1.5"
+                                    Visibility="Collapsed"
+                                    Margin="-4,0,0,0"/>
+
+                            <ContentPresenter x:Name="ContentPresenter"
+                                            Grid.ColumnSpan="2"
+                                            Margin="{TemplateBinding Padding}"
+                                            HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                            VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                            Content="{TemplateBinding Content}"
+                                            UseLayoutRounding="True"
+                                            SnapsToDevicePixels="True" />
+                        </Grid>
                     </Border>
                     <ControlTemplate.Triggers>
+                        <!-- Hover State -->
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Border" Property="Background" Value="{StaticResource Modern.BackgroundSecondary}" />
+                            <Setter TargetName="Border" Property="Background" Value="{StaticResource Modern.BackgroundTertiary}" />
                             <Setter Property="Foreground" Value="{StaticResource Modern.ForegroundMain}" />
                         </Trigger>
+                        
+                        <!-- Pressed State -->
                         <Trigger Property="IsPressed" Value="True">
                             <Setter TargetName="Border" Property="Background" Value="{StaticResource Modern.ThemeMain}" />
                             <Setter Property="Foreground" Value="White" />
                         </Trigger>
+                        
+                        <!-- Disabled State -->
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter Property="Opacity" Value="0.5" />
                         </Trigger>
@@ -383,12 +417,76 @@
             </Setter.Value>
         </Setter>
     </Style>
-    
-    <!-- Active Navigation Button Style -->
-    <Style x:Key="ModernNavButtonActive" TargetType="{x:Type Button}" BasedOn="{StaticResource ModernNavButton}">
-        <Setter Property="Background" Value="{StaticResource Modern.ThemeMain}" />
-        <Setter Property="Foreground" Value="White" />
+
+    <!-- Sidebar Active Button Style (For when a page is selected) -->
+    <Style x:Key="SidebarNavButtonActive" TargetType="{x:Type Button}" BasedOn="{StaticResource SidebarNavButton}">
+        <Setter Property="Background" Value="{StaticResource Modern.BackgroundTertiary}" />
+        <Setter Property="Foreground" Value="{StaticResource Modern.ThemeMain}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type Button}">
+                    <Border x:Name="Border"
+                           Background="{TemplateBinding Background}"
+                           BorderBrush="{TemplateBinding BorderBrush}"
+                           BorderThickness="{TemplateBinding BorderThickness}"
+                           CornerRadius="6"
+                           UseLayoutRounding="True"
+                           SnapsToDevicePixels="True">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            
+                            <!-- Active Indicator (Left Bar) - VISIBLE -->
+                            <Border x:Name="ActiveIndicator" 
+                                    Width="3" 
+                                    Height="20" 
+                                    HorizontalAlignment="Left"
+                                    Background="{StaticResource Modern.ThemeMain}"
+                                    CornerRadius="1.5"
+                                    Visibility="Visible" 
+                                    Margin="-4,0,0,0"/>
+
+                            <ContentPresenter x:Name="ContentPresenter"
+                                            Grid.ColumnSpan="2"
+                                            Margin="{TemplateBinding Padding}"
+                                            HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                            VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                            Content="{TemplateBinding Content}"
+                                            UseLayoutRounding="True"
+                                            SnapsToDevicePixels="True" />
+                        </Grid>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
     </Style>
+
+    <!-- Sidebar Icon Style -->
+    <Style x:Key="SidebarIcon" TargetType="{x:Type iconPacks:PackIconMaterial}">
+        <Setter Property="Width" Value="18" />
+        <Setter Property="Height" Value="18" />
+        <Setter Property="Margin" Value="0,0,12,0" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <!-- Sidebar Text Style -->
+    <Style x:Key="SidebarText" TargetType="{x:Type TextBlock}">
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+    </Style>
+
+    <!-- Submenu Item Style -->
+    <Style x:Key="SidebarSubmenuButton" TargetType="{x:Type Button}" BasedOn="{StaticResource SidebarNavButton}">
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Padding" Value="42,8,16,8" /> <!-- Indented -->
+        <Setter Property="MinHeight" Value="36" />
+        <Setter Property="Margin" Value="8,1" />
+    </Style>
+
+
 
     <!-- REMOVED: Unused ModernListBox and ModernDataGrid styles for better load performance -->
     

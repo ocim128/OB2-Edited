@@ -95,25 +95,21 @@ namespace RuriLib.Blocks.Playwright.Browser
             actualExtraArgs = sanitizedArgs;
 
             var resolvedTimeout = ResolveLaunchTimeout(provider.TimeoutMilliseconds, actualBrowserType);
-            var launchOptions = new BrowserTypeLaunchOptions
-            {
-                Headless = actualHeadless,
-                Args = sanitizedArgs,
-                Timeout = resolvedTimeout
-            };
-
-            // Efficient browser executable path handling
-            launchOptions.ExecutablePath = GetExecutablePath(actualBrowserType, data);
+            var executablePath = GetExecutablePath(actualBrowserType, data);
 
             // Validate and correct browser type if needed
-            actualBrowserType = ValidateBrowserType(actualBrowserType, launchOptions.ExecutablePath, data);
+            actualBrowserType = ValidateBrowserType(actualBrowserType, executablePath, data);
             StoreBrowserRuntimeState(data, actualBrowserType, actualHeadless);
-            if (actualBrowserType == PlaywrightBrowserType.Firefox && firefoxProcessesBeforeLaunch == null)
+
+            // Capture Firefox processes before launch for cleanup tracking
+            if (actualBrowserType == PlaywrightBrowserType.Firefox)
             {
                 firefoxProcessesBeforeLaunch = CaptureFirefoxProcessSnapshot();
-                PlaywrightLaunchConfigurator.ApplyFirefoxSafeDefaults(launchOptions);
                 data.Logger.Log("Firefox GPU disabled and sandbox relaxed to avoid RADAR_PRE_LEAK_64.", LogColors.MediumPurple);
             }
+
+            // Create launch options with browser-specific defaults applied (Firefox safe defaults included)
+            var launchOptions = CreateLaunchOptions(actualBrowserType, actualHeadless, sanitizedArgs, resolvedTimeout, executablePath);
 
             // Ensure runtime path and required browsers exist before creating the Playwright instance
             Action<string> runtimeLog = message => data.Logger.Log(message, LogColors.MediumPurple);
@@ -137,19 +133,9 @@ namespace RuriLib.Blocks.Playwright.Browser
                         await InstallFirefoxAddon(firefoxProfilePath, firefoxAddonPath, data);
                     }
 
-                    var persistentOptions = new BrowserTypeLaunchPersistentContextOptions
-                    {
-                        Headless = actualHeadless,
-                        Args = sanitizedArgs,
-                        Timeout = resolvedTimeout,
-                        ExecutablePath = launchOptions.ExecutablePath,
-                        IgnoreHTTPSErrors = provider.IgnoreHTTPSErrors
-                    };
-                    if (!actualHeadless)
-                    {
-                        persistentOptions.ViewportSize = ViewportSize.NoViewport;
-                    }
-                    PlaywrightLaunchConfigurator.ApplyFirefoxSafeDefaults(persistentOptions);
+                    var persistentOptions = CreatePersistentContextOptions(
+                        actualBrowserType, actualHeadless, sanitizedArgs, resolvedTimeout,
+                        launchOptions.ExecutablePath, provider.IgnoreHTTPSErrors);
                     context = await playwright.Firefox.LaunchPersistentContextAsync(firefoxProfilePath, persistentOptions);
                     data.SetObject("playwrightContext", context);
                     // For persistent contexts, we don't need to set the browser object as it may be null
@@ -161,18 +147,9 @@ namespace RuriLib.Blocks.Playwright.Browser
                     data.Logger.Log($"Using persistent context for Chromium extension: {extensionPath}", LogColors.MediumPurple);
                     var tempUserDataDir = Path.Combine(Path.GetTempPath(), "playwright-chromium-" + Guid.NewGuid().ToString());
                     data.SetObject("playwright.tempChromiumUserData", tempUserDataDir);
-                    var persistentOptions = new BrowserTypeLaunchPersistentContextOptions
-                    {
-                        Headless = actualHeadless,
-                        Args = sanitizedArgs,
-                        Timeout = resolvedTimeout,
-                        ExecutablePath = launchOptions.ExecutablePath,
-                        IgnoreHTTPSErrors = provider.IgnoreHTTPSErrors
-                    };
-                    if (!actualHeadless)
-                    {
-                        persistentOptions.ViewportSize = ViewportSize.NoViewport;
-                    }
+                    var persistentOptions = CreatePersistentContextOptions(
+                        actualBrowserType, actualHeadless, sanitizedArgs, resolvedTimeout,
+                        launchOptions.ExecutablePath, provider.IgnoreHTTPSErrors);
                     context = await playwright.Chromium.LaunchPersistentContextAsync(tempUserDataDir, persistentOptions);
                     data.SetObject("playwrightContext", context);
                 }
@@ -189,20 +166,10 @@ namespace RuriLib.Blocks.Playwright.Browser
 
                 try
                 {
-                    // Try persistent context launch with built-in Firefox
-                    var fallbackPersistentOptions = new BrowserTypeLaunchPersistentContextOptions
-                    {
-                        Headless = actualHeadless,
-                        Args = sanitizedArgs,
-                        Timeout = resolvedTimeout,
-                        IgnoreHTTPSErrors = provider.IgnoreHTTPSErrors
-                        // ExecutablePath is intentionally omitted to use built-in Firefox
-                    };
-                    if (!actualHeadless)
-                    {
-                        fallbackPersistentOptions.ViewportSize = ViewportSize.NoViewport;
-                    }
-                    PlaywrightLaunchConfigurator.ApplyFirefoxSafeDefaults(fallbackPersistentOptions);
+                    // Try persistent context launch with built-in Firefox (no custom executable)
+                    var fallbackPersistentOptions = CreatePersistentContextOptions(
+                        actualBrowserType, actualHeadless, sanitizedArgs, resolvedTimeout,
+                        null, provider.IgnoreHTTPSErrors);  // null executable = use built-in Firefox
                     context = await playwright.Firefox.LaunchPersistentContextAsync(firefoxProfilePath, fallbackPersistentOptions);
                     data.SetObject("playwrightContext", context);
                     data.Logger.Log($"✅ Successfully launched Playwright's built-in Firefox with profile", LogColors.Green);
@@ -224,15 +191,10 @@ namespace RuriLib.Blocks.Playwright.Browser
 
                 try
                 {
-                    // Try regular launch with built-in Firefox
-                    var fallbackOptions = new BrowserTypeLaunchOptions
-                    {
-                        Headless = actualHeadless,
-                        Args = actualExtraArgs,
-                        Timeout = resolvedTimeout
-                        // ExecutablePath is intentionally omitted to use built-in Firefox
-                    };
-                    PlaywrightLaunchConfigurator.ApplyFirefoxSafeDefaults(fallbackOptions);
+                    // Try regular launch with built-in Firefox (no custom executable)
+                    var fallbackOptions = CreateLaunchOptions(
+                        actualBrowserType, actualHeadless, actualExtraArgs, resolvedTimeout,
+                        null);  // null executable = use built-in Firefox
                     browser = await playwright.Firefox.LaunchAsync(fallbackOptions);
                     data.Logger.Log($"✅ Successfully launched Playwright's built-in Firefox", LogColors.Green);
                 }
@@ -327,12 +289,7 @@ namespace RuriLib.Blocks.Playwright.Browser
                 throw new Exception("No browser or context open to close");
             }
 
-            // Wait a moment for processes to exit gracefully
-            await Task.Delay(500);
-
-            // ALWAYS kill Firefox processes (even after successful close)
-            KillPlaywrightFirefoxProcesses(data);
-
+            // Perform unified cleanup (handles Firefox processes, temp files, and state)
             var cleanupHandled = cleanupState?.Cleanup(null) ?? false;
             if (!cleanupHandled)
             {

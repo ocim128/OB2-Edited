@@ -196,5 +196,66 @@ namespace RuriLib.Blocks.Playwright.Browser
 
             return $"addon@{cleanName}.com.xpi";
         }
+
+        /// <summary>
+        /// Creates configured BrowserTypeLaunchOptions with browser-specific defaults applied.
+        /// Firefox safe defaults (GPU disabled, sandbox relaxed) are applied automatically.
+        /// </summary>
+        private static BrowserTypeLaunchOptions CreateLaunchOptions(
+            PlaywrightBrowserType browserType,
+            bool headless,
+            string[] args,
+            int timeout,
+            string? executablePath)
+        {
+            var options = new BrowserTypeLaunchOptions
+            {
+                Headless = headless,
+                Args = args,
+                Timeout = timeout,
+                ExecutablePath = executablePath
+            };
+
+            if (browserType == PlaywrightBrowserType.Firefox)
+            {
+                PlaywrightLaunchConfigurator.ApplyFirefoxSafeDefaults(options);
+            }
+
+            return options;
+        }
+
+        /// <summary>
+        /// Creates configured BrowserTypeLaunchPersistentContextOptions with browser-specific defaults applied.
+        /// Firefox safe defaults (GPU disabled, sandbox relaxed) are applied automatically.
+        /// </summary>
+        private static BrowserTypeLaunchPersistentContextOptions CreatePersistentContextOptions(
+            PlaywrightBrowserType browserType,
+            bool headless,
+            string[] args,
+            int timeout,
+            string? executablePath,
+            bool ignoreHttpsErrors)
+        {
+            var options = new BrowserTypeLaunchPersistentContextOptions
+            {
+                Headless = headless,
+                Args = args,
+                Timeout = timeout,
+                ExecutablePath = executablePath,
+                IgnoreHTTPSErrors = ignoreHttpsErrors
+            };
+
+            if (!headless)
+            {
+                options.ViewportSize = ViewportSize.NoViewport;
+            }
+
+            if (browserType == PlaywrightBrowserType.Firefox)
+            {
+                PlaywrightLaunchConfigurator.ApplyFirefoxSafeDefaults(options);
+            }
+
+            return options;
+        }
     }
 }

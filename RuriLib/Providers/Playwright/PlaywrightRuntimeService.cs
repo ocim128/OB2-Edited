@@ -23,13 +23,13 @@ public static class PlaywrightRuntimeService
         { PlaywrightBrowserType.Webkit, new[] { "webkit" } }
     };
 
-    // Both packaged and fallback runtimes now point to the default user-local directory used by Playwright.
-    private static readonly Lazy<string> UserRuntimePath = new(() =>
+    // Default user-local directory used by Playwright for browser binaries.
+    private static readonly Lazy<string> RuntimePath = new(() =>
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ms-playwright"));
-    private static readonly Lazy<string> PackagedRuntimePath = new(() => UserRuntimePath.Value);
 
+    private static readonly object _runtimePathLock = new();
     private static string _activeRuntimePath = string.Empty;
-    private static bool _environmentPrepared;
+    private static volatile bool _environmentPrepared;
 
     /// <summary>
     /// Returns the currently active runtime path (packaged or user-local) that Playwright will read from.
@@ -242,25 +242,28 @@ public static class PlaywrightRuntimeService
 
     private static string EnsureRuntimePath()
     {
+        // Fast path: already initialized (volatile read ensures visibility)
         if (_environmentPrepared && Directory.Exists(_activeRuntimePath))
         {
             return _activeRuntimePath;
         }
 
-        var packagedPath = PackagedRuntimePath.Value;
-        if (Directory.Exists(packagedPath))
+        // Slow path: initialize with lock (double-checked locking)
+        lock (_runtimePathLock)
         {
-            _activeRuntimePath = packagedPath;
-        }
-        else
-        {
-            _activeRuntimePath = UserRuntimePath.Value;
-            Directory.CreateDirectory(_activeRuntimePath);
-        }
+            // Re-check after acquiring lock
+            if (_environmentPrepared && Directory.Exists(_activeRuntimePath))
+            {
+                return _activeRuntimePath;
+            }
 
-        Environment.SetEnvironmentVariable("PLAYWRIGHT_BROWSERS_PATH", _activeRuntimePath);
-        _environmentPrepared = true;
-        return _activeRuntimePath;
+            _activeRuntimePath = RuntimePath.Value;
+            Directory.CreateDirectory(_activeRuntimePath);
+
+            Environment.SetEnvironmentVariable("PLAYWRIGHT_BROWSERS_PATH", _activeRuntimePath);
+            _environmentPrepared = true;
+            return _activeRuntimePath;
+        }
     }
 
     private static bool IsBrowserInstalled(string runtimePath, PlaywrightBrowserType browserType)

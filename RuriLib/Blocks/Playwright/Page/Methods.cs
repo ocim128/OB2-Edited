@@ -8,7 +8,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
-using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 
 namespace RuriLib.Blocks.Playwright.Page
@@ -253,14 +252,14 @@ namespace RuriLib.Blocks.Playwright.Page
                         if (proc.HasExited)
                             continue;
 
-                        var handle = SafeGetMainWindowHandle(proc);
-                        if (!HasVisibleWindow(handle))
+                        var handle = PlaywrightHelpers.SafeGetMainWindowHandle(proc);
+                        if (!PlaywrightHelpers.HasVisibleWindow(handle))
                             continue;
 
-                        if (!GetWindowRect(handle, out var rect))
+                        if (!PlaywrightHelpers.NativeMethods.GetWindowRect(handle, out var rect))
                             continue;
 
-                        MoveWindow(handle, rect.Left, rect.Top, targetWidth, targetHeight, true);
+                        PlaywrightHelpers.NativeMethods.MoveWindow(handle, rect.Left, rect.Top, targetWidth, targetHeight, true);
                         return true;
                     }
                     catch
@@ -276,11 +275,7 @@ namespace RuriLib.Blocks.Playwright.Page
             return false;
         }
 
-        private static IFrame GetFrame(BotData data)
-        {
-            var frame = data.TryGetObject<IFrame>("playwrightFrame");
-            return frame ?? GetPage(data).MainFrame;
-        }
+        private static IFrame GetFrame(BotData data) => PlaywrightHelpers.GetFrame(data);
 
         [Block("Sets the viewport size", name = "Set Viewport")]
         public static async Task PlaywrightSetViewport(BotData data, int width, int height)
@@ -340,69 +335,16 @@ namespace RuriLib.Blocks.Playwright.Page
             data.Logger.Log("Switched to main frame", LogColors.MediumPurple);
         }
 
-        private static IPage GetPage(BotData data)
-        {
-            var page = data.TryGetObject<IPage>("playwrightPage");
-            return page ?? throw new Exception("No page available. Use the 'New Page' block first");
-        }
+        private static IPage GetPage(BotData data) => PlaywrightHelpers.GetPage(data);
 
-        private static void LogMethodStart(BotData data, string action)
-        {
-            data.Logger.LogHeader();
-            data.Logger.Log(action, LogColors.MediumPurple);
-        }
+        private static void LogMethodStart(BotData data, string action) => PlaywrightHelpers.LogMethodStart(data, action);
 
         private static T CreatePageOptions<T>(int timeoutSeconds) where T : new()
-        {
-            var options = new T();
-            if (typeof(T).GetProperty("Timeout") != null)
-            {
-                typeof(T).GetProperty("Timeout")!.SetValue(options, (float)(timeoutSeconds * 1000));
-            }
-            return options;
-        }
+            => PlaywrightHelpers.CreateOptions<T>(timeoutSeconds);
 
         private static PageWaitForLoadStateOptions CreateWaitOptions(int timeoutSeconds)
         {
             return new PageWaitForLoadStateOptions { Timeout = timeoutSeconds * 1000f };
-        }
-
-        private static IntPtr SafeGetMainWindowHandle(Process process)
-        {
-            try
-            {
-                return process.MainWindowHandle;
-            }
-            catch
-            {
-                return IntPtr.Zero;
-            }
-        }
-
-        private static bool HasVisibleWindow(IntPtr handle)
-        {
-            return handle != IntPtr.Zero && IsWindow(handle) && IsWindowVisible(handle);
-        }
-
-        [DllImport("user32.dll")]
-        private static extern bool GetWindowRect(IntPtr hWnd, out Rect lpRect);
-
-        [DllImport("user32.dll")]
-        private static extern bool MoveWindow(IntPtr hWnd, int X, int Y, int nWidth, int nHeight, bool bRepaint);
-
-        [DllImport("user32.dll")]
-        private static extern bool IsWindow(IntPtr hWnd);
-
-        [DllImport("user32.dll")]
-        private static extern bool IsWindowVisible(IntPtr hWnd);
-
-        [StructLayout(LayoutKind.Sequential)]
-        private struct Rect
-        {
-            public int Left;
-            public int Top;
-            public int Right;
-            public int Bottom;
         }
     }
 }

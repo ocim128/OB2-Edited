@@ -369,38 +369,14 @@ namespace RuriLib.Blocks.Playwright.Elements
             data.Logger.Log($"Switched to iframe: {findBy} {identifier}", LogColors.Tomato);
         }
 
-        private static IPage GetPage(BotData data)
-        {
-            var page = data.TryGetObject<IPage>("playwrightPage");
-            return page ?? throw new Exception("No page available. Use the 'New Page' block first");
-        }
+        private static IPage GetPage(BotData data) => PlaywrightHelpers.GetPage(data);
 
-        private static IFrame GetFrame(BotData data)
-        {
-            var frame = data.TryGetObject<IFrame>("playwrightFrame");
-            return frame ?? GetPage(data).MainFrame;
-        }
+        private static IFrame GetFrame(BotData data) => PlaywrightHelpers.GetFrame(data);
 
-        private static void LogMethodStart(BotData data, string action)
-        {
-            data.Logger.LogHeader();
-            data.Logger.Log(action, LogColors.Tomato);
-        }
+        private static void LogMethodStart(BotData data, string action) => PlaywrightHelpers.LogMethodStart(data, action, LogColors.Tomato);
 
         private static T CreateElementOptions<T>(int timeoutSeconds) where T : new()
-        {
-            var options = new T();
-            if (typeof(T).GetProperty("Timeout") != null)
-            {
-                typeof(T).GetProperty("Timeout")!.SetValue(options, (float)(timeoutSeconds * 1000));
-            }
-            // Ensure clicks work even when the browser is not in the foreground by bypassing strict actionability checks
-            if (typeof(T).GetProperty("Force") != null)
-            {
-                typeof(T).GetProperty("Force")!.SetValue(options, true);
-            }
-            return options;
-        }
+            => PlaywrightHelpers.CreateOptionsWithForce<T>(timeoutSeconds);
 
         private static PageWaitForSelectorOptions CreateWaitOptions(int timeoutSeconds, WaitForSelectorState state = WaitForSelectorState.Visible)
         {
@@ -412,19 +388,6 @@ namespace RuriLib.Blocks.Playwright.Elements
         }
 
         private static string BuildSelector(FindElementBy findBy, string identifier)
-        {
-            return findBy switch
-            {
-                FindElementBy.Id => $"#{identifier}",
-                FindElementBy.ClassName => $".{identifier}",
-                FindElementBy.CssSelector => identifier,
-                FindElementBy.Selector => identifier,
-                FindElementBy.TagName => identifier,
-                FindElementBy.Name => $"[name='{identifier}']",
-                FindElementBy.LinkText => $"text={identifier}",
-                FindElementBy.PartialLinkText => $"text*={identifier}",
-                _ => identifier
-            };
-        }
+            => PlaywrightHelpers.BuildSelector(findBy, identifier);
     }
 }

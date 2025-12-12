@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -24,6 +23,7 @@ namespace RuriLib.Blocks.Playwright.Browser
 
         private static void PerformCleanup(BotData data)
         {
+            // Stop the manual close watcher first to prevent it from triggering during cleanup
             var cleanupState = data.TryGetObject<PlaywrightCleanupState>(PlaywrightCleanupStateKey);
             cleanupState?.StopManualCloseWatcher();
 
@@ -59,9 +59,8 @@ namespace RuriLib.Blocks.Playwright.Browser
                 data.SetObject("playwright.realBrowserProcessId", null);
             }
 
-            // ALWAYS kill Playwright Firefox processes on cleanup (even if Close Browser wasn't called)
-            // This handles cases where bot stops/errors without explicit browser close
-            KillPlaywrightFirefoxProcesses(data);
+            // Kill tracked Firefox processes (manual close watcher already stopped above)
+            KillTrackedFirefoxProcessesAndTempDirs(data);
 
             DeleteDirectoryIfExists(data, "playwright.tempFirefoxProfile", "temporary Firefox profile");
             DeleteDirectoryIfExists(data, "playwright.tempChromiumUserData", "temporary Chromium user data");
@@ -380,20 +379,18 @@ namespace RuriLib.Blocks.Playwright.Browser
         }
 
         /// <summary>
-        /// Kills all Firefox processes and deletes Playwright temp profiles.
-        /// Aggressive cleanup to ensure no zombie processes or temp files remain.
+        /// Kills tracked Firefox processes and deletes Playwright temp profiles.
+        /// Note: StopManualCloseWatcher should be called by the caller before invoking this method.
         /// </summary>
-        private static void KillPlaywrightFirefoxProcesses(BotData data)
+        private static void KillTrackedFirefoxProcessesAndTempDirs(BotData data)
         {
-            var cleanupState = data.TryGetObject<PlaywrightCleanupState>(PlaywrightCleanupStateKey);
-            cleanupState?.StopManualCloseWatcher();
             data.Logger.Log("Attempting Firefox cleanup...", LogColors.Yellow);
 
             try
             {
                 var killedPids = KillTrackedFirefoxProcesses(data);
 
-                // Step 2: Delete all Playwright temp profiles from %TEMP%
+                // Delete all Playwright temp profiles from %TEMP%
                 try
                 {
                     var tempPath = Path.GetTempPath();
@@ -429,7 +426,7 @@ namespace RuriLib.Blocks.Playwright.Browser
 
                 if (killedPids.Count > 0)
                 {
-                    data.Logger.Log($"Γ£à Killed {killedPids.Count} Playwright Firefox process(es)", LogColors.Green);
+                    data.Logger.Log($"✅ Killed {killedPids.Count} Playwright Firefox process(es)", LogColors.Green);
                 }
                 else
                 {
@@ -506,8 +503,8 @@ namespace RuriLib.Blocks.Playwright.Browser
 
                         anyRunning = true;
 
-                        var handle = SafeGetMainWindowHandle(proc);
-                        if (HasVisibleWindow(handle))
+                        var handle = PlaywrightHelpers.SafeGetMainWindowHandle(proc);
+                        if (PlaywrightHelpers.HasVisibleWindow(handle))
                         {
                             seenWindows.Add(pid);
                             continue;
@@ -530,7 +527,8 @@ namespace RuriLib.Blocks.Playwright.Browser
                         }
                         else
                         {
-                            KillPlaywrightFirefoxProcesses(data);
+                            // Fallback: perform cleanup directly if no cleanup state is available
+                            PerformCleanup(data);
                         }
                         return;
                     }
@@ -551,29 +549,6 @@ namespace RuriLib.Blocks.Playwright.Browser
                 logger.Log($"Manual close watcher error: {ex.Message}", LogColors.Orange);
             }
         }
-
-        private static IntPtr SafeGetMainWindowHandle(Process process)
-        {
-            try
-            {
-                return process.MainWindowHandle;
-            }
-            catch
-            {
-                return IntPtr.Zero;
-            }
-        }
-
-        private static bool HasVisibleWindow(IntPtr handle)
-        {
-            return handle != IntPtr.Zero && IsWindow(handle) && IsWindowVisible(handle);
-        }
-
-        [DllImport("user32.dll")]
-        private static extern bool IsWindow(IntPtr hWnd);
-
-        [DllImport("user32.dll")]
-        private static extern bool IsWindowVisible(IntPtr hWnd);
     }
 }
 

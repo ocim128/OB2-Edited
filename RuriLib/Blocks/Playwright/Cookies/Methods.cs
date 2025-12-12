@@ -210,10 +210,6 @@ namespace RuriLib.Blocks.Playwright.Cookies
             data.Logger.Log($"Set {cookies.Length} cookies for domain '{domain}'", LogColors.Orange);
         }
 
-        private static IPage GetPage(BotData data)
-        {
-            var page = data.TryGetObject<IPage>("playwrightPage");
-            return page ?? throw new Exception("No page available. Use the 'New Page' block first");
-        }
+        private static IPage GetPage(BotData data) => PlaywrightHelpers.GetPage(data);
     }
 }

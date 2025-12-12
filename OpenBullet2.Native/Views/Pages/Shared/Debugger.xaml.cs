@@ -53,7 +53,7 @@ public partial class Debugger : Page
         InitializeComponent();
         
         // Initialize log service after InitializeComponent (controls now exist)
-        _logService = new DebuggerLogService(logRTB, variablesRTB, _viewModel);
+        _logService = new DebuggerLogService(logRTB, _viewModel);
         
         // Wire up events
         _viewModel.NewLogEntry += OnNewLogEntry;
@@ -81,12 +81,7 @@ public partial class Debugger : Page
         _updateTimer.Start();
 
         // Initialize UI manager with control references
-        _uiManager.Initialize(
-            TabToggleButton, OptionsToggleButton, StackerToggleButton, FocusModeButton,
-            LogTabButton, VariablesTabButton, HtmlTabButton, StopButton, StepButton,
-            SecondaryOptionsGrid, SearchControlsArea,
-            VariablesTabItem, HtmlTabItem, LogTabItem, tabControl,
-            TabToggleIcon, OptionsToggleIcon, StackerToggleIcon, FocusModeIcon, FocusModeText);
+        _uiManager.Initialize(this);
         
         _uiManager.UpdateAllToggleAppearances();
     }
@@ -170,16 +165,7 @@ public partial class Debugger : Page
     #region Log Event Handlers
     private void OnNewLogEntry(object? sender, BotLoggerEntry entry)
     {
-        Dispatcher.InvokeAsync(() =>
-        {
-            _logService.HandleNewLogEntry(entry);
-
-            // Update variables if on variables tab
-            if (tabControl.SelectedIndex == 1)
-            {
-                _logService.UpdateVariablesList();
-            }
-        });
+        _logService.HandleNewLogEntry(entry);
     }
 
     private void OnLogCleared(object? sender, EventArgs e)

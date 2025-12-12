@@ -130,17 +130,35 @@ public class DebuggerViewModel : OpenBullet2.Native.ViewModels.Infrastructure.Vi
     public bool CanTakeStep => status is ConfigDebuggerStatus.WaitingForStep;
     public bool CanStop => status is ConfigDebuggerStatus.Running or ConfigDebuggerStatus.WaitingForStep;
 
-    public List<Variable> Variables
+    public class VariableItem
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Type { get; set; } = string.Empty;
+        public string Value { get; set; } = string.Empty;
+        public bool MarkedForCapture { get; set; }
+    }
+
+    public List<VariableItem> Variables
     {
         get
         {
-            if (debugger == null) return new List<Variable>();
+            if (debugger == null) return [];
 
-            return obSettingsService.Settings.GeneralSettings.GroupCapturesInDebugger
-                ? [.. debugger.Variables.OrderBy(static v => v.MarkedForCapture)]
-                : debugger.Variables;
+            var source = obSettingsService.Settings.GeneralSettings.GroupCapturesInDebugger
+                ? debugger.Variables.OrderBy(static v => v.MarkedForCapture)
+                : (IEnumerable<Variable>)debugger.Variables;
+            
+            return source.Select(static v => new VariableItem 
+            { 
+                Name = v.Name, 
+                Type = v.Type.ToString(), 
+                Value = v.AsString(), 
+                MarkedForCapture = v.MarkedForCapture 
+            }).ToList();
         }
     }
+
+    public void RefreshVariables() => OnPropertyChanged(nameof(Variables));
 
     private string searchString = string.Empty;
     public string SearchString

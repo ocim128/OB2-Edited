@@ -3,7 +3,10 @@ using ICSharpCode.AvalonEdit.Document;
 using OpenBullet2.Native.ViewModels;
 using RuriLib.Logging;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 using System.Windows;
 using System.Windows.Media;
 
@@ -12,15 +15,11 @@ namespace OpenBullet2.Native.Views.Pages.Shared
     public class DebuggerLogService : IDisposable
     {
         private readonly TextEditor _logRTB;
-        private readonly TextEditor _variablesRTB;
         private readonly DebuggerViewModel _viewModel;
         
         // State for syntax highlighting
         private readonly List<LogSegment> _segments = new();
         private readonly DebuggerLogColorizer _colorizer;
-        
-        private readonly List<LogSegment> _variableSegments = new();
-        private readonly DebuggerLogColorizer _variableColorizer;
         
         private readonly Dictionary<string, Brush> _brushCache = new();
 
@@ -33,88 +32,96 @@ namespace OpenBullet2.Native.Views.Pages.Shared
         private readonly List<int> _blockStartIndices = new();
         private int _currentBlockIndex = -1;
 
+        // Buffering
+        private readonly ConcurrentQueue<BotLoggerEntry> _pendingLogs = new();
+        private bool _variablesNeedUpdate;
+
         // UI State flags
         public bool UpdatesPaused { get; set; }
         public bool IsResizing { get; set; }
         public bool IsWindowMinimized { get; set; }
         public bool ScrollingDisabled { get; set; }
 
-        private readonly object _lock = new();
-
-        public DebuggerLogService(TextEditor logRTB, TextEditor variablesRTB, DebuggerViewModel viewModel)
+        public DebuggerLogService(TextEditor logRTB, DebuggerViewModel viewModel)
         {
             _logRTB = logRTB;
-            _variablesRTB = variablesRTB;
             _viewModel = viewModel;
 
             // Initialize Syntax Highlighting for Log
             _colorizer = new DebuggerLogColorizer(_segments);
             _logRTB.TextArea.TextView.LineTransformers.Add(_colorizer);
-            
-            // Initialize Syntax Highlighting for Variables
-            _variableColorizer = new DebuggerLogColorizer(_variableSegments);
-            _variablesRTB.TextArea.TextView.LineTransformers.Add(_variableColorizer);
         }
 
         public void HandleNewLogEntry(BotLoggerEntry entry)
         {
-            if (UpdatesPaused || IsWindowMinimized || IsResizing)
-            {
-                // Buffering logic placeholder
-            }
-
-            // Append Text
-            string textToAppend = entry.Message + Environment.NewLine;
-            int startOffset = _logRTB.Document.TextLength;
-            
-            _logRTB.AppendText(textToAppend);
-
-            // Add Highlighting Segment
-            var brush = GetBrush(entry.Color);
-            _segments.Add(new LogSegment
-            {
-                StartOffset = startOffset,
-                Length = textToAppend.Length, 
-                Color = brush
-            });
-            
-            // Auto-scroll
-            if (!ScrollingDisabled)
-            {
-                _logRTB.ScrollToEnd();
-            }
+            _pendingLogs.Enqueue(entry);
         }
 
         public void ProcessPendingEntries()
         {
-            // Buffering placeholder
+            if (UpdatesPaused || IsWindowMinimized || IsResizing) return;
+
+            bool logUpdated = false;
+            
+            // Process log buffer
+            if (!_pendingLogs.IsEmpty)
+            {
+                var sb = new StringBuilder();
+                var newSegments = new List<LogSegment>();
+                int startOffset = _logRTB.Document.TextLength;
+                int currentOffset = startOffset;
+                
+                // Limit batch size to prevent UI freeze on massive dumps
+                int count = 0;
+                while (_pendingLogs.TryDequeue(out var entry) && count < 500)
+                {
+                    // Track block starts efficiently
+                    if (entry.IsBlockStart)
+                    {
+                         _blockStartIndices.Add(currentOffset);
+                    }
+
+                    string textToAppend = entry.Message + Environment.NewLine;
+                    sb.Append(textToAppend);
+
+                    var brush = GetBrush(entry.Color);
+                    newSegments.Add(new LogSegment
+                    {
+                        StartOffset = currentOffset,
+                        Length = textToAppend.Length,
+                        Color = brush
+                    });
+
+                    currentOffset += textToAppend.Length;
+                    _variablesNeedUpdate = true;
+                    count++;
+                }
+
+                if (sb.Length > 0)
+                {
+                    _logRTB.AppendText(sb.ToString());
+                    _segments.AddRange(newSegments);
+                    logUpdated = true;
+                }
+            }
+
+            // Auto-scroll request
+            if (logUpdated && !ScrollingDisabled)
+            {
+                _logRTB.ScrollToEnd();
+            }
+
+            // Update variables if needed
+            if (_variablesNeedUpdate) 
+            {
+                _viewModel.RefreshVariables();
+                _variablesNeedUpdate = false;
+            }
         }
 
         public void UpdateVariablesList()
         {
-            _variablesRTB.Clear();
-            _variableSegments.Clear();
-            
-            foreach (var variable in _viewModel.Variables)
-            {
-                // Simple formatting
-                var text = $"{variable.Name} ({variable.Type}) = {variable.AsString()}{Environment.NewLine}";
-                
-                // Colorize based on MarkedForCapture
-                var color = variable.MarkedForCapture ? Brushes.Tomato : Brushes.Gainsboro;
-                
-                int startOffset = _variablesRTB.Document.TextLength;
-                _variablesRTB.AppendText(text);
-                
-                _variableSegments.Add(new LogSegment
-                {
-                    StartOffset = startOffset,
-                    Length = text.Length,
-                    Color = color
-                });
-            }
-            
-            _variablesRTB.TextArea.TextView.Redraw();
+            _viewModel.RefreshVariables();
         }
 
         public void ClearLog(Action<string>? htmlClearAction = null)
@@ -125,6 +132,8 @@ namespace OpenBullet2.Native.Views.Pages.Shared
             _blockStartIndices.Clear();
             _currentMatchIndex = -1;
             _currentBlockIndex = -1;
+            
+            _pendingLogs.Clear(); // Clear pending buffer too
             
             // Force redraw of highlighting
             _logRTB.TextArea.TextView.Redraw();
@@ -222,6 +231,8 @@ namespace OpenBullet2.Native.Views.Pages.Shared
             _searchMatches.Clear();
             _currentMatchIndex = -1;
             _lastSearchText = string.Empty;
+            
+            // Deselect but don't reset position necessarily, just clear selection
             _logRTB.Select(0, 0); 
         }
         #endregion
@@ -229,11 +240,6 @@ namespace OpenBullet2.Native.Views.Pages.Shared
         #region Block Navigation
         public void NavigateToBlock(int direction)
         {
-            if (_blockStartIndices.Count == 0)
-            {
-                UpdateBlockPositions();
-            }
-            
             if (_blockStartIndices.Count == 0) return;
 
             _currentBlockIndex += direction;
@@ -245,21 +251,6 @@ namespace OpenBullet2.Native.Views.Pages.Shared
             _logRTB.Select(offset, 0);
             var line = _logRTB.Document.GetLineByOffset(offset);
             _logRTB.ScrollToLine(line.LineNumber);
-        }
-
-        private void UpdateBlockPositions()
-        {
-            _blockStartIndices.Clear();
-            var text = _logRTB.Document.Text;
-            
-            // Look for "Executing block " pattern
-            string blockMarker = "Executing block ";
-            int index = 0;
-            while ((index = text.IndexOf(blockMarker, index, StringComparison.Ordinal)) != -1)
-            {
-                _blockStartIndices.Add(index);
-                index += blockMarker.Length;
-            }
         }
         #endregion
 
@@ -282,9 +273,7 @@ namespace OpenBullet2.Native.Views.Pages.Shared
         {
             _brushCache.Clear();
             _segments.Clear();
-            _variableSegments.Clear();
             _logRTB.TextArea.TextView.LineTransformers.Remove(_colorizer);
-            _variablesRTB.TextArea.TextView.LineTransformers.Remove(_variableColorizer);
         }
     }
 }

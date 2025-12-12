@@ -80,6 +80,42 @@ public class BotLogger : IBotLogger
     }
 
     /// <inheritdoc/>
+    public void LogBlockStart(string label)
+    {
+        if (!Enabled) return;
+
+        ExecutingBlock = label;
+        var message = $"Executing block {label}"; // Keeping the original message format for consistency
+
+        var entry = new BotLoggerEntry
+        {
+            Message = message,
+            Color = LogColors.White, // Default color for this info
+            Timestamp = DateTime.Now,
+            Level = LogLevel.Info,
+            IsBlockStart = true
+        };
+
+        var shouldTrim = false;
+        lock (_lockObject)
+        {
+            _entries.Add(entry);
+            if (_entries.Count > MAX_ENTRIES) shouldTrim = true;
+        }
+
+        if (shouldTrim) TrimEntries();
+
+        try
+        {
+            NewEntry?.Invoke(this, entry);
+        }
+        catch
+        {
+            // Ignore event handler exceptions
+        }
+    }
+
+    /// <inheritdoc/>
     public void Log(string message, string color = "#fff", bool canViewAsHtml = false) => LogWithLevel(message, color, LogLevel.Info, canViewAsHtml);
 
     /// <inheritdoc/>

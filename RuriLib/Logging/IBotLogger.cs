@@ -63,4 +63,9 @@ public interface IBotLogger
     /// If the <paramref name="obj"/> contains HTML code, set <paramref name="canViewAsHtml"/> to true.
     /// </summary>
     void LogObject(object obj, string color = "#fff", bool canViewAsHtml = false);
+
+    /// <summary>
+    /// Logs the start of a block execution.
+    /// </summary>
+    void LogBlockStart(string label);
 }

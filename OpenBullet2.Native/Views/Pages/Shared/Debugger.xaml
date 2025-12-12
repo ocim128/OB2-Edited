@@ -681,14 +681,53 @@
                                     </Border>
                                     <!-- Remove outer ScrollViewer to avoid double scrollbars; rely on inner WinForms RichTextBox scrollbar -->
                                     <!-- AvalonEdit Variables -->
-                                    <avalonEdit:TextEditor x:Name="variablesRTB" IsReadOnly="True"
-                                                           ShowLineNumbers="False"
-                                                           FontFamily="Consolas" FontSize="13"
-                                                           Background="#161616" Foreground="Gainsboro"
-                                                           HorizontalScrollBarVisibility="Auto"
-                                                           VerticalScrollBarVisibility="Auto"
-                                                           WordWrap="True"
-                                                           Padding="10"/>
+                                    <ListView ItemsSource="{Binding Variables}"
+                                              Background="#161616"
+                                              Foreground="Gainsboro"
+                                              BorderThickness="0"
+                                              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                              ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                              Padding="0">
+                                        <ListView.Resources>
+                                            <Style TargetType="GridViewColumnHeader">
+                                                <Setter Property="HorizontalContentAlignment" Value="Left" />
+                                                <Setter Property="Background" Value="#1F2937" />
+                                                <Setter Property="Foreground" Value="#9CA3AF" />
+                                                <Setter Property="Padding" Value="8,6" />
+                                                <Setter Property="BorderThickness" Value="0,0,1,1" />
+                                                <Setter Property="BorderBrush" Value="#374151" />
+                                            </Style>
+                                            <Style TargetType="ListViewItem">
+                                                <Setter Property="HorizontalContentAlignment" Value="Left" />
+                                                <Setter Property="Padding" Value="4,2" />
+                                                <Setter Property="BorderThickness" Value="0" />
+                                                <Style.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter Property="Background" Value="#2D3748" />
+                                                    </Trigger>
+                                                    <Trigger Property="IsSelected" Value="True">
+                                                        <Setter Property="Background" Value="#374151" />
+                                                    </Trigger>
+                                                    <DataTrigger Binding="{Binding MarkedForCapture}" Value="True">
+                                                        <Setter Property="Foreground" Value="#F87171" /> 
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </ListView.Resources>
+                                        <ListView.View>
+                                            <GridView>
+                                                <GridViewColumn Header="Name" Width="140" DisplayMemberBinding="{Binding Name}" />
+                                                <GridViewColumn Header="Type" Width="80" DisplayMemberBinding="{Binding Type}" />
+                                                <GridViewColumn Header="Value" Width="800">
+                                                    <GridViewColumn.CellTemplate>
+                                                        <DataTemplate>
+                                                            <TextBlock Text="{Binding Value}" TextTrimming="CharacterEllipsis" />
+                                                        </DataTemplate>
+                                                    </GridViewColumn.CellTemplate>
+                                                </GridViewColumn>
+                                            </GridView>
+                                        </ListView.View>
+                                    </ListView>
                                 </Grid>
                             </Border>
                         </Border>

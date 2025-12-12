@@ -107,7 +107,7 @@ public class BotData(Providers providers, ConfigSettings configSettings, IBotLog
         ExecutionInfo = $"Executing block {label}";
         if (Logger != null)
         {
-            Logger.ExecutingBlock = label;
+            Logger.LogBlockStart(label);
         }
     }
 

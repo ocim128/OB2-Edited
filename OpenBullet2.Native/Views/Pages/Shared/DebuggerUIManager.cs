@@ -15,29 +15,7 @@ public sealed class DebuggerUIManager
     #region Private Fields
     private readonly DebuggerUIState _state;
     private readonly Func<MainWindow?> _getMainWindow;
-    #endregion
-
-    #region UI Element References (set via Initialize)
-    private Button? _tabToggleButton;
-    private Button? _optionsToggleButton;
-    private Button? _stackerToggleButton;
-    private Button? _focusModeButton;
-    private Button? _logTabButton;
-    private Button? _variablesTabButton;
-    private Button? _htmlTabButton;
-    private Button? _stopButton;
-    private Button? _stepButton;
-    private Grid? _secondaryOptionsGrid;
-    private Border? _searchControlsArea;
-    private TabItem? _variablesTabItem;
-    private TabItem? _htmlTabItem;
-    private TabItem? _logTabItem;
-    private TabControl? _tabControl;
-    private PackIconUnicons? _tabToggleIcon;
-    private PackIconUnicons? _optionsToggleIcon;
-    private PackIconUnicons? _stackerToggleIcon;
-    private PackIconUnicons? _focusModeIcon;
-    private TextBlock? _focusModeText;
+    private Debugger? _page;
     #endregion
 
     public DebuggerUIState State => _state;
@@ -49,50 +27,11 @@ public sealed class DebuggerUIManager
     }
 
     /// <summary>
-    /// Initializes references to UI elements. Must be called after InitializeComponent.
+    /// Initializes references to UI elements via the page instance. Must be called after InitializeComponent.
     /// </summary>
-    public void Initialize(
-        Button? tabToggleButton,
-        Button? optionsToggleButton,
-        Button? stackerToggleButton,
-        Button? focusModeButton,
-        Button? logTabButton,
-        Button? variablesTabButton,
-        Button? htmlTabButton,
-        Button? stopButton,
-        Button? stepButton,
-        Grid? secondaryOptionsGrid,
-        Border? searchControlsArea,
-        TabItem? variablesTabItem,
-        TabItem? htmlTabItem,
-        TabItem? logTabItem,
-        TabControl? tabControl,
-        PackIconUnicons? tabToggleIcon,
-        PackIconUnicons? optionsToggleIcon,
-        PackIconUnicons? stackerToggleIcon,
-        PackIconUnicons? focusModeIcon,
-        TextBlock? focusModeText)
+    public void Initialize(Debugger page)
     {
-        _tabToggleButton = tabToggleButton;
-        _optionsToggleButton = optionsToggleButton;
-        _stackerToggleButton = stackerToggleButton;
-        _focusModeButton = focusModeButton;
-        _logTabButton = logTabButton;
-        _variablesTabButton = variablesTabButton;
-        _htmlTabButton = htmlTabButton;
-        _stopButton = stopButton;
-        _stepButton = stepButton;
-        _secondaryOptionsGrid = secondaryOptionsGrid;
-        _searchControlsArea = searchControlsArea;
-        _variablesTabItem = variablesTabItem;
-        _htmlTabItem = htmlTabItem;
-        _logTabItem = logTabItem;
-        _tabControl = tabControl;
-        _tabToggleIcon = tabToggleIcon;
-        _optionsToggleIcon = optionsToggleIcon;
-        _stackerToggleIcon = stackerToggleIcon;
-        _focusModeIcon = focusModeIcon;
-        _focusModeText = focusModeText;
+        _page = page ?? throw new ArgumentNullException(nameof(page));
     }
 
     #region Options Visibility
@@ -111,9 +50,9 @@ public sealed class DebuggerUIManager
     {
         _state.AreOptionsVisible = visible;
 
-        if (_secondaryOptionsGrid != null)
+        if (_page?.SecondaryOptionsGrid != null)
         {
-            _secondaryOptionsGrid.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
+            _page.SecondaryOptionsGrid.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
         }
 
         UpdateOptionsToggleAppearance();
@@ -121,7 +60,7 @@ public sealed class DebuggerUIManager
 
     private void UpdateOptionsToggleAppearance()
     {
-        if (_optionsToggleButton?.Content is not StackPanel content || content.Children.Count < 2)
+        if (_page?.OptionsToggleButton?.Content is not StackPanel content || content.Children.Count < 2)
         {
             return;
         }
@@ -133,15 +72,15 @@ public sealed class DebuggerUIManager
 
         if (_state.AreOptionsVisible)
         {
-            if (_optionsToggleIcon != null) _optionsToggleIcon.Kind = PackIconUniconsKind.EyeSlash;
+            if (_page.OptionsToggleIcon != null) _page.OptionsToggleIcon.Kind = PackIconUniconsKind.EyeSlash;
             label.Text = "Hide Options";
-            _optionsToggleButton.Background = new SolidColorBrush(Color.FromRgb(220, 38, 38));
+            _page.OptionsToggleButton.Background = new SolidColorBrush(Color.FromRgb(220, 38, 38));
         }
         else
         {
-            if (_optionsToggleIcon != null) _optionsToggleIcon.Kind = PackIconUniconsKind.Eye;
+            if (_page.OptionsToggleIcon != null) _page.OptionsToggleIcon.Kind = PackIconUniconsKind.Eye;
             label.Text = "Show Options";
-            _optionsToggleButton.Background = new SolidColorBrush(Color.FromRgb(124, 58, 237));
+            _page.OptionsToggleButton.Background = new SolidColorBrush(Color.FromRgb(124, 58, 237));
         }
     }
     #endregion
@@ -163,17 +102,20 @@ public sealed class DebuggerUIManager
         _state.AreTabButtonsVisible = visible;
         var targetVisibility = visible ? Visibility.Visible : Visibility.Collapsed;
 
-        if (_logTabButton != null) _logTabButton.Visibility = targetVisibility;
-        if (_variablesTabButton != null) _variablesTabButton.Visibility = targetVisibility;
-        if (_htmlTabButton != null) _htmlTabButton.Visibility = targetVisibility;
-        if (_searchControlsArea != null) _searchControlsArea.Visibility = targetVisibility;
+        if (_page != null)
+        {
+            if (_page.LogTabButton != null) _page.LogTabButton.Visibility = targetVisibility;
+            if (_page.VariablesTabButton != null) _page.VariablesTabButton.Visibility = targetVisibility;
+            if (_page.HtmlTabButton != null) _page.HtmlTabButton.Visibility = targetVisibility;
+            if (_page.SearchControlsArea != null) _page.SearchControlsArea.Visibility = targetVisibility;
+        }
 
         UpdateTabToggleAppearance();
     }
 
     private void UpdateTabToggleAppearance()
     {
-        if (_tabToggleButton?.Content is not StackPanel content || content.Children.Count < 2)
+        if (_page?.TabToggleButton?.Content is not StackPanel content || content.Children.Count < 2)
         {
             return;
         }
@@ -185,15 +127,15 @@ public sealed class DebuggerUIManager
 
         if (_state.AreTabButtonsVisible)
         {
-            if (_tabToggleIcon != null) _tabToggleIcon.Kind = PackIconUniconsKind.EyeSlash;
+            if (_page.TabToggleIcon != null) _page.TabToggleIcon.Kind = PackIconUniconsKind.EyeSlash;
             label.Text = "Hide UI";
-            _tabToggleButton.Background = new SolidColorBrush(Color.FromRgb(220, 38, 38));
+            _page.TabToggleButton.Background = new SolidColorBrush(Color.FromRgb(220, 38, 38));
         }
         else
         {
-            if (_tabToggleIcon != null) _tabToggleIcon.Kind = PackIconUniconsKind.Eye;
+            if (_page.TabToggleIcon != null) _page.TabToggleIcon.Kind = PackIconUniconsKind.Eye;
             label.Text = "Show UI";
-            _tabToggleButton.Background = new SolidColorBrush(Color.FromRgb(5, 150, 105));
+            _page.TabToggleButton.Background = new SolidColorBrush(Color.FromRgb(5, 150, 105));
         }
     }
     #endregion
@@ -237,7 +179,7 @@ public sealed class DebuggerUIManager
 
     private void UpdateStackerToggleAppearance()
     {
-        if (_stackerToggleButton?.Content is not StackPanel content || content.Children.Count < 2)
+        if (_page?.StackerToggleButton?.Content is not StackPanel content || content.Children.Count < 2)
         {
             return;
         }
@@ -249,15 +191,15 @@ public sealed class DebuggerUIManager
 
         if (_state.AreStackerControlsVisible)
         {
-            if (_stackerToggleIcon != null) _stackerToggleIcon.Kind = PackIconUniconsKind.EyeSlash;
+            if (_page.StackerToggleIcon != null) _page.StackerToggleIcon.Kind = PackIconUniconsKind.EyeSlash;
             label.Text = "Hide Stacker";
-            _stackerToggleButton.Background = new SolidColorBrush(Color.FromRgb(220, 38, 38));
+            _page.StackerToggleButton.Background = new SolidColorBrush(Color.FromRgb(220, 38, 38));
         }
         else
         {
-            if (_stackerToggleIcon != null) _stackerToggleIcon.Kind = PackIconUniconsKind.Eye;
+            if (_page.StackerToggleIcon != null) _page.StackerToggleIcon.Kind = PackIconUniconsKind.Eye;
             label.Text = "Show Stacker";
-            _stackerToggleButton.Background = new SolidColorBrush(Color.FromRgb(5, 150, 105));
+            _page.StackerToggleButton.Background = new SolidColorBrush(Color.FromRgb(5, 150, 105));
         }
     }
     #endregion
@@ -295,15 +237,17 @@ public sealed class DebuggerUIManager
 
     private void EnterFocusMode()
     {
+        if (_page == null) return;
+
         // Capture current state
         _state.CaptureStateForFocusMode();
-        _state.FocusStoredStopButtonVisibility = _stopButton?.Visibility ?? Visibility.Visible;
-        _state.FocusStoredStepButtonVisibility = _stepButton?.Visibility ?? Visibility.Visible;
-        _state.FocusStoredVariablesTabVisibility = _variablesTabItem?.Visibility ?? Visibility.Visible;
-        _state.FocusStoredHtmlTabVisibility = _htmlTabItem?.Visibility ?? Visibility.Visible;
-        _state.FocusStoredTabToggleVisibility = _tabToggleButton?.Visibility ?? Visibility.Visible;
-        _state.FocusStoredOptionsToggleVisibility = _optionsToggleButton?.Visibility ?? Visibility.Visible;
-        _state.FocusStoredStackerToggleVisibility = _stackerToggleButton?.Visibility ?? Visibility.Visible;
+        _state.FocusStoredStopButtonVisibility = _page.StopButton?.Visibility ?? Visibility.Visible;
+        _state.FocusStoredStepButtonVisibility = _page.StepButton?.Visibility ?? Visibility.Visible;
+        _state.FocusStoredVariablesTabVisibility = _page.VariablesTabItem?.Visibility ?? Visibility.Visible;
+        _state.FocusStoredHtmlTabVisibility = _page.HtmlTabItem?.Visibility ?? Visibility.Visible;
+        _state.FocusStoredTabToggleVisibility = _page.TabToggleButton?.Visibility ?? Visibility.Visible;
+        _state.FocusStoredOptionsToggleVisibility = _page.OptionsToggleButton?.Visibility ?? Visibility.Visible;
+        _state.FocusStoredStackerToggleVisibility = _page.StackerToggleButton?.Visibility ?? Visibility.Visible;
 
         var mainWindow = _getMainWindow();
         if (mainWindow?.topMenu != null)
@@ -332,21 +276,23 @@ public sealed class DebuggerUIManager
         ApplyTabUiVisibility(false);
         ApplyStackerVisibility(false);
 
-        _stopButton?.SetCurrentValue(UIElement.VisibilityProperty, Visibility.Collapsed);
-        _stepButton?.SetCurrentValue(UIElement.VisibilityProperty, Visibility.Collapsed);
-        _variablesTabItem?.SetCurrentValue(UIElement.VisibilityProperty, Visibility.Collapsed);
-        _htmlTabItem?.SetCurrentValue(UIElement.VisibilityProperty, Visibility.Collapsed);
-        if (_tabControl != null) _tabControl.SelectedItem = _logTabItem;
+        _page.StopButton?.SetCurrentValue(UIElement.VisibilityProperty, Visibility.Collapsed);
+        _page.StepButton?.SetCurrentValue(UIElement.VisibilityProperty, Visibility.Collapsed);
+        _page.VariablesTabItem?.SetCurrentValue(UIElement.VisibilityProperty, Visibility.Collapsed);
+        _page.HtmlTabItem?.SetCurrentValue(UIElement.VisibilityProperty, Visibility.Collapsed);
+        if (_page.tabControl != null) _page.tabControl.SelectedItem = _page.LogTabItem;
 
-        if (_tabToggleButton != null) _tabToggleButton.Visibility = Visibility.Collapsed;
-        if (_optionsToggleButton != null) _optionsToggleButton.Visibility = Visibility.Collapsed;
-        if (_stackerToggleButton != null) _stackerToggleButton.Visibility = Visibility.Collapsed;
+        if (_page.TabToggleButton != null) _page.TabToggleButton.Visibility = Visibility.Collapsed;
+        if (_page.OptionsToggleButton != null) _page.OptionsToggleButton.Visibility = Visibility.Collapsed;
+        if (_page.StackerToggleButton != null) _page.StackerToggleButton.Visibility = Visibility.Collapsed;
 
         UpdateFocusModeButtonAppearance(true);
     }
 
     private void ExitFocusMode()
     {
+        if (_page == null) return;
+
         // Restore captured state
         ApplyOptionsVisibility(_state.FocusStoredOptionsVisible);
         ApplyTabUiVisibility(_state.FocusStoredTabButtonsVisible);
@@ -361,14 +307,14 @@ public sealed class DebuggerUIManager
         mainWindow?.ConfigEditorPage?.GetStackerControlsPanel()?.SetCurrentValue(
             UIElement.VisibilityProperty, _state.FocusStoredStackerControlsVisibility);
 
-        _stopButton?.SetCurrentValue(UIElement.VisibilityProperty, _state.FocusStoredStopButtonVisibility);
-        _stepButton?.SetCurrentValue(UIElement.VisibilityProperty, _state.FocusStoredStepButtonVisibility);
-        _variablesTabItem?.SetCurrentValue(UIElement.VisibilityProperty, _state.FocusStoredVariablesTabVisibility);
-        _htmlTabItem?.SetCurrentValue(UIElement.VisibilityProperty, _state.FocusStoredHtmlTabVisibility);
+        _page.StopButton?.SetCurrentValue(UIElement.VisibilityProperty, _state.FocusStoredStopButtonVisibility);
+        _page.StepButton?.SetCurrentValue(UIElement.VisibilityProperty, _state.FocusStoredStepButtonVisibility);
+        _page.VariablesTabItem?.SetCurrentValue(UIElement.VisibilityProperty, _state.FocusStoredVariablesTabVisibility);
+        _page.HtmlTabItem?.SetCurrentValue(UIElement.VisibilityProperty, _state.FocusStoredHtmlTabVisibility);
 
-        if (_tabToggleButton != null) _tabToggleButton.Visibility = _state.FocusStoredTabToggleVisibility;
-        if (_optionsToggleButton != null) _optionsToggleButton.Visibility = _state.FocusStoredOptionsToggleVisibility;
-        if (_stackerToggleButton != null) _stackerToggleButton.Visibility = _state.FocusStoredStackerToggleVisibility;
+        if (_page.TabToggleButton != null) _page.TabToggleButton.Visibility = _state.FocusStoredTabToggleVisibility;
+        if (_page.OptionsToggleButton != null) _page.OptionsToggleButton.Visibility = _state.FocusStoredOptionsToggleVisibility;
+        if (_page.StackerToggleButton != null) _page.StackerToggleButton.Visibility = _state.FocusStoredStackerToggleVisibility;
 
         UpdateFocusModeButtonAppearance(false);
     }
@@ -377,15 +323,15 @@ public sealed class DebuggerUIManager
     {
         if (isFocusMode)
         {
-            if (_focusModeIcon != null) _focusModeIcon.Kind = PackIconUniconsKind.EyeSlash;
-            if (_focusModeText != null) _focusModeText.Text = "Exit Focus";
-            if (_focusModeButton != null) _focusModeButton.Background = new SolidColorBrush(Color.FromRgb(220, 38, 38));
+            if (_page?.FocusModeIcon != null) _page.FocusModeIcon.Kind = PackIconUniconsKind.EyeSlash;
+            if (_page?.FocusModeText != null) _page.FocusModeText.Text = "Exit Focus";
+            if (_page?.FocusModeButton != null) _page.FocusModeButton.Background = new SolidColorBrush(Color.FromRgb(220, 38, 38));
         }
         else
         {
-            if (_focusModeIcon != null) _focusModeIcon.Kind = PackIconUniconsKind.Crosshair;
-            if (_focusModeText != null) _focusModeText.Text = "Focus Mode";
-            if (_focusModeButton != null) _focusModeButton.Background = new SolidColorBrush(Color.FromRgb(245, 158, 11));
+            if (_page?.FocusModeIcon != null) _page.FocusModeIcon.Kind = PackIconUniconsKind.Crosshair;
+            if (_page?.FocusModeText != null) _page.FocusModeText.Text = "Focus Mode";
+            if (_page?.FocusModeButton != null) _page.FocusModeButton.Background = new SolidColorBrush(Color.FromRgb(245, 158, 11));
         }
     }
     #endregion

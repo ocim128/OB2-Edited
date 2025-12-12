@@ -75,6 +75,11 @@ public class BotLoggerEntry
     public bool IsSuccess => Level == LogLevel.Success;
 
     /// <summary>
+    /// Gets whether this entry represents the start of a block execution.
+    /// </summary>
+    public bool IsBlockStart { get; set; }
+
+    /// <summary>
     /// Gets the message length for statistics.
     /// </summary>
     [JsonIgnore]

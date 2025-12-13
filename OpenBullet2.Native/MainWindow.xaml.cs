@@ -95,9 +95,7 @@ public partial class MainWindow : MetroWindow
         Loaded += OnWindowLoaded;
         SizeChanged += OnWindowSizeChanged;
         StateChanged += OnWindowStateChanged;
-        LocationChanged += OnWindowLocationChanged;
 
-        // Command Bindings for Configs
         // Command Bindings
         _ = CommandBindings.Add(new CommandBinding(CustomCommands.NewConfig, OnNewConfigExecuted, OnCanExecuteConfigCommand));
         _ = CommandBindings.Add(new CommandBinding(CustomCommands.OpenConfig, OnOpenConfigExecuted, OnCanExecuteConfigCommand));
@@ -186,17 +184,13 @@ public partial class MainWindow : MetroWindow
     
     private void OnWindowSizeChanged(object sender, SizeChangedEventArgs e)
     {
-        // UpdateConfigSubmenuPosition(); // Not needed for sidebar
-        // Layout service handles the rest via its own subscription or we can call it here if needed per original logic
-        // The service subscribes to SizeChanged, so we just handle local UI logic
+        // Layout service handles window size changes via its own subscription
     }
     
 
 
     private void OnWindowStateChanged(object sender, EventArgs e)
     {
-        // Suspend/resume debugger updates during minimize/restore to improve performance
-        // WindowState saving handled by WindowLayoutService
         NotifyDebuggerWindowStateChanged(WindowState == WindowState.Minimized);
     }
 
@@ -218,17 +212,11 @@ public partial class MainWindow : MetroWindow
         }
     }
 
-    private void OnWindowLocationChanged(object sender, EventArgs e)
-    {
-        // WindowState saving handled by WindowLayoutService
-    }
 
 
 
-    private void UpdateConfigSubmenuPosition()
-    {
-        // No longer needed for sidebar inline implementation
-    }
+
+
 
     #endregion Responsive Design Methods
 
@@ -253,63 +241,22 @@ public partial class MainWindow : MetroWindow
     {
         var button = GetButtonForPage(page);
         
-        // Handle Sidebar indicator or style change
-        // We need to implement logic if we want visuals beyond the "Active" state if it's not bound directly.
-        // Assuming GetButtonForPage returns the sidebar buttons now.
-        
-        if (button != currentSelectedButton)
+        if (button == currentSelectedButton)
+            return;
+
+        // Revert previous button to normal style
+        if (currentSelectedButton != null)
         {
-            if (currentSelectedButton != null)
-            {
-                currentSelectedButton.Tag = null; // Or reset style?
-                // For sidebar, we might need to remove "SidebarNavButtonActive" style/tag
-                // But the XAML uses Tag for navigation.
-                // Actually the code resets Tag to null? That might break navigation if Tag was "Jobs"!
-                // Wait, previous code:
-                // if (currentSelectedButton != null) currentSelectedButton.Tag = null;
-                // if (button != null) button.Tag = "Selected";
-                // THIS BREAKS NAVIGATION IF TAG WAS USED FOR ROUTING!
-                // Let's check HandleNavigationClick:
-                // if (button?.Tag != null && Enum.TryParse<MainWindowPage>(button.Tag.ToString(), out var targetPage))
-                
-                // CRITICAL ISSUE: The original code overwrote Tag with "Selected".
-                // How did it navigate then?
-                // Ah, HandleNavigationClick uses the sender button.
-                // If I click "Jobs", Tag is "Jobs".
-                // Then OnNavigated -> UpdateMenuHighlight -> button.Tag = "Selected".
-                // Next time I click it, Tag is "Selected". Enum.TryParse("Selected") fails.
-                // Fallback loop: Check pageButtonMap reverse lookup.
-                // "if (GetButtonForPage(page) == button)"
-                // Yes, valid fallback.
-                
-                // BUT, I should probably improve this to not destroy the Tag.
-                // Maybe set a Style or a different property.
-                // OR just leave it as is if it works.
-                // I will update UpdateMenuHighlight to use a better mechanism if possible, 
-                // but strictly speaking, I should just make sure the style reacts to "Selected" if that's what triggers the visual.
-                // In my new XAML, I didn't add a Trigger for Tag="Selected".
-                // I added x:Key="SidebarNavButtonActive".
-                // So I should programmatically apply this resource style.
-            }
+            currentSelectedButton.Style = currentSelectedButton.Name.StartsWith("menuOptionConfig")
+                ? FindResource("SidebarSubmenuButton") as Style
+                : FindResource("SidebarNavButton") as Style;
+        }
 
-            if (currentSelectedButton != null)
-            {
-                // Revert to normal style
-                // If it was a top-level button
-                if (currentSelectedButton.Name.StartsWith("menuOptionConfig")) // Submenu items
-                    currentSelectedButton.Style = FindResource("SidebarSubmenuButton") as Style;
-                else
-                    currentSelectedButton.Style = FindResource("SidebarNavButton") as Style;
-            }
-
-            if (button != null)
-            {
-                // Apply active style
-                // If it is submenu button, maybe we don't have a specific active style yet, 
-                // but let's assume SidebarNavButtonActive works enough (just bg change).
-                button.Style = FindResource("SidebarNavButtonActive") as Style;
-                currentSelectedButton = button;
-            }
+        // Apply active style to new button
+        if (button != null)
+        {
+            button.Style = FindResource("SidebarNavButtonActive") as Style;
+            currentSelectedButton = button;
         }
     }
 

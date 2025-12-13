@@ -94,12 +94,7 @@
         <Setter Property="RenderOptions.ClearTypeHint" Value="Enabled"/>
     </Style>
     
-    <Style x:Key="H1TextStyle" TargetType="TextBlock" BasedOn="{StaticResource BaseTextStyle}">
-        <Setter Property="FontSize" Value="28"/>
-        <Setter Property="FontWeight" Value="SemiBold"/>
-        <Setter Property="Foreground" Value="#F1F5F9"/>
-        <Setter Property="Margin" Value="0,0,0,16"/>
-    </Style>
+
     
     <Style x:Key="H2TextStyle" TargetType="TextBlock" BasedOn="{StaticResource BaseTextStyle}">
         <Setter Property="FontSize" Value="20"/>
@@ -134,25 +129,11 @@
         <Setter Property="Foreground" Value="#CBD5E1"/>
     </Style>
     
-    <Style x:Key="MetricTextStyle" TargetType="TextBlock" BasedOn="{StaticResource BaseTextStyle}">
-        <Setter Property="FontSize" Value="11"/>
-        <Setter Property="FontWeight" Value="SemiBold"/>
-        <Setter Property="Foreground" Value="#A0AEC0"/>
-        <Setter Property="TextAlignment" Value="Center"/>
-    </Style>
+
     
-    <Style x:Key="StatusTextStyle" TargetType="TextBlock" BasedOn="{StaticResource BaseTextStyle}">
-        <Setter Property="FontSize" Value="10"/>
-        <Setter Property="FontWeight" Value="SemiBold"/>
-        <Setter Property="Foreground" Value="#CBD5E1"/>
-        <Setter Property="TextAlignment" Value="Center"/>
-    </Style>
+
     
-    <Style x:Key="SmallCaptionTextStyle" TargetType="TextBlock" BasedOn="{StaticResource BaseTextStyle}">
-        <Setter Property="FontSize" Value="10"/>
-        <Setter Property="FontWeight" Value="Normal"/>
-        <Setter Property="Foreground" Value="#9CA3AF"/>
-    </Style>
+
     
     <!-- CONSISTENT CARD STYLES -->
     <Style x:Key="StandardCardStyle" TargetType="Border">

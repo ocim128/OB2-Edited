@@ -18,8 +18,6 @@
     <iconPacks:PackIconMaterial x:Key="Icon.Pause" Kind="Pause" />
     <iconPacks:PackIconMaterial x:Key="Icon.Stop" Kind="Stop" />
     <iconPacks:PackIconMaterial x:Key="Icon.Close" Kind="Close" />
-    <iconPacks:PackIconMaterial x:Key="Icon.CloseThick" Kind="CloseThick" />
-    <iconPacks:PackIconMaterial x:Key="Icon.CloseOutline" Kind="CloseOutline" />
     <iconPacks:PackIconMaterial x:Key="Icon.Plus" Kind="Plus" />
     <iconPacks:PackIconMaterial x:Key="Icon.Minus" Kind="Minus" />
     <iconPacks:PackIconMaterial x:Key="Icon.Refresh" Kind="Refresh" />
@@ -81,8 +79,6 @@
     <!-- Data & Analytics -->
     <iconPacks:PackIconMaterial x:Key="Icon.Database" Kind="Database" />
     
-    <!-- Development -->
-    <iconPacks:PackIconMaterial x:Key="Icon.Code" Kind="CodeBraces" />
     
     <!-- System Resources -->
     <iconPacks:PackIconMaterial x:Key="Icon.Clock" Kind="ClockOutline" />
@@ -90,32 +86,18 @@
     <!-- User & Social -->
     <iconPacks:PackIconMaterial x:Key="Icon.Account" Kind="AccountOutline" />
     
-    <!-- Media & Content -->
-    <iconPacks:PackIconMaterial x:Key="Icon.GoogleChrome" Kind="GoogleChrome" />
-    
-    <!-- Miscellaneous -->
+    <!-- Miscellaneous - only used ones -->
     <iconPacks:PackIconMaterial x:Key="Icon.Tag" Kind="TagText" />
     <iconPacks:PackIconMaterial x:Key="Icon.TagOutline" Kind="TagOutline" />
-    <iconPacks:PackIconMaterial x:Key="Icon.Puzzle" Kind="Puzzle" />
-    <iconPacks:PackIconMaterial x:Key="Icon.Update" Kind="Update" />
-    <iconPacks:PackIconMaterial x:Key="Icon.SelectAll" Kind="SelectAll" />
-    <iconPacks:PackIconMaterial x:Key="Icon.FastForward" Kind="FastForward" />
     <iconPacks:PackIconMaterial x:Key="Icon.History" Kind="History" />
     
     <!-- ========================================= -->
     <!-- SPECIALIZED ICON PACKS                  -->
     <!-- ========================================= -->
     
-    <!-- Material Design Icons (Alternative Styles) -->
-    <iconPacks:PackIconMaterialDesign x:Key="Icon.Add" Kind="Add" />
-
+    
     <!-- Remix Icons (Filled Variants - only used ones) -->
     <iconPacks:PackIconRemixIcon x:Key="Icon.FolderFill" Kind="Folder2Fill" />
-
-    <!-- FontAwesome (Solid Variants - only used ones) -->
-    <iconPacks:PackIconFontAwesome x:Key="Icon.Forward" Kind="ForwardSolid" />
-    <iconPacks:PackIconFontAwesome x:Key="Icon.Clone" Kind="CloneSolid" />
-    <iconPacks:PackIconFontAwesome x:Key="Icon.LayerGroup" Kind="LayerGroupSolid" />
 
     <!-- ========================================= -->
     <!-- ICON STYLES & TEMPLATES                 -->

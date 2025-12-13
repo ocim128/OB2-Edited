@@ -93,7 +93,6 @@ public partial class MainWindow : MetroWindow
         InitializeComponent();
 
         Loaded += OnWindowLoaded;
-        SizeChanged += OnWindowSizeChanged;
         StateChanged += OnWindowStateChanged;
 
         // Command Bindings
@@ -182,13 +181,6 @@ public partial class MainWindow : MetroWindow
         InitializeSidebarState();
     }
     
-    private void OnWindowSizeChanged(object sender, SizeChangedEventArgs e)
-    {
-        // Layout service handles window size changes via its own subscription
-    }
-    
-
-
     private void OnWindowStateChanged(object sender, EventArgs e)
     {
         NotifyDebuggerWindowStateChanged(WindowState == WindowState.Minimized);

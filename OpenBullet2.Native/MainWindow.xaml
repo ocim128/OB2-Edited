@@ -31,7 +31,6 @@
         TextOptions.TextFormattingMode="Display"
         TextOptions.TextRenderingMode="ClearType"
         RenderOptions.BitmapScalingMode="HighQuality"
-        SizeChanged="OnWindowSizeChanged"
         Loaded="OnWindowLoaded">
 
 

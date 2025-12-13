@@ -349,9 +349,9 @@
         <Setter Property="BorderBrush" Value="Transparent" />
         <Setter Property="BorderThickness" Value="0" />
         <Setter Property="HorizontalAlignment" Value="Stretch" />
-        <Setter Property="HorizontalContentAlignment" Value="Left" />
-        <Setter Property="Padding" Value="16,10" />
-        <Setter Property="Margin" Value="8,2" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="Padding" Value="12,10" />
+        <Setter Property="Margin" Value="4,2" />
         <Setter Property="MinHeight" Value="40" />
         <Setter Property="FontWeight" Value="Medium" />
         <Setter Property="FontSize" Value="14" />
@@ -486,7 +486,15 @@
         <Setter Property="Margin" Value="8,1" />
     </Style>
 
-
+    <!-- Sidebar Toggle Button Style (Hamburger Menu) -->
+    <Style x:Key="SidebarToggleButton" TargetType="{x:Type Button}" BasedOn="{StaticResource SidebarNavButton}">
+        <Setter Property="Width" Value="44" />
+        <Setter Property="Height" Value="44" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Margin" Value="0" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
 
     <!-- REMOVED: Unused ModernListBox and ModernDataGrid styles for better load performance -->
     

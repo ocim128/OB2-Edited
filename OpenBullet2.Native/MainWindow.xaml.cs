@@ -34,6 +34,7 @@ public partial class MainWindow : MetroWindow
     private bool hoveringConfigsMenuOption;
     private bool hoveringConfigSubmenu;
     private Button currentSelectedButton; // Track current selected button for optimization
+    private bool isSidebarCollapsed = true; // Track sidebar collapsed state - starts collapsed
 
     private readonly Button[] labels;
     private readonly Button[] navigationButtons; // Modern navigation buttons array
@@ -103,6 +104,7 @@ public partial class MainWindow : MetroWindow
         _ = CommandBindings.Add(new CommandBinding(CustomCommands.SaveConfig, OnSaveConfigExecuted, OnCanExecuteConfigCommand));
         _ = CommandBindings.Add(new CommandBinding(CustomCommands.Refresh, OnRefreshExecuted, OnCanExecuteRefreshCommand));
         _ = CommandBindings.Add(new CommandBinding(CustomCommands.Quit, OnQuitExecuted));
+        _ = CommandBindings.Add(new CommandBinding(CustomCommands.ToggleSidebar, (s, e) => ToggleSidebar()));
 
         // Navigation Commands
         BindNavigationCommand(CustomCommands.NavigateToHome, MainWindowPage.Home);
@@ -177,6 +179,9 @@ public partial class MainWindow : MetroWindow
         
         // Initialize button map dynamically
         InitializePageButtonMap();
+        
+        // Initialize sidebar in collapsed state
+        InitializeSidebarState();
     }
     
     private void OnWindowSizeChanged(object sender, SizeChangedEventArgs e)
@@ -573,6 +578,140 @@ public partial class MainWindow : MetroWindow
     }
 
     private void CloseWindow(object sender, RoutedEventArgs e) => Close();
+
+    #region Sidebar Toggle Logic
+    private void ToggleSidebar_Click(object sender, RoutedEventArgs e)
+    {
+        ToggleSidebar();
+    }
+
+    private void ToggleSidebar()
+    {
+        isSidebarCollapsed = !isSidebarCollapsed;
+        
+        var targetWidth = isSidebarCollapsed ? 60.0 : 220.0;
+        var currentWidth = SidebarColumn.Width.Value;
+        var duration = TimeSpan.FromMilliseconds(200);
+        var easing = new System.Windows.Media.Animation.QuadraticEase { EasingMode = System.Windows.Media.Animation.EasingMode.EaseInOut };
+        
+        // Animate toggle icon rotation
+        var rotationAnimation = new System.Windows.Media.Animation.DoubleAnimation
+        {
+            From = isSidebarCollapsed ? 0 : 180,
+            To = isSidebarCollapsed ? 180 : 0,
+            Duration = duration,
+            EasingFunction = easing
+        };
+        ToggleIconRotation.BeginAnimation(System.Windows.Media.RotateTransform.AngleProperty, rotationAnimation);
+        
+        // Animate the column width using a timer-based approach
+        AnimateSidebarWidth(currentWidth, targetWidth, duration);
+        
+        // Toggle visibility of text elements
+        var textVisibility = isSidebarCollapsed ? Visibility.Collapsed : Visibility.Visible;
+        
+        // Hide/show text labels
+        SetSidebarTextVisibility(textVisibility);
+        
+        // Update section headers
+        SectionMain.Visibility = textVisibility;
+        SectionResources.Visibility = textVisibility;
+        SectionSystem.Visibility = textVisibility;
+        
+        // Update header
+        SidebarHeader.Visibility = textVisibility;
+        VersionText.Visibility = textVisibility;
+        BottomSeparator.Visibility = textVisibility;
+        
+        // Hide submenu when collapsed
+        if (isSidebarCollapsed)
+        {
+            configSubmenu.Visibility = Visibility.Collapsed;
+            ConfigsChevron.Visibility = Visibility.Collapsed;
+        }
+        else
+        {
+            ConfigsChevron.Visibility = Visibility.Visible;
+        }
+    }
+    
+    private void AnimateSidebarWidth(double from, double to, TimeSpan duration)
+    {
+        var startTime = DateTime.Now;
+        var timer = new System.Windows.Threading.DispatcherTimer
+        {
+            Interval = TimeSpan.FromMilliseconds(16) // ~60fps
+        };
+        
+        timer.Tick += (s, e) =>
+        {
+            var elapsed = (DateTime.Now - startTime).TotalMilliseconds;
+            var progress = Math.Min(elapsed / duration.TotalMilliseconds, 1.0);
+            
+            // Apply easing (quadratic ease-in-out)
+            var easedProgress = progress < 0.5 
+                ? 2 * progress * progress 
+                : 1 - Math.Pow(-2 * progress + 2, 2) / 2;
+            
+            var currentWidth = from + (to - from) * easedProgress;
+            SidebarColumn.Width = new GridLength(currentWidth);
+            
+            if (progress >= 1.0)
+            {
+                timer.Stop();
+                SidebarColumn.Width = new GridLength(to);
+            }
+        };
+        
+        timer.Start();
+    }
+    
+    private void SetSidebarTextVisibility(Visibility visibility)
+    {
+        // Main navigation items
+        menuOptionHomeText.Visibility = visibility;
+        menuOptionJobsText.Visibility = visibility;
+        menuOptionHitsText.Visibility = visibility;
+        menuOptionConfigsText.Visibility = visibility;
+        menuOptionWordlistsText.Visibility = visibility;
+        menuOptionProxiesText.Visibility = visibility;
+        menuOptionToolsText.Visibility = visibility;
+        menuOptionPluginsText.Visibility = visibility;
+        menuOptionSettingsText.Visibility = visibility;
+        menuOptionRLSettingsText.Visibility = visibility;
+        menuOptionCheckUpdateText.Visibility = visibility;
+        menuOptionAboutText.Visibility = visibility;
+    }
+    
+    private void InitializeSidebarState()
+    {
+        // Set initial state for collapsed sidebar
+        if (isSidebarCollapsed)
+        {
+            var textVisibility = Visibility.Collapsed;
+            
+            // Hide text labels
+            SetSidebarTextVisibility(textVisibility);
+            
+            // Update section headers
+            SectionMain.Visibility = textVisibility;
+            SectionResources.Visibility = textVisibility;
+            SectionSystem.Visibility = textVisibility;
+            
+            // Update header
+            SidebarHeader.Visibility = textVisibility;
+            VersionText.Visibility = textVisibility;
+            BottomSeparator.Visibility = textVisibility;
+            
+            // Hide submenu elements
+            configSubmenu.Visibility = Visibility.Collapsed;
+            ConfigsChevron.Visibility = Visibility.Collapsed;
+            
+            // Set toggle icon rotation to indicate collapsed state
+            ToggleIconRotation.Angle = 180;
+        }
+    }
+    #endregion Sidebar Toggle Logic
 
     #region Dropdown submenu logic
     private void ConfigSubmenuMouseEnter(object sender, MouseEventArgs e)

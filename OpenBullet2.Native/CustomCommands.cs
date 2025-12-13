@@ -168,5 +168,16 @@ namespace OpenBullet2.Native
                     new KeyGesture(Key.D0, ModifierKeys.Control)
                 }
             );
+
+        public static readonly RoutedUICommand ToggleSidebar = new RoutedUICommand
+            (
+                "Toggle Sidebar",
+                "ToggleSidebar",
+                typeof(CustomCommands),
+                new InputGestureCollection()
+                {
+                    new KeyGesture(Key.B, ModifierKeys.Control)
+                }
+            );
     }
-} 
+}

@@ -8,7 +8,7 @@
         xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
         xmlns:converters="clr-namespace:OpenBullet2.Native.Converters"
         mc:Ignorable="d"
-        Title="OpenBullet 2 - 0.3.3.8 [Akunlama MOD]" 
+        Title="OpenBullet 2 - 0.3.3.9 [Akunlama MOD]" 
         MinWidth="800" MinHeight="600"
         Background="{StaticResource Modern.BackgroundMain}"
         BorderThickness="0"
@@ -86,13 +86,10 @@
         <KeyBinding Command="{x:Static local:CustomCommands.SaveConfig}" Gesture="CTRL+S" />
         <KeyBinding Command="{x:Static local:CustomCommands.Refresh}" Gesture="CTRL+R" />
         <KeyBinding Command="{x:Static local:CustomCommands.Quit}" Gesture="CTRL+Q" />
+        <KeyBinding Command="{x:Static local:CustomCommands.ToggleSidebar}" Gesture="CTRL+B" />
         <KeyBinding Command="{x:Static local:CustomCommands.NavigateToHome}" Gesture="CTRL+D1" />
         <KeyBinding Command="{x:Static local:CustomCommands.NavigateToJobs}" Gesture="CTRL+D2" />
         <KeyBinding Command="{x:Static local:CustomCommands.NavigateToTools}" Gesture="CTRL+D3" />
-        <KeyBinding Command="{x:Static local:CustomCommands.NavigateToProxies}" Gesture="CTRL+D4" />
-        <KeyBinding Command="{x:Static local:CustomCommands.NavigateToWordlists}" Gesture="CTRL+D5" />
-        <KeyBinding Command="{x:Static local:CustomCommands.NavigateToConfigs}" Gesture="CTRL+D6" />
-        <KeyBinding Command="{x:Static local:CustomCommands.NavigateToHits}" Gesture="CTRL+D7" />
         <KeyBinding Command="{x:Static local:CustomCommands.NavigateToProxies}" Gesture="CTRL+D4" />
         <KeyBinding Command="{x:Static local:CustomCommands.NavigateToWordlists}" Gesture="CTRL+D5" />
         <KeyBinding Command="{x:Static local:CustomCommands.NavigateToConfigs}" Gesture="CTRL+D6" />
@@ -105,146 +102,239 @@
     <!-- Main Layout Grid -->
     <Grid x:Name="Root">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="220" />
+            <!-- Sidebar column - starts collapsed (60px), expands to 220px -->
+            <ColumnDefinition x:Name="SidebarColumn" Width="60" MinWidth="60" />
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
 
-        <!-- Sidebar Navigation -->
-        <Border Grid.Column="0" Style="{StaticResource ModernSidebar}">
+        <!-- Sidebar Navigation with Collapsible Design -->
+        <Border x:Name="SidebarBorder" Grid.Column="0" Style="{StaticResource ModernSidebar}">
             <Grid>
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" /> <!-- Logo/Title Area (Optional) -->
+                    <RowDefinition Height="Auto" /> <!-- Toggle Button & Logo Area -->
                     <RowDefinition Height="*" />    <!-- Navigation Items -->
                     <RowDefinition Height="Auto" /> <!-- Bottom Actions -->
                 </Grid.RowDefinitions>
+
+                <!-- Header with Toggle Button -->
+                <Grid Grid.Row="0" Margin="8,12,8,8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <!-- Hamburger/Toggle Button -->
+                    <Button x:Name="SidebarToggleButton" 
+                            Style="{StaticResource SidebarNavButton}" 
+                            Click="ToggleSidebar_Click"
+                            ToolTip="Toggle Sidebar (Ctrl+B)"
+                            Width="44" Height="44"
+                            Padding="0"
+                            Margin="0">
+                        <iconPacks:PackIconMaterial x:Name="ToggleIcon" Kind="Menu" Width="20" Height="20" 
+                                                    Foreground="{StaticResource Modern.ForegroundSecondary}"
+                                                    VerticalAlignment="Center" HorizontalAlignment="Center">
+                            <iconPacks:PackIconMaterial.RenderTransform>
+                                <RotateTransform x:Name="ToggleIconRotation" Angle="0" CenterX="10" CenterY="10"/>
+                            </iconPacks:PackIconMaterial.RenderTransform>
+                        </iconPacks:PackIconMaterial>
+                    </Button>
+                    
+                    <!-- App Logo/Name (Hidden when collapsed) -->
+                    <StackPanel x:Name="SidebarHeader" Grid.Column="1" Orientation="Horizontal" 
+                                VerticalAlignment="Center" Margin="8,0,0,0">
+                        <Image Source="/Images/logohq_square_padded.png" Width="28" Height="28" 
+                               RenderOptions.BitmapScalingMode="HighQuality"/>
+                        <TextBlock x:Name="AppTitle" Text="OpenBullet 2" 
+                                   Style="{StaticResource SidebarText}"
+                                   FontSize="15" FontWeight="SemiBold"
+                                   Foreground="{StaticResource Modern.ForegroundMain}"
+                                   Margin="10,0,0,0" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Separator -->
+                <Border Grid.Row="0" Height="1" Background="{StaticResource Modern.BorderSecondary}" 
+                        VerticalAlignment="Bottom" Margin="16,0,16,0" Opacity="0.5"/>
 
                 <!-- Navigation Items -->
                 <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                     <StackPanel x:Name="topMenu" Margin="0,12,0,12">
                         
-                        <TextBlock Text="MAIN" Style="{StaticResource SidebarText}" 
-                                  FontSize="11" FontWeight="Bold" Foreground="{StaticResource Modern.ForegroundMuted}" 
-                                  Margin="24,12,0,8" Opacity="0.7"/>
+                        <!-- Section Header - MAIN -->
+                        <TextBlock x:Name="SectionMain" Text="MAIN" Style="{StaticResource SidebarText}" 
+                                   FontSize="11" FontWeight="Bold" Foreground="{StaticResource Modern.ForegroundMuted}" 
+                                   Margin="24,12,0,8" Opacity="0.7"/>
 
                         <!-- Home -->
-                        <Button x:Name="menuOptionHome" Style="{StaticResource SidebarNavButton}" Click="HandleNavigationClick" Tag="Home">
+                        <Button x:Name="menuOptionHome" Style="{StaticResource SidebarNavButton}" Click="HandleNavigationClick" Tag="Home"
+                                ToolTip="Home">
                             <StackPanel Orientation="Horizontal">
                                 <iconPacks:PackIconMaterial Kind="Home" Style="{StaticResource SidebarIcon}"/>
-                                <TextBlock Text="Home" Style="{StaticResource SidebarText}"/>
+                                <TextBlock x:Name="menuOptionHomeText" Text="Home" Style="{StaticResource SidebarText}"/>
                             </StackPanel>
                         </Button>
 
                         <!-- Jobs -->
-                        <Button x:Name="menuOptionJobs" Style="{StaticResource SidebarNavButton}" Click="HandleNavigationClick" Tag="Jobs">
+                        <Button x:Name="menuOptionJobs" Style="{StaticResource SidebarNavButton}" Click="HandleNavigationClick" Tag="Jobs"
+                                ToolTip="Jobs">
                             <StackPanel Orientation="Horizontal">
                                 <iconPacks:PackIconMaterial Kind="PlayBox" Style="{StaticResource SidebarIcon}"/>
-                                <TextBlock Text="Jobs" Style="{StaticResource SidebarText}"/>
+                                <TextBlock x:Name="menuOptionJobsText" Text="Jobs" Style="{StaticResource SidebarText}"/>
                             </StackPanel>
                         </Button>
 
                         <!-- Hits -->
-                        <Button x:Name="menuOptionHits" Style="{StaticResource SidebarNavButton}" Click="HandleNavigationClick" Tag="Hits">
+                        <Button x:Name="menuOptionHits" Style="{StaticResource SidebarNavButton}" Click="HandleNavigationClick" Tag="Hits"
+                                ToolTip="Hits">
                             <StackPanel Orientation="Horizontal">
                                 <iconPacks:PackIconMaterial Kind="Target" Style="{StaticResource SidebarIcon}"/>
-                                <TextBlock Text="Hits" Style="{StaticResource SidebarText}"/>
+                                <TextBlock x:Name="menuOptionHitsText" Text="Hits" Style="{StaticResource SidebarText}"/>
                             </StackPanel>
                         </Button>
 
-                        <TextBlock Text="RESOURCES" Style="{StaticResource SidebarText}" 
-                                  FontSize="11" FontWeight="Bold" Foreground="{StaticResource Modern.ForegroundMuted}" 
-                                  Margin="24,16,0,8" Opacity="0.7"/>
+                        <!-- Section Header - RESOURCES -->
+                        <TextBlock x:Name="SectionResources" Text="RESOURCES" Style="{StaticResource SidebarText}" 
+                                   FontSize="11" FontWeight="Bold" Foreground="{StaticResource Modern.ForegroundMuted}" 
+                                   Margin="24,16,0,8" Opacity="0.7"/>
 
                         <!-- Configs (Accordion Parent) -->
                         <Button x:Name="menuOptionConfigs" Style="{StaticResource SidebarNavButton}" Click="HandleNavigationClick" Tag="Configs" 
-                                MouseEnter="ConfigsMenuOptionMouseEnter" MouseLeave="ConfigsMenuOptionMouseLeave">
+                                MouseEnter="ConfigsMenuOptionMouseEnter" MouseLeave="ConfigsMenuOptionMouseLeave"
+                                ToolTip="Configs">
                             <Grid HorizontalAlignment="Stretch">
                                 <StackPanel Orientation="Horizontal">
                                     <iconPacks:PackIconMaterial Kind="CodeJson" Style="{StaticResource SidebarIcon}"/>
-                                    <TextBlock Text="Configs" Style="{StaticResource SidebarText}"/>
+                                    <TextBlock x:Name="menuOptionConfigsText" Text="Configs" Style="{StaticResource SidebarText}"/>
                                 </StackPanel>
-                                <iconPacks:PackIconMaterial Kind="ChevronDown" Width="10" Height="10" VerticalAlignment="Center" HorizontalAlignment="Right"
-                                                          Foreground="{StaticResource Modern.ForegroundMuted}"/>
+                                <iconPacks:PackIconMaterial x:Name="ConfigsChevron" Kind="ChevronDown" Width="10" Height="10" 
+                                                            VerticalAlignment="Center" HorizontalAlignment="Right"
+                                                            Foreground="{StaticResource Modern.ForegroundMuted}">
+                                    <iconPacks:PackIconMaterial.RenderTransform>
+                                        <RotateTransform x:Name="ConfigsChevronRotation" Angle="0" CenterX="5" CenterY="5"/>
+                                    </iconPacks:PackIconMaterial.RenderTransform>
+                                </iconPacks:PackIconMaterial>
                             </Grid>
                         </Button>
 
-                        <!-- Configs Submenu (Inline) -->
+                        <!-- Configs Submenu (Inline with slide animation) -->
                         <StackPanel x:Name="configSubmenu" Visibility="Collapsed" 
                                     MouseEnter="ConfigSubmenuMouseEnter" MouseLeave="ConfigSubmenuMouseLeave">
+                            <StackPanel.LayoutTransform>
+                                <ScaleTransform x:Name="ConfigSubmenuScale" ScaleY="1"/>
+                            </StackPanel.LayoutTransform>
                             
-                            <Button x:Name="menuOptionMetadata" Style="{StaticResource SidebarSubmenuButton}" Click="HandleNavigationClick" Tag="ConfigMetadata">
-                                <TextBlock Text="Metadata" Style="{StaticResource SidebarText}"/>
+                            <Button x:Name="menuOptionMetadata" Style="{StaticResource SidebarSubmenuButton}" Click="HandleNavigationClick" Tag="ConfigMetadata"
+                                    ToolTip="Metadata">
+                                <StackPanel Orientation="Horizontal">
+                                    <iconPacks:PackIconMaterial Kind="TagText" Width="14" Height="14" Margin="0,0,8,0"
+                                                                 Foreground="{StaticResource Modern.ForegroundMuted}" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Metadata" Style="{StaticResource SidebarText}"/>
+                                </StackPanel>
                             </Button>
                             
-                            <Button x:Name="menuOptionReadme" Style="{StaticResource SidebarSubmenuButton}" Click="HandleNavigationClick" Tag="ConfigReadme">
-                                <TextBlock Text="Readme" Style="{StaticResource SidebarText}"/>
+                            <Button x:Name="menuOptionReadme" Style="{StaticResource SidebarSubmenuButton}" Click="HandleNavigationClick" Tag="ConfigReadme"
+                                    ToolTip="Readme">
+                                <StackPanel Orientation="Horizontal">
+                                    <iconPacks:PackIconMaterial Kind="FileDocument" Width="14" Height="14" Margin="0,0,8,0"
+                                                                 Foreground="{StaticResource Modern.ForegroundMuted}" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Readme" Style="{StaticResource SidebarText}"/>
+                                </StackPanel>
                             </Button>
                             
-                            <Button x:Name="menuOptionStacker" Style="{StaticResource SidebarSubmenuButton}" Click="HandleNavigationClick" Tag="ConfigStacker">
-                                <TextBlock Text="Stacker" Style="{StaticResource SidebarText}"/>
+                            <Button x:Name="menuOptionStacker" Style="{StaticResource SidebarSubmenuButton}" Click="HandleNavigationClick" Tag="ConfigStacker"
+                                    ToolTip="Stacker">
+                                <StackPanel Orientation="Horizontal">
+                                    <iconPacks:PackIconMaterial Kind="LayersTriple" Width="14" Height="14" Margin="0,0,8,0"
+                                                                 Foreground="{StaticResource Modern.ForegroundMuted}" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Stacker" Style="{StaticResource SidebarText}"/>
+                                </StackPanel>
                             </Button>
                             
-                            <Button x:Name="menuOptionLoliCode" Style="{StaticResource SidebarSubmenuButton}" Click="HandleNavigationClick" Tag="ConfigLoliCode">
-                                <TextBlock Text="LoliCode" Style="{StaticResource SidebarText}"/>
+                            <Button x:Name="menuOptionLoliCode" Style="{StaticResource SidebarSubmenuButton}" Click="HandleNavigationClick" Tag="ConfigLoliCode"
+                                    ToolTip="LoliCode">
+                                <StackPanel Orientation="Horizontal">
+                                    <iconPacks:PackIconMaterial Kind="CodeBraces" Width="14" Height="14" Margin="0,0,8,0"
+                                                                 Foreground="{StaticResource Modern.ForegroundMuted}" VerticalAlignment="Center"/>
+                                    <TextBlock Text="LoliCode" Style="{StaticResource SidebarText}"/>
+                                </StackPanel>
                             </Button>
 
-                            <Button x:Name="menuOptionCSharpCode" Style="{StaticResource SidebarSubmenuButton}" Click="HandleNavigationClick" Tag="ConfigCSharpCode">
-                                <TextBlock Text="C# Code" Style="{StaticResource SidebarText}"/>
+                            <Button x:Name="menuOptionCSharpCode" Style="{StaticResource SidebarSubmenuButton}" Click="HandleNavigationClick" Tag="ConfigCSharpCode"
+                                    ToolTip="C# Code">
+                                <StackPanel Orientation="Horizontal">
+                                    <iconPacks:PackIconMaterial Kind="LanguageCsharp" Width="14" Height="14" Margin="0,0,8,0"
+                                                                 Foreground="{StaticResource Modern.ForegroundMuted}" VerticalAlignment="Center"/>
+                                    <TextBlock Text="C# Code" Style="{StaticResource SidebarText}"/>
+                                </StackPanel>
                             </Button>
                             
-                            <Button x:Name="menuOptionConfigSettings" Style="{StaticResource SidebarSubmenuButton}" Click="HandleNavigationClick" Tag="ConfigSettings">
-                                <TextBlock Text="Settings" Style="{StaticResource SidebarText}"/>
+                            <Button x:Name="menuOptionConfigSettings" Style="{StaticResource SidebarSubmenuButton}" Click="HandleNavigationClick" Tag="ConfigSettings"
+                                    ToolTip="Config Settings">
+                                <StackPanel Orientation="Horizontal">
+                                    <iconPacks:PackIconMaterial Kind="CogOutline" Width="14" Height="14" Margin="0,0,8,0"
+                                                                 Foreground="{StaticResource Modern.ForegroundMuted}" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Settings" Style="{StaticResource SidebarText}"/>
+                                </StackPanel>
                             </Button>
                         </StackPanel>
 
                         <!-- Wordlists -->
-                        <Button x:Name="menuOptionWordlists" Style="{StaticResource SidebarNavButton}" Click="HandleNavigationClick" Tag="Wordlists">
+                        <Button x:Name="menuOptionWordlists" Style="{StaticResource SidebarNavButton}" Click="HandleNavigationClick" Tag="Wordlists"
+                                ToolTip="Wordlists">
                             <StackPanel Orientation="Horizontal">
                                 <iconPacks:PackIconMaterial Kind="FileDocument" Style="{StaticResource SidebarIcon}"/>
-                                <TextBlock Text="Wordlists" Style="{StaticResource SidebarText}"/>
+                                <TextBlock x:Name="menuOptionWordlistsText" Text="Wordlists" Style="{StaticResource SidebarText}"/>
                             </StackPanel>
                         </Button>
 
                         <!-- Proxies -->
-                        <Button x:Name="menuOptionProxies" Style="{StaticResource SidebarNavButton}" Click="HandleNavigationClick" Tag="Proxies">
+                        <Button x:Name="menuOptionProxies" Style="{StaticResource SidebarNavButton}" Click="HandleNavigationClick" Tag="Proxies"
+                                ToolTip="Proxies">
                             <StackPanel Orientation="Horizontal">
                                 <iconPacks:PackIconMaterial Kind="ServerNetwork" Style="{StaticResource SidebarIcon}"/>
-                                <TextBlock Text="Proxies" Style="{StaticResource SidebarText}"/>
+                                <TextBlock x:Name="menuOptionProxiesText" Text="Proxies" Style="{StaticResource SidebarText}"/>
                             </StackPanel>
                         </Button>
 
-                        <TextBlock Text="SYSTEM" Style="{StaticResource SidebarText}" 
-                                  FontSize="11" FontWeight="Bold" Foreground="{StaticResource Modern.ForegroundMuted}" 
-                                  Margin="24,16,0,8" Opacity="0.7"/>
+                        <!-- Section Header - SYSTEM -->
+                        <TextBlock x:Name="SectionSystem" Text="SYSTEM" Style="{StaticResource SidebarText}" 
+                                   FontSize="11" FontWeight="Bold" Foreground="{StaticResource Modern.ForegroundMuted}" 
+                                   Margin="24,16,0,8" Opacity="0.7"/>
 
                         <!-- Tools -->
-                        <Button x:Name="menuOptionTools" Style="{StaticResource SidebarNavButton}" Click="HandleNavigationClick" Tag="Tools">
+                        <Button x:Name="menuOptionTools" Style="{StaticResource SidebarNavButton}" Click="HandleNavigationClick" Tag="Tools"
+                                ToolTip="Tools">
                             <StackPanel Orientation="Horizontal">
                                 <iconPacks:PackIconMaterial Kind="Toolbox" Style="{StaticResource SidebarIcon}"/>
-                                <TextBlock Text="Tools" Style="{StaticResource SidebarText}"/>
+                                <TextBlock x:Name="menuOptionToolsText" Text="Tools" Style="{StaticResource SidebarText}"/>
                             </StackPanel>
                         </Button>
 
                         <!-- Plugins -->
-                        <Button x:Name="menuOptionPlugins" Style="{StaticResource SidebarNavButton}" Click="HandleNavigationClick" Tag="Plugins">
+                        <Button x:Name="menuOptionPlugins" Style="{StaticResource SidebarNavButton}" Click="HandleNavigationClick" Tag="Plugins"
+                                ToolTip="Plugins">
                             <StackPanel Orientation="Horizontal">
                                 <iconPacks:PackIconMaterial Kind="Puzzle" Style="{StaticResource SidebarIcon}"/>
-                                <TextBlock Text="Plugins" Style="{StaticResource SidebarText}"/>
+                                <TextBlock x:Name="menuOptionPluginsText" Text="Plugins" Style="{StaticResource SidebarText}"/>
                             </StackPanel>
                         </Button>
 
                         <!-- Settings -->
-                        <Button x:Name="menuOptionSettings" Style="{StaticResource SidebarNavButton}" Click="HandleNavigationClick" Tag="OBSettings">
+                        <Button x:Name="menuOptionSettings" Style="{StaticResource SidebarNavButton}" Click="HandleNavigationClick" Tag="OBSettings"
+                                ToolTip="Settings">
                             <StackPanel Orientation="Horizontal">
                                 <iconPacks:PackIconMaterial Kind="Cog" Style="{StaticResource SidebarIcon}"/>
-                                <TextBlock Text="Settings" Style="{StaticResource SidebarText}"/>
+                                <TextBlock x:Name="menuOptionSettingsText" Text="Settings" Style="{StaticResource SidebarText}"/>
                             </StackPanel>
                         </Button>
 
                         <!-- RL Settings -->
-                        <Button x:Name="menuOptionRLSettings" Style="{StaticResource SidebarNavButton}" Click="HandleNavigationClick" Tag="RLSettings">
+                        <Button x:Name="menuOptionRLSettings" Style="{StaticResource SidebarNavButton}" Click="HandleNavigationClick" Tag="RLSettings"
+                                ToolTip="RuriLib Settings">
                             <StackPanel Orientation="Horizontal">
                                 <iconPacks:PackIconMaterial Kind="Wrench" Style="{StaticResource SidebarIcon}"/>
-                                <TextBlock Text="RL Settings" Style="{StaticResource SidebarText}"/>
+                                <TextBlock x:Name="menuOptionRLSettingsText" Text="RL Settings" Style="{StaticResource SidebarText}"/>
                             </StackPanel>
                         </Button>
 
@@ -252,25 +342,29 @@
                 </ScrollViewer>
 
                 <!-- Bottom Actions -->
-                <StackPanel Grid.Row="2" Margin="12,12">
+                <StackPanel Grid.Row="2" Margin="2,0,2,4">
+                    <!-- Separator -->
+                    <Border x:Name="BottomSeparator" Height="1" Background="{StaticResource Modern.BorderSecondary}" 
+                            Margin="4,0,4,4" Opacity="0.5"/>
+                    
                     <Button x:Name="menuOptionCheckUpdate" Style="{StaticResource SidebarNavButton}" Click="HandleNavigationClick" Tag="CheckUpdate" 
-                            ToolTip="Check for Updates" Padding="12,8">
+                            ToolTip="Check for Updates" Padding="8,6" Margin="2,1" MinHeight="36">
                         <StackPanel Orientation="Horizontal">
-                            <iconPacks:PackIconMaterial Kind="Update" Style="{StaticResource SidebarIcon}" Width="16" Height="16"/>
-                            <TextBlock Text="Update" Style="{StaticResource SidebarText}" FontSize="13"/>
+                            <iconPacks:PackIconMaterial Kind="Update" Style="{StaticResource SidebarIcon}" Width="18" Height="18" Margin="0,0,10,0"/>
+                            <TextBlock x:Name="menuOptionCheckUpdateText" Text="Update" Style="{StaticResource SidebarText}" FontSize="13"/>
                         </StackPanel>
                     </Button>
                     
                     <Button x:Name="menuOptionAbout" Style="{StaticResource SidebarNavButton}" Click="HandleNavigationClick" Tag="About"
-                            ToolTip="About" Padding="12,8">
+                            ToolTip="About" Padding="8,6" Margin="2,1" MinHeight="36">
                         <StackPanel Orientation="Horizontal">
-                            <iconPacks:PackIconMaterial Kind="Information" Style="{StaticResource SidebarIcon}" Width="16" Height="16"/>
-                            <TextBlock Text="About" Style="{StaticResource SidebarText}" FontSize="13"/>
+                            <iconPacks:PackIconMaterial Kind="Information" Style="{StaticResource SidebarIcon}" Width="18" Height="18" Margin="0,0,10,0"/>
+                            <TextBlock x:Name="menuOptionAboutText" Text="About" Style="{StaticResource SidebarText}" FontSize="13"/>
                         </StackPanel>
                     </Button>
                     
-                    <TextBlock Text="v0.3.3.9" Foreground="{StaticResource Modern.ForegroundMuted}" 
-                              FontSize="11" HorizontalAlignment="Center" Margin="0,8,0,0" Opacity="0.5"/>
+                    <TextBlock x:Name="VersionText" Text="v0.3.3.9" Foreground="{StaticResource Modern.ForegroundMuted}" 
+                               FontSize="11" HorizontalAlignment="Center" Margin="0,4,0,0" Opacity="0.5"/>
                 </StackPanel>
             </Grid>
         </Border>

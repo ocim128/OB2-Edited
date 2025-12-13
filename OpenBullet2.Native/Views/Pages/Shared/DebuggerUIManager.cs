@@ -250,8 +250,23 @@ public sealed class DebuggerUIManager
         _state.FocusStoredStackerToggleVisibility = _page.StackerToggleButton?.Visibility ?? Visibility.Visible;
 
         var mainWindow = _getMainWindow();
-        if (mainWindow?.topMenu != null)
+        
+        // Hide entire sidebar in focus mode
+        if (mainWindow?.SidebarBorder != null)
         {
+            _state.FocusStoredTopMenuVisibility = mainWindow.SidebarBorder.Visibility;
+            mainWindow.SidebarBorder.SetCurrentValue(UIElement.VisibilityProperty, Visibility.Collapsed);
+            
+            // Also collapse sidebar column width to give more space
+            if (mainWindow.SidebarColumn != null)
+            {
+                mainWindow.SidebarColumn.MinWidth = 0;
+                mainWindow.SidebarColumn.Width = new System.Windows.GridLength(0);
+            }
+        }
+        else if (mainWindow?.topMenu != null)
+        {
+            // Fallback to old behavior if SidebarBorder not found
             _state.FocusStoredTopMenuVisibility = mainWindow.topMenu.Visibility;
             mainWindow.topMenu.SetCurrentValue(UIElement.VisibilityProperty, Visibility.Collapsed);
         }
@@ -299,7 +314,20 @@ public sealed class DebuggerUIManager
         ApplyStackerVisibility(_state.FocusStoredStackerVisible);
 
         var mainWindow = _getMainWindow();
-        if (mainWindow?.topMenu != null)
+        
+        // Restore sidebar visibility
+        if (mainWindow?.SidebarBorder != null)
+        {
+            mainWindow.SidebarBorder.SetCurrentValue(UIElement.VisibilityProperty, _state.FocusStoredTopMenuVisibility);
+            
+            // Restore sidebar column width (to collapsed state - 60px)
+            if (mainWindow.SidebarColumn != null)
+            {
+                mainWindow.SidebarColumn.MinWidth = 60;
+                mainWindow.SidebarColumn.Width = new System.Windows.GridLength(60);
+            }
+        }
+        else if (mainWindow?.topMenu != null)
         {
             mainWindow.topMenu.SetCurrentValue(UIElement.VisibilityProperty, _state.FocusStoredTopMenuVisibility);
         }

@@ -1,5 +1,6 @@
 using Microsoft.CodeAnalysis.CSharp.Scripting;
 using Microsoft.CodeAnalysis.Scripting;
+using Microsoft.CodeAnalysis;
 using RuriLib.Models.Bots;
 using RuriLib.Models.Configs.Settings;
 using RuriLib.Services;
@@ -17,45 +18,15 @@ namespace RuriLib.Helpers.CSharp
     /// </summary>
     public class ScriptBuilder
     {
-        private readonly StringWriter preScript = new();
-        private readonly StringWriter postScript = new();
+        private static readonly Assembly _ruriLibAssembly = Assembly.GetAssembly(typeof(ScriptBuilder));
+        private static readonly HashSet<string> _ruriLibReferenceNames = new(_ruriLibAssembly.GetReferencedAssemblies().Select(a => a.FullName));
+        
+        // Cache the standard usings to avoid recreating the list on every build
+        private static readonly List<string> _standardUsings;
 
-        /// <summary>
-        /// Builds an executable C# <see cref="Script"/> from a <paramref name="cSharpScript"/> string,
-        /// some <paramref name="settings"/> and a <paramref name="pluginRepo"/> to reference the correct assemblies.
-        /// </summary>
-        public Script Build(string cSharpScript, ScriptSettings settings, PluginRepository pluginRepo)
+        static ScriptBuilder()
         {
-            var ruriLib = Assembly.GetAssembly(typeof(ScriptBuilder));
-            var plugins = pluginRepo != null ? pluginRepo.GetPlugins() : Array.Empty<Assembly>();
-
-            var script =
-                CSharpScript.Create(
-                    code: preScript.ToString() + cSharpScript + postScript.ToString(),
-                    options: ScriptOptions.Default
-                        .WithReferences(new Assembly[] { ruriLib }.Concat(plugins))
-                        .WithImports(GetImports(settings)),
-                    globalsType: typeof(ScriptGlobals));
-
-            // Add references from RuriLib
-            var ruriLibReferences = ruriLib.GetReferencedAssemblies();
-            script.Options.AddReferences(AppDomain.CurrentDomain.GetAssemblies()
-                .Where(a => ruriLibReferences.Any(r => r.FullName == a.FullName)));
-
-            // Add references from plugins
-            var pluginReferences = plugins.SelectMany(p => p.GetReferencedAssemblies());
-            script.Options.AddReferences(AppDomain.CurrentDomain.GetAssemblies()
-                .Where(a => pluginReferences.Any(p => p.FullName == a.FullName)));
-
-            return script;
-        }
-
-        /// <summary>
-        /// Gets the basic usings that the C# script requires in order to be successfully executed.
-        /// </summary>
-        public static IEnumerable<string> GetUsings()
-        {
-            var usings = new List<string>
+            _standardUsings = new List<string>
             {
                 "RuriLib.Helpers",
                 "RuriLib.Logging",
@@ -72,38 +43,107 @@ namespace RuriLib.Helpers.CSharp
                 "Jint",
                 "System.Threading",
                 "System.Threading.Tasks",
-                "System"
+                "System",
+                "System.Text",
+                "System.Text.RegularExpressions"
             };
-            usings.AddRange(Globals.DescriptorsRepository.Descriptors.Values.Select(d => d.Category.Namespace).Distinct());
-            return usings;
+            
+            // Add block category namespaces
+            if (Globals.DescriptorsRepository?.Descriptors != null)
+            {
+                _standardUsings.AddRange(Globals.DescriptorsRepository.Descriptors.Values
+                    .Select(d => d.Category.Namespace)
+                    .Distinct());
+            }
         }
 
+        /// <summary>
+        /// Builds an executable C# <see cref="Script"/> from a <paramref name="cSharpScript"/> string,
+        /// some <paramref name="settings"/> and a <paramref name="pluginRepo"/> to reference the correct assemblies.
+        /// </summary>
+        public Script Build(string cSharpScript, ScriptSettings settings, PluginRepository pluginRepo,
+            OptimizationLevel optimizationLevel = OptimizationLevel.Debug)
+        {
+            var plugins = pluginRepo?.GetPlugins().ToArray() ?? Array.Empty<Assembly>();
+            
+            // Create options with standard references and imports
+            var options = ScriptOptions.Default
+                .WithOptimizationLevel(optimizationLevel)
+                .WithReferences(new Assembly[] { _ruriLibAssembly }.Concat(plugins))
+                .WithImports(GetImports(settings));
+
+            // Add transient references (system assemblies) required by RuriLib
+            // Optimization: Filter current domain assemblies using the pre-hashed set
+            var domainAssemblies = AppDomain.CurrentDomain.GetAssemblies();
+            var requiredAssemblies = new List<Assembly>();
+
+            foreach (var asm in domainAssemblies)
+            {
+                // Verify if this assembly is referenced by RuriLib
+                if (_ruriLibReferenceNames.Contains(asm.FullName))
+                {
+                    requiredAssemblies.Add(asm);
+                    continue;
+                }
+
+                // Check if referenced by any plugin
+                // We do this loop here to avoid LINQ overhead for the filtered set
+                if (plugins.Length > 0)
+                {
+                    foreach (var plugin in plugins)
+                    {
+                        if (plugin.GetReferencedAssemblies().Any(r => r.FullName == asm.FullName))
+                        {
+                            requiredAssemblies.Add(asm);
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            options = options.AddReferences(requiredAssemblies);
+
+            return CSharpScript.Create(
+                code: cSharpScript,
+                options: options,
+                globalsType: typeof(ScriptGlobals));
+        }
+
+        /// <summary>
+        /// Gets the basic usings that the C# script requires in order to be successfully executed.
+        /// </summary>
+        public static IEnumerable<string> GetUsings() => _standardUsings;
+
         private static IEnumerable<string> GetImports(ScriptSettings settings)
-            => settings.CustomUsings == null
-                ? GetUsings()
-                : GetUsings().Concat(settings.CustomUsings
+        {
+            if (settings.CustomUsings == null || settings.CustomUsings.Count == 0)
+                return _standardUsings;
+
+            // Combine standard usings with parsed custom usings
+            return _standardUsings.Concat(settings.CustomUsings
                     .Where(u => !string.IsNullOrWhiteSpace(u))
                     .Select(ParseUsing))
-                    .Distinct();
+                .Distinct();
+        }
 
         private static string ParseUsing(string u)
         {
-            // If the user typed the whole 'using MyLib.Test;' line, parse it to 'MyLib.Test'
-            u = u.Trim();
-
-            if (u.StartsWith("using"))
+            // Optimize parsing: "using MyLib.Test;" -> "MyLib.Test"
+            // Avoid Regex overhead for simple parsing
+            var trimmed = u.Trim();
+            
+            if (trimmed.StartsWith("using ", StringComparison.Ordinal) && trimmed.EndsWith(';'))
             {
-                try
+                // Length of "using " is 6. Length of ";" is 1.
+                // We want the content between index 6 and (Length - 1).
+                // Length of substring = Length - 6 - 1 = Length - 7.
+                if (trimmed.Length > 7)
                 {
-                    u = Regex.Match(u, "^using (.+);$").Groups[1].Value;
-                }
-                catch
-                {
-
+                    return trimmed.Substring(6, trimmed.Length - 7).Trim();
                 }
             }
 
-            return u;
+            return trimmed;
         }
     }
 }

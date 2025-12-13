@@ -90,22 +90,31 @@ namespace RuriLib.Models.Configs
             if (newMode == Mode)
                 return;
 
-            var mappings = new Dictionary<(ConfigMode, ConfigMode), Action>
+            try
             {
-                { (ConfigMode.Stack, ConfigMode.LoliCode), () => LoliCodeScript = Stack2LoliTranspiler.Transpile(Stack) },
-                { (ConfigMode.Stack, ConfigMode.CSharp), () => CSharpScript = Stack2CSharpTranspiler.Transpile(Stack, Settings) },
-                { (ConfigMode.LoliCode, ConfigMode.Stack), () => Stack = Loli2StackTranspiler.Transpile(LoliCodeScript) },
-                { (ConfigMode.LoliCode, ConfigMode.CSharp), () => CSharpScript = Loli2CSharpTranspiler.Transpile(LoliCodeScript, Settings) }
-            };
+                switch (Mode, newMode)
+                {
+                    case (ConfigMode.Stack, ConfigMode.LoliCode):
+                        LoliCodeScript = Stack2LoliTranspiler.Transpile(Stack);
+                        break;
+                    case (ConfigMode.Stack, ConfigMode.CSharp):
+                        CSharpScript = Stack2CSharpTranspiler.Transpile(Stack, Settings);
+                        break;
+                    case (ConfigMode.LoliCode, ConfigMode.Stack):
+                        Stack = Loli2StackTranspiler.Transpile(LoliCodeScript);
+                        break;
+                    case (ConfigMode.LoliCode, ConfigMode.CSharp):
+                        CSharpScript = Loli2CSharpTranspiler.Transpile(LoliCodeScript, Settings);
+                        break;
+                    default:
+                        throw new Exception($"Cannot convert config mode from {Mode} to {newMode}. This conversion is not supported.");
+                }
 
-            if (mappings.ContainsKey((Mode, newMode)))
-            {
-                mappings[(Mode, newMode)].Invoke();
                 Mode = newMode;
             }
-            else
+            catch (Exception ex)
             {
-                throw new Exception($"Cannot convert config mode from {Mode} to {newMode}. This conversion is not supported.");
+                throw new Exception($"Failed to convert mode: {ex.Message}", ex);
             }
         }
 
@@ -121,7 +130,8 @@ namespace RuriLib.Models.Configs
                     ConfigMode.CSharp => true,
                     ConfigMode.DLL => true,
                     ConfigMode.Stack => Stack.Any(IsDangerousBlock),
-                    ConfigMode.LoliCode => Loli2StackTranspiler.Transpile(LoliCodeScript).Any(IsDangerousBlock),
+                    // Use optimized check that avoids full parsing
+                    ConfigMode.LoliCode => Loli2StackTranspiler.IsScriptDangerous(LoliCodeScript),
     
                     _ => throw new NotImplementedException($"The provided ConfigMode {Mode} is not supported when checking for C# code."),
                 };

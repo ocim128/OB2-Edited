@@ -183,34 +183,29 @@ public class BotData(Providers providers, ConfigSettings configSettings, IBotLog
 
     public void DisposeObjectsExcept(string[]? except = null)
     {
-        var exclusions = except ?? Array.Empty<string>();
+        // Use HashSet for O(1) lookups
+        var exclusions = except != null 
+            ? new HashSet<string>(except, StringComparer.Ordinal) 
+            : new HashSet<string>();
 
         // Avoid LINQ allocations in hot paths
         foreach (var kvp in Objects)
         {
-            // skip excluded
             var key = kvp.Key;
-            var value = kvp.Value;
-            if (value is not IDisposable d) continue;
+            
+            if (exclusions.Contains(key)) 
+                continue;
 
-            var excluded = false;
-            for (int i = 0; i < exclusions.Length; i++)
+            if (kvp.Value is IDisposable d)
             {
-                if (exclusions[i] == key)
+                try
                 {
-                    excluded = true;
-                    break;
+                    d.Dispose();
                 }
-            }
-            if (excluded) continue;
-
-            try
-            {
-                d.Dispose();
-            }
-            catch (Exception ex)
-            {
-                Logger.LogError($"Failed to dispose of object {key}: {ex.Message}", ex);
+                catch (Exception ex)
+                {
+                    Logger.LogError($"Failed to dispose of object {key}: {ex.Message}", ex);
+                }
             }
         }
     }

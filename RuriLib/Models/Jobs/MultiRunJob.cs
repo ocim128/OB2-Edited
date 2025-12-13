@@ -1,5 +1,6 @@
 using IronPython.Hosting;
 using Microsoft.CodeAnalysis.Scripting;
+using Microsoft.CodeAnalysis;
 using RuriLib.Helpers.CSharp;
 using RuriLib.Helpers.Transpilers;
 using RuriLib.Logging;
@@ -323,8 +324,17 @@ public class MultiRunJob(RuriLibSettingsService settings, PluginRepository plugi
                     break;
             }
 
-            _script = new ScriptBuilder().Build(Config.CSharpScript, Config.Settings.ScriptSettings, pluginRepo);
-            _ = _script.Compile(cancellationToken);
+            _script = new ScriptBuilder().Build(Config.CSharpScript, Config.Settings.ScriptSettings, pluginRepo, OptimizationLevel.Release);
+            var diagnostics = _script.Compile(cancellationToken);
+
+            if (diagnostics.Any(d => d.Severity == DiagnosticSeverity.Error))
+            {
+                var errors = string.Join(System.Environment.NewLine, diagnostics
+                    .Where(d => d.Severity == DiagnosticSeverity.Error)
+                    .Select(d => d.GetMessage()));
+
+                throw new CompilationErrorException("The C# script has compilation errors:" + System.Environment.NewLine + errors, diagnostics);
+            }
         }
     }
 
@@ -362,7 +372,17 @@ public class MultiRunJob(RuriLibSettingsService settings, PluginRepository plugi
     private async Task ExecuteStartupScriptAsync(dynamic wordlistType, dynamic pyengine, CancellationToken cancellationToken)
     {
         var startupScript = new ScriptBuilder().Build(Config.StartupCSharpScript,
-            Config.Settings.ScriptSettings, pluginRepo);
+            Config.Settings.ScriptSettings, pluginRepo, OptimizationLevel.Release);
+
+        var diagnostics = startupScript.Compile(cancellationToken);
+        if (diagnostics.Any(d => d.Severity == DiagnosticSeverity.Error))
+        {
+            var errors = string.Join(System.Environment.NewLine, diagnostics
+                .Where(d => d.Severity == DiagnosticSeverity.Error)
+                .Select(d => d.GetMessage()));
+
+            throw new CompilationErrorException("The Startup C# script has compilation errors:" + System.Environment.NewLine + errors, diagnostics);
+        }
         var startupBotData = new BotData(Providers, Config.Settings, new BotLogger(),
             new DataLine(string.Empty, wordlistType), null, false)
         {

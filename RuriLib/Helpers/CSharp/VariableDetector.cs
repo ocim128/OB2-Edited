@@ -10,14 +10,15 @@ namespace RuriLib.Helpers.CSharp
     /// </summary>
     public static class VariableDetector
     {
-        private static readonly string ValidIdentifierRegex = @"[A-Za-z][A-Za-z0-9_]*";
+        private const string ValidIdentifierPattern = @"[A-Za-z][A-Za-z0-9_]*";
 
         // Precompiled regexes for performance
         private static readonly Regex InterpVarRegex = new(@"<([^>]+)>", RegexOptions.Compiled);
-        private static readonly Regex IdentifierRegex = new(ValidIdentifierRegex, RegexOptions.Compiled);
+        private static readonly Regex IdentifierRegex = new(ValidIdentifierPattern, RegexOptions.Compiled);
         private static readonly Regex LoliInterpRegex = new(@"\$""([^""]*)""|'\$([^']*)'", RegexOptions.Compiled);
         private static readonly Regex AtVarRegex = new(@"@([a-zA-Z][a-zA-Z0-9_]*(?:\.[a-zA-Z][a-zA-Z0-9_]*)*)", RegexOptions.Compiled);
-        private static readonly Regex ExprIdRegex = new(@"(?:=\s*|[<>=!]+\s*|[\s\(])(" + @"[A-Za-z][A-Za-z0-9_]*" + @")", RegexOptions.Compiled);
+        private static readonly Regex ExprIdRegex = new(@"(?:=\s*|[<>=!]+\s*|[\s\(])(" + ValidIdentifierPattern + @")", RegexOptions.Compiled);
+        private static readonly Regex BaseVarRegex = new("^(" + ValidIdentifierPattern + ")", RegexOptions.Compiled);
 
         // Cached reserved set
         private static readonly HashSet<string> Reserved = new HashSet<string>(new[]
@@ -151,7 +152,7 @@ namespace RuriLib.Helpers.CSharp
                 return null;
 
             var trimmed = expression.Trim();
-            var match = Regex.Match(trimmed, @"^(" + ValidIdentifierRegex + @")", RegexOptions.Compiled);
+            var match = BaseVarRegex.Match(trimmed);
 
             if (!match.Success)
                 return null;

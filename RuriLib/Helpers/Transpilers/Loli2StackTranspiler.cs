@@ -104,6 +104,60 @@ namespace RuriLib.Helpers.Transpilers
             return stack;
         }
 
+        public static bool IsScriptDangerous(string script)
+        {
+            if (string.IsNullOrWhiteSpace(script))
+                return false;
+
+            var lines = script.Split(new string[] { "\n", "\r\n" }, StringSplitOptions.RemoveEmptyEntries);
+
+            var localLineNumber = 0;
+            while (localLineNumber < lines.Length)
+            {
+                var line = lines[localLineNumber].AsSpan().Trim();
+                localLineNumber++;
+
+                if (TryParseBlockDirective(line, out var blockId))
+                {
+                    // Check if the block ID is dangerous
+                    if (blockId.Equals("Script", StringComparison.OrdinalIgnoreCase) || 
+                        blockId.Equals("ShellCommand", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return true;
+                    }
+
+                    // Skip the block body
+                    while (localLineNumber < lines.Length)
+                    {
+                        var bodyLine = lines[localLineNumber].AsSpan().Trim();
+                        localLineNumber++;
+
+                        if (IsBlockTermination(bodyLine))
+                        {
+                            // If we encountered another block directive inside (nested?), TryParseBlockDirective handles it?
+                            // No, Stack2Loli doesn't really support nested blocks in this flat parser in the same way.
+                            // But usually ENDBLOCK terminates it.
+                            break;
+                        }
+                        
+                        // Check if we hit another BLOCK directive (implicit termination/error usually, but here we just want to skip)
+                        if (TryParseBlockDirective(bodyLine, out _))
+                        {
+                            localLineNumber--;
+                            break;
+                        }
+                    }
+                }
+                else
+                {
+                    // If it's not a block directive, it's raw LoliCode => Dangerous
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         private static bool TryParseBlockDirective(ReadOnlySpan<char> line, out string blockId)
         {
             blockId = string.Empty;
@@ -111,13 +165,12 @@ namespace RuriLib.Helpers.Transpilers
             if (line.Length == 0)
                 return false;
 
-            line = line.Trim();
-
+            // Check starts with "BLOCK:"
             if (!line.StartsWith("BLOCK:", StringComparison.Ordinal))
                 return false;
 
             var token = line.Slice("BLOCK:".Length).Trim();
-
+            
             if (token.Length == 0 || !IsValidToken(token))
                 return false;
 
@@ -130,7 +183,6 @@ namespace RuriLib.Helpers.Transpilers
             if (line.Length == 0)
                 return false;
 
-            line = line.Trim();
             return line.StartsWith("ENDBLOCK", StringComparison.Ordinal);
         }
 

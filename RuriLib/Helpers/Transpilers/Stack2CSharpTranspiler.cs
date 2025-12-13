@@ -11,6 +11,8 @@ using RuriLib.Models.Configs;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using RuriLib.Models.Blocks.Custom.HttpRequest;
+using RuriLib.Models.Blocks.Custom.HttpRequest.Multipart;
 
 namespace RuriLib.Helpers.Transpilers
 {
@@ -38,97 +40,100 @@ namespace RuriLib.Helpers.Transpilers
 
             foreach (var block in validBlocks)
             {
-                // Only check blocks that commonly have variable references to avoid expensive ToLC() calls
-                switch (block)
+                // Scan LoliCode script
+                if (block is LoliCodeBlockInstance loli && !string.IsNullOrEmpty(loli.Script))
                 {
-                    case LoliCodeBlockInstance loli when !string.IsNullOrEmpty(loli.Script):
-                        detectedVariables.UnionWith(VariableDetector.DetectFromLoliCodeStatement(loli.Script));
-                        break;
+                    detectedVariables.UnionWith(VariableDetector.DetectFromLoliCodeStatement(loli.Script));
+                }
 
-                    case ScriptBlockInstance script when !string.IsNullOrEmpty(script.InputVariables):
-                        // Add input variables from script blocks
-                        foreach (var rawInput in script.InputVariables.Split(','))
+                // Scan Script block inputs
+                if (block is ScriptBlockInstance script && !string.IsNullOrEmpty(script.InputVariables))
+                {
+                    // Add input variables from script blocks
+                    foreach (var rawInput in script.InputVariables.Split(','))
+                    {
+                        var input = rawInput.Trim();
+                        if (!string.IsNullOrWhiteSpace(input) && input != "input" && input != "globals" && input != "data")
                         {
-                            var input = rawInput.Trim();
-                            if (!string.IsNullOrWhiteSpace(input) && input != "input" && input != "globals" && input != "data")
+                            detectedVariables.Add(input);
+                        }
+                    }
+                }
+
+                // Auto Block
+                if (block is AutoBlockInstance auto)
+                {
+                    if (!string.IsNullOrEmpty(auto.OutputVariable))
+                    {
+                        detectedVariables.Add(auto.OutputVariable);
+                    }
+                    if (auto.Descriptor.Id == "CreateMultiple")
+                    {
+                        detectedVariables.UnionWith(GetCreateMultipleVariables(auto));
+                    }
+                }
+                
+                // Parse Block
+                else if (block is ParseBlockInstance parse)
+                {
+                    if (!string.IsNullOrEmpty(parse.OutputVariable))
+                    {
+                        detectedVariables.Add(parse.OutputVariable);
+                    }
+                    foreach (var c in parse.ConditionalCases)
+                    {
+                        ScanSettings(c.Settings.Values, detectedVariables);
+                    }
+                }
+
+                // HttpRequest Block
+                else if (block is HttpRequestBlockInstance http)
+                {
+                    switch (http.RequestParams)
+                    {
+                        case StandardRequestParams x:
+                            ScanSettings([x.Content, x.ContentType], detectedVariables);
+                            break;
+                        case RawRequestParams x:
+                            ScanSettings([x.Content, x.ContentType], detectedVariables);
+                            break;
+                        case BasicAuthRequestParams x:
+                            ScanSettings([x.Username, x.Password], detectedVariables);
+                            break;
+                        case MultipartRequestParams x:
+                            ScanSettings([x.Boundary], detectedVariables);
+                            foreach (var content in x.Contents)
                             {
-                                detectedVariables.Add(input);
-                            }
-                        }
-                        break;
-
-                    case AutoBlockInstance auto:
-                        // Add output variable if defined
-                        if (!string.IsNullOrEmpty(auto.OutputVariable))
-                        {
-                            detectedVariables.Add(auto.OutputVariable);
-                        }
-
-                        // Special handling for CreateMultiple blocks
-                        if (auto.Descriptor.Id == "CreateMultiple")
-                        {
-                            var createMultipleVars = GetCreateMultipleVariables(auto);
-                            detectedVariables.UnionWith(createMultipleVars);
-                        }
-                        break;
-
-                    case KeycheckBlockInstance keycheck:
-                        // Add variables from keycheck block settings
-                        foreach (var setting in keycheck.Settings.Values)
-                        {
-                            if (setting.InputMode == SettingInputMode.Variable && !string.IsNullOrEmpty(setting.InputVariableName))
-                            {
-                                var baseVar = VariableDetector.ExtractBaseVariableName(setting.InputVariableName);
-                                if (!string.IsNullOrEmpty(baseVar))
+                                switch (content)
                                 {
-                                    detectedVariables.Add(baseVar);
-                                }
-                            }
-                            if (setting.InterpolatedSetting != null)
-                            {
-                                switch (setting.InterpolatedSetting)
-                                {
-                                    case InterpolatedStringSetting str:
-                                        detectedVariables.UnionWith(VariableDetector.DetectFromInterpolatedString(str.Value));
+                                    case StringHttpContentSettingsGroup y:
+                                        ScanSettings([y.Name, y.Data, y.ContentType], detectedVariables);
+                                        break;
+                                    case RawHttpContentSettingsGroup y: // Raw content data is ByteArray, no interpolation/var scan needed usually? But Name/ContentType are strings
+                                        ScanSettings([y.Name, y.ContentType], detectedVariables);
+                                        break;
+                                    case FileHttpContentSettingsGroup y:
+                                        ScanSettings([y.Name, y.FileName, y.ContentType], detectedVariables);
                                         break;
                                 }
                             }
-                        }
-                        // Add variables from keychain keys
-                        foreach (var keychain in keycheck.Keychains)
+                            break;
+                    }
+                }
+
+                // Scan Settings (For ALL blocks)
+                ScanSettings(block.Settings.Values, detectedVariables);
+
+                // Keycheck Block specific
+                if (block is KeycheckBlockInstance keycheck)
+                {
+                    foreach (var keychain in keycheck.Keychains)
+                    {
+                        foreach (var key in keychain.Keys)
                         {
-                            foreach (var key in keychain.Keys)
-                            {
-                                // Check left side of key
-                                if (key.Left.InputMode == SettingInputMode.Variable && !string.IsNullOrEmpty(key.Left.InputVariableName))
-                                {
-                                    var baseVar = VariableDetector.ExtractBaseVariableName(key.Left.InputVariableName);
-                                    if (!string.IsNullOrEmpty(baseVar))
-                                    {
-                                        detectedVariables.Add(baseVar);
-                                    }
-                                }
-                                // Check right side of key
-                                if (key.Right.InputMode == SettingInputMode.Variable && !string.IsNullOrEmpty(key.Right.InputVariableName))
-                                {
-                                    var baseVar = VariableDetector.ExtractBaseVariableName(key.Right.InputVariableName);
-                                    if (!string.IsNullOrEmpty(baseVar))
-                                    {
-                                        detectedVariables.Add(baseVar);
-                                    }
-                                }
-                                // Check interpolated settings
-                                if (key.Left.InterpolatedSetting is InterpolatedStringSetting leftStr)
-                                {
-                                    detectedVariables.UnionWith(VariableDetector.DetectFromInterpolatedString(leftStr.Value));
-                                }
-                                if (key.Right.InterpolatedSetting is InterpolatedStringSetting rightStr)
-                                {
-                                    detectedVariables.UnionWith(VariableDetector.DetectFromInterpolatedString(rightStr.Value));
-                                }
-                            }
+                            ScanSettings(new[] { key.Left, key.Right }, detectedVariables);
                         }
-                        break;
+                    }
                 }
             }
 
@@ -255,6 +260,42 @@ namespace RuriLib.Helpers.Transpilers
             }
 
             return variables;
+        }
+
+        private static void ScanSettings(IEnumerable<BlockSetting> settings, HashSet<string> detectedVariables)
+        {
+            foreach (var setting in settings)
+            {
+                if (setting.InputMode == SettingInputMode.Variable && !string.IsNullOrEmpty(setting.InputVariableName))
+                {
+                    var baseVar = VariableDetector.ExtractBaseVariableName(setting.InputVariableName);
+                    if (!string.IsNullOrEmpty(baseVar))
+                    {
+                        detectedVariables.Add(baseVar);
+                    }
+                }
+                
+                if (setting.InterpolatedSetting != null)
+                {
+                    switch (setting.InterpolatedSetting)
+                    {
+                        case InterpolatedStringSetting str:
+                            detectedVariables.UnionWith(VariableDetector.DetectFromInterpolatedString(str.Value));
+                            break;
+                        case InterpolatedListOfStringsSetting list:
+                            foreach (var val in list.Value)
+                                detectedVariables.UnionWith(VariableDetector.DetectFromInterpolatedString(val));
+                            break;
+                        case InterpolatedDictionaryOfStringsSetting dict:
+                            foreach (var kvp in dict.Value)
+                            {
+                                detectedVariables.UnionWith(VariableDetector.DetectFromInterpolatedString(kvp.Key));
+                                detectedVariables.UnionWith(VariableDetector.DetectFromInterpolatedString(kvp.Value));
+                            }
+                            break;
+                    }
+                }
+            }
         }
     }
 }

@@ -88,7 +88,7 @@
                             </Setter>
                         </Style>
                     </Button.Style>
-                    <ContentControl Content="{StaticResource Icon.AngleUp}" Width="24" Height="24" Foreground="White" />
+                    <ContentControl Content="{StaticResource Icon.ChevronUp}" Width="24" Height="24" Foreground="White" />
                 </Button>
 
                 <!-- Modern Search Box -->
@@ -102,7 +102,7 @@
                             <ColumnDefinition Width="auto"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <ContentControl Content="{StaticResource Icon.SearchMD}" 
+                        <ContentControl Content="{StaticResource Icon.Search}" 
                                        Grid.Column="0"
                                        Width="16" Height="16" 
                                        Foreground="#FF888888" 
@@ -166,7 +166,7 @@
                             </Setter>
                         </Style>
                     </Button.Style>
-                    <ContentControl Content="{StaticResource Icon.SearchMD}" Width="24" Height="24" Foreground="White" />
+                    <ContentControl Content="{StaticResource Icon.Search}" Width="24" Height="24" Foreground="White" />
                 </Button>
             </Grid>
 

@@ -267,20 +267,59 @@ namespace OpenBullet2.Native.Views.Pages
 
         private void PageKeyDown(object sender, KeyEventArgs e)
         {
+            var ctrl = (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control;
+            var alt = (Keyboard.Modifiers & ModifierKeys.Alt) == ModifierKeys.Alt;
+
+            // Move Block Up (Alt + Up)
+            if (e.Key == Key.Up && alt)
+            {
+                MoveBlockUp(sender, e);
+                e.Handled = true;
+            }
+            // Move Block Down (Alt + Down)
+            else if (e.Key == Key.Down && alt)
+            {
+                MoveBlockDown(sender, e);
+                e.Handled = true;
+            }
+            // Duplicate/Clone Block (Ctrl + D)
+            else if (e.Key == Key.D && ctrl)
+            {
+                CloneBlock(sender, e);
+                e.Handled = true;
+            }
+            // Remove Block (Delete)
+            else if (e.Key == Key.Delete)
+            {
+                // Only process if there are selected blocks to avoid accidental deletes when typing elsewhere
+                // But normally this event is on the Page, so we should check focus or just if blocks are selected.
+                // The original code for Ctrl+Z checked focus. 
+                // However, Delete is standard. If a TextBox is focused, we shouldn't delete blocks.
+                var focusedElement = Keyboard.FocusedElement;
+                var isTextInputFocused = focusedElement is TextBox ||
+                                       focusedElement is System.Windows.Controls.RichTextBox ||
+                                       focusedElement?.GetType().Name.Contains("TextBox") == true;
+
+                if (!isTextInputFocused && vm.Stack?.Any(b => b != null && b.Selected) == true)
+                {
+                    RemoveBlock(sender, e);
+                    e.Handled = true;
+                }
+            }
             // Copy functionality (Ctrl+C)
-            if (e.Key == Key.C && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+            else if (e.Key == Key.C && ctrl)
             {
                 CopySelectedBlocks();
                 e.Handled = true;
             }
             // Paste functionality (Ctrl+V)
-            else if (e.Key == Key.V && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+            else if (e.Key == Key.V && ctrl)
             {
                 PasteBlocks();
                 e.Handled = true;
             }
             // Undo functionality (Ctrl+Z) - only if blocks are selected or page has focus
-            else if (e.Key == Key.Z && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+            else if (e.Key == Key.Z && ctrl)
             {
                 // Only handle Ctrl+Z if:
                 // 1. A block is selected, OR

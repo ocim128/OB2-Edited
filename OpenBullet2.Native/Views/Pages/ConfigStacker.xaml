@@ -54,9 +54,9 @@
                     <Button Style="{StaticResource DebuggerToolbarButton}"
                             Width="36"
                             Height="36"
-                            Margin="0,0,12,0"
-                            Background="#22C55E"
-                            Foreground="#052E16"
+                            Margin="0,0,8,0"
+                            Background="{StaticResource Modern.Success}"
+                            Foreground="{StaticResource Modern.TextOnAccent}"
                             ToolTip="Add a new block"
                             mah:ControlsHelper.CornerRadius="10"
                             Click="AddBlock">
@@ -64,8 +64,8 @@
                     </Button>
                     <Button Style="{StaticResource DebuggerToolbarButton}"
                             Margin="0,0,8,0"
-                            Background="#F87171"
-                            Foreground="#330C0C"
+                            Background="{StaticResource Modern.Error}"
+                            Foreground="{StaticResource Modern.TextOnAccent}"
                             ToolTip="Remove selected block(s)"
                             mah:ControlsHelper.CornerRadius="8"
                             Click="RemoveBlock">
@@ -73,8 +73,8 @@
                     </Button>
                     <Button Style="{StaticResource DebuggerToolbarButton}"
                             Margin="0,0,8,0"
-                            Background="#A855F7"
-                            Foreground="#2A0F47"
+                            Background="{StaticResource Modern.ThemeAccent}"
+                            Foreground="{StaticResource Modern.TextOnAccent}"
                             ToolTip="Clone selected block(s)"
                             mah:ControlsHelper.CornerRadius="8"
                             Click="CloneBlock">
@@ -82,8 +82,8 @@
                     </Button>
                     <Button Style="{StaticResource DebuggerToolbarButton}"
                             Margin="0,0,8,0"
-                            Background="#60A5FA"
-                            Foreground="#0B1D36"
+                            Background="{StaticResource Modern.ThemeMain}"
+                            Foreground="{StaticResource Modern.TextOnAccent}"
                             ToolTip="Move up"
                             mah:ControlsHelper.CornerRadius="8"
                             Click="MoveBlockUp">
@@ -91,8 +91,8 @@
                     </Button>
                     <Button Style="{StaticResource DebuggerToolbarButton}"
                             Margin="0,0,8,0"
-                            Background="#60A5FA"
-                            Foreground="#0B1D36"
+                            Background="{StaticResource Modern.ThemeMain}"
+                            Foreground="{StaticResource Modern.TextOnAccent}"
                             ToolTip="Move down"
                             mah:ControlsHelper.CornerRadius="8"
                             Click="MoveBlockDown">
@@ -100,16 +100,16 @@
                     </Button>
                     <Button Style="{StaticResource DebuggerToolbarButton}"
                             Margin="0,0,8,0"
-                            Background="#FBBF24"
-                            Foreground="#452A03"
+                            Background="{StaticResource Modern.Warning}"
+                            Foreground="{StaticResource Modern.TextOnAccent}"
                             ToolTip="Enable/Disable"
                             mah:ControlsHelper.CornerRadius="8"
                             Click="EnableDisableBlock">
                         <iconPacks:PackIconForkAwesome Kind="Ban" Width="16" Height="16" />
                     </Button>
                     <Button Style="{StaticResource DebuggerToolbarButton}"
-                            Background="#A855F7"
-                            Foreground="#2A0F47"
+                            Background="{StaticResource Modern.ThemeSecondary}"
+                            Foreground="{StaticResource Modern.TextOnAccent}"
                             ToolTip="Undo last action"
                             mah:ControlsHelper.CornerRadius="8"
                             Click="Undo">
@@ -207,7 +207,7 @@
                                 <Button Style="{StaticResource ModernButton}"
                                         Height="40"
                                         Margin="0,4"
-                                        Padding="12,8"
+                                        Padding="8,0"
                                         Background="{Binding BackgroundColor}"
                                         Foreground="{Binding ForegroundColor}"
                                         BorderThickness="{Binding Selected, Converter={StaticResource BoolToThick}}"
@@ -215,15 +215,20 @@
                                         Tag="{Binding}"
                                         Click="SelectBlock"
                                         ToolTip="{Binding Block.Descriptor.Name}">
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                        <Ellipse Width="8" Height="8" Fill="{Binding ForegroundColor}" Opacity="0.7" Margin="0,0,6,0" />
-                                        <TextBlock Text="{Binding Label}"
-                                                   FontSize="12"
+                                    <Grid HorizontalAlignment="Stretch" VerticalAlignment="Center">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Ellipse Grid.Column="0" Width="8" Height="8" Fill="{Binding ForegroundColor}" Opacity="0.8" Margin="0,0,10,0" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Column="1" Text="{Binding Label}"
+                                                   FontSize="13"
                                                    FontWeight="SemiBold"
-                                                   TextAlignment="Center"
-                                                   TextWrapping="Wrap"
-                                                   Foreground="{Binding ForegroundColor}" />
-                                    </StackPanel>
+                                                   TextAlignment="Left"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   Foreground="{Binding ForegroundColor}" 
+                                                   VerticalAlignment="Center" />
+                                    </Grid>
                                 </Button>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>

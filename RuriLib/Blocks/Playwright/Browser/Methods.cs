@@ -153,15 +153,53 @@ namespace RuriLib.Blocks.Playwright.Browser
 
             var context = data.TryGetObject<IBrowserContext>("playwrightContext");
             var browser = data.TryGetObject<IBrowser>("playwright");
+            var currentPage = data.TryGetObject<IPage>("playwrightPage");
+            
+            // Get browser type from objects dictionary (enum is a value type, can't use TryGetObject)
+            PlaywrightBrowserType? browserType = null;
+#pragma warning disable CS0618 // Type or member is obsolete
+            if (data.Objects.TryGetValue("playwrightBrowserType", out var btObj) && btObj is PlaywrightBrowserType bt)
+            {
+                browserType = bt;
+            }
+#pragma warning restore CS0618
+
+            // Prefer using the context to create a new tab (not a new window)
+            // browser.NewPageAsync() creates a new context which opens a new window
+            IBrowserContext? targetContext = context;
+            if (targetContext == null && browser != null)
+            {
+                // Fall back to the browser's first context if available
+                targetContext = browser.Contexts.FirstOrDefault();
+            }
 
             IPage page;
-            if (context != null)
+            if (targetContext != null)
             {
-                page = await context.NewPageAsync();
+                // Firefox has a quirk where context.NewPageAsync() opens a new window instead of a tab
+                // Use JavaScript window.open() to force opening as a tab in Firefox
+                if (browserType == PlaywrightBrowserType.Firefox && currentPage != null)
+                {
+                    // Use window.open() which opens as a tab in Firefox
+                    var pageTask = targetContext.WaitForPageAsync();
+                    await currentPage.EvaluateAsync("() => window.open('about:blank', '_blank')");
+                    page = await pageTask;
+                    data.Logger.Log("Created a new tab using window.open() for Firefox", LogColors.MediumPurple);
+                }
+                else
+                {
+                    page = await targetContext.NewPageAsync();
+                    data.Logger.Log("Created a new page (tab)", LogColors.MediumPurple);
+                }
             }
             else if (browser != null)
             {
-                page = await browser.NewPageAsync();
+                // Last resort: create a new context (this will open a new window)
+                // This should rarely happen as Open Browser always creates a context
+                var newContext = await browser.NewContextAsync();
+                data.SetObject("playwrightContext", newContext);
+                page = await newContext.NewPageAsync();
+                data.Logger.Log("Created new context for new page", LogColors.Yellow);
             }
             else
             {
@@ -169,7 +207,6 @@ namespace RuriLib.Blocks.Playwright.Browser
             }
 
             data.SetObject("playwrightPage", page);
-            data.Logger.Log("Created a new page", LogColors.MediumPurple);
         }
 
         [Block("Closes the current page", name = "Close Page")]
@@ -188,8 +225,7 @@ namespace RuriLib.Blocks.Playwright.Browser
         {
             data.Logger.LogHeader();
 
-            var browser = GetBrowser(data);
-            var pages = browser.Contexts.SelectMany(c => c.Pages).ToArray();
+            var pages = GetAllPages(data);
             data.SetObject("playwrightPages", pages);
 
             data.Logger.Log($"Found {pages.Length} open pages", LogColors.MediumPurple);
@@ -200,8 +236,7 @@ namespace RuriLib.Blocks.Playwright.Browser
         {
             data.Logger.LogHeader();
 
-            var browser = GetBrowser(data);
-            var pages = browser.Contexts.SelectMany(c => c.Pages).ToArray();
+            var pages = GetAllPages(data);
 
             if (index < 0 || index >= pages.Length)
                 throw new ArgumentException($"Invalid page index {index}. Available pages: {pages.Length}");
@@ -212,6 +247,33 @@ namespace RuriLib.Blocks.Playwright.Browser
             data.Logger.Log($"Switched to page {index}", LogColors.MediumPurple);
         }
 
+        /// <summary>
+        /// Gets all pages from browser contexts or from direct context.
+        /// Supports both regular browser and persistent context (Firefox profiles).
+        /// </summary>
+        private static IPage[] GetAllPages(BotData data)
+        {
+            var browser = data.TryGetObject<IBrowser>(PlaywrightHelpers.Keys.Browser);
+            var context = data.TryGetObject<IBrowserContext>(PlaywrightHelpers.Keys.Context);
+
+            // Try to get pages from browser contexts first
+            if (browser != null)
+            {
+                var pages = browser.Contexts.SelectMany(c => c.Pages).ToArray();
+                if (pages.Length > 0)
+                {
+                    return pages;
+                }
+            }
+
+            // Fall back to direct context pages (for persistent contexts)
+            if (context != null)
+            {
+                return context.Pages.ToArray();
+            }
+
+            throw new Exception("No browser open. Use the 'Open Browser' block first.");
+        }
 
         private static IBrowser GetBrowser(BotData data) => PlaywrightHelpers.GetBrowser(data);
 

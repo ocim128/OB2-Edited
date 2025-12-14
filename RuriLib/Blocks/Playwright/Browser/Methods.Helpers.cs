@@ -476,7 +476,13 @@ namespace RuriLib.Blocks.Playwright.Browser
 
             if (context != null)
             {
+                // Store both the context AND the browser reference for persistent contexts
+                // This is critical for operations like Switch to Page and Get Pages that need the browser
                 data.SetObject(PlaywrightHelpers.Keys.Context, context);
+                if (context.Browser != null)
+                {
+                    data.SetObject(PlaywrightHelpers.Keys.Browser, context.Browser);
+                }
                 data.Logger.Log($"Opened {config.BrowserType} browser with persistent context (headless: {config.Headless})", LogColors.MediumPurple);
 
                 var existingPages = context.Pages;

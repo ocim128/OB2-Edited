@@ -168,7 +168,7 @@ namespace OpenBullet2.Native.Views.Pages
                 return;
             }
 
-            new MainDialog(new BotLogDialog(hitVM.Hit.BotLogger), $"Bot log for {hitVM.Data}").Show();
+            new MainDialog(new BotLogDialog(hitVM.Hit.BotLogger), $"Bot log for {hitVM.Data}", 950, 700).Show();
         }
 
         private void ColumnHeaderClicked(object sender, RoutedEventArgs e)

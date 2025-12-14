@@ -6,12 +6,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 
 namespace OpenBullet2.Native.Views.Dialogs
 {
     /// <summary>
-    /// Interaction logic for BotLogDialog.xaml
+    /// Modern Bot Log Dialog with AvalonEdit, search navigation, and view options.
     /// </summary>
     public partial class BotLogDialog : Page
     {
@@ -21,6 +22,9 @@ namespace OpenBullet2.Native.Views.Dialogs
         private readonly Dictionary<string, Brush> _brushCache = new();
         
         private readonly List<int> _searchMatches = new();
+        private double _currentFontSize = 13;
+        private const double MinFontSize = 9;
+        private const double MaxFontSize = 24;
 
         public BotLogDialog(IBotLogger logger)
         {
@@ -36,13 +40,18 @@ namespace OpenBullet2.Native.Views.Dialogs
             if (logger is null)
             {
                 AppendLog("Bot log was not enabled when this hit was obtained" + Environment.NewLine, "#FF6347"); // Tomato
+                vm.EntryCount = 0;
                 return;
             }
 
+            int count = 0;
             foreach (var entry in logger.Entries)
             {
                 AppendLog(entry.Message + Environment.NewLine, entry.Color);
+                count++;
             }
+            
+            vm.EntryCount = count;
             
             try
             {
@@ -79,7 +88,85 @@ namespace OpenBullet2.Native.Views.Dialogs
             catch { return Brushes.Gainsboro; }
         }
 
+        #region View Options
+        private void ToggleWordWrap(object sender, RoutedEventArgs e)
+        {
+            logRTB.WordWrap = wordWrapToggle.IsChecked == true;
+        }
+        
+        private void ToggleLineNumbers(object sender, RoutedEventArgs e)
+        {
+            logRTB.ShowLineNumbers = lineNumbersToggle.IsChecked == true;
+        }
+        
+        private void IncreaseFontSize(object sender, RoutedEventArgs e)
+        {
+            if (_currentFontSize < MaxFontSize)
+            {
+                _currentFontSize++;
+                logRTB.FontSize = _currentFontSize;
+                fontSizeDisplay.Text = _currentFontSize.ToString();
+            }
+        }
+        
+        private void DecreaseFontSize(object sender, RoutedEventArgs e)
+        {
+            if (_currentFontSize > MinFontSize)
+            {
+                _currentFontSize--;
+                logRTB.FontSize = _currentFontSize;
+                fontSizeDisplay.Text = _currentFontSize.ToString();
+            }
+        }
+        
+        private void CopyAll(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                Clipboard.SetText(logRTB.Text);
+            }
+            catch { }
+        }
+        
+        private void ScrollToTop(object sender, RoutedEventArgs e)
+        {
+            logRTB.ScrollToHome();
+        }
+        
+        private void ScrollToBottom(object sender, RoutedEventArgs e)
+        {
+            logRTB.ScrollToEnd();
+        }
+        #endregion
+
         #region Search
+        private void SearchTextBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                Search(sender, e);
+                e.Handled = true;
+            }
+            else if (e.Key == Key.F3)
+            {
+                if (Keyboard.Modifiers.HasFlag(ModifierKeys.Shift))
+                {
+                    PreviousMatch(sender, e);
+                }
+                else
+                {
+                    NextMatch(sender, e);
+                }
+                e.Handled = true;
+            }
+            else if (e.Key == Key.Escape)
+            {
+                _searchMatches.Clear();
+                vm.Indices = Array.Empty<int>();
+                vm.SearchString = string.Empty;
+            }
+        }
+        
         private void Search(object sender, RoutedEventArgs e)
         {
             if (string.IsNullOrWhiteSpace(vm.SearchString))
@@ -136,6 +223,9 @@ namespace OpenBullet2.Native.Views.Dialogs
             logRTB.Select(textIndex, vm.SearchString.Length);
             var line = logRTB.Document.GetLineByOffset(textIndex);
             logRTB.ScrollToLine(line.LineNumber);
+            
+            // Focus the editor to show selection highlight
+            logRTB.Focus();
         }
         #endregion
     }
@@ -152,6 +242,17 @@ namespace OpenBullet2.Native.Views.Dialogs
                 OnPropertyChanged();
             }
         }
+        
+        private int entryCount;
+        public int EntryCount
+        {
+            get => entryCount;
+            set
+            {
+                entryCount = value;
+                OnPropertyChanged();
+            }
+        }
 
         private int[] indices = Array.Empty<int>();
         public int[] Indices
@@ -161,6 +262,7 @@ namespace OpenBullet2.Native.Views.Dialogs
             {
                 indices = value;
                 CurrentMatchIndex = 0;
+                OnPropertyChanged(nameof(MatchInfo));
             }
         }
 
@@ -176,6 +278,8 @@ namespace OpenBullet2.Native.Views.Dialogs
             }
         }
 
-        public string MatchInfo => $"{CurrentMatchIndex + 1} of {Indices.Length}";
+        public string MatchInfo => Indices.Length == 0 
+            ? "No matches" 
+            : $"{CurrentMatchIndex + 1} of {Indices.Length}";
     }
 }

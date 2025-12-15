@@ -4,6 +4,8 @@
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
       xmlns:local="clr-namespace:OpenBullet2.Native.Views.Pages"
+      xmlns:converters="clr-namespace:OpenBullet2.Native.Converters"
+      xmlns:helpers="clr-namespace:OpenBullet2.Native.Helpers"
       xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
       xmlns:controls="clr-namespace:OpenBullet2.Native.Controls"
       mc:Ignorable="d" 
@@ -18,18 +20,22 @@
 
     <Page.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
+        <converters:BoolToDoubleConverter x:Key="BoolToDouble" />
         
-        <!-- FLUENT DESIGN COLOR RESOURCES -->
-        <SolidColorBrush x:Key="PrimaryBackground" Color="#FF0C0C0C"/>
-        <SolidColorBrush x:Key="SecondaryBackground" Color="#FF1A1A1A"/>
-        <SolidColorBrush x:Key="TertiaryBackground" Color="#FF252525"/>
-        <SolidColorBrush x:Key="AccentBlue" Color="#FF0078D4"/>
-        <SolidColorBrush x:Key="AccentGreen" Color="#FF00CC6A"/>
-        <SolidColorBrush x:Key="AccentOrange" Color="#FFFF8C00"/>
-        <SolidColorBrush x:Key="AccentRed" Color="#FFFF4444"/>
-        <SolidColorBrush x:Key="TextPrimary" Color="#FFFFFF"/>
-        <SolidColorBrush x:Key="TextSecondary" Color="#FFE1E1E1"/>
-        <SolidColorBrush x:Key="TextMuted" Color="#FFADADAD"/>
+        <!-- FLUENT DESIGN COLOR RESOURCES - Now referenced from ModernTheme.xaml -->
+        <!-- Primary Background Colors -->
+        <StaticResource x:Key="PrimaryBackground" ResourceKey="Modern.BackgroundDark"/>
+        <StaticResource x:Key="SecondaryBackground" ResourceKey="Modern.BackgroundDarkSecondary"/>
+        <StaticResource x:Key="TertiaryBackground" ResourceKey="Modern.BackgroundDarkTertiary"/>
+        <!-- Accent Colors - Reference consolidated theme -->
+        <StaticResource x:Key="AccentBlue" ResourceKey="Modern.ThemeMain"/>
+        <StaticResource x:Key="AccentGreen" ResourceKey="Modern.Success"/>
+        <StaticResource x:Key="AccentOrange" ResourceKey="Modern.Warning"/>
+        <StaticResource x:Key="AccentRed" ResourceKey="Modern.Error"/>
+        <!-- Text Colors -->
+        <StaticResource x:Key="TextPrimary" ResourceKey="Modern.ForegroundMain"/>
+        <StaticResource x:Key="TextSecondary" ResourceKey="Modern.ForegroundSecondary"/>
+        <StaticResource x:Key="TextMuted" ResourceKey="Modern.ForegroundMuted"/>
         
         <!-- FLUENT DESIGN TYPOGRAPHY -->
         <Style x:Key="HeaderTextStyle" TargetType="TextBlock">
@@ -193,6 +199,7 @@
                 </MenuItem.Icon>
             </MenuItem>
         </ContextMenu>
+        <helpers:BindingProxy x:Key="Proxy" Data="{Binding}" />
     </Page.Resources>
 
     <Grid Margin="12">
@@ -638,10 +645,10 @@
 
                     <ListView.View>
                         <GridView>
-                            <GridViewColumn Width="60" Header="ID" DisplayMemberBinding="{Binding Id}" />
-                            <GridViewColumn Width="800" Header="Data" DisplayMemberBinding="{Binding Data}" />
-                            <GridViewColumn Width="150" Header="Proxy" DisplayMemberBinding="{Binding Proxy}" />
-                            <GridViewColumn Width="400" Header="Info" DisplayMemberBinding="{Binding Info}" />
+                            <GridViewColumn Width="40" Header="ID" DisplayMemberBinding="{Binding Id}" />
+                            <GridViewColumn Width="120" Header="Data" DisplayMemberBinding="{Binding Data}" />
+                            <GridViewColumn Width="{Binding Data.Job.ProxyMode, Converter={StaticResource BoolToDouble}, Source={StaticResource Proxy}}" Header="Proxy" DisplayMemberBinding="{Binding Proxy}" />
+                            <GridViewColumn Width="800" Header="Info" DisplayMemberBinding="{Binding Info}" />
                         </GridView>
                     </ListView.View>
                     </ListView>
@@ -823,9 +830,9 @@
                         <ListView.View>
                             <GridView>
                                 <GridViewColumn Width="60" Header="Type" DisplayMemberBinding="{Binding Type}" />
-                                <GridViewColumn Width="800" Header="Data" DisplayMemberBinding="{Binding Data}" />
-                                <GridViewColumn Width="150" Header="Proxy" DisplayMemberBinding="{Binding Proxy}" />
-                                <GridViewColumn Width="400" Header="Captured Data" DisplayMemberBinding="{Binding Capture}" />
+                                <GridViewColumn Width="Auto" Header="Data" DisplayMemberBinding="{Binding Data}" />
+                                <GridViewColumn Width="{Binding Data.Job.ProxyMode, Converter={StaticResource BoolToDouble}, Source={StaticResource Proxy}}" Header="Proxy" DisplayMemberBinding="{Binding Proxy}" />
+                                <GridViewColumn Width="800" Header="Captured Data" DisplayMemberBinding="{Binding Capture}" />
                             </GridView>
                         </ListView.View>
                     </ListView>

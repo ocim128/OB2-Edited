@@ -262,6 +262,7 @@ public partial class App : Application
         services.AddSingleton<INavigationService, NavigationService>();
         services.AddSingleton<IWindowLayoutService, WindowLayoutService>();
         services.AddSingleton<IThemeService, ThemeService>();
+        services.AddSingleton<IUIStateService, UIStateService>();
 
         // Non-critical services (lazy loaded for performance)
         services.AddSingleton<Lazy<ProxyReloadService>>(provider => new Lazy<ProxyReloadService>(() => provider.GetRequiredService<ProxyReloadService>()));

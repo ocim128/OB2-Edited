@@ -155,4 +155,9 @@ public class CustomizationSettings
     /// Whether to remember window size and position. Native UI only.
     /// </summary>
     public bool RememberWindowState { get; set; } = true;
+
+    /// <summary>
+    /// Whether the sidebar is expanded or collapsed. Native UI only.
+    /// </summary>
+    public bool SidebarExpanded { get; set; } = false;
 }

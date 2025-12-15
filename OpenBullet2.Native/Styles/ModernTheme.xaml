@@ -43,6 +43,17 @@
     <SolidColorBrush x:Key="Modern.BorderFocus" Color="#3B82F6" />
     <SolidColorBrush x:Key="Modern.BorderHover" Color="#64748B" />
 
+    <!-- Page-Specific Background Colors (for dark panel backgrounds) -->
+    <SolidColorBrush x:Key="Modern.BackgroundDark" Color="#0C0C0C" />
+    <SolidColorBrush x:Key="Modern.BackgroundDarkSecondary" Color="#1A1A1A" />
+    <SolidColorBrush x:Key="Modern.BackgroundDarkTertiary" Color="#252525" />
+    
+    <!-- Job Status Colors -->
+    <SolidColorBrush x:Key="Modern.StatusRunning" Color="#3B82F6" />
+    <SolidColorBrush x:Key="Modern.StatusPaused" Color="#F59E0B" />
+    <SolidColorBrush x:Key="Modern.StatusStopped" Color="#6B7280" />
+    <SolidColorBrush x:Key="Modern.StatusCompleted" Color="#10B981" />
+
     <!-- Shadow Effects -->
     <DropShadowEffect x:Key="ModernShadow" BlurRadius="8" Direction="270" Opacity="0.12" ShadowDepth="2" />
 

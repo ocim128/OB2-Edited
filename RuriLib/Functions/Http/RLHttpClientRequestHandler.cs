@@ -784,7 +784,7 @@ namespace RuriLib.Functions.Http
                     cookieValue = cookieHeader.AsSpan(separatorPos + 1, endCookiePos - separatorPos - 1).ToString().Trim();
                 }
 
-                // DON'T remove quotes or decode URL encoding for display - keep original format
+            // DON'T remove quotes or decode URL encoding for display - keep original format
 
                 return true;
             }
@@ -797,8 +797,8 @@ namespace RuriLib.Functions.Http
                 }
 
                 var result = new List<string>();
-                var current = new StringBuilder();
                 var inQuotes = false;
+                var startIndex = 0;
                 var i = 0;
 
                 while (i < combinedHeader.Length)
@@ -808,7 +808,6 @@ namespace RuriLib.Functions.Http
                     if (c == '"')
                     {
                         inQuotes = !inQuotes;
-                        current.Append(c);
                     }
                     else if (c == ',' && !inQuotes)
                     {
@@ -832,31 +831,26 @@ namespace RuriLib.Functions.Http
                             if (foundEquals)
                             {
                                 // This comma separates cookies
-                                result.Add(current.ToString().Trim());
-                                current.Clear();
+                                var segment = combinedHeader.Substring(startIndex, i - startIndex).Trim();
+                                if (segment.Length > 0)
+                                    result.Add(segment);
+
+                                startIndex = i + 1;
                             }
-                            else
-                            {
-                                // This comma is part of a date or value
-                                current.Append(c);
-                            }
+                            // else: This comma is part of a date or value, continue scanning
                         }
-                        else
-                        {
-                            current.Append(c);
-                        }
-                    }
-                    else
-                    {
-                        current.Append(c);
+                        // else: End of string coming up, treat as part of current value
                     }
 
                     i++;
                 }
 
-                if (current.Length > 0)
+                // Add the last segment
+                if (startIndex < combinedHeader.Length)
                 {
-                    result.Add(current.ToString().Trim());
+                    var segment = combinedHeader.Substring(startIndex).Trim();
+                    if (segment.Length > 0)
+                        result.Add(segment);
                 }
 
                 return result.ToArray();

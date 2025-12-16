@@ -25,6 +25,7 @@ public class JobManagerService : IDisposable
     /// </summary>
     public IEnumerable<Job> Jobs => _jobs;
     private readonly List<Job> _jobs = new();
+    private readonly Dictionary<int, (DateTime LastSave, int LastDataTested)> _jobSaveStates = new();
 
     private readonly SemaphoreSlim _jobSemaphore = new(1, 1);
     private readonly SemaphoreSlim _recordSemaphore = new(1, 1);
@@ -86,6 +87,7 @@ public class JobManagerService : IDisposable
     public void RemoveJob(Job job)
     {
         _jobs.Remove(job);
+        _jobSaveStates.Remove(job.Id);
 
         if (job is MultiRunJob mrj)
         {
@@ -106,6 +108,7 @@ public class JobManagerService : IDisposable
     {
         UnbindAllEvents();
         _jobs.Clear();
+        _jobSaveStates.Clear();
     }
 
     private async void MultiRunJobOnCompleted(object sender, EventArgs e)
@@ -125,6 +128,22 @@ public class JobManagerService : IDisposable
         {
             return;
         }
+
+        // Throttling logic to prevent excessive DB writes
+        var now = DateTime.UtcNow;
+        if (_jobSaveStates.TryGetValue(job.Id, out var state))
+        {
+            var timeSinceLastSave = now - state.LastSave;
+            var dataChanged = job.DataTested - state.LastDataTested;
+
+            // Save only if > 10 seconds elapsed OR > 50 data points processed OR data counter reset (unexpected)
+            if (timeSinceLastSave.TotalSeconds < 10 && dataChanged < 50 && dataChanged >= 0)
+            {
+                return;
+            }
+        }
+        
+        _jobSaveStates[job.Id] = (now, job.DataTested);
 
         var includeRuntimeProgress = IsActivelyProcessing(job.Status);
         await SaveRecordAsync(job, includeRuntimeProgress);

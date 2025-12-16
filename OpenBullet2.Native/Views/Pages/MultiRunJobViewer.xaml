@@ -22,27 +22,13 @@
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
         <converters:BoolToDoubleConverter x:Key="BoolToDouble" />
         
-        <!-- FLUENT DESIGN COLOR RESOURCES - Now referenced from ModernTheme.xaml -->
-        <!-- Primary Background Colors -->
-        <StaticResource x:Key="PrimaryBackground" ResourceKey="Modern.BackgroundDark"/>
-        <StaticResource x:Key="SecondaryBackground" ResourceKey="Modern.BackgroundDarkSecondary"/>
-        <StaticResource x:Key="TertiaryBackground" ResourceKey="Modern.BackgroundDarkTertiary"/>
-        <!-- Accent Colors - Reference consolidated theme -->
-        <StaticResource x:Key="AccentBlue" ResourceKey="Modern.ThemeMain"/>
-        <StaticResource x:Key="AccentGreen" ResourceKey="Modern.Success"/>
-        <StaticResource x:Key="AccentOrange" ResourceKey="Modern.Warning"/>
-        <StaticResource x:Key="AccentRed" ResourceKey="Modern.Error"/>
-        <!-- Text Colors -->
-        <StaticResource x:Key="TextPrimary" ResourceKey="Modern.ForegroundMain"/>
-        <StaticResource x:Key="TextSecondary" ResourceKey="Modern.ForegroundSecondary"/>
-        <StaticResource x:Key="TextMuted" ResourceKey="Modern.ForegroundMuted"/>
-        
+        <!-- FLUENT DESIGN COLOR RESOURCES - References handled directly in usage -->
         <!-- FLUENT DESIGN TYPOGRAPHY -->
         <Style x:Key="HeaderTextStyle" TargetType="TextBlock">
             <Setter Property="FontFamily" Value="Segoe UI"/>
             <Setter Property="FontSize" Value="15"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
+            <Setter Property="Foreground" Value="{StaticResource ForegroundMain}"/>
             <Setter Property="UseLayoutRounding" Value="True"/>
             <Setter Property="SnapsToDevicePixels" Value="True"/>
             <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
@@ -53,7 +39,7 @@
             <Setter Property="FontFamily" Value="Segoe UI"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="FontWeight" Value="Medium"/>
-            <Setter Property="Foreground" Value="{StaticResource TextSecondary}"/>
+            <Setter Property="Foreground" Value="{StaticResource Modern.TextSecondary}"/>
             <Setter Property="UseLayoutRounding" Value="True"/>
             <Setter Property="SnapsToDevicePixels" Value="True"/>
             <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
@@ -63,13 +49,13 @@
         <Style x:Key="BodyTextStyle" TargetType="TextBlock">
             <Setter Property="FontFamily" Value="Segoe UI"/>
             <Setter Property="FontSize" Value="11"/>
-            <Setter Property="Foreground" Value="{StaticResource TextSecondary}"/>
+            <Setter Property="Foreground" Value="{StaticResource Modern.TextSecondary}"/>
         </Style>
         
         <Style x:Key="CaptionTextStyle" TargetType="TextBlock">
             <Setter Property="FontFamily" Value="Segoe UI"/>
             <Setter Property="FontSize" Value="10"/>
-            <Setter Property="Foreground" Value="{StaticResource TextMuted}"/>
+            <Setter Property="Foreground" Value="{StaticResource Modern.TextSecondary}"/>
         </Style>
 
         <!-- GridView Column Header Gripper Style -->
@@ -87,7 +73,7 @@
 
         <!-- PERFORMANCE-OPTIMIZED SCROLL BAR -->
         <Style x:Key="ModernScrollBar" TargetType="{x:Type ScrollBar}">
-            <Setter Property="Background" Value="{StaticResource TertiaryBackground}"/>
+            <Setter Property="Background" Value="{StaticResource Modern.BackgroundDarkTertiary}"/>
             <Setter Property="Width" Value="8"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="UseLayoutRounding" Value="True"/>
@@ -99,7 +85,7 @@
                             <Border Background="{TemplateBinding Background}" CornerRadius="4"/>
                             <Track x:Name="PART_Track" IsDirectionReversed="True">
                                 <Track.Thumb>
-                                    <Thumb Background="{StaticResource AccentBlue}" BorderThickness="0">
+                                    <Thumb Background="{StaticResource Modern.ThemeMain}" BorderThickness="0">
                                         <Thumb.Template>
                                             <ControlTemplate TargetType="{x:Type Thumb}">
                                                 <Border Background="{TemplateBinding Background}" CornerRadius="4" Opacity="0.8"/>
@@ -218,7 +204,7 @@
         </Grid.Background>
 
         <!-- Header Section -->
-        <Border Grid.Row="0" Background="{StaticResource TertiaryBackground}" CornerRadius="12" Padding="12,8" Margin="0,0,0,6">
+        <Border Grid.Row="0" Background="{StaticResource Modern.BackgroundDarkTertiary}" CornerRadius="12" Padding="12,8" Margin="0,0,0,6">
             <Border.Effect>
                 <DropShadowEffect Color="Black" BlurRadius="8" ShadowDepth="2" Opacity="0.3"/>
             </Border.Effect>

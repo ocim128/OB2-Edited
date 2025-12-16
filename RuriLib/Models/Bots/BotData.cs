@@ -111,6 +111,9 @@ public class BotData(Providers providers, ConfigSettings configSettings, IBotLog
         }
     }
 
+    // Cached exclusions for performance
+    public static readonly HashSet<string> DefaultExclusions = new(["puppeteer", "puppeteerPage", "puppeteerFrame", "httpClient", "ironPyEngine"], StringComparer.Ordinal);
+
     public void ResetState()
     {
         ExecutionInfo = "Retrying";
@@ -127,8 +130,8 @@ public class BotData(Providers providers, ConfigSettings configSettings, IBotLog
         if (Logger.Enabled)
             Logger.Log("Resetting bot state and disposing objects for retry.", LogColors.Yellow);
 
-        // Dispose all runtime-created objects except the selected ones
-        DisposeObjectsExcept(["puppeteer", "puppeteerPage", "puppeteerFrame", "httpClient", "ironPyEngine"]);
+        // Dispose all runtime-created objects except the selected ones (using cached set)
+        DisposeObjectsExcept(DefaultExclusions);
     }
 
     public void SetObject(string name, object obj, bool disposeExisting = true)
@@ -181,19 +184,30 @@ public class BotData(Providers providers, ConfigSettings configSettings, IBotLog
     private static bool IsSystemManaged(string name)
         => name is "httpClient" or "ironPyEngine";
 
-    public void DisposeObjectsExcept(string[]? except = null)
+    public void DisposeObjectsExcept(IEnumerable<string>? except = null)
     {
-        // Use HashSet for O(1) lookups
-        var exclusions = except != null 
-            ? new HashSet<string>(except, StringComparer.Ordinal) 
-            : new HashSet<string>();
+        HashSet<string>? exclusions = null;
+        if (except != null)
+        {
+             // If it's already a HashSet, cast and use it (assuming it uses the right comparer, otherwise we might need to be careful. 
+             // But for our internal usage it's fine. If external passed a case-sensitive hashset, we might respect it or not.
+             // Best to ensure ordinal ignore case if we created it, but for simplicity/perf:
+             if (except is HashSet<string> h)
+             {
+                 exclusions = h;
+             }
+             else
+             {
+                 exclusions = new HashSet<string>(except, StringComparer.Ordinal);
+             }
+        }
 
         // Avoid LINQ allocations in hot paths
         foreach (var kvp in Objects)
         {
             var key = kvp.Key;
             
-            if (exclusions.Contains(key)) 
+            if (exclusions != null && exclusions.Contains(key)) 
                 continue;
 
             if (kvp.Value is IDisposable d)

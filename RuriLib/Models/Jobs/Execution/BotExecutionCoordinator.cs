@@ -23,7 +23,7 @@ public class BotExecutionCoordinator
 {
     private readonly IBotExecutionHandler _executionHandler;
     private readonly ProxyManager _proxyManager;
-    private static readonly string[] ExceptObjects = ["httpClient", "ironPyEngine"];
+    private static readonly HashSet<string> ExceptObjects = new(["httpClient", "ironPyEngine"], StringComparer.Ordinal);
 
     public BotExecutionCoordinator(IBotExecutionHandler executionHandler, ProxyManager proxyManager)
     {
@@ -295,7 +295,7 @@ public class BotExecutionCoordinator
         else
         {
             botData.Logger.Log("Disposing of browser objects except puppeteer, puppeteerPage, puppeteerFrame, httpClient, ironPyEngine", LogColors.Yellow);
-            botData.DisposeObjectsExcept(["puppeteer", "puppeteerPage", "puppeteerFrame", "httpClient", "ironPyEngine"]);
+            botData.DisposeObjectsExcept(BotData.DefaultExclusions);
         }
     }
 

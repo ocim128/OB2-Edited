@@ -207,6 +207,10 @@ namespace RuriLib.Blocks.Playwright.Browser
             }
 
             data.SetObject("playwrightPage", page);
+            
+            // Reset frame to the new page's MainFrame to ensure text retrieval
+            // and other frame-based operations work correctly on the new page
+            data.SetObject("playwrightFrame", page.MainFrame);
         }
 
         [Block("Closes the current page", name = "Close Page")]
@@ -243,6 +247,11 @@ namespace RuriLib.Blocks.Playwright.Browser
 
             var page = pages[index];
             data.SetObject("playwrightPage", page);
+            
+            // Reset frame to the new page's MainFrame to ensure text retrieval 
+            // and other frame-based operations work correctly after switching pages
+            // (especially important for popup windows which are separate page instances)
+            data.SetObject("playwrightFrame", page.MainFrame);
 
             data.Logger.Log($"Switched to page {index}", LogColors.MediumPurple);
         }

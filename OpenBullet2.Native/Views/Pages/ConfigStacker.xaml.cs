@@ -16,6 +16,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
+using System.Windows.Threading;
 using System.Windows.Controls; // Make sure this is included for TextBox and TextChangedEventArgs
 using System.Windows.Input;
 using OpenBullet2.Native.Infrastructure.DependencyInjection;
@@ -41,6 +42,10 @@ namespace OpenBullet2.Native.Views.Pages
         private GridLength? _storedBlockListWidth;
         private GridLength? _storedSplitterWidth;
 
+        // Debounce timer for search filter (prevents expensive operation on every keystroke)
+        private readonly DispatcherTimer _searchDebounceTimer;
+        private string _pendingSearchText = string.Empty;
+
         public bool IsStackerPaneVisible { get; private set; } = true;
 
         public ConfigStacker()
@@ -51,6 +56,13 @@ namespace OpenBullet2.Native.Views.Pages
             DataContext = vm;
 
             InitializeComponent();
+
+            // Setup search debounce timer (300ms delay)
+            _searchDebounceTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromMilliseconds(300)
+            };
+            _searchDebounceTimer.Tick += SearchDebounceTimer_Tick;
 
             // Ensure the page can receive keyboard focus for copy/paste shortcuts
             Loaded += (s, e) => Focus();
@@ -220,17 +232,38 @@ namespace OpenBullet2.Native.Views.Pages
             var ctrl = Keyboard.IsKeyDown(Key.LeftCtrl) || Keyboard.IsKeyDown(Key.RightCtrl);
             var shift = Keyboard.IsKeyDown(Key.LeftShift) || Keyboard.IsKeyDown(Key.RightShift);
             var block = (BlockViewModel)(sender as FrameworkElement).Tag;
+            
             vm.SelectBlock(block, ctrl, shift);
-            // Clear search filter to show all blocks
-            SearchTextBox.Text = string.Empty;
+            
+            // Clear search filter to show all blocks if needed
+            if (!string.IsNullOrEmpty(SearchTextBox.Text))
+            {
+                // This triggers the TextChanged event which starts the debounce timer
+                SearchTextBox.Text = string.Empty;
+                
+                // We stop the timer immediately because we want to apply the empty filter NOW
+                _searchDebounceTimer.Stop();
+                
+                // Apply filter immediately to restore full stack synchronously
+                vm.ApplySearchFilter(string.Empty);
+            }
+
             // Force layout update and scroll immediately
-            BlocksItemsControl.UpdateLayout();
+            // Use ContextIdle priority to let the binding update and item generation happen first
             Dispatcher.BeginInvoke(new Action(() =>
             {
-                BlocksItemsControl.UpdateLayout();
-                var container = BlocksItemsControl.ItemContainerGenerator.ContainerFromItem(block) as FrameworkElement;
-                container?.BringIntoView();
-            }), System.Windows.Threading.DispatcherPriority.Render);
+                try
+                {
+                    BlocksItemsControl.UpdateLayout();
+                    var container = BlocksItemsControl.ItemContainerGenerator.ContainerFromItem(block) as FrameworkElement;
+                    container?.BringIntoView();
+                }
+                catch (Exception ex)
+                {
+                    // Fail silently if visual tree isn't ready
+                    System.Diagnostics.Debug.WriteLine($"Failed to bring block into view: {ex.Message}");
+                }
+            }), System.Windows.Threading.DispatcherPriority.ContextIdle);
         }
 
         private void SelectionChanged(IEnumerable<BlockViewModel> selected)
@@ -341,13 +374,21 @@ namespace OpenBullet2.Native.Views.Pages
             }
         }
 
-        // <-- ADDED --> Method to handle text changes in the search box
+        // Debounced search handler - waits 300ms after last keystroke before filtering
         private void SearchTextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
-            string searchText = (sender as TextBox).Text;
-            vm.ApplySearchFilter(searchText); // <-- Uncommented line
+            _pendingSearchText = (sender as TextBox)?.Text ?? string.Empty;
+            
+            // Reset the timer on each keystroke
+            _searchDebounceTimer.Stop();
+            _searchDebounceTimer.Start();
         }
-        // <-- ADDED -->
+
+        private void SearchDebounceTimer_Tick(object sender, EventArgs e)
+        {
+            _searchDebounceTimer.Stop();
+            vm.ApplySearchFilter(_pendingSearchText);
+        }
 
         // Clipboard functionality for copy/paste blocks
         private void CopySelectedBlocks()

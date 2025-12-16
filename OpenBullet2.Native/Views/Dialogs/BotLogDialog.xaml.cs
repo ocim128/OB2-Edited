@@ -44,14 +44,27 @@ namespace OpenBullet2.Native.Views.Dialogs
                 return;
             }
 
-            int count = 0;
+            var sb = new System.Text.StringBuilder();
+            int currentOffset = 0;
+
             foreach (var entry in logger.Entries)
             {
-                AppendLog(entry.Message + Environment.NewLine, entry.Color);
-                count++;
+                var line = entry.Message + Environment.NewLine;
+                sb.Append(line);
+                
+                var brush = GetBrush(entry.Color);
+                _segments.Add(new LogSegment
+                {
+                    StartOffset = currentOffset,
+                    Length = line.Length,
+                    Color = brush
+                });
+
+                currentOffset += line.Length;
             }
             
-            vm.EntryCount = count;
+            logRTB.Text = sb.ToString();
+            vm.EntryCount = logger.Entries.Count();
             
             try
             {

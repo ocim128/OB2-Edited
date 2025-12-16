@@ -266,7 +266,10 @@ public class MultiRunJobViewerViewModel : OpenBullet2.Native.ViewModels.Infrastr
         MultiRunJob.OnError += OnError;
         MultiRunJob.OnHit += OnHit;
 
-        botsInfoTimer = new Timer(new TimerCallback(_ => RefreshBotsInfo()), null, 200, 200);
+        // Timer intervals optimized for performance:
+        // - 500ms for bot info (was 200ms) - reduces PropertyChanged events
+        // - 1000ms for periodic updates remains the same
+        botsInfoTimer = new Timer(new TimerCallback(_ => RefreshBotsInfo()), null, 500, 500);
         secondsTicker = new Timer(new TimerCallback(_ => PeriodicUpdate()), null, 1000, 1000);
         soundPlayer = new SoundPlayer("Sounds/hit.wav");
         #endregion Bind events and timers
@@ -278,9 +281,17 @@ public class MultiRunJobViewerViewModel : OpenBullet2.Native.ViewModels.Infrastr
     #region Update methods
     /// <summary>
     /// Updates the VM of all the current BotViewModel instances
+    /// Only updates when job is actively running to save CPU
     /// </summary>
     private void RefreshBotsInfo()
     {
+        // Skip updates when job is not running to save CPU cycles
+        var status = MultiRunJob?.Status;
+        if (status is not (JobStatus.Running or JobStatus.Starting or JobStatus.Pausing or JobStatus.Stopping))
+        {
+            return;
+        }
+
         if (BotsCollection is not null)
         {
             foreach (var bot in BotsCollection)

@@ -486,15 +486,11 @@
                           HorizontalAlignment="Center"
                           Margin="0,0,0,8" />
                 
-                <!-- Enhanced Progress Bar -->
+                <!-- Enhanced Progress Bar - No effect for performance (updates frequently) -->
                  <Border Grid.Row="2" Background="#FF2A2A2A" CornerRadius="8" Height="8" Padding="2">
                       <ProgressBar Minimum="0" Maximum="100" Value="{Binding Progress, Mode=OneWay}"
                                   Background="Transparent" Foreground="#FF10B981" BorderThickness="0"
-                                  Height="4">
-                          <ProgressBar.Effect>
-                              <DropShadowEffect Color="#FF10B981" BlurRadius="4" ShadowDepth="0" Opacity="0.3"/>
-                          </ProgressBar.Effect>
-                      </ProgressBar>
+                                  Height="4"/>
                  </Border>
             </Grid>
         </Border>

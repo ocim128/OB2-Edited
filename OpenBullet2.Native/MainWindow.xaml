@@ -183,20 +183,6 @@
                             </StackPanel>
                         </Button>
 
-                        <!-- Hits -->
-                        <Button x:Name="menuOptionHits" Style="{StaticResource SidebarNavButton}" Click="HandleNavigationClick" Tag="Hits"
-                                ToolTip="Hits">
-                            <StackPanel Orientation="Horizontal">
-                                <iconPacks:PackIconMaterial Kind="Target" Style="{StaticResource SidebarIcon}"/>
-                                <TextBlock x:Name="menuOptionHitsText" Text="Hits" Style="{StaticResource SidebarText}"/>
-                            </StackPanel>
-                        </Button>
-
-                        <!-- Section Header - RESOURCES -->
-                        <TextBlock x:Name="SectionResources" Text="RESOURCES" Style="{StaticResource SidebarText}" 
-                                   FontSize="11" FontWeight="Bold" Foreground="{StaticResource Modern.ForegroundMuted}" 
-                                   Margin="24,16,0,8" Opacity="0.7"/>
-
                         <!-- Configs (Accordion Parent) -->
                         <Button x:Name="menuOptionConfigs" Style="{StaticResource SidebarNavButton}" Click="HandleNavigationClick" Tag="Configs" 
                                 MouseEnter="ConfigsMenuOptionMouseEnter" MouseLeave="ConfigsMenuOptionMouseLeave"
@@ -277,6 +263,20 @@
                                 </StackPanel>
                             </Button>
                         </StackPanel>
+
+                        <!-- Section Header - RESOURCES -->
+                        <TextBlock x:Name="SectionResources" Text="RESOURCES" Style="{StaticResource SidebarText}" 
+                                   FontSize="11" FontWeight="Bold" Foreground="{StaticResource Modern.ForegroundMuted}" 
+                                   Margin="24,16,0,8" Opacity="0.7"/>
+
+                        <!-- Hits -->
+                        <Button x:Name="menuOptionHits" Style="{StaticResource SidebarNavButton}" Click="HandleNavigationClick" Tag="Hits"
+                                ToolTip="Hits">
+                            <StackPanel Orientation="Horizontal">
+                                <iconPacks:PackIconMaterial Kind="Target" Style="{StaticResource SidebarIcon}"/>
+                                <TextBlock x:Name="menuOptionHitsText" Text="Hits" Style="{StaticResource SidebarText}"/>
+                            </StackPanel>
+                        </Button>
 
                         <!-- Wordlists -->
                         <Button x:Name="menuOptionWordlists" Style="{StaticResource SidebarNavButton}" Click="HandleNavigationClick" Tag="Wordlists"

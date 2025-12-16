@@ -397,10 +397,19 @@ public partial class App : Application
             var perf = _config.GetSection("Performance");
             var lowSpecMode = perf.GetValue("LowSpecMode", false);
 
-            // Disable hardware acceleration for maximum performance
-            RenderOptions.ProcessRenderMode = System.Windows.Interop.RenderMode.SoftwareOnly;
-
-            Debug.WriteLine($"Maximum performance settings applied: software rendering, animations disabled");
+            // Only use software rendering when explicitly configured for low-spec systems
+            // Hardware rendering is faster on systems with capable GPUs (the majority)
+            if (lowSpecMode)
+            {
+                RenderOptions.ProcessRenderMode = System.Windows.Interop.RenderMode.SoftwareOnly;
+                Debug.WriteLine("Low-spec mode: software rendering enabled");
+            }
+            else
+            {
+                // Use default (hardware) rendering for better performance
+                RenderOptions.ProcessRenderMode = System.Windows.Interop.RenderMode.Default;
+                Debug.WriteLine("Hardware rendering enabled for optimal performance");
+            }
         }
         catch (Exception ex)
         {

@@ -2,4 +2,4 @@
 trigger: always_on
 ---
 
-example working to see build error: dotnet build .\OpenBullet2.Native\OpenBullet2.Native.csproj /clp:NoSummary 2>&1 | Select-String -Pattern "error"
+example working to see build error: using C:\Users\user\Documents\Repo\OB2-Edited\OpenBullet2.Native\test_build\run_testing.bat

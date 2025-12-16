@@ -223,14 +223,25 @@ namespace OpenBullet2.Native.ViewModels
 
         public async Task<int> DeleteDuplicatesAsync()
         {
-            var duplicates = HitsCollection
-                .GroupBy(h => h.GetHashCode(obSettingsService.Settings.GeneralSettings.IgnoreWordlistNameOnHitsDedupe))
-                .Where(g => g.Count() > 1)
-                .SelectMany(g => g.OrderBy(h => h.Date)
-                .Reverse().Skip(1)).ToList();
+            // Capture thread-dependent data
+            bool ignoreWordlist = obSettingsService.Settings.GeneralSettings.IgnoreWordlistNameOnHitsDedupe;
+            var hitsSnapshot = HitsCollection.ToList(); // Snapshot for thread safety
 
-            await hitRepo.DeleteAsync(duplicates);
-            await RefreshListAsync();
+            // Run heavy logic on background thread
+            var duplicates = await Task.Run(() => 
+            {
+                return hitsSnapshot
+                    .GroupBy(h => h.GetHashCode(ignoreWordlist))
+                    .Where(g => g.Count() > 1)
+                    .SelectMany(g => g.OrderBy(h => h.Date)
+                    .Reverse().Skip(1)).ToList();
+            });
+
+            if (duplicates.Count > 0)
+            {
+                await hitRepo.DeleteAsync(duplicates);
+                await RefreshListAsync();
+            }
 
             return duplicates.Count;
         }

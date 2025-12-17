@@ -590,31 +590,54 @@ namespace RuriLib.Functions.Http
             data.RESPONSECODE = (int)response.StatusCode;
             data.Logger.Log($"Response code: {data.RESPONSECODE}", LogColors.Citrine);
 
+            // Dictionary to store parsed cookies for logging to avoid re-parsing
+            // Name: Cookie name
+            // Value: Unquoted value for the cookie jar
+            // RawValue: Original value (potentially quoted) for logging
+            var parsedCookies = new List<(string Name, string Value, string RawValue)>();
+
+            // Pre-process Set-Cookie headers once if needed
+            if (!requestOptions.DisableHeaderParsing || !requestOptions.DisableCookieParsing)
+            {
+                if (response.Headers.ContainsKey("Set-Cookie"))
+                {
+                    var setCookieHeader = response.Headers["Set-Cookie"];
+                    var cookieHeaders = SplitSetCookieHeaders(setCookieHeader);
+                    foreach (var cookieHeader in cookieHeaders)
+                    {
+                        if (TryParseCookie(cookieHeader.Trim(), out var cookieName, out var cookieValue, out var rawCookieValue))
+                        {
+                            parsedCookies.Add((cookieName, cookieValue, rawCookieValue));
+                        }
+                    }
+                }
+
+                if (response.Headers.ContainsKey("Set-Cookie2"))
+                {
+                    var setCookieHeader = response.Headers["Set-Cookie2"];
+                    var cookieHeaders = SplitSetCookieHeaders(setCookieHeader);
+                    foreach (var cookieHeader in cookieHeaders)
+                    {
+                        if (TryParseCookie(cookieHeader.Trim(), out var cookieName, out var cookieValue, out var rawCookieValue))
+                        {
+                            parsedCookies.Add((cookieName, cookieValue, rawCookieValue));
+                        }
+                    }
+                }
+            }
+
             // Headers (conditional parsing for speed)
             if (!requestOptions.DisableHeaderParsing)
             {
-                static string GetHeaderValue(KeyValuePair<string, string> header)
+                static string GetHeaderValue(KeyValuePair<string, string> header, List<(string Name, string Value, string RawValue)> parsedCookies)
                 {
                     // For Set-Cookie headers, show only the name=value part
                     if (header.Key.Equals("Set-Cookie", StringComparison.OrdinalIgnoreCase) ||
                         header.Key.Equals("Set-Cookie2", StringComparison.OrdinalIgnoreCase))
                     {
-                        var cookieList = new List<string>();
-
-                        // Split the header by semicolons and commas to find individual cookies
-                        var cookieHeaders = SplitSetCookieHeaders(header.Value);
-
-                        foreach (var cookieHeader in cookieHeaders)
+                        if (parsedCookies.Count > 0)
                         {
-                            if (TryParseCookieForDisplay(cookieHeader.Trim(), out var cookieName, out var cookieValue))
-                            {
-                                cookieList.Add($"{cookieName}={cookieValue}");
-                            }
-                        }
-
-                        if (cookieList.Count > 0)
-                        {
-                            return string.Join("; ", cookieList);
+                            return string.Join("; ", parsedCookies.Select(c => $"{c.Name}={c.RawValue}"));
                         }
                         else
                         {
@@ -636,13 +659,13 @@ namespace RuriLib.Functions.Http
                     foreach (var header in response.Content.Headers)
                     {
                         data.HEADERS[header.Key] = string.Join(", ", header.Value);
-                        sbHeaders.AppendLine($"{header.Key}: {GetHeaderValue(new KeyValuePair<string, string>(header.Key, string.Join(", ", header.Value)))}");
+                        sbHeaders.AppendLine($"{header.Key}: {GetHeaderValue(new KeyValuePair<string, string>(header.Key, string.Join(", ", header.Value)), parsedCookies)}");
                     }
                 }
 
                 foreach (var header in response.Headers)
                 {
-                    sbHeaders.AppendLine($"{header.Key}: {GetHeaderValue(header)}");
+                    sbHeaders.AppendLine($"{header.Key}: {GetHeaderValue(header, parsedCookies)}");
                 }
 
                 if (!data.HEADERS.ContainsKey("Content-Length"))
@@ -666,35 +689,10 @@ namespace RuriLib.Functions.Http
 
             if (!requestOptions.DisableCookieParsing)
             {
-                // Parse Set-Cookie headers from response
-                // Handle multiple Set-Cookie headers (Instagram sends multiple)
-                if (response.Headers.ContainsKey("Set-Cookie"))
+                // Use the already parsed cookies
+                foreach (var (cookieName, cookieValue, _) in parsedCookies)
                 {
-                    var setCookieHeader = response.Headers["Set-Cookie"];
-                    // Multiple Set-Cookie headers are typically joined with commas, but we need to split carefully
-                    // because cookies can contain commas in expires dates
-                    var cookieHeaders = SplitSetCookieHeaders(setCookieHeader);
-                    foreach (var cookieHeader in cookieHeaders)
-                    {
-                        if (TryParseCookie(cookieHeader.Trim(), out var cookieName, out var cookieValue))
-                        {
-                            data.COOKIES[cookieName] = cookieValue;
-                        }
-                    }
-                }
-
-                // Also check for Set-Cookie2 (handle multiple values)
-                if (response.Headers.ContainsKey("Set-Cookie2"))
-                {
-                    var setCookieHeader = response.Headers["Set-Cookie2"];
-                    var cookieHeaders = SplitSetCookieHeaders(setCookieHeader);
-                    foreach (var cookieHeader in cookieHeaders)
-                    {
-                        if (TryParseCookie(cookieHeader.Trim(), out var cookieName, out var cookieValue))
-                        {
-                            data.COOKIES[cookieName] = cookieValue;
-                        }
-                    }
+                    data.COOKIES[cookieName] = cookieValue;
                 }
 
                 var sbCookies = new StringBuilder();
@@ -711,10 +709,11 @@ namespace RuriLib.Functions.Http
                 data.Logger.Log("Cookie Parsing Skipped", LogColors.Orange);
             }
 
-            static bool TryParseCookie(string cookieHeader, out string cookieName, out string cookieValue)
+            static bool TryParseCookie(string cookieHeader, out string cookieName, out string cookieValue, out string rawCookieValue)
             {
                 cookieName = null;
                 cookieValue = null;
+                rawCookieValue = null;
 
                 if (string.IsNullOrEmpty(cookieHeader))
                 {
@@ -734,13 +733,15 @@ namespace RuriLib.Functions.Http
                 if (endCookiePos == -1)
                 {
                     // Cookie value extends to end of header (no attributes)
-                    cookieValue = cookieHeader.AsSpan(separatorPos + 1).ToString().Trim();
+                    rawCookieValue = cookieHeader.AsSpan(separatorPos + 1).ToString().Trim();
                 }
                 else
                 {
                     // Cookie value ends at first semicolon (before attributes)
-                    cookieValue = cookieHeader.AsSpan(separatorPos + 1, endCookiePos - separatorPos - 1).ToString().Trim();
+                    rawCookieValue = cookieHeader.AsSpan(separatorPos + 1, endCookiePos - separatorPos - 1).ToString().Trim();
                 }
+
+                cookieValue = rawCookieValue;
 
                 // Remove surrounding quotes if present (some cookies have quoted values)
                 if (cookieValue.Length >= 2 && cookieValue.StartsWith('"') && cookieValue.EndsWith('"'))
@@ -753,41 +754,7 @@ namespace RuriLib.Functions.Http
                 return true;
             }
 
-            static bool TryParseCookieForDisplay(string cookieHeader, out string cookieName, out string cookieValue)
-            {
-                cookieName = null;
-                cookieValue = null;
-
-                if (string.IsNullOrEmpty(cookieHeader))
-                {
-                    return false;
-                }
-
-                var separatorPos = cookieHeader.IndexOf('=');
-                if (separatorPos <= 0)
-                {
-                    // Invalid cookie, don't add it
-                    return false;
-                }
-
-                cookieName = cookieHeader.AsSpan(0, separatorPos).ToString().Trim();
-
-                var endCookiePos = cookieHeader.IndexOf(';', separatorPos);
-                if (endCookiePos == -1)
-                {
-                    // Cookie value extends to end of header (no attributes)
-                    cookieValue = cookieHeader.AsSpan(separatorPos + 1).ToString().Trim();
-                }
-                else
-                {
-                    // Cookie value ends at first semicolon (before attributes)
-                    cookieValue = cookieHeader.AsSpan(separatorPos + 1, endCookiePos - separatorPos - 1).ToString().Trim();
-                }
-
-            // DON'T remove quotes or decode URL encoding for display - keep original format
-
-                return true;
-            }
+            // Removed TryParseCookieForDisplay as it's no longer needed (we use the same logic now)
 
             static string[] SplitSetCookieHeaders(string combinedHeader)
             {

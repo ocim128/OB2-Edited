@@ -56,6 +56,16 @@ namespace OpenBullet2.Native.Views.Pages
             // Use centralized navigation helper  
             helper.NavigateToPage(MainWindowPage.Jobs);
         }
+
+        private void WordlistsShortcut_Click(object sender, RoutedEventArgs e)
+        {
+            helper.NavigateToPage(MainWindowPage.Wordlists);
+        }
+
+        private void HitsShortcut_Click(object sender, RoutedEventArgs e)
+        {
+            helper.NavigateToPage(MainWindowPage.Hits);
+        }
     }
 
     public class HomeViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase, IDisposable
@@ -223,13 +233,24 @@ namespace OpenBullet2.Native.Views.Pages
             }
         }
 
-        private string cpuUsage = "0.00%";
+        private string cpuUsage = "0%";
         public string CpuUsage
         {
             get => cpuUsage;
             set
             {
                 cpuUsage = value;
+                OnPropertyChanged();
+            }
+        }
+
+        private float cpuUsagePercent = 0f;
+        public float CpuUsagePercent
+        {
+            get => cpuUsagePercent;
+            set
+            {
+                cpuUsagePercent = value;
                 OnPropertyChanged();
             }
         }
@@ -312,8 +333,12 @@ namespace OpenBullet2.Native.Views.Pages
 
                     _ = Task.Run(async () =>
                     {
-                        var cpuUsage = await CalculateCpuUsage();
-                        CpuUsage = $"{cpuUsage:F2}%";
+                        var cpuUsageValue = await CalculateCpuUsage();
+                        Application.Current?.Dispatcher.BeginInvoke(() =>
+                        {
+                            CpuUsage = $"{cpuUsageValue:F1}%";
+                            CpuUsagePercent = (float)cpuUsageValue;
+                        }, DispatcherPriority.Background);
                     });
                 });
             }
@@ -624,10 +649,11 @@ namespace OpenBullet2.Native.Views.Pages
                         {
                             try
                             {
-                                var cpuUsage = await CalculateCpuUsage().ConfigureAwait(false);
+                                var cpuUsageValue = await CalculateCpuUsage().ConfigureAwait(false);
                                 Application.Current?.Dispatcher.BeginInvoke(() =>
                                 {
-                                    CpuUsage = $"{cpuUsage:F2}%";
+                                    CpuUsage = $"{cpuUsageValue:F1}%";
+                                    CpuUsagePercent = (float)cpuUsageValue;
                                 }, DispatcherPriority.Background);
                             }
                             catch (Exception ex)

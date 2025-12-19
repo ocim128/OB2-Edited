@@ -408,6 +408,16 @@ namespace OpenBullet2.Native.Views.Dialogs
             }
         }
 
+        public bool CpmTriggerEnabled
+        {
+            get => Options.CpmTriggerEnabled;
+            set
+            {
+                Options.CpmTriggerEnabled = value;
+                OnPropertyChanged();
+            }
+        }
+
         public int PeriodicReloadIntervalSeconds
         {
             get => Options.PeriodicReloadIntervalSeconds;

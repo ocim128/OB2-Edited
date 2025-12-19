@@ -186,6 +186,16 @@
                     </div>
                 </div>
                 <div class="row my-3">
+                    <div class="col-12">
+                        <p-checkbox class="text-small"
+                            (onChange)="touched = true" ngDefaultControl 
+                            pTooltip="After 1 minute, triggers Ctrl+Alt+Shift+Y when CPM is below 5000. Cooldown 1 minute, retry every 5 seconds."
+                            [(ngModel)]="options.cpmTriggerEnabled"
+                            [binary]="true" inputId="cpmTriggerEnabled"
+                            label="CPM trigger (refresh modem if CPM < 5000)" />
+                    </div>
+                </div>
+                <div class="row my-3">
                     <div class="col-6 pr-1">
                         <div class="mb-1">
                             <span class="text-small">

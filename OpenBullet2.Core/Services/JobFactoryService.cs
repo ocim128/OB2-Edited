@@ -130,6 +130,7 @@ public class JobFactoryService
             MarkAsToCheckOnAbort = options.MarkAsToCheckOnAbort,
             ProxyBanTime = TimeSpan.FromSeconds(options.ProxyBanTimeSeconds),
             ConcurrentProxyMode = options.ConcurrentProxyMode,
+            CpmTriggerEnabled = options.CpmTriggerEnabled,
             PeriodicReloadInterval = TimeSpan.FromSeconds(options.PeriodicReloadIntervalSeconds),
             StartCondition = options.StartCondition,
             Name = options.Name,

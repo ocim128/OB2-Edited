@@ -417,6 +417,14 @@
                                               Foreground="White" FontSize="10" Margin="0,0,12,6"/>
                                 </WrapPanel>
                             </StackPanel>
+                            <StackPanel Margin="0,6,0,0">
+                                <TextBlock Text="Automation" Style="{StaticResource SecondaryLabelStyle}" Margin="0,0,0,4"/>
+                                <CheckBox Content="CPM trigger (Ctrl+Alt+Shift+Y modem refresh)"
+                                          IsChecked="{Binding CpmTriggerEnabled}"
+                                          Foreground="White" FontSize="10" Margin="0,0,12,2"/>
+                                <TextBlock Text="Starts 1 minute after the job runs. If CPM drops below 5000, triggers the modem refresh. Cooldown is 1 minute, retry every 5 seconds."
+                                           FontSize="9" Foreground="#99FFFFFF" TextWrapping="Wrap"/>
+                            </StackPanel>
                         </StackPanel>
                     </Border>
 

@@ -59,6 +59,7 @@ public class MultiRunJob(RuriLibSettingsService settings, PluginRepository plugi
     public bool ConcurrentProxyMode { get; set; }
     public TimeSpan PeriodicReloadInterval { get; set; } = TimeSpan.Zero;
     public List<IHitOutput> HitOutputs { get; set; } = [];
+    public bool CpmTriggerEnabled { get; set; }
 
     public Bots.Providers Providers { get; set; }
     public TimeSpan TickInterval { get; set; } = TimeSpan.FromSeconds(1);

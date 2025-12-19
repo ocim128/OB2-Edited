@@ -306,6 +306,37 @@ namespace OpenBullet2.Native.Services
 
         private async Task HandleCtrlShiftAltYAsync()
         {
+            _ = await ExecuteModemRefreshAsync().ConfigureAwait(false);
+        }
+
+        public async Task<bool> TriggerModemRefreshAsync()
+        {
+            lock (executionLock)
+            {
+                if (isExecutingHotkey)
+                {
+                    Debug.WriteLine("Modem refresh skipped - another hotkey is executing");
+                    return false;
+                }
+
+                isExecutingHotkey = true;
+            }
+
+            try
+            {
+                return await ExecuteModemRefreshAsync().ConfigureAwait(false);
+            }
+            finally
+            {
+                lock (executionLock)
+                {
+                    isExecutingHotkey = false;
+                }
+            }
+        }
+
+        private async Task<bool> ExecuteModemRefreshAsync()
+        {
             try
             {
                 var settings = modemSettingsProvider.Load();
@@ -324,15 +355,18 @@ namespace OpenBullet2.Native.Services
 
                 var title = result.IsSuccess ? "Modem Refresh" : "Modem Refresh Failed";
                 ShowTrayNotification(title, result.StatusMessage);
+                return result.IsSuccess;
             }
             catch (ArgumentException ex)
             {
                 ShowTrayNotification("Modem Refresh Error", ex.Message);
+                return false;
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Ctrl+Shift+Alt+Y failed: {ex.Message}");
+                Debug.WriteLine($"Modem refresh failed: {ex.Message}");
                 ShowTrayNotification("Modem Refresh Error", ex.Message);
+                return false;
             }
         }
 

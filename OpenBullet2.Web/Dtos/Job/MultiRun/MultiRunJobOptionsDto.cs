@@ -71,6 +71,11 @@ public class MultiRunJobOptionsDto
     public bool ConcurrentProxyMode { get; set; } = false;
 
     /// <summary>
+    /// Whether to enable the CPM trigger automation for this job.
+    /// </summary>
+    public bool CpmTriggerEnabled { get; set; } = false;
+
+    /// <summary>
     /// The amount of seconds that the pool will wait before reloading all proxies from the sources (periodically).
     /// Set it to 0 to disable this behaviour and only allow the pool to reload proxies when all are banned according
     /// to the value of <see cref="NoValidProxyBehaviour" />.

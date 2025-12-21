@@ -109,6 +109,10 @@ namespace OpenBullet2.Native.Views.Pages.Shared
             if (logUpdated && !ScrollingDisabled)
             {
                 _logRTB.ScrollToEnd();
+                
+                // Use background priority to ensure layout is updated before scrolling again
+                // This fixes issues where the scroll doesn't reach the absolute bottom when large amounts of text are added
+                _logRTB.Dispatcher.BeginInvoke(new Action(() => _logRTB.ScrollToEnd()), System.Windows.Threading.DispatcherPriority.Background);
             }
 
             // Update variables if needed

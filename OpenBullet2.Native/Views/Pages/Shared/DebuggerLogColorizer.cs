@@ -10,7 +10,9 @@ namespace OpenBullet2.Native.Views.Pages.Shared
     {
         public int StartOffset { get; set; }
         public int Length { get; set; }
-        public Brush Color { get; set; }
+        public Brush Foreground { get; set; }
+        public Brush? Background { get; set; }
+        public FontWeight FontWeight { get; set; } = FontWeights.Normal;
     }
 
     public class DebuggerLogColorizer : DocumentColorizingTransformer
@@ -61,7 +63,21 @@ namespace OpenBullet2.Native.Views.Pages.Shared
                 {
                     ChangeLinePart(start, end, element =>
                     {
-                        element.TextRunProperties.SetForegroundBrush(segment.Color);
+                        element.TextRunProperties.SetForegroundBrush(segment.Foreground);
+                        
+                        if (segment.Background != null)
+                        {
+                            element.BackgroundBrush = segment.Background;
+                        }
+
+                        if (segment.FontWeight != FontWeights.Normal)
+                        {
+                            element.TextRunProperties.SetTypeface(new Typeface(
+                                element.TextRunProperties.Typeface.FontFamily,
+                                element.TextRunProperties.Typeface.Style,
+                                segment.FontWeight,
+                                element.TextRunProperties.Typeface.Stretch));
+                        }
                     });
                 }
             }

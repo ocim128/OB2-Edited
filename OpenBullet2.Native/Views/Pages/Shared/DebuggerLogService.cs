@@ -84,12 +84,17 @@ namespace OpenBullet2.Native.Views.Pages.Shared
                     string textToAppend = entry.Message + Environment.NewLine;
                     sb.Append(textToAppend);
 
-                    var brush = GetBrush(entry.Color);
+                    var foreground = GetBrush(entry.Color);
+                    var background = GetBackgroundBrush(entry, _segments.Count + newSegments.Count);
+                    var fontWeight = entry.IsBlockStart ? FontWeights.Bold : FontWeights.Normal;
+
                     newSegments.Add(new LogSegment
                     {
                         StartOffset = currentOffset,
                         Length = textToAppend.Length,
-                        Color = brush
+                        Foreground = foreground,
+                        Background = background,
+                        FontWeight = fontWeight
                     });
 
                     currentOffset += textToAppend.Length;
@@ -257,6 +262,27 @@ namespace OpenBullet2.Native.Views.Pages.Shared
             _logRTB.ScrollToLine(line.LineNumber);
         }
         #endregion
+
+        private Brush? GetBackgroundBrush(BotLoggerEntry entry, int index)
+        {
+            if (entry.IsBlockStart) 
+            {
+                return GetBrush("#16233A"); // Slightly lighter than pure background for blocks
+            }
+
+            if (entry.Level == LogLevel.Error)
+            {
+                return GetBrush("#2D1B1B"); // Deep red for errors
+            }
+
+            if (entry.Level == LogLevel.Warning)
+            {
+                return GetBrush("#2D241B"); // Deep amber for warnings
+            }
+
+            // Alternating row background - extremely subtle
+            return (index % 2 == 0) ? null : GetBrush("#121212");
+        }
 
         private Brush GetBrush(string hexColor)
         {

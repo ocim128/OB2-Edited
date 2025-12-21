@@ -412,17 +412,27 @@
                         <Border Grid.Row="0" Background="{StaticResource Modern.BackgroundSecondary}" BorderBrush="{StaticResource Modern.BorderSecondary}" BorderThickness="1" CornerRadius="8" Padding="0"
                                 RenderOptions.BitmapScalingMode="HighQuality" UseLayoutRounding="True"
                                 SnapsToDevicePixels="True">
-                            <!-- Remove outer ScrollViewer to avoid double scrollbars; rely on inner WinForms RichTextBox scrollbar -->
                             <!-- AvalonEdit Log -->
                             <avalonEdit:TextEditor x:Name="logRTB" IsReadOnly="True"
                                                    ShowLineNumbers="False"
-                                                   FontFamily="Consolas" FontSize="13"
-                                                   Background="#161616" Foreground="Gainsboro"
+                                                   FontFamily="Consolas" FontSize="13.5"
+                                                   Background="#0D1117" Foreground="#E6EDF3"
                                                    HorizontalScrollBarVisibility="Auto"
-                                                   VerticalScrollBarVisibility="Auto"
+                                                   VerticalScrollBarVisibility="Visible"
                                                    WordWrap="True"
-                                                   Padding="10"/>
+                                                   Padding="12,10"
+                                                   SelectionBrush="#388BFD"
+                                                   SelectionForeground="White"
+                                                   SelectionOpacity="0.4"
+                                                   RenderOptions.ClearTypeHint="Enabled">
+                                <avalonEdit:TextEditor.Options>
+                                    <avalonEdit:TextEditorOptions EnableHyperlinks="True" 
+                                                                 EnableEmailHyperlinks="True" 
+                                                                 HighlightCurrentLine="True"/>
+                                </avalonEdit:TextEditor.Options>
+                            </avalonEdit:TextEditor>
                         </Border>
+
                         <!-- Search Controls - Reshaped UI -->
                         <Border Grid.Row="2"
                                 Background="#1C2433"

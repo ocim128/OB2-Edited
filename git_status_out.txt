@@ -1,0 +1,22 @@
+﻿On branch master
+Your branch is up to date with 'origin/master'.
+
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+	modified:   OpenBullet2.Core/packages.lock.json
+	modified:   OpenBullet2.Native/packages.lock.json
+	modified:   OpenBullet2.Shared/packages.lock.json
+	modified:   RuriLib.Http/RLHttpClient.cs
+	modified:   RuriLib/Blocks/Requests/Http/Methods.cs
+	modified:   RuriLib/Functions/Http/Options/HttpRequestOptions.cs
+	new file:   RuriLib/Functions/Http/RestSharpRequestHandler.cs
+	new file:   RuriLib/Functions/Http/WinHttpClientRequestHandler.cs
+	modified:   RuriLib/RuriLib.csproj
+	modified:   RuriLib/packages.lock.json
+	new file:   git_status_out.txt
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   git_status_out.txt
+

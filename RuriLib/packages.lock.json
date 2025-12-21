@@ -194,6 +194,12 @@
           "Microsoft.Extensions.Logging": "8.0.0"
         }
       },
+      "RestSharp": {
+        "type": "Direct",
+        "requested": "[113.0.0, )",
+        "resolved": "113.0.0",
+        "contentHash": "ijR2XOerzv8+rzHbC1pSkf5pEWw3JiqgtvJkJqL5XBwuNfokTNCt0SGV0xfbQe1Ty1Oc/WyshGP+L7x+j6m/mw=="
+      },
       "Scrypt.NET": {
         "type": "Direct",
         "requested": "[1.3.0, )",
@@ -239,6 +245,12 @@
         "requested": "[8.0.0, )",
         "resolved": "8.0.0",
         "contentHash": "WTlRjL6KWIMr/pAaq3rYqh0TJlzpouaQ/W1eelssHgtlwHAH25jXTkUphTYx9HaIIf7XA6qs/0+YhtLEQRkJ+Q=="
+      },
+      "System.Net.Http.WinHttpHandler": {
+        "type": "Direct",
+        "requested": "[10.0.1, )",
+        "resolved": "10.0.1",
+        "contentHash": "ncePumpfKGzlf8pM/UGVRyE0jZXPycYRFgjx/uTpv6akDo80Gbvtru+OvYE2II9roeqjh+DaE5HV1F2GL8JkIg=="
       },
       "System.Speech": {
         "type": "Direct",
@@ -832,6 +844,12 @@
       }
     },
     "net8.0/win-x64": {
+      "System.Net.Http.WinHttpHandler": {
+        "type": "Direct",
+        "requested": "[10.0.1, )",
+        "resolved": "10.0.1",
+        "contentHash": "ncePumpfKGzlf8pM/UGVRyE0jZXPycYRFgjx/uTpv6akDo80Gbvtru+OvYE2II9roeqjh+DaE5HV1F2GL8JkIg=="
+      },
       "System.Speech": {
         "type": "Direct",
         "requested": "[8.0.0, )",

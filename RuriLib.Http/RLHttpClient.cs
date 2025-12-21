@@ -366,7 +366,8 @@ public class RLHttpClient(ProxyClient proxyClient = null) : IDisposable
                 {
                     TargetHost = host,
                     EnabledSslProtocols = SslProtocols,
-                    CertificateRevocationCheckMode = CertRevocationMode
+                    CertificateRevocationCheckMode = CertRevocationMode,
+                    ApplicationProtocols = [SslApplicationProtocol.Http11, SslApplicationProtocol.Http2]
                 };
 
                 if (CertRevocationMode != X509RevocationMode.Online)

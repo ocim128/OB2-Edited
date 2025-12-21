@@ -34,6 +34,8 @@ namespace RuriLib.Functions.Http.Options
     public enum HttpLibrary
     {
         SystemNet,
-        RuriLibHttp
+        RuriLibHttp,
+        RestSharp,
+        WinHttp
     }
 }

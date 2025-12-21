@@ -39,6 +39,8 @@ namespace RuriLib.Blocks.Requests.Http
             {
                 HttpLibrary.RuriLibHttp => new RLHttpClientRequestHandler(),
                 HttpLibrary.SystemNet => new HttpClientRequestHandler(),
+                HttpLibrary.RestSharp => new RestSharpRequestHandler(),
+                HttpLibrary.WinHttp => new WinHttpClientRequestHandler(),
                 _ => throw new System.NotImplementedException()
             };
     }

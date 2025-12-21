@@ -421,9 +421,6 @@
                                                    VerticalScrollBarVisibility="Visible"
                                                    WordWrap="True"
                                                    Padding="12,10"
-                                                   SelectionBrush="#388BFD"
-                                                   SelectionForeground="White"
-                                                   SelectionOpacity="0.4"
                                                    RenderOptions.ClearTypeHint="Enabled">
                                 <avalonEdit:TextEditor.Options>
                                     <avalonEdit:TextEditorOptions EnableHyperlinks="True" 

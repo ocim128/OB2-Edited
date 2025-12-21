@@ -57,7 +57,9 @@ namespace OpenBullet2.Native.Views.Dialogs
                 {
                     StartOffset = currentOffset,
                     Length = line.Length,
-                    Color = brush
+                    Foreground = brush,
+                    Background = null,
+                    FontWeight = FontWeights.Normal
                 });
 
                 currentOffset += line.Length;
@@ -83,7 +85,9 @@ namespace OpenBullet2.Native.Views.Dialogs
             {
                 StartOffset = startOffset,
                 Length = text.Length,
-                Color = brush
+                Foreground = brush,
+                Background = null,
+                FontWeight = FontWeights.Normal
             });
         }
         

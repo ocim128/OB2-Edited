@@ -7,6 +7,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using MahApps.Metro.IconPacks;
+using RuriLib.Models.Blocks.Settings.Interpolated;
 
 namespace OpenBullet2.Native.Controls
 {
@@ -49,11 +50,13 @@ namespace OpenBullet2.Native.Controls
                     vm.BlockVM.Block.Settings.TryGetValue(valueKey, out var valueSetting))
                 {
                     var varName = (varNameSetting.FixedSetting as StringSetting)?.Value ?? "";
-                    var value = (valueSetting.FixedSetting as StringSetting)?.Value ?? "";
+                    var value = valueSetting.InputMode == SettingInputMode.Interpolated
+                        ? (valueSetting.InterpolatedSetting as InterpolatedStringSetting)?.Value ?? ""
+                        : (valueSetting.FixedSetting as StringSetting)?.Value ?? "";
 
                     if (!string.IsNullOrWhiteSpace(varName) || !string.IsNullOrWhiteSpace(value))
                     {
-                        AddVariableEntry(varName, value, i);
+                        AddVariableEntry(varName, value, valueSetting.InputMode, i);
                     }
                 }
             }
@@ -61,7 +64,7 @@ namespace OpenBullet2.Native.Controls
             // If no variables exist, add one empty entry
             if (variableEntries.Count == 0)
             {
-                AddVariableEntry("", "", 1);
+                AddVariableEntry("", "", SettingInputMode.Fixed, 1);
             }
         }
 
@@ -70,7 +73,7 @@ namespace OpenBullet2.Native.Controls
             int nextIndex = GetNextAvailableIndex();
             if (nextIndex <= 10)
             {
-                AddVariableEntry("", "", nextIndex);
+                AddVariableEntry("", "", SettingInputMode.Fixed, nextIndex);
             }
             else
             {
@@ -78,9 +81,9 @@ namespace OpenBullet2.Native.Controls
             }
         }
 
-        private void AddVariableEntry(string variableName, string value, int index)
+        private void AddVariableEntry(string variableName, string value, SettingInputMode mode, int index)
         {
-            var entry = new VariableEntryControl(index, variableName, value);
+            var entry = new VariableEntryControl(index, variableName, value, mode);
             entry.VariableChanged += OnVariableChanged;
             entry.RemoveRequested += OnRemoveRequested;
 
@@ -93,8 +96,8 @@ namespace OpenBullet2.Native.Controls
             var entry = sender as VariableEntryControl;
             if (entry != null)
             {
-                UpdateBlockSetting($"variableName{entry.Index}", e.VariableName);
-                UpdateBlockSetting($"value{entry.Index}", e.Value);
+                UpdateBlockSetting($"variableName{entry.Index}", e.VariableName, SettingInputMode.Fixed);
+                UpdateBlockSetting($"value{entry.Index}", e.Value, e.InputMode);
             }
         }
 
@@ -118,8 +121,8 @@ namespace OpenBullet2.Native.Controls
             VariablesPanel.Children.Remove(entry);
 
             // Clear the block setting
-            UpdateBlockSetting($"variableName{entry.Index}", "");
-            UpdateBlockSetting($"value{entry.Index}", "");
+            UpdateBlockSetting($"variableName{entry.Index}", "", SettingInputMode.Fixed);
+            UpdateBlockSetting($"value{entry.Index}", "", SettingInputMode.Fixed);
 
             // Reindex remaining entries
             ReindexEntries();
@@ -130,8 +133,8 @@ namespace OpenBullet2.Native.Controls
             // Clear all settings first
             for (int i = 1; i <= 10; i++)
             {
-                UpdateBlockSetting($"variableName{i}", "");
-                UpdateBlockSetting($"value{i}", "");
+                UpdateBlockSetting($"variableName{i}", "", SettingInputMode.Fixed);
+                UpdateBlockSetting($"value{i}", "", SettingInputMode.Fixed);
             }
 
             // Reassign indices and update settings
@@ -139,21 +142,38 @@ namespace OpenBullet2.Native.Controls
             {
                 var entry = variableEntries[i];
                 entry.Index = i + 1;
-                UpdateBlockSetting($"variableName{entry.Index}", entry.VariableName);
-                UpdateBlockSetting($"value{entry.Index}", entry.Value);
+                UpdateBlockSetting($"variableName{entry.Index}", entry.VariableName, SettingInputMode.Fixed);
+                UpdateBlockSetting($"value{entry.Index}", entry.Value, entry.InputMode);
             }
         }
 
 
 
-        private void UpdateBlockSetting(string settingName, string value)
+        private void UpdateBlockSetting(string settingName, string value, SettingInputMode mode)
         {
             if (vm.BlockVM.Block.Settings.TryGetValue(settingName, out var setting))
             {
-                var strSetting = setting.FixedSetting as StringSetting;
-                if (strSetting != null)
+                setting.InputMode = mode;
+ 
+                if (mode == SettingInputMode.Interpolated)
                 {
-                    strSetting.Value = value;
+                    if (setting.InterpolatedSetting is InterpolatedStringSetting interp)
+                    {
+                        interp.Value = value;
+                    }
+                     
+                    // Also update fixed value for consistency when switching back
+                    if (setting.FixedSetting is StringSetting fixedStr)
+                    {
+                        fixedStr.Value = value;
+                    }
+                }
+                else
+                {
+                    if (setting.FixedSetting is StringSetting fixedStr)
+                    {
+                        fixedStr.Value = value;
+                    }
                 }
             }
         }
@@ -243,11 +263,12 @@ namespace OpenBullet2.Native.Controls
         public int Index { get; set; }
         public string VariableName => variableNameTextBox?.Text ?? "";
         public string Value => valueTextBox?.Text ?? "";
+        public SettingInputMode InputMode => isInterpolatedMode ? SettingInputMode.Interpolated : SettingInputMode.Fixed;
 
-        public VariableEntryControl(int index, string variableName, string value)
+        public VariableEntryControl(int index, string variableName, string value, SettingInputMode mode = SettingInputMode.Fixed)
         {
             Index = index;
-            isInterpolatedMode = false;
+            isInterpolatedMode = mode == SettingInputMode.Interpolated;
             isLocked = true; // Lock is active by default
             CreateUI();
             variableNameTextBox.Text = variableName;
@@ -357,6 +378,7 @@ namespace OpenBullet2.Native.Controls
             isInterpolatedMode = !isInterpolatedMode;
             UpdateToggleStates();
             UpdateValueTextBoxStyle();
+            VariableChanged?.Invoke(this, new VariableChangedEventArgs(VariableName, Value, InputMode));
         }
 
         private void OnLockToggleClick(object sender, RoutedEventArgs e)
@@ -367,7 +389,7 @@ namespace OpenBullet2.Native.Controls
 
         private void OnTextChanged(object sender, TextChangedEventArgs e)
         {
-            VariableChanged?.Invoke(this, new VariableChangedEventArgs(VariableName, Value));
+            VariableChanged?.Invoke(this, new VariableChangedEventArgs(VariableName, Value, InputMode));
         }
 
         private void OnRemoveClick(object sender, RoutedEventArgs e)
@@ -455,11 +477,13 @@ namespace OpenBullet2.Native.Controls
     {
         public string VariableName { get; }
         public string Value { get; }
+        public SettingInputMode InputMode { get; }
 
-        public VariableChangedEventArgs(string variableName, string value)
+        public VariableChangedEventArgs(string variableName, string value, SettingInputMode inputMode)
         {
             VariableName = variableName;
             Value = value;
+            InputMode = inputMode;
         }
     }
 

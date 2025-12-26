@@ -11,6 +11,7 @@ using RuriLib.Models.Blocks.Settings;
 using RuriLib.Models.Blocks.Parameters;
 using RuriLib.Models.Blocks.Custom.Keycheck;
 using RuriLib.Models.Configs;
+using RuriLib.Models.Blocks.Settings.Interpolated;
 
 namespace RuriLib.Models.Blocks.Custom;
 
@@ -83,50 +84,137 @@ public class ConditionalConstantStringBlockInstance : AutoBlockInstance
 
     public override string ToCSharp(List<string> definedVariables, ConfigSettings settings)
     {
-        var baseCode = base.ToCSharp(definedVariables, settings);
-
         if (!ConditionalCases.Any())
         {
-            return baseCode;
+            return base.ToCSharp(definedVariables, settings);
         }
 
         using var writer = new StringWriter();
-        writer.Write(baseCode);
 
-        // Append conditional overrides after the standard constant assignment.
-        writer.WriteLine();
-        writer.WriteLine("{");
-        var first = true;
-
-        for (var caseIndex = 0; caseIndex < ConditionalCases.Count; caseIndex++)
+        // 1. Detect and declare missing variables from all settings (including cases)
+        var detectedVariables = new HashSet<string>();
+        foreach (var setting in Settings.Values)
         {
-            var conditionalCase = ConditionalCases[caseIndex];
-            var conditionExpression = BuildConditionExpression(conditionalCase);
-            if (conditionalCase.Keys.Count == 0)
+            AddDetectedVariables(setting, detectedVariables);
+        }
+        foreach (var conditionalCase in ConditionalCases)
+        {
+            AddDetectedVariables(conditionalCase.Value, detectedVariables);
+            foreach (var key in conditionalCase.Keys)
             {
-                writer.WriteLine(first ? "    if (true)" : "    else");
+                AddDetectedVariables(key.Left, detectedVariables);
+                AddDetectedVariables(key.Right, detectedVariables);
             }
-            else
-            {
-                writer.WriteLine(first
-                    ? $"    if ({conditionExpression})"
-                    : $"    else if ({conditionExpression})");
-            }
+        }
 
-            var tempVarName = $"__conditionalValue{caseIndex}";
+        foreach (var missingVar in VariableDetector.GetMissingVariables(detectedVariables, definedVariables))
+        {
+            writer.WriteLine($"dynamic {missingVar} = RuriLib.Models.NullDynamic.Instance;");
+            definedVariables.Add(missingVar);
+        }
+
+        // 2. Prepare the method call
+        var autoDescriptor = (AutoBlockDescriptor)Descriptor;
+        var parameters = new List<string> { "data" }
+            .Concat(Settings.Values.Select(setting =>
+            {
+                var targetType = autoDescriptor.OriginalParameterTypes.TryGetValue(setting.Name, out var type) ? type : null;
+                return CSharpWriter.FromSetting(setting, targetType);
+            }));
+
+        var methodCall = $"{Descriptor.Id}({string.Join(", ", parameters)})";
+        if (autoDescriptor.Async)
+        {
+            methodCall = $"await {methodCall}.ConfigureAwait(false)";
+        }
+
+        // 3. Generate the atomic assignment logic in a block scope
+        writer.WriteLine("{");
+        
+        if (Safe)
+        {
+            writer.WriteLine("    string __compValue = string.Empty;");
+            writer.WriteLine("    try {");
+            writer.WriteLine($"        __compValue = {methodCall};");
+            writer.WriteLine("    } catch (Exception safeException) {");
+            writer.WriteLine("        data.ERROR = safeException.PrettyPrint();");
+            writer.WriteLine("        data.Logger.Log($\"[SAFE MODE] Exception caught and saved to data.ERROR: {data.ERROR}\", LogColors.Tomato);");
+            writer.WriteLine("    }");
+        }
+        else
+        {
+            writer.WriteLine($"    string __compValue = {methodCall};");
+        }
+
+        // Apply overrides to __compValue
+        var first = true;
+        for (var i = 0; i < ConditionalCases.Count; i++)
+        {
+            var conditionalCase = ConditionalCases[i];
+            var conditionExpression = BuildConditionExpression(conditionalCase);
+            
+            if (conditionalCase.Keys.Count == 0)
+                writer.WriteLine(first ? "    if (true)" : "    else");
+            else
+                writer.WriteLine(first ? $"    if ({conditionExpression})" : $"    else if ({conditionExpression})");
+
             writer.WriteLine("    {");
-            writer.WriteLine($"        var {tempVarName} = {CSharpWriter.FromSetting(conditionalCase.Value)};");
-            writer.WriteLine($"        {OutputVariable} = {tempVarName};");
+            writer.WriteLine($"        __compValue = {CSharpWriter.FromSetting(conditionalCase.Value)};");
             writer.WriteLine("        data.Logger.LogHeader();");
-            writer.WriteLine("        data.Logger.Log($\"Conditional constant '{0}' matched. Set {1} = {{{2}}}\", LogColors.YellowGreen);", conditionalCase.Name.Replace("\"", "\\\""), OutputVariable, tempVarName);
-            writer.WriteLine($"        data.LogVariableAssignment(nameof({OutputVariable}));");
+            writer.WriteLine($"        data.Logger.Log($\"Conditional constant '{conditionalCase.Name.Replace("\"", "\\\"")}' matched. Set {OutputVariable} = {{__compValue}}\", LogColors.YellowGreen);");
             writer.WriteLine("    }");
             first = false;
+        }
+
+        // Final assignment to the real output variable
+        if (definedVariables.Contains(OutputVariable) || OutputVariable.StartsWith("globals."))
+        {
+            writer.WriteLine($"    {OutputVariable} = __compValue;");
+        }
+        else
+        {
+            writer.WriteLine($"    string {OutputVariable} = __compValue;");
+            definedVariables.Add(OutputVariable);
+        }
+
+        writer.WriteLine($"    data.LogVariableAssignment(nameof({OutputVariable}));");
+        if (IsCapture)
+        {
+            writer.WriteLine($"    data.MarkForCapture(nameof({OutputVariable}));");
         }
 
         writer.WriteLine("}");
 
         return writer.ToString();
+    }
+
+    private void AddDetectedVariables(BlockSetting setting, HashSet<string> detectedVariables)
+    {
+        if (setting.InterpolatedSetting != null)
+        {
+            switch (setting.InterpolatedSetting)
+            {
+                case InterpolatedStringSetting str:
+                    detectedVariables.UnionWith(VariableDetector.DetectFromInterpolatedString(str.Value));
+                    break;
+                case InterpolatedListOfStringsSetting list:
+                    foreach (var item in list.Value)
+                        detectedVariables.UnionWith(VariableDetector.DetectFromInterpolatedString(item));
+                    break;
+                case InterpolatedDictionaryOfStringsSetting dict:
+                    foreach (var kvp in dict.Value)
+                    {
+                        detectedVariables.UnionWith(VariableDetector.DetectFromInterpolatedString(kvp.Key));
+                        detectedVariables.UnionWith(VariableDetector.DetectFromInterpolatedString(kvp.Value));
+                    }
+                    break;
+            }
+        }
+        if (setting.InputMode == SettingInputMode.Variable && !string.IsNullOrEmpty(setting.InputVariableName))
+        {
+            var baseVar = VariableDetector.ExtractBaseVariableName(setting.InputVariableName);
+            if (!string.IsNullOrEmpty(baseVar)) detectedVariables.Add(baseVar);
+        }
     }
 
     private string ExtractCases(string script, int startingLineNumber)
@@ -177,13 +265,51 @@ public class ConditionalConstantStringBlockInstance : AutoBlockInstance
                 currentCase = null;
                 writer.WriteLine();
             }
-            else if (currentCase != null && trimmed.StartsWith(caseValueParameter.Name, StringComparison.Ordinal))
+            else if (currentCase != null && (trimmed.StartsWith(caseValueParameter.Name, StringComparison.OrdinalIgnoreCase) || trimmed.StartsWith("Value", StringComparison.OrdinalIgnoreCase)))
             {
                 var valueLine = trimmed;
 
                 try
                 {
-                    LoliCodeParser.ParseSettingValue(ref valueLine, currentCase.Value, caseValueParameter);
+                    LineParser.ParseToken(ref valueLine); // Consume the name (conditionalValue or Value)
+                    valueLine = valueLine.TrimStart();
+                    if (!valueLine.StartsWith('='))
+                    {
+                        throw new Exception("Missing =");
+                    }
+
+                    valueLine = valueLine[1..].TrimStart();
+                    
+                    // Explicitly handle interpolated mode here just in case ParseSettingValue has issues with currentCase.Value
+                    if (valueLine.StartsWith('$'))
+                    {
+                        valueLine = valueLine[1..].TrimStart();
+                        currentCase.Value.InputMode = SettingInputMode.Interpolated;
+                        if (currentCase.Value.InterpolatedSetting is InterpolatedStringSetting interpStr)
+                        {
+                            interpStr.Value = LineParser.ParseLiteral(ref valueLine);
+                        }
+                        
+                        // Sync fixed setting too
+                        if (currentCase.Value.FixedSetting is StringSetting fixedStr)
+                        {
+                            fixedStr.Value = (currentCase.Value.InterpolatedSetting as InterpolatedStringSetting).Value;
+                        }
+                    }
+                    else if (valueLine.StartsWith('@'))
+                    {
+                        valueLine = valueLine[1..].TrimStart();
+                        currentCase.Value.InputMode = SettingInputMode.Variable;
+                        currentCase.Value.InputVariableName = LineParser.ParseToken(ref valueLine);
+                    }
+                    else
+                    {
+                        currentCase.Value.InputMode = SettingInputMode.Fixed;
+                        if (currentCase.Value.FixedSetting is StringSetting fixedStr)
+                        {
+                            fixedStr.Value = LineParser.ParseLiteral(ref valueLine);
+                        }
+                    }
                 }
                 catch (Exception)
                 {

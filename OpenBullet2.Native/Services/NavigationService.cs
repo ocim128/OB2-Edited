@@ -55,6 +55,12 @@ public class NavigationService : INavigationService
 
     public void NavigateTo(MainWindowPage pageEnum, object? parameter)
     {
+        // Save current page state if it's the ConfigEditor
+        if (CurrentPage is ConfigEditor configEditorBefore)
+        {
+            configEditorBefore.OnPageChanged();
+        }
+
         Page page;
 
         // Special handling for pages that might need arguments (though currently most are parameterless or handled via ViewModels)

@@ -70,20 +70,28 @@ namespace RuriLib.Helpers.Transpilers
                         int dummyLine = 0;
                         block.FromLC(ref blockScript, ref dummyLine);
                         
-                        writer.WriteLine($"// BLOCK: {block.Label ?? currentBlockId}");
-                        writer.WriteLine($"data.ExecutingBlock({CSharpWriter.SerializeString(block.Label ?? currentBlockId)});");
-                        writer.WriteLine(block.ToCSharp(definedVariables, settings));
-                        
-                        if (block is AutoBlockInstance auto && auto.Descriptor.Id == "CreateMultiple")
+                        // Skip disabled blocks - they should not be executed
+                        if (block.Disabled)
                         {
-                            var createMultipleVars = GetCreateMultipleVariables(auto);
-                            foreach (var varName in createMultipleVars)
-                            {
-                                writer.WriteLine($"{varName} = data.Objects.ContainsKey(\"{varName}\") ? data.Objects[\"{varName}\"] : RuriLib.Models.NullDynamic.Instance;");
-                            }
+                            writer.WriteLine($"// BLOCK (DISABLED): {block.Label ?? currentBlockId}");
                         }
+                        else
+                        {
+                            writer.WriteLine($"// BLOCK: {block.Label ?? currentBlockId}");
+                            writer.WriteLine($"data.ExecutingBlock({CSharpWriter.SerializeString(block.Label ?? currentBlockId)});");
+                            writer.WriteLine(block.ToCSharp(definedVariables, settings));
+                            
+                            if (block is AutoBlockInstance auto && auto.Descriptor.Id == "CreateMultiple")
+                            {
+                                var createMultipleVars = GetCreateMultipleVariables(auto);
+                                foreach (var varName in createMultipleVars)
+                                {
+                                    writer.WriteLine($"{varName} = data.Objects.ContainsKey(\"{varName}\") ? data.Objects[\"{varName}\"] : RuriLib.Models.NullDynamic.Instance;");
+                                }
+                            }
 
-                        writer.WriteLine();
+                            writer.WriteLine();
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -136,10 +144,18 @@ namespace RuriLib.Helpers.Transpilers
                     int dummyLine = 0;
                     block.FromLC(ref blockScript, ref dummyLine);
                     
-                    writer.WriteLine($"// BLOCK: {block.Label ?? currentBlockId}");
-                    writer.WriteLine($"data.ExecutingBlock({CSharpWriter.SerializeString(block.Label ?? currentBlockId)});");
-                    writer.WriteLine(block.ToCSharp(definedVariables, settings));
-                    writer.WriteLine();
+                    // Skip disabled blocks - they should not be executed
+                    if (block.Disabled)
+                    {
+                        writer.WriteLine($"// BLOCK (DISABLED): {block.Label ?? currentBlockId}");
+                    }
+                    else
+                    {
+                        writer.WriteLine($"// BLOCK: {block.Label ?? currentBlockId}");
+                        writer.WriteLine($"data.ExecutingBlock({CSharpWriter.SerializeString(block.Label ?? currentBlockId)});");
+                        writer.WriteLine(block.ToCSharp(definedVariables, settings));
+                        writer.WriteLine();
+                    }
                 }
                 catch (Exception ex)
                 {

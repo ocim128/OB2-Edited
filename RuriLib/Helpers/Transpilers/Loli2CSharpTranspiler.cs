@@ -14,6 +14,13 @@ namespace RuriLib.Helpers.Transpilers
         /// </summary>
         public static string Transpile(string script, ConfigSettings settings, bool stepByStep = false)
         {
+            // Use the fast transpiler if we don't need step-by-step debugging
+            // This avoids creating the Block Stack and significantly improves performance
+            if (!stepByStep)
+            {
+                return FastLoli2CSharpTranspiler.Transpile(script, settings);
+            }
+
             var stack = Loli2StackTranspiler.Transpile(script);
             return Stack2CSharpTranspiler.Transpile(stack, settings, stepByStep);
         }

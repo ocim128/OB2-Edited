@@ -1,9 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.CodeAnalysis.Scripting;
 using RuriLib.Helpers.CSharp;
 using RuriLib.Logging;
 using RuriLib.Models.Bots;
@@ -29,17 +27,17 @@ public class ScriptExecutionHandler : IBotExecutionHandler
             (scriptGlobals.input as IDictionary<string, object>).Add(answer.Key, answer.Value);
         }
         
-        var scriptState = await input.Script.RunAsync(scriptGlobals, null, cancellationToken).ConfigureAwait(false);
+        var variables = await input.Script.RunAsync(scriptGlobals, cancellationToken).ConfigureAwait(false);
         botData.Logger.Log("Compiled script config executed.", LogColors.Yellow);
         
         // Extract output variables from script state
-        if (scriptState?.Variables.IsDefault == false)
+        if (variables != null)
         {
-            foreach (var variable in scriptState.Variables)
+            foreach (var kvp in variables)
             {
-                if (botData.MarkedForCapture.Contains(variable.Name))
+                if (botData.MarkedForCapture.Contains(kvp.Key))
                 {
-                    outputVariables[variable.Name] = variable.Value;
+                    outputVariables[kvp.Key] = kvp.Value;
                 }
             }
         }

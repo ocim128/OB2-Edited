@@ -30,6 +30,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Playwright;
+using RuriLib.Models.Scripting;
 
 namespace RuriLib.Models.Debugger;
 
@@ -92,7 +93,7 @@ public partial class ConfigDebugger : IDisposable
 
         var scriptBuilder = new ScriptBuilder();
         var script = scriptBuilder.Build(Config.CSharpScript, Config.Settings.ScriptSettings, PluginRepo);
-        Script startupScript = null;
+        IScript startupScript = null;
         if (!string.IsNullOrWhiteSpace(Config.StartupCSharpScript))
         {
             startupScript = scriptBuilder.Build(Config.StartupCSharpScript, Config.Settings.ScriptSettings, PluginRepo);
@@ -238,44 +239,47 @@ public partial class ConfigDebugger : IDisposable
 
                 Logger.Log("Executing startup script...");
                 var startupGlobals = new ScriptGlobals(startupData, globals);
-                _ = await startupScript.RunAsync(startupGlobals, null, _cts.Token).ConfigureAwait(false);
+                _ = await startupScript.RunAsync(startupGlobals, _cts.Token).ConfigureAwait(false);
                 Logger.Log("Executing main script...");
             }
 
-            var state = await script.RunAsync(scriptGlobals, null, _cts.Token).ConfigureAwait(false);
+            var scriptVars = await script.RunAsync(scriptGlobals, _cts.Token).ConfigureAwait(false);
 
             // Optimized variable processing with early filtering
             var markedForCapture = _data.MarkedForCapture;
-            foreach (var scriptVar in state.Variables)
+            if (scriptVars != null)
             {
-                // Early exit for temporary variables
-                if (scriptVar.Name.StartsWith("tmp_")) continue;
-
-                try
+                foreach (var scriptVar in scriptVars)
                 {
-                    var actualType = scriptVar.Type;
-                    VariableType? vType;
+                    // Early exit for temporary variables
+                    if (scriptVar.Key.StartsWith("tmp_")) continue;
 
                     try
                     {
-                        vType = DescriptorsRepository.ToVariableType(actualType);
-                    }
-                    catch (InvalidCastException) when (scriptVar.Value != null)
-                    {
-                        actualType = scriptVar.Value.GetType();
-                        vType = DescriptorsRepository.ToVariableType(actualType);
-                    }
+                        var actualType = scriptVar.Value?.GetType();
+                        VariableType? vType;
 
-                    if (vType.HasValue)
-                    {
-                        var variable = DescriptorsRepository.ToVariable(scriptVar.Name, actualType, scriptVar.Value);
-                        variable.MarkedForCapture = markedForCapture.Contains(scriptVar.Name);
-                        Variables.Add(variable);
+                        try
+                        {
+                            vType = DescriptorsRepository.ToVariableType(actualType);
+                        }
+                        catch (InvalidCastException) when (scriptVar.Value != null)
+                        {
+                            actualType = scriptVar.Value.GetType();
+                            vType = DescriptorsRepository.ToVariableType(actualType);
+                        }
+
+                        if (vType.HasValue)
+                        {
+                            var variable = DescriptorsRepository.ToVariable(scriptVar.Key, actualType, scriptVar.Value);
+                            variable.MarkedForCapture = markedForCapture.Contains(scriptVar.Key);
+                            Variables.Add(variable);
+                        }
                     }
-                }
-                catch
-                {
-                    // Unsupported types are ignored
+                    catch
+                    {
+                        // Unsupported types are ignored
+                    }
                 }
             }
         }

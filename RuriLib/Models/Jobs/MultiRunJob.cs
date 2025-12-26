@@ -36,6 +36,7 @@ using RuriLib.Models.Variables;
 using RuriLib.Models.Jobs.Execution;
 using RuriLib.Models.Jobs.Statistics;
 using RuriLib.Models.Jobs.Status;
+using RuriLib.Models.Scripting;
 
 namespace RuriLib.Models.Jobs;
 
@@ -89,7 +90,7 @@ public class MultiRunJob(RuriLibSettingsService settings, PluginRepository plugi
     private Timer _proxyReloadTimer;
     private CancellationTokenSource _startCts;
     private MethodInfo _dllMethod;
-    private Script _script;
+    private IScript _script;
 
     // Performance optimizations
     private static readonly char[] _separator = ['\r', '\n'];
@@ -390,7 +391,7 @@ public class MultiRunJob(RuriLibSettingsService settings, PluginRepository plugi
             CancellationToken = cancellationToken
         };
         var startupGlobals = new ScriptGlobals(startupBotData, _globalVariables);
-        _ = await startupScript.RunAsync(startupGlobals, null, cancellationToken).ConfigureAwait(false);
+        _ = await startupScript.RunAsync(startupGlobals, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task StartExecutionAsync(CancellationToken cancellationToken)
@@ -948,7 +949,7 @@ public struct MultiRunInput
     public BotData BotData { get; set; }
     public dynamic Globals { get; set; }
     public ProxyPool ProxyPool { get; set; }
-    public Script Script { get; set; }
+    public IScript Script { get; set; }
     public bool IsDLL { get; set; }
     public MethodInfo DLLMethod { get; set; }
     public Dictionary<string, string> CustomInputsAnswers { get; set; }

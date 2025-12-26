@@ -12,6 +12,8 @@ using System.Linq;
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
+using RuriLib.Models.Scripting;
+using System.Runtime.Loader;
 
 namespace RuriLib.Helpers.CSharp
 {
@@ -52,7 +54,7 @@ namespace RuriLib.Helpers.CSharp
         /// </summary>
         private sealed class CachedScript
         {
-            public Script Script { get; init; }
+            public IScript Script { get; init; }
             public DateTime CreatedAt { get; init; }
             public DateTime LastAccessedAt { get; set; }
             public long AccessCount;  // Field for Interlocked operations
@@ -180,11 +182,11 @@ namespace RuriLib.Helpers.CSharp
         }
 
         /// <summary>
-        /// Builds an executable C# <see cref="Script"/> from a <paramref name="cSharpScript"/> string,
+        /// Builds an executable C# <see cref="IScript"/> from a <paramref name="cSharpScript"/> string,
         /// some <paramref name="settings"/> and a <paramref name="pluginRepo"/> to reference the correct assemblies.
         /// Uses caching to avoid recompilation of identical scripts.
         /// </summary>
-        public Script Build(string cSharpScript, ScriptSettings settings, PluginRepository pluginRepo,
+        public IScript Build(string cSharpScript, ScriptSettings settings, PluginRepository pluginRepo,
             OptimizationLevel optimizationLevel = OptimizationLevel.Debug)
         {
             var plugins = pluginRepo?.GetPlugins().ToArray() ?? Array.Empty<Assembly>();
@@ -192,7 +194,7 @@ namespace RuriLib.Helpers.CSharp
             // Compute cache key
             var cacheKey = ComputeScriptHash(cSharpScript, settings, optimizationLevel, plugins);
             
-            // Check cache first
+            // Check memory cache first
             if (_scriptCache.TryGetValue(cacheKey, out var cachedScript))
             {
                 // Update access metadata
@@ -200,6 +202,41 @@ namespace RuriLib.Helpers.CSharp
                 System.Threading.Interlocked.Increment(ref cachedScript.AccessCount);
                 System.Threading.Interlocked.Increment(ref _cacheHits);
                 return cachedScript.Script;
+            }
+            
+            // Check disk cache
+            // Use UserData folder if available, or just a local cache folder
+            // Assuming current directory is the base
+            var cacheDir = Path.Combine("UserData", "CompiledScripts");
+            var cleanHash = cacheKey.Replace("/", "-").Replace("+", "_").Replace("=", "");
+            var dllPath = Path.Combine(cacheDir, $"{cleanHash}.dll");
+
+            if (File.Exists(dllPath))
+            {
+                try
+                {
+                    var assembly = AssemblyLoadContext.Default.LoadFromAssemblyPath(Path.GetFullPath(dllPath));
+                    var loadedScript = new CompiledAssemblyScript(assembly);
+
+                    // Add to memory cache
+                    var newCachedEntry = new CachedScript
+                    {
+                        Script = loadedScript,
+                        CreatedAt = DateTime.UtcNow,
+                        LastAccessedAt = DateTime.UtcNow,
+                        AccessCount = 1,
+                        CompilationTimeMs = 0 // Loaded from disk
+                    };
+                    _scriptCache.TryAdd(cacheKey, newCachedEntry);
+                    System.Threading.Interlocked.Increment(ref _cacheHits);
+                    
+                    EvictStaleEntriesIfNeeded();
+                    return loadedScript;
+                }
+                catch 
+                {
+                    // Failed to load from disk, proceed to compile
+                }
             }
             
             System.Threading.Interlocked.Increment(ref _cacheMisses);
@@ -249,12 +286,42 @@ namespace RuriLib.Helpers.CSharp
                 options: options,
                 globalsType: typeof(ScriptGlobals));
                 
+            // Try to emit to disk
+            try 
+            {
+                var compilation = script.GetCompilation();
+                // We only emit if there are no errors? 
+                // Compilation.Emit will return success false if errors.
+                // But we don't want to break the flow if user has invalid code (let RoslynScript handle it via Compile() diagnostics)
+                // But we can only save valid DLLs.
+                
+                using (var ms = new MemoryStream())
+                {
+                    var emitResult = compilation.Emit(ms);
+                    if (emitResult.Success)
+                    {
+                        Directory.CreateDirectory(cacheDir);
+                        ms.Seek(0, SeekOrigin.Begin);
+                        using (var fs = new FileStream(dllPath, FileMode.Create))
+                        {
+                            ms.CopyTo(fs);
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // Ignore emit errors (e.g. IO exceptions, restricted access)
+            }
+                
             sw.Stop();
             
+            var resultScript = new RoslynScript(script);
+
             // Store in cache
             var newCachedScript = new CachedScript
             {
-                Script = script,
+                Script = resultScript,
                 CreatedAt = DateTime.UtcNow,
                 LastAccessedAt = DateTime.UtcNow,
                 AccessCount = 1,
@@ -266,14 +333,14 @@ namespace RuriLib.Helpers.CSharp
             // Evict stale entries if needed
             EvictStaleEntriesIfNeeded();
             
-            return script;
+            return resultScript;
         }
         
         /// <summary>
-        /// Builds an executable C# <see cref="Script"/> bypassing the cache.
+        /// Builds an executable C# <see cref="IScript"/> bypassing the cache.
         /// Use this when you need a fresh compilation (e.g., for debugging).
         /// </summary>
-        public Script BuildWithoutCache(string cSharpScript, ScriptSettings settings, PluginRepository pluginRepo,
+        public IScript BuildWithoutCache(string cSharpScript, ScriptSettings settings, PluginRepository pluginRepo,
             OptimizationLevel optimizationLevel = OptimizationLevel.Debug)
         {
             var plugins = pluginRepo?.GetPlugins().ToArray() ?? Array.Empty<Assembly>();
@@ -311,10 +378,12 @@ namespace RuriLib.Helpers.CSharp
             
             options = options.AddReferences(requiredAssemblies);
 
-            return CSharpScript.Create(
+            var script = CSharpScript.Create(
                 code: cSharpScript,
                 options: options,
                 globalsType: typeof(ScriptGlobals));
+
+            return new RoslynScript(script);
         }
 
         /// <summary>

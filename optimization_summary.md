@@ -21,3 +21,16 @@
 ## Pending/Potential Optimizations
 - **Simpler Block Optimization**: Detecting "Simple" blocks in the Stack-to-C# path and skipping Roslyn normalization for them (discussed but not fully implemented).
 - **VariableDetector Optimization**: Optimizing the Regex usage or using `Span<T>` in `VariableDetector` to reduce allocation during variable scanning.
+
+### 2. Persistent Script Caching
+**Goal**: Improve cold start performance by persisting compiled assemblies to disk.
+
+**Changes Implemented**:
+- **Architecture**: Introduced `IScript` interface to abstract execution of both Roslyn Scripts and Compiled Assemblies.
+- **Caching**: Modified `ScriptBuilder` to serialize compiled assemblies (DLLs) to `UserData/CompiledScripts`.
+- **Loading**: Implemented fast loading from disk if hash matches, bypassing Roslyn compilation.
+- **Data Capture**: Implemented manual field reflection in `CompiledAssemblyScript` to capture variables from loaded assemblies, matching Roslyn's behavior.
+
+**Expected Impact**:
+- Instant startup for previously executed configs after app restart.
+- Reduced CPU usage during bot initialization.

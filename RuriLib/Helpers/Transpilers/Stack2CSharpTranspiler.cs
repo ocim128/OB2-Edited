@@ -210,8 +210,20 @@ namespace RuriLib.Helpers.Transpilers
                 writer.WriteLine($"data.ExecutingBlock({CSharpWriter.SerializeString(block.Label)});");
 
                 var snippet = block.ToCSharp(declaredVariables, settings);
-                var tree = CSharpSyntaxTree.ParseText(snippet);
-                writer.WriteLine(tree.GetRoot().NormalizeWhitespace().ToFullString());
+                
+                // OPTIMIZATION: Skip Roslyn normalization for simple blocks that generate clean C# code
+                // This significantly improves transpilation performance for configs with many blocks
+                if (IsSimpleBlock(block))
+                {
+                    // Simple blocks generate well-formatted code that doesn't need normalization
+                    writer.WriteLine(snippet);
+                }
+                else
+                {
+                    // Complex blocks may generate code that benefits from formatting
+                    var tree = CSharpSyntaxTree.ParseText(snippet);
+                    writer.WriteLine(tree.GetRoot().NormalizeWhitespace().ToFullString());
+                }
 
                 // Special handling for CreateMultiple blocks - assign variables from data object
                 if (block is AutoBlockInstance auto && auto.Descriptor.Id == "CreateMultiple")
@@ -233,6 +245,34 @@ namespace RuriLib.Helpers.Transpilers
             }
 
             return writer.ToString();
+        }
+        
+        /// <summary>
+        /// Determines if a block generates simple, well-formatted C# code that doesn't need Roslyn normalization.
+        /// Simple blocks are typically auto-generated blocks with straightforward method calls.
+        /// Complex blocks (LoliCode, HttpRequest, Keycheck, Parse, Script) may generate more complex code
+        /// that benefits from normalization for readability and consistency.
+        /// </summary>
+        private static bool IsSimpleBlock(BlockInstance block)
+        {
+            // AutoBlockInstance generates clean code: method calls with proper formatting
+            // These are the most common block types and benefit most from skipping Roslyn
+            if (block is AutoBlockInstance)
+            {
+                // CreateMultiple blocks are still simple
+                // Safe mode blocks are still simple (just wrapped in try/catch)
+                return true;
+            }
+            
+            // These block types may generate complex or multi-line code that benefits from normalization:
+            // - LoliCodeBlockInstance: User-written code mixed with transpiled statements
+            // - HttpRequestBlockInstance: Complex async request building with multiple options
+            // - KeycheckBlockInstance: Multiple nested conditions and keychains
+            // - ParseBlockInstance: Regex parsing with multiple output patterns
+            // - ScriptBlockInstance: External script execution with variable bindings
+            // - ConditionalConstantStringBlockInstance: Complex switch/case generation
+            
+            return false;
         }
 
         /// <summary>

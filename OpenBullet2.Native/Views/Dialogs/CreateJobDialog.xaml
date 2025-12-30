@@ -26,23 +26,19 @@
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
-            <!-- Header Section -->
-            <StackPanel Grid.Row="0" Style="{StaticResource DialogHeader.WithIcon}">
-                <ContentControl Content="{StaticResource Icon.Rocket}"
-                               Style="{StaticResource DialogHeader.Icon}"/>
-                <StackPanel>
-                    <TextBlock Text="Create New Job"
-                               FontFamily="Segoe UI"
-                               FontSize="18"
-                               FontWeight="SemiBold"
-                               Foreground="{DynamicResource ForegroundMain}"
-                               Margin="0,0,0,2"/>
-                    <TextBlock Text="Choose the type of job you want to create"
-                               FontFamily="Segoe UI"
-                               FontSize="12"
-                               Foreground="#94A3B8"
-                               FontWeight="Medium"/>
-                </StackPanel>
+            <!-- Header Section (Minimalist - No Icon) -->
+            <StackPanel Grid.Row="0" Margin="0,0,0,24">
+                <TextBlock Text="Create New Job"
+                           FontFamily="Segoe UI"
+                           FontSize="20"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource ForegroundMain}"
+                           Margin="0,0,0,4"/>
+                <TextBlock Text="Choose the type of job you want to create"
+                           FontFamily="Segoe UI"
+                           FontSize="13"
+                           Foreground="#94A3B8"
+                           FontWeight="Normal"/>
             </StackPanel>
 
             <!-- Job Type Options -->
@@ -71,19 +67,15 @@
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
                         
-                        <!-- Icon Section -->
-                        <Border Grid.Column="0" 
-                                Background="#10B981" 
-                                CornerRadius="8" 
-                                Padding="10" 
-                                Margin="0,0,16,0">
-                            <ContentControl Content="{StaticResource Icon.Play}" 
-                                           Width="20" Height="20" 
-                                           Foreground="White"/>
-                        </Border>
+                        <!-- Simple Color Indicator -->
+                        <Ellipse Grid.Column="0" 
+                                 Width="10" 
+                                 Height="10" 
+                                 Fill="#10B981" 
+                                 VerticalAlignment="Center"
+                                 Margin="0,0,12,0"/>
                         
                         <!-- Content Section -->
                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
@@ -99,13 +91,6 @@
                                        Foreground="#94A3B8"
                                        TextWrapping="Wrap"/>
                         </StackPanel>
-                        
-                        <!-- Arrow Icon -->
-                        <ContentControl Grid.Column="2" 
-                                       Content="{StaticResource Icon.ChevronRight}" 
-                                       Width="20" Height="20" 
-                                       Foreground="#64748B"
-                                       VerticalAlignment="Center"/>
                     </Grid>
                 </Border>
 
@@ -131,19 +116,15 @@
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
                         
-                        <!-- Icon Section -->
-                        <Border Grid.Column="0" 
-                                Background="#3B82F6" 
-                                CornerRadius="8" 
-                                Padding="10" 
-                                Margin="0,0,16,0">
-                            <ContentControl Content="{StaticResource Icon.Network}" 
-                                           Width="20" Height="20" 
-                                           Foreground="White"/>
-                        </Border>
+                        <!-- Simple Color Indicator -->
+                        <Ellipse Grid.Column="0" 
+                                 Width="10" 
+                                 Height="10" 
+                                 Fill="#3B82F6" 
+                                 VerticalAlignment="Center"
+                                 Margin="0,0,12,0"/>
                         
                         <!-- Content Section -->
                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
@@ -159,13 +140,6 @@
                                        Foreground="#94A3B8"
                                        TextWrapping="Wrap"/>
                         </StackPanel>
-                        
-                        <!-- Arrow Icon -->
-                        <ContentControl Grid.Column="2" 
-                                       Content="{StaticResource Icon.ChevronRight}" 
-                                       Width="20" Height="20" 
-                                       Foreground="#64748B"
-                                       VerticalAlignment="Center"/>
                     </Grid>
                 </Border>
             </StackPanel>

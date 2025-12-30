@@ -36,8 +36,22 @@ namespace RuriLib.Functions.Http
         public static RLHttpClient GetRLHttpClient(Proxy proxy, HttpOptions options)
         {
             var client = GetProxyClient(proxy, options);
+            var handler = GetHttpMessageHandler(proxy, options, null);
 
-            return new RLHttpClient(client)
+            // Disable cookies and auto-redirects on the handler as RLHttpClient handles them manually
+            // We need to do this because GetHttpMessageHandler sets them to true by default
+            if (handler is HttpClientHandler httpHandler)
+            {
+                httpHandler.UseCookies = false;
+                httpHandler.AllowAutoRedirect = false;
+            }
+            else if (handler is SocketsHttpHandler socksHandler)
+            {
+                socksHandler.UseCookies = false;
+                socksHandler.AllowAutoRedirect = false;
+            }
+
+            return new RLHttpClient(client, handler)
             {
                 AllowAutoRedirect = options.AutoRedirect,
                 MaxNumberOfRedirects = options.MaxNumberOfRedirects,
@@ -166,8 +180,12 @@ namespace RuriLib.Functions.Http
                 httpHandler.AllowAutoRedirect = options.AutoRedirect;
                 httpHandler.SslProtocols = ToSslProtocols(options.SecurityProtocol);
                 httpHandler.CheckCertificateRevocationList = options.CertRevocationMode == X509RevocationMode.Online;
-                httpHandler.UseCookies = true;
-                httpHandler.CookieContainer = cookieContainer;
+                httpHandler.UseCookies = cookieContainer != null;
+                
+                if (cookieContainer != null)
+                {
+                    httpHandler.CookieContainer = cookieContainer;
+                }
 
                 // Hack to modify the SSL options
                 var underlyingHandler = (dynamic)httpHandler.GetType().InvokeMember("_underlyingHandler",
@@ -182,8 +200,12 @@ namespace RuriLib.Functions.Http
                 socksHandler.SslOptions = sslOptions;
                 socksHandler.ConnectTimeout = options.ConnectTimeout;
                 socksHandler.ResponseDrainTimeout = options.ReadWriteTimeout;
-                socksHandler.UseCookies = true;
-                socksHandler.CookieContainer = cookieContainer;
+                socksHandler.UseCookies = cookieContainer != null;
+                
+                if (cookieContainer != null)
+                {
+                    socksHandler.CookieContainer = cookieContainer;
+                }
             }
 
             return handler;

@@ -31,30 +31,38 @@ namespace RuriLib.Functions.Http
         public X509RevocationMode CertRevocationMode { get; set; }
         public bool ReadResponseContent { get; set; }
 
-        public RLHttpClient(ProxyClient proxyClient)
+        public RLHttpClient(ProxyClient proxyClient, HttpMessageHandler handler = null)
         {
-            // Configure HttpClientHandler with proxy settings
-            handler = new HttpClientHandler
+            if (handler != null)
             {
-                UseProxy = proxyClient != null && proxyClient is not NoProxyClient,
-                Proxy = proxyClient != null && proxyClient is not NoProxyClient ? new WebProxy
+                this.handler = handler as HttpClientHandler;
+                this.httpClient = new HttpClient(handler);
+            }
+            else
+            {
+                // Configure HttpClientHandler with proxy settings
+                this.handler = new HttpClientHandler
                 {
-                    // Construct proxy URI based on proxy type
-                    Address = new Uri(proxyClient switch
+                    UseProxy = proxyClient != null && proxyClient is not NoProxyClient,
+                    Proxy = proxyClient != null && proxyClient is not NoProxyClient ? new WebProxy
                     {
-                        HttpProxyClient => $"http://{proxyClient.Settings.Host}:{proxyClient.Settings.Port}",
-                        Socks4ProxyClient or Socks4aProxyClient => $"socks4://{proxyClient.Settings.Host}:{proxyClient.Settings.Port}",
-                        Socks5ProxyClient => $"socks5://{proxyClient.Settings.Host}:{proxyClient.Settings.Port}",
-                        NoProxyClient => throw new InvalidOperationException("NoProxyClient does not require a proxy URI"),
-                        _ => throw new NotSupportedException($"Unsupported proxy type: {proxyClient.GetType().Name}")
-                    }),
-                    Credentials = proxyClient.Settings.Credentials
-                } : null,
-                UseCookies = false, // Cookies handled manually in SendAsync
-                AllowAutoRedirect = false // Disable auto-redirect to handle manually
-            };
+                        // Construct proxy URI based on proxy type
+                        Address = new Uri(proxyClient switch
+                        {
+                            HttpProxyClient => $"http://{proxyClient.Settings.Host}:{proxyClient.Settings.Port}",
+                            Socks4ProxyClient or Socks4aProxyClient => $"socks4://{proxyClient.Settings.Host}:{proxyClient.Settings.Port}",
+                            Socks5ProxyClient => $"socks5://{proxyClient.Settings.Host}:{proxyClient.Settings.Port}",
+                            NoProxyClient => throw new InvalidOperationException("NoProxyClient does not require a proxy URI"),
+                            _ => throw new NotSupportedException($"Unsupported proxy type: {proxyClient.GetType().Name}")
+                        }),
+                        Credentials = proxyClient.Settings.Credentials
+                    } : null,
+                    UseCookies = false, // Cookies handled manually in SendAsync
+                    AllowAutoRedirect = false // Disable auto-redirect to handle manually
+                };
 
-            httpClient = new HttpClient(handler);
+                this.httpClient = new HttpClient(this.handler);
+            }
         }
 
         public async Task<HttpResponse> SendAsync(HttpRequest request, CancellationToken cancellationToken)

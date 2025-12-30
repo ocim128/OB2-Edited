@@ -18,7 +18,7 @@
                           Width="50"/>
         <Label Content="hours" />
         <mah:NumericUpDown Minimum="0"
-                          Maximum="60"
+                          Maximum="59"
                           Interval="1"
                           HideUpDownButtons="True"
                           x:Name="minutes"
@@ -27,7 +27,7 @@
                           Width="50"/>
         <Label Content="minutes" />
         <mah:NumericUpDown Minimum="0"
-                          Maximum="60"
+                          Maximum="59"
                           Interval="1"
                           HideUpDownButtons="True"
                           x:Name="seconds"

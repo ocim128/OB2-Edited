@@ -38,7 +38,17 @@ public partial class RLSettings : Page
     private void GlobalRetryKeysChanged(object sender, TextChangedEventArgs e)
         => vm.GlobalRetryKeys = globalRetryKeysTextBox.Text.Split(Environment.NewLine).ToList();
 
-    private async void Save(object sender, RoutedEventArgs e) => await vm.Save();
+    private async void Save(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            await vm.Save();
+        }
+        catch (Exception ex)
+        {
+            Alert.Exception(ex);
+        }
+    }
 
     private void Reset(object sender, RoutedEventArgs e)
     {

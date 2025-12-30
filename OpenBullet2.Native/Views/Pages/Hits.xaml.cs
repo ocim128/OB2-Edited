@@ -172,8 +172,15 @@ namespace OpenBullet2.Native.Views.Pages
 
         private async void DeleteDuplicates(object sender, RoutedEventArgs e)
         {
-            var deleted = await vm.DeleteDuplicatesAsync();
-            Alert.Success("Done", $"Successfully deleted {deleted} duplicate hits");
+            try
+            {
+                var deleted = await vm.DeleteDuplicatesAsync();
+                Alert.Success("Done", $"Successfully deleted {deleted} duplicate hits");
+            }
+            catch (Exception ex)
+            {
+                Alert.Exception(ex);
+            }
         }
 
         private void ColumnHeaderClicked(object sender, RoutedEventArgs e)
@@ -204,66 +211,116 @@ namespace OpenBullet2.Native.Views.Pages
 
         private async void SendToRecheck(object sender, RoutedEventArgs e)
         {
-            if (!SelectedHits.Any())
+            try
             {
-                return;
+                if (!SelectedHits.Any())
+                {
+                    return;
+                }
+
+                var firstHit = SelectedHits.ToList()[0];
+
+                var jobOptions = (MultiRunJobOptions)JobOptionsFactory.CreateNew(JobType.MultiRun);
+                var wordlistType = rlSettingsService.Environment.RecognizeWordlistType(firstHit.Data);
+
+                // Get the config
+                var config = configService.GetConfigsList().FirstOrDefault(c => c.Metadata.Name == firstHit.ConfigName);
+
+                // If we cannot find a config with that id anymore, don't set it
+                if (config == null)
+                {
+                    Alert.Warning("Config not found", $"Could not find the config these hits refer to ({firstHit.ConfigName})");
+                }
+                else
+                {
+                    jobOptions.ConfigId = config.Id;
+                    jobOptions.Bots = config.Settings.GeneralSettings.SuggestedBots;
+                    wordlistType = config.Settings.DataSettings.AllowedWordlistTypes.First();
+                }
+
+                // Write the temporary file
+                var tempFile = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+                await File.WriteAllLinesAsync(tempFile, SelectedHits.Select(h => h.Data)).ConfigureAwait(false);
+                var dataPoolOptions = new FileDataPoolOptions
+                {
+                    FileName = tempFile,
+                    WordlistType = wordlistType
+                };
+                jobOptions.DataPool = dataPoolOptions;
+
+                // Create the job entity and add it to the database
+                await Application.Current.Dispatcher.InvokeAsync(async () =>
+                {
+                    var jobs = ServiceLocator.GetService<ViewModelsService>().Jobs;
+                    var jobVM = await jobs.CreateJobAsync(jobOptions);
+                    window.DisplayJob(jobVM);
+                });
             }
-
-            var firstHit = SelectedHits.ToList()[0];
-
-            var jobOptions = (MultiRunJobOptions)JobOptionsFactory.CreateNew(JobType.MultiRun);
-            var wordlistType = rlSettingsService.Environment.RecognizeWordlistType(firstHit.Data);
-
-            // Get the config
-            var config = configService.GetConfigsList().FirstOrDefault(c => c.Metadata.Name == firstHit.ConfigName);
-
-            // If we cannot find a config with that id anymore, don't set it
-            if (config == null)
+            catch (Exception ex)
             {
-                Alert.Warning("Config not found", $"Could not find the config these hits refer to ({firstHit.ConfigName})");
+                Alert.Exception(ex);
             }
-            else
-            {
-                jobOptions.ConfigId = config.Id;
-                jobOptions.Bots = config.Settings.GeneralSettings.SuggestedBots;
-                wordlistType = config.Settings.DataSettings.AllowedWordlistTypes.First();
-            }
-
-            // Write the temporary file
-            var tempFile = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-            await File.WriteAllLinesAsync(tempFile, SelectedHits.Select(h => h.Data)).ConfigureAwait(false);
-            var dataPoolOptions = new FileDataPoolOptions
-            {
-                FileName = tempFile,
-                WordlistType = wordlistType
-            };
-            jobOptions.DataPool = dataPoolOptions;
-
-            // Create the job entity and add it to the database
-            await Application.Current.Dispatcher.InvokeAsync(async () =>
-            {
-                var jobs = ServiceLocator.GetService<ViewModelsService>().Jobs;
-                var jobVM = await jobs.CreateJobAsync(jobOptions);
-                window.DisplayJob(jobVM);
-            });
         }
 
         private async void CopySelected(object sender, RoutedEventArgs e)
-            => await SelectedHits.CopyToClipboardAsync(h => h.Data);
+        {
+            try
+            {
+                await SelectedHits.CopyToClipboardAsync(h => h.Data);
+            }
+            catch (Exception ex)
+            {
+                Alert.Exception(ex);
+            }
+        }
 
         private async void CopySelectedProxies(object sender, RoutedEventArgs e)
-            => await SelectedHits.CopyToClipboardAsync(h => h.Proxy);
+        {
+            try
+            {
+                await SelectedHits.CopyToClipboardAsync(h => h.Proxy);
+            }
+            catch (Exception ex)
+            {
+                Alert.Exception(ex);
+            }
+        }
 
         private async void CopySelectedWithCapture(object sender, RoutedEventArgs e)
-            => await SelectedHits.CopyToClipboardAsync(captureMapping);
+        {
+            try
+            {
+                await SelectedHits.CopyToClipboardAsync(captureMapping);
+            }
+            catch (Exception ex)
+            {
+                Alert.Exception(ex);
+            }
+        }
 
         private async void CopySelectedFull(object sender, RoutedEventArgs e)
-            => await SelectedHits.CopyToClipboardAsync(fullMapping);
+        {
+            try
+            {
+                await SelectedHits.CopyToClipboardAsync(fullMapping);
+            }
+            catch (Exception ex)
+            {
+                Alert.Exception(ex);
+            }
+        }
 
         private async void CopySelectedCustom(object sender, RoutedEventArgs e)
         {
-            var format = (sender as MenuItem).Header.ToString().Unescape();
-            await SelectedHits.CopyToClipboardAsync(h => ApplyCustomFormat(h, format));
+            try
+            {
+                var format = (sender as MenuItem).Header.ToString().Unescape();
+                await SelectedHits.CopyToClipboardAsync(h => ApplyCustomFormat(h, format));
+            }
+            catch (Exception ex)
+            {
+                Alert.Exception(ex);
+            }
         }
 
         private static string GetSaveFile()

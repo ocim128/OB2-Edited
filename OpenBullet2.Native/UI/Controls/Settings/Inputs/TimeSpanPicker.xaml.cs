@@ -39,9 +39,44 @@ namespace OpenBullet2.Native.Controls
 
         private void NumberChanged(object sender, RoutedPropertyChangedEventArgs<double?> e)
         {
-            if (hours is not null && minutes is not null && seconds is not null)
+            try
             {
-                TimeSpan = new TimeSpan((int)hours.Value, (int)minutes.Value, (int)seconds.Value);
+                if (hours is not null && minutes is not null && seconds is not null)
+                {
+                    // Ensure values are within valid ranges for TimeSpan constructor
+                    // Hours can be large, but minutes and seconds must be 0-59
+                    var hoursValue = Math.Max(0, (int)hours.Value);
+                    var minutesValue = Math.Clamp((int)minutes.Value, 0, 59);
+                    var secondsValue = Math.Clamp((int)seconds.Value, 0, 59);
+
+                    // If the user typed a value >= 60, clamp it back
+                    if (minutes.Value >= 60)
+                    {
+                        minutes.Value = minutesValue;
+                    }
+                    if (seconds.Value >= 60)
+                    {
+                        seconds.Value = secondsValue;
+                    }
+
+                    TimeSpan = new TimeSpan(hoursValue, minutesValue, secondsValue);
+                }
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                // If somehow an invalid TimeSpan is attempted, reset to a safe default
+                TimeSpan = TimeSpan.Zero;
+                
+                // Reset the UI controls to safe values
+                if (hours != null) hours.Value = 0;
+                if (minutes != null) minutes.Value = 0;
+                if (seconds != null) seconds.Value = 0;
+            }
+            catch (Exception ex)
+            {
+                // Log unexpected errors but don't crash
+                System.Diagnostics.Debug.WriteLine($"TimeSpanPicker error: {ex.Message}");
+                TimeSpan = TimeSpan.Zero;
             }
         }
     }

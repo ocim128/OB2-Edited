@@ -51,6 +51,8 @@ namespace OpenBullet2.Native.Views.Pages
         private void EditJob(object sender, RoutedEventArgs e) => EditJob(UIHelpers.GetButtonTag<JobViewModel>(sender));
 
         public async void EditJob(JobViewModel jobVM)
+    {
+        try
         {
             var entity = await jobRepo.GetAsync(jobVM.Id);
             var jsonSettings = new JsonSerializerSettings { TypeNameHandling = TypeNameHandling.Auto };
@@ -76,8 +78,15 @@ namespace OpenBullet2.Native.Views.Pages
                 throw new NotImplementedException();
             }
         }
+        catch (Exception ex)
+        {
+            Alert.Exception(ex);
+        }
+    }
 
         public async void CloneJob(object sender, RoutedEventArgs e)
+    {
+        try
         {
             var jobVM = (JobViewModel)(sender as Button).Tag;
             var entity = await jobRepo.GetAsync(jobVM.Id);
@@ -106,6 +115,11 @@ namespace OpenBullet2.Native.Views.Pages
                 throw new NotImplementedException();
             }
         }
+        catch (Exception ex)
+        {
+            Alert.Exception(ex);
+        }
+    }
 
         private async void RemoveJob(object sender, RoutedEventArgs e)
         {
@@ -116,7 +130,17 @@ namespace OpenBullet2.Native.Views.Pages
             }, "removing job");
         }
 
-        public async void CreateJob(JobOptions options) => await vm.CreateJobAsync(options);
+        public async void CreateJob(JobOptions options)
+    {
+        try
+        {
+            await vm.CreateJobAsync(options);
+        }
+        catch (Exception ex)
+        {
+            Alert.Exception(ex);
+        }
+    }
 
         private void ViewJob(object sender, MouseButtonEventArgs e)
         {

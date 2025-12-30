@@ -214,10 +214,28 @@ public partial class Proxies : Page
     }
 
     private async void CopySelectedProxies(object sender, RoutedEventArgs e)
-        => await GetSelectedProxies().CopyToClipboardAsync(static p => $"{p.Host}:{p.Port}");
+    {
+        try
+        {
+            await GetSelectedProxies().CopyToClipboardAsync(static p => $"{p.Host}:{p.Port}");
+        }
+        catch (Exception ex)
+        {
+            Alert.Exception(ex);
+        }
+    }
 
     private async void CopySelectedProxiesFull(object sender, RoutedEventArgs e)
-        => await GetSelectedProxies().CopyToClipboardAsync(static p => p.ToString());
+    {
+        try
+        {
+            await GetSelectedProxies().CopyToClipboardAsync(static p => p.ToString());
+        }
+        catch (Exception ex)
+        {
+            Alert.Exception(ex);
+        }
+    }
 
     public async void AddProxies(ProxiesForImportDto dto)
     {

@@ -51,20 +51,27 @@ namespace OpenBullet2.Native.Views.Pages
 
         private async void DeleteSelected(object sender, RoutedEventArgs e)
         {
-            if (!GetSelectedWordlists().Any())
+            try
             {
-                Alert.Error("No wordlist selected", "Please select at least one wordlist to delete.");
-                return;
-            }
-
-            if (Alert.Choice("Are you sure?", $"Do you really want to delete {GetSelectedWordlists().Count()} selected wordlist(s)? This cannot be undone."))
-            {
-                foreach (var wordlist in GetSelectedWordlists())
+                if (!GetSelectedWordlists().Any())
                 {
-                    await vm.DeleteAsync(wordlist);
+                    Alert.Error("No wordlist selected", "Please select at least one wordlist to delete.");
+                    return;
                 }
 
-                Alert.Success("Done", "Successfully deleted the selected wordlist references from the DB");
+                if (Alert.Choice("Are you sure?", $"Do you really want to delete {GetSelectedWordlists().Count()} selected wordlist(s)? This cannot be undone."))
+                {
+                    foreach (var wordlist in GetSelectedWordlists())
+                    {
+                        await vm.DeleteAsync(wordlist);
+                    }
+
+                    Alert.Success("Done", "Successfully deleted the selected wordlist references from the DB");
+                }
+            }
+            catch (Exception ex)
+            {
+                Alert.Exception(ex);
             }
         }
 
@@ -79,22 +86,22 @@ namespace OpenBullet2.Native.Views.Pages
 
         private async void ExportSelected(object sender, RoutedEventArgs e)
         {
-            if (!GetSelectedWordlists().Any())
+            try
             {
-                Alert.Error("No wordlist selected", "Please select at least one wordlist to export.");
-                return;
-            }
+                if (!GetSelectedWordlists().Any())
+                {
+                    Alert.Error("No wordlist selected", "Please select at least one wordlist to export.");
+                    return;
+                }
 
-            var sfd = new SaveFileDialog
-            {
-                Filter = "Wordlist |*.txt",
-                Title = "Export wordlists"
-            };
-            sfd.ShowDialog();
+                var sfd = new SaveFileDialog
+                {
+                    Filter = "Wordlist |*.txt",
+                    Title = "Export wordlists"
+                };
+                sfd.ShowDialog();
 
-            if (!string.IsNullOrWhiteSpace(sfd.FileName))
-            {
-                try
+                if (!string.IsNullOrWhiteSpace(sfd.FileName))
                 {
                     foreach (var wordlist in GetSelectedWordlists())
                     {
@@ -104,19 +111,26 @@ namespace OpenBullet2.Native.Views.Pages
                     }
                     Alert.Success("Success", "Successfully exported the selected wordlists");
                 }
-                catch (Exception ex)
-                {
-                    Alert.Exception(ex);
-                }
+            }
+            catch (Exception ex)
+            {
+                Alert.Exception(ex);
             }
         }
 
         private async void DeleteNotFound(object sender, RoutedEventArgs e)
         {
-            if (Alert.Choice("Are you sure?", "Do you really want to delete all wordlists that could not be found on disk? This cannot be undone."))
+            try
             {
-                var deleted = await vm.DeleteNotFoundAsync();
-                Alert.Success("Done", $"Successfully deleted {deleted} unresolved wordlist references from the DB");
+                if (Alert.Choice("Are you sure?", "Do you really want to delete all wordlists that could not be found on disk? This cannot be undone."))
+                {
+                    var deleted = await vm.DeleteNotFoundAsync();
+                    Alert.Success("Done", $"Successfully deleted {deleted} unresolved wordlist references from the DB");
+                }
+            }
+            catch (Exception ex)
+            {
+                Alert.Exception(ex);
             }
         }
 
@@ -159,14 +173,21 @@ namespace OpenBullet2.Native.Views.Pages
 
         private async void HandleDrop(object sender, DragEventArgs e)
         {
-            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            try
             {
-                var files = (string[])e.Data.GetData(DataFormats.FileDrop);
-
-                foreach (var file in files.Where(f => f.EndsWith(".txt")))
+                if (e.Data.GetDataPresent(DataFormats.FileDrop))
                 {
-                    await ProcessDroppedFile(file);
+                    var files = (string[])e.Data.GetData(DataFormats.FileDrop);
+
+                    foreach (var file in files.Where(f => f.EndsWith(".txt")))
+                    {
+                        await ProcessDroppedFile(file);
+                    }
                 }
+            }
+            catch (Exception ex)
+            {
+                Alert.Exception(ex);
             }
         }
 

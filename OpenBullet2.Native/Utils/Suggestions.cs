@@ -19,10 +19,10 @@ namespace OpenBullet2.Native.Utils
             var rlSettings = ServiceLocator.GetService<RuriLibSettingsService>();
             var configService = ServiceLocator.GetService<ConfigService>();
 
-            var suggestions = new List<string> {
+            List<string> suggestions = [
             "data.SOURCE", "data.ERROR", "data.ADDRESS",
             "data.HEADERS[\"name\"]", "data.COOKIES[\"name\"]",
-            "data.STATUS", "data.RESPONSECODE", "data.RAWSOURCE", "data.Line.Data" };
+            "data.STATUS", "data.RESPONSECODE", "data.RAWSOURCE", "data.Line.Data" ];
 
             var wordlistTypeName = debuggerVM.WordlistType;
             var wordlistType = rlSettings.Environment.WordlistTypes.First(w => w.Name == wordlistTypeName);
@@ -56,10 +56,10 @@ namespace OpenBullet2.Native.Utils
         private static IEnumerable<string> GetOutputVariables(BlockInstance block)
             => block switch
             {
-                AutoBlockInstance x => x.Descriptor.ReturnType == null ? Array.Empty<string>() : new string[] { x.OutputVariable },
-                ParseBlockInstance x => new string[] { x.OutputVariable },
+                AutoBlockInstance x => x.Descriptor.ReturnType == null ? [] : [x.OutputVariable],
+                ParseBlockInstance x => [x.OutputVariable],
                 ScriptBlockInstance x => x.OutputVariables.Select(v => v.Name),
-                _ => Array.Empty<string>()
+                _ => []
             };
     }
 }

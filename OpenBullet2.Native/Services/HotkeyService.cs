@@ -13,7 +13,7 @@ using RuriLib.Services.Modem;
 
 namespace OpenBullet2.Native.Services
 {
-    public class HotkeyService : IDisposable
+    public partial class HotkeyService : IDisposable
     {
         // Windows API imports for global hotkeys
         [DllImport("user32.dll")]
@@ -57,6 +57,9 @@ namespace OpenBullet2.Native.Services
         private const int MAX_CLIPBOARD_LENGTH = 1000;
         private readonly ModemRefreshService modemRefreshService = new();
         private readonly ModemPluginSettingsProvider modemSettingsProvider = new();
+
+        [GeneratedRegex(@"\d{6}")]
+        private static partial Regex SixDigitRegex();
 
         public bool IsEnabled
         {
@@ -265,7 +268,7 @@ namespace OpenBullet2.Native.Services
 
                 // Check if clipboard contains "disavow" or a 6-digit number
                 var hasDisavow = clipboardContent.Contains("disavow", StringComparison.OrdinalIgnoreCase);
-                var hasSixDigitNumber = Regex.IsMatch(clipboardContent, @"\d{6}");
+                var hasSixDigitNumber = SixDigitRegex().IsMatch(clipboardContent);
 
                 if (hasDisavow || hasSixDigitNumber)
                 {

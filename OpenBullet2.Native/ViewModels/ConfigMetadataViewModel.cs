@@ -11,9 +11,8 @@ using OpenBullet2.Native.Infrastructure.DependencyInjection;
 
 namespace OpenBullet2.Native.ViewModels
 {
-    public class ConfigMetadataViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
+    public class ConfigMetadataViewModel(ConfigService configService) : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
     {
-        private readonly ConfigService configService;
         private Config Config => configService.SelectedConfig;
 
         public string Name
@@ -47,11 +46,6 @@ namespace OpenBullet2.Native.ViewModels
         }
 
         public BitmapImage Icon => Config is null ? null : Images.Base64ToBitmapImage(Config.Metadata.Base64Image);
-
-        public ConfigMetadataViewModel(ConfigService configService)
-        {
-            this.configService = configService ?? throw new ArgumentNullException(nameof(configService));
-        }
 
         public void SetIconFromFile(string fileName)
         {

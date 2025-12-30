@@ -561,7 +561,7 @@ namespace RuriLib.Functions.Http
             int status = (int)response.StatusCode;
             if (status >= 300 && status < 400)
             {
-                data.RAWSOURCE = Array.Empty<byte>();
+                data.RAWSOURCE = [];
             }
             else if (requestOptions.ReadResponseContent)
             {
@@ -571,12 +571,12 @@ namespace RuriLib.Functions.Http
                 }
                 catch (NullReferenceException)
                 {
-                    data.RAWSOURCE = Array.Empty<byte>();
+                    data.RAWSOURCE = [];
                 }
             }
             else
             {
-                data.RAWSOURCE = Array.Empty<byte>();
+                data.RAWSOURCE = [];
             }
 
             // Address
@@ -760,10 +760,10 @@ namespace RuriLib.Functions.Http
             {
                 if (string.IsNullOrEmpty(combinedHeader))
                 {
-                    return Array.Empty<string>();
+                    return [];
                 }
 
-                var result = new List<string>();
+                List<string> result = [];
                 var inQuotes = false;
                 var startIndex = 0;
                 var i = 0;

@@ -70,7 +70,7 @@ namespace RuriLib.Functions.Parsing
                 }
 
                 // Extract substring without creating intermediate strings
-                yield return input.Substring(pFrom, pTo - pFrom);
+                yield return input[pFrom..pTo];
 
                 // Move to next position
                 currentIndex = pTo + rightDelimLength;

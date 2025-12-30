@@ -14,21 +14,62 @@
       d:DesignHeight="2750" d:DesignWidth="800"
       Title="Config Settings">
 
-    <!-- Optimized Config Settings Container with Smooth Scrolling -->
-    <ScrollViewer VerticalScrollBarVisibility="Auto" 
-                  HorizontalScrollBarVisibility="Disabled" 
-                  Margin="16,8"
-                  PanningMode="VerticalOnly"
-                  CanContentScroll="False"
-                  ScrollViewer.IsDeferredScrollingEnabled="False">
-        <StackPanel MaxWidth="1000" Margin="0,0,0,16">
+    <Page.Resources>
+        <!-- Premium Settings Card Style -->
+        <Style x:Key="SettingsCardStyle" TargetType="Border">
+            <Setter Property="Background" Value="{StaticResource Modern.BackgroundSecondary}"/>
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Padding" Value="24"/>
+            <Setter Property="Margin" Value="0,0,0,24"/>
+            <Setter Property="BorderBrush" Value="{StaticResource Modern.BorderSecondary}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="UseLayoutRounding" Value="True"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+        </Style>
+
+        <!-- Section Header Style -->
+        <Style x:Key="SettingsSectionHeaderStyle" TargetType="TextBlock" BasedOn="{StaticResource ModernHeading3}">
+            <Setter Property="Margin" Value="0,0,0,0"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="18"/>
+            <Setter Property="Foreground" Value="{StaticResource Modern.ThemeMain}"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        
+        <!-- Setting Label Style -->
+        <Style x:Key="SettingLabelStyle" TargetType="TextBlock" BasedOn="{StaticResource ModernBodyText}">
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="0,8,16,8"/>
+        </Style>
+        
+         <!-- Setting Subtitle Style -->
+        <Style x:Key="SettingSubtitleStyle" TargetType="TextBlock" BasedOn="{StaticResource ModernCaptionText}">
+             <Setter Property="Foreground" Value="{StaticResource Modern.ThemeMain}"/>
+             <Setter Property="FontWeight" Value="SemiBold"/>
+             <Setter Property="Margin" Value="0,16,0,8"/>
+        </Style>
+    </Page.Resources>
+
+    <!-- Modern Config Settings Layout -->
+    <Grid Margin="24,16">
+        <ScrollViewer VerticalScrollBarVisibility="Auto" 
+                      HorizontalScrollBarVisibility="Disabled" 
+                      PanningMode="VerticalOnly"
+                      CanContentScroll="False"
+                      ScrollViewer.IsDeferredScrollingEnabled="False">
+            <StackPanel Margin="0,0,0,20">
                 
-            <!-- General Section -->
-            <Border Background="#C0353535" CornerRadius="12" Padding="20" Margin="0,0,0,16">
-                <StackPanel>
-                    <ContentPresenter ContentTemplate="{StaticResource Template.SectionHeader.General}" />
-                        <!-- General Settings Form -->
-    <Grid>
+                <!-- General Section -->
+                <Border Style="{StaticResource SettingsCardStyle}">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
+                            <Border Width="32" Height="32" CornerRadius="8" Background="#1E3A5F" Margin="0,0,12,0">
+                                <iconPacks:PackIconMaterial Kind="Cog" Width="16" Height="16" Foreground="{StaticResource Modern.ThemeMain}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <TextBlock Text="General Settings" Style="{StaticResource SettingsSectionHeaderStyle}"/>
+                        </StackPanel>
+                        
+                        <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="300"/>
                                 <ColumnDefinition Width="*"/>
@@ -39,39 +80,48 @@
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
-                                <!-- Added row for Max Jump Iterations -->
                                 <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
 
-                        <!-- Bot Settings -->
-                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Suggested amount of bots:" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center" Margin="0,8"/>
-                        <mah:NumericUpDown Grid.Row="0" Grid.Column="1" Minimum="1" Maximum="1000" Value="{Binding GeneralSettings.SuggestedBots}" Width="200" HorizontalAlignment="Left" Margin="12,8"/>
+                            <!-- Bot Settings -->
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Suggested amount of bots:" Style="{StaticResource SettingLabelStyle}"/>
+                            <mah:NumericUpDown Grid.Row="0" Grid.Column="1" Minimum="1" Maximum="1000" Value="{Binding GeneralSettings.SuggestedBots}" Width="200" HorizontalAlignment="Left" Margin="0,8"/>
 
-                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Maximum CPM (0 to disable):" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center" Margin="0,8"/>
-                        <mah:NumericUpDown Grid.Row="1" Grid.Column="1" Minimum="0" Maximum="1000000" Value="{Binding GeneralSettings.MaximumCPM}" Width="200" HorizontalAlignment="Left" Margin="12,8"/>
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Maximum CPM (0 to disable):" Style="{StaticResource SettingLabelStyle}"/>
+                            <mah:NumericUpDown Grid.Row="1" Grid.Column="1" Minimum="0" Maximum="1000000" Value="{Binding GeneralSettings.MaximumCPM}" Width="200" HorizontalAlignment="Left" Margin="0,8"/>
 
-                        <!-- Checkboxes -->
-                        <CheckBox Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Content="Save empty captures" IsChecked="{Binding GeneralSettings.SaveEmptyCaptures}" FontWeight="SemiBold" Foreground="White" Margin="0,12"/>
-                        <CheckBox Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" Content="Report the last captcha if the bot ends with a RETRY status" IsChecked="{Binding GeneralSettings.ReportLastCaptchaOnRetry}" FontWeight="SemiBold" Foreground="White" Margin="0,12"/>
+                            <!-- check boxes -->
+                            <StackPanel Grid.Row="2" Grid.ColumnSpan="2" Margin="0,8">
+                                <CheckBox Content="Save empty captures" IsChecked="{Binding GeneralSettings.SaveEmptyCaptures}" Margin="0,4"/>
+                            </StackPanel>
+                            
+                            <StackPanel Grid.Row="3" Grid.ColumnSpan="2" Margin="0,8">
+                                <CheckBox Content="Report the last captcha if the bot ends with a RETRY status" IsChecked="{Binding GeneralSettings.ReportLastCaptchaOnRetry}" Margin="0,4"/>
+                            </StackPanel>
 
-                        <!-- Continue Statuses -->
-                        <StackPanel Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,16,0,0">
-                            <TextBlock Text="Statuses for which the bot will continue / stop:" FontWeight="SemiBold" Foreground="#FF1E90FF" Margin="0,0,0,8"/>
-                            <uc:MultipleSelector SelectedValues="{Binding ContinueStatuses, Mode=TwoWay}" PossibleValues="{Binding AllStatuses}"/>
-                        </StackPanel>
-                        
-                        <!-- Max Jump Iterations -->
-                        <TextBlock Grid.Row="5" Grid.Column="0" Text="Max JUMP iterations (infinite loop guard):" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center" Margin="0,8"/>
-                        <mah:NumericUpDown Grid.Row="5" Grid.Column="1" Minimum="1" Maximum="100000" Value="{Binding GeneralSettings.MaxJumpIterations}" Width="200" HorizontalAlignment="Left" Margin="12,8"/>
+                            <!-- Continue Statuses -->
+                            <StackPanel Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,16,0,8">
+                                <TextBlock Text="Statuses for which the bot will continue / stop:" Style="{StaticResource SettingSubtitleStyle}"/>
+                                <uc:MultipleSelector SelectedValues="{Binding ContinueStatuses, Mode=TwoWay}" PossibleValues="{Binding AllStatuses}"/>
+                            </StackPanel>
+                            
+                            <!-- Max Jump Iterations -->
+                             <TextBlock Grid.Row="5" Grid.Column="0" Text="Max JUMP iterations (infinite loop guard):" Style="{StaticResource SettingLabelStyle}"/>
+                            <mah:NumericUpDown Grid.Row="5" Grid.Column="1" Minimum="1" Maximum="100000" Value="{Binding GeneralSettings.MaxJumpIterations}" Width="200" HorizontalAlignment="Left" Margin="0,8"/>
                         </Grid>
                     </StackPanel>
                 </Border>
 
-                <!-- Modern Section: Proxies -->
-                <Border Background="#C0353535" CornerRadius="12" Padding="20" Margin="0,0,0,16">
+                <!-- Proxies Section -->
+                <Border Style="{StaticResource SettingsCardStyle}">
                     <StackPanel>
-                        <ContentPresenter ContentTemplate="{StaticResource Template.SectionHeader.Server}" />
-                        <!-- Proxy Settings Form -->
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
+                            <Border Width="32" Height="32" CornerRadius="8" Background="#064E3B" Margin="0,0,12,0">
+                                <iconPacks:PackIconMaterial Kind="ServerNetwork" Width="16" Height="16" Foreground="{StaticResource Modern.Success}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <TextBlock Text="Proxy Settings" Style="{StaticResource SettingsSectionHeaderStyle}"/>
+                        </StackPanel>
+                        
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="300"/>
@@ -85,378 +135,352 @@
                                 <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
 
-                        <!-- Use Proxies -->
-                        <CheckBox Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" Content="Use proxies" IsChecked="{Binding ProxySettings.UseProxies}" FontWeight="SemiBold" Foreground="White" Margin="0,8"/>
-                        
-                        <!-- Proxy Settings -->
-                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Maximum uses per proxy (0 to disable):" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center" Margin="0,8"/>
-                        <mah:NumericUpDown Grid.Row="1" Grid.Column="1" Minimum="0" Maximum="1000000" Value="{Binding ProxySettings.MaxUsesPerProxy}" Width="200" HorizontalAlignment="Left" Margin="12,8"/>
+                            <!-- Use Proxies -->
+                            <StackPanel Grid.Row="0" Grid.ColumnSpan="2" Margin="0,8">
+                                <CheckBox Content="Use proxies" IsChecked="{Binding ProxySettings.UseProxies}" Margin="0,4"/>
+                            </StackPanel>
+                            
+                            <!-- Proxy Settings -->
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Maximum uses per proxy (0 to disable):" Style="{StaticResource SettingLabelStyle}"/>
+                            <mah:NumericUpDown Grid.Row="1" Grid.Column="1" Minimum="0" Maximum="1000000" Value="{Binding ProxySettings.MaxUsesPerProxy}" Width="200" HorizontalAlignment="Left" Margin="0,8"/>
 
-                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Ban loop evasion (0 to disable):" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center" Margin="0,8"/>
-                        <mah:NumericUpDown Grid.Row="2" Grid.Column="1" Minimum="0" Maximum="1000000" Value="{Binding ProxySettings.BanLoopEvasion}" Width="200" HorizontalAlignment="Left" Margin="12,8"/>
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Ban loop evasion (0 to disable):" Style="{StaticResource SettingLabelStyle}"/>
+                            <mah:NumericUpDown Grid.Row="2" Grid.Column="1" Minimum="0" Maximum="1000000" Value="{Binding ProxySettings.BanLoopEvasion}" Width="200" HorizontalAlignment="Left" Margin="0,8"/>
 
-                        <!-- Proxy Selectors -->
-                        <StackPanel Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,16,0,0">
-                            <TextBlock Text="Ban proxy when bot ends with these statuses:" FontWeight="SemiBold" Foreground="#FF1E90FF" Margin="0,0,0,8"/>
-                            <uc:MultipleSelector SelectedValues="{Binding ProxyBanStatuses, Mode=TwoWay}" PossibleValues="{Binding AllStatuses}"/>
-                        </StackPanel>
+                            <!-- Proxy Selectors -->
+                            <StackPanel Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,16,0,8">
+                                <TextBlock Text="Ban proxy when bot ends with these statuses:" Style="{StaticResource SettingSubtitleStyle}"/>
+                                <uc:MultipleSelector SelectedValues="{Binding ProxyBanStatuses, Mode=TwoWay}" PossibleValues="{Binding AllStatuses}"/>
+                            </StackPanel>
 
-                        <StackPanel Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,16,0,0">
-                            <TextBlock Text="Allowed proxy types:" FontWeight="SemiBold" Foreground="#FF1E90FF" Margin="0,0,0,8"/>
-                            <uc:MultipleSelector SelectedValues="{Binding AllowedProxyTypes, Mode=TwoWay}" PossibleValues="{Binding ProxyTypes}"/>
-                        </StackPanel>
+                            <StackPanel Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,16,0,8">
+                                <TextBlock Text="Allowed proxy types:" Style="{StaticResource SettingSubtitleStyle}"/>
+                                <uc:MultipleSelector SelectedValues="{Binding AllowedProxyTypes, Mode=TwoWay}" PossibleValues="{Binding ProxyTypes}"/>
+                            </StackPanel>
                         </Grid>
                     </StackPanel>
                 </Border>
 
-                <!-- Modern Section: Data -->
-                <Border Background="#C0353535" CornerRadius="12" Padding="20" Margin="0,0,0,16">
+                <!-- Data Section -->
+                <Border Style="{StaticResource SettingsCardStyle}">
                     <StackPanel>
-                        <ContentPresenter ContentTemplate="{StaticResource Template.SectionHeader.Data}" />
-                    <!-- Data Settings -->
-                    <StackPanel Margin="0,0,0,16">
-                        <TextBlock Text="Allowed wordlist types:" FontWeight="SemiBold" Foreground="#FF1E90FF" Margin="0,0,0,8"/>
-                        <uc:MultipleSelector SelectedValues="{Binding AllowedWordlistTypes, Mode=TwoWay}" PossibleValues="{Binding WordlistTypes}"/>
-                    </StackPanel>
+                         <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
+                            <Border Width="32" Height="32" CornerRadius="8" Background="#78350F" Margin="0,0,12,0">
+                                <iconPacks:PackIconMaterial Kind="Database" Width="16" Height="16" Foreground="{StaticResource Modern.Warning}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <TextBlock Text="Data Settings" Style="{StaticResource SettingsSectionHeaderStyle}"/>
+                        </StackPanel>
 
-                    <CheckBox Content="URL Encode data after slicing" IsChecked="{Binding DataSettings.UrlEncodeDataAfterSlicing}" FontWeight="SemiBold" Foreground="White" Margin="0,12"/>
+                        <!-- Allowed Wordlist Types -->
+                        <StackPanel Margin="0,0,0,16">
+                            <TextBlock Text="Allowed wordlist types:" Style="{StaticResource SettingSubtitleStyle}"/>
+                            <uc:MultipleSelector SelectedValues="{Binding AllowedWordlistTypes, Mode=TwoWay}" PossibleValues="{Binding WordlistTypes}"/>
+                        </StackPanel>
+
+                        <CheckBox Content="URL Encode data after slicing" IsChecked="{Binding DataSettings.UrlEncodeDataAfterSlicing}" Margin="0,8,0,16"/>
+                        
                         <!-- Rules Section -->
-                        <TextBlock Text="Data Rules" 
-                                   FontSize="16" FontWeight="SemiBold" 
-                                   Foreground="#FF1E90FF" Margin="0,16,0,12"/>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                            <Button Click="AddSimpleDataRule" Margin="0,0,8,0" 
-                                    Style="{StaticResource StyledSuccessButton}"
-                                    MinWidth="100" HorizontalAlignment="Left">
+                        <TextBlock Text="Data Rules" Style="{StaticResource SettingSubtitleStyle}"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                            <Button Click="AddSimpleDataRule" Style="{StaticResource ModernSuccessButton}" Margin="0,0,12,0">
                                 <StackPanel Orientation="Horizontal">
-                                    <iconPacks:PackIconBoxIcons Kind="RegularPlus" Width="16" Height="16" Margin="0,0,6,0"/>
-                                    <TextBlock VerticalAlignment="Center" Text="Simple"/>
+                                    <iconPacks:PackIconBoxIcons Kind="RegularPlus" Width="16" Height="16" Margin="0,0,8,0"/>
+                                    <TextBlock VerticalAlignment="Center" Text="Simple Rule"/>
                                 </StackPanel>
                             </Button>
-                            <Button Click="AddRegexDataRule" Margin="0,0,8,0" 
-                                    Style="{StaticResource StyledSuccessButton}"
-                                    MinWidth="100" HorizontalAlignment="Left">
+                            <Button Click="AddRegexDataRule" Style="{StaticResource ModernSuccessButton}">
                                 <StackPanel Orientation="Horizontal">
-                                    <iconPacks:PackIconBoxIcons Kind="RegularPlus" Width="16" Height="16" Margin="0,0,6,0"/>
-                                    <TextBlock VerticalAlignment="Center" Text="Regex"/>
+                                    <iconPacks:PackIconBoxIcons Kind="RegularPlus" Width="16" Height="16" Margin="0,0,8,0"/>
+                                    <TextBlock VerticalAlignment="Center" Text="Regex Rule"/>
                                 </StackPanel>
                             </Button>
                         </StackPanel>
-                <ItemsControl ItemsSource="{Binding DataRulesCollection}">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <StackPanel Orientation="Vertical"/>
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.Resources>
-                        <DataTemplate DataType="{x:Type rules:SimpleDataRule}">
-                            <Border Padding="0 5">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="auto" />
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="auto" />
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="auto" />
-                                        <ColumnDefinition Width="auto" />
-                                        <ColumnDefinition Width="auto" />
-                                    </Grid.ColumnDefinitions>
-                                    <Label Grid.Column="0" VerticalAlignment="Center" Content="Slice Name" />
-                                    <TextBox Grid.Column="1" Text="{Binding SliceName}" Height="30" Margin="5 0" Style="{StaticResource MatchingTextBox}" />
-                                    <ComboBox Grid.Column="2" 
-                                              ItemsSource="{Binding DataContext.StringRules, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                                              SelectedItem="{Binding Comparison}" Height="30" Margin="5 0"
-                                              Style="{StaticResource CleanComboBox}" />
-                                    <TextBox Grid.Column="3" Text="{Binding StringToCompare}" Height="30" Margin="5 0" Style="{StaticResource MatchingTextBox}" />
-                                    <CheckBox Grid.Column="4" Content="Case sensitive"
-                                      IsChecked="{Binding CaseSensitive}"
-                                      Margin="5 0"
-                                      VerticalContentAlignment="Center"/>
-                                    <CheckBox Grid.Column="5" Content="Invert"
-                                      IsChecked="{Binding Invert}"
-                                      Margin="5 0"
-                                      VerticalContentAlignment="Center"/>
-                                    <Button Tag="{Binding}" Grid.Column="6" 
-                                            Click="RemoveDataRule" Margin="0 0 5 0" Style="{StaticResource StyledDangerButton}" >
-                                        <StackPanel Orientation="Horizontal">
-                                            <iconPacks:PackIconBoxIcons Kind="RegularX" />
-                                        </StackPanel>
-                                    </Button>
-                                </Grid>
-                            </Border>
-                        </DataTemplate>
-                        <DataTemplate DataType="{x:Type rules:RegexDataRule}">
-                            <Border Padding="0 5">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="auto" />
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="auto" />
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="auto" />
-                                        <ColumnDefinition Width="auto" />
-                                    </Grid.ColumnDefinitions>
-                                    <Label Grid.Column="0" VerticalAlignment="Center" Content="Slice Name" />
-                                    <TextBox Grid.Column="1" Text="{Binding SliceName}" Height="30" Margin="5 0" Style="{StaticResource MatchingTextBox}" />
-                                    <Label Grid.Column="2" VerticalAlignment="Center" Content="Regex to match" />
-                                    <TextBox Grid.Column="3" Text="{Binding RegexToMatch}" Height="30" Margin="5 0" Style="{StaticResource MatchingTextBox}" />
-                                    <CheckBox Grid.Column="4" Content="Invert"
-                                      IsChecked="{Binding Invert}"
-                                      Margin="5 0"
-                                      VerticalContentAlignment="Center"/>
-                                    <Button Tag="{Binding}" Grid.Column="5" 
-                                            Click="RemoveDataRule" Margin="0 0 5 0" Style="{StaticResource StyledDangerButton}" >
-                                        <StackPanel Orientation="Horizontal">
-                                            <iconPacks:PackIconBoxIcons Kind="RegularX" />
-                                        </StackPanel>
-                                    </Button>
-                                </Grid>
-                            </Border>
-                        </DataTemplate>
-                    </ItemsControl.Resources>
-                </ItemsControl>
-                <Grid Margin="0 10 0 0">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="auto" />
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="auto" />
-                        <ColumnDefinition Width="auto" />
-                    </Grid.ColumnDefinitions>
-                    <Label Grid.Column="0" Content="Test your data here:" VerticalAlignment="Center" />
-                    <TextBox Grid.Column="1" Text="{Binding TestDataForRules}" Margin="5 5 0 5" Style="{StaticResource MatchingTextBox}" />
-                    <ComboBox Grid.Column="2" ItemsSource="{Binding WordlistTypes}" SelectedValue="{Binding TestWordlistTypeForRules}" Margin="5 5 0 5" Style="{StaticResource CleanComboBox}" />
-                    <Button Grid.Column="3" Click="TestDataRules" Margin="5 5 5 5" 
-                        Style="{StaticResource StyledPrimaryButton}"
-                        HorizontalAlignment="Left" >
-                        <StackPanel Orientation="Horizontal">
-                            <iconPacks:PackIconBoxIcons Kind="RegularTestTube" />
-                            <TextBlock VerticalAlignment="Center" Margin="5 0">Test</TextBlock>
-                        </StackPanel>
-                    </Button>
-                </Grid>
-                        <TextBlock Text="Resources" 
-                                   FontSize="16" FontWeight="SemiBold" 
-                                   Foreground="#FF1E90FF" Margin="0,16,0,12"/>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                            <Button Click="AddLinesFromFileResource" Margin="0,0,8,0" 
-                                    Style="{StaticResource StyledSuccessButton}"
-                                    MinWidth="140" HorizontalAlignment="Left">
+                        
+                        <ItemsControl ItemsSource="{Binding DataRulesCollection}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Vertical"/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.Resources>
+                                <!-- Simple Data Rule Template -->
+                                <DataTemplate DataType="{x:Type rules:SimpleDataRule}">
+                                    <Border Background="{StaticResource Modern.BackgroundTertiary}" CornerRadius="6" Padding="12" Margin="0,0,0,8">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="auto" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="auto" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="auto" />
+                                                <ColumnDefinition Width="auto" />
+                                                <ColumnDefinition Width="auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <Label Grid.Column="0" VerticalAlignment="Center" Content="Slice Name" />
+                                            <TextBox Grid.Column="1" Text="{Binding SliceName}" Style="{StaticResource MatchingTextBox}" Margin="8,0" />
+                                            
+                                            <ComboBox Grid.Column="2" 
+                                                      ItemsSource="{Binding DataContext.StringRules, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                      SelectedItem="{Binding Comparison}" Style="{StaticResource CleanComboBox}" Margin="8,0" Width="120" />
+                                                      
+                                            <TextBox Grid.Column="3" Text="{Binding StringToCompare}" Style="{StaticResource MatchingTextBox}" Margin="8,0" />
+                                            
+                                            <CheckBox Grid.Column="4" Content="Case sensitive" IsChecked="{Binding CaseSensitive}" Margin="8,0" VerticalAlignment="Center"/>
+                                            <CheckBox Grid.Column="5" Content="Invert" IsChecked="{Binding Invert}" Margin="8,0" VerticalAlignment="Center"/>
+                                            
+                                            <Button Tag="{Binding}" Grid.Column="6" Click="RemoveDataRule" Style="{StaticResource ModernDangerButton}" Padding="8">
+                                                <iconPacks:PackIconBoxIcons Kind="RegularX" Width="14" Height="14"/>
+                                            </Button>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                                
+                                <!-- Regex Data Rule Template -->
+                                <DataTemplate DataType="{x:Type rules:RegexDataRule}">
+                                    <Border Background="{StaticResource Modern.BackgroundTertiary}" CornerRadius="6" Padding="12" Margin="0,0,0,8">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="auto" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="auto" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="auto" />
+                                                <ColumnDefinition Width="auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <Label Grid.Column="0" VerticalAlignment="Center" Content="Slice Name" />
+                                            <TextBox Grid.Column="1" Text="{Binding SliceName}" Style="{StaticResource MatchingTextBox}" Margin="8,0" />
+                                            
+                                            <Label Grid.Column="2" VerticalAlignment="Center" Content="Regex to match" />
+                                            <TextBox Grid.Column="3" Text="{Binding RegexToMatch}" Style="{StaticResource MatchingTextBox}" Margin="8,0" />
+                                            
+                                            <CheckBox Grid.Column="4" Content="Invert" IsChecked="{Binding Invert}" Margin="8,0" VerticalAlignment="Center"/>
+                                            
+                                            <Button Tag="{Binding}" Grid.Column="5" Click="RemoveDataRule" Style="{StaticResource ModernDangerButton}" Padding="8">
+                                                <iconPacks:PackIconBoxIcons Kind="RegularX" Width="14" Height="14"/>
+                                            </Button>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.Resources>
+                        </ItemsControl>
+
+                        <!-- Test Rules Section -->
+                        <Grid Margin="0,16,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="auto" />
+                                <ColumnDefinition Width="auto" />
+                            </Grid.ColumnDefinitions>
+                            <Label Grid.Column="0" Content="Test your data here:" VerticalAlignment="Center" />
+                            <TextBox Grid.Column="1" Text="{Binding TestDataForRules}" Style="{StaticResource MatchingTextBox}" Margin="8,0" />
+                            <ComboBox Grid.Column="2" ItemsSource="{Binding WordlistTypes}" SelectedValue="{Binding TestWordlistTypeForRules}" Style="{StaticResource CleanComboBox}" Margin="8,0" Width="120" />
+                            
+                            <Button Grid.Column="3" Click="TestDataRules" Style="{StaticResource ModernPrimaryButton}">
                                 <StackPanel Orientation="Horizontal">
-                                    <iconPacks:PackIconBoxIcons Kind="RegularPlus" Width="16" Height="16" Margin="0,0,6,0"/>
+                                    <iconPacks:PackIconBoxIcons Kind="RegularTestTube" Width="16" Height="16" Margin="0,0,8,0"/>
+                                    <TextBlock VerticalAlignment="Center" Text="Test"/>
+                                </StackPanel>
+                            </Button>
+                        </Grid>
+
+                        <!-- Resources Section -->
+                        <TextBlock Text="Resources" Style="{StaticResource SettingSubtitleStyle}" Margin="0,24,0,12"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                            <Button Click="AddLinesFromFileResource" Style="{StaticResource ModernSuccessButton}" Margin="0,0,12,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <iconPacks:PackIconBoxIcons Kind="RegularPlus" Width="16" Height="16" Margin="0,0,8,0"/>
                                     <TextBlock VerticalAlignment="Center" Text="Lines from file"/>
                                 </StackPanel>
                             </Button>
-                            <Button Click="AddRandomLinesFromFileResource" Margin="0,0,8,0" 
-                                    Style="{StaticResource StyledSuccessButton}"
-                                    MinWidth="180" HorizontalAlignment="Left">
+                            <Button Click="AddRandomLinesFromFileResource" Style="{StaticResource ModernSuccessButton}">
                                 <StackPanel Orientation="Horizontal">
-                                    <iconPacks:PackIconBoxIcons Kind="RegularPlus" Width="16" Height="16" Margin="0,0,6,0"/>
+                                    <iconPacks:PackIconBoxIcons Kind="RegularPlus" Width="16" Height="16" Margin="0,0,8,0"/>
                                     <TextBlock VerticalAlignment="Center" Text="Random lines from file"/>
                                 </StackPanel>
                             </Button>
                         </StackPanel>
-                <ItemsControl ItemsSource="{Binding ResourcesCollection}">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <StackPanel Orientation="Vertical"/>
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.Resources>
-                        <DataTemplate DataType="{x:Type resources:LinesFromFileResourceOptions}">
-                            <Border Padding="0 5">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="auto" />
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="auto" />
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="auto" />
-                                        <ColumnDefinition Width="auto" />
-                                        <ColumnDefinition Width="auto" />
-                                    </Grid.ColumnDefinitions>
-                                    <Label Grid.Column="0" VerticalAlignment="Center" Content="Name" />
-                                    <TextBox Grid.Column="1" Text="{Binding Name}" Height="30" Margin="5 0" Style="{StaticResource MatchingTextBox}" />
-                                    <Label Grid.Column="2" VerticalAlignment="Center" Content="Location" />
-                                    <TextBox Grid.Column="3" Text="{Binding Location}" Height="30" Margin="5 0" Style="{StaticResource MatchingTextBox}" />
-                                    <CheckBox Grid.Column="4" Content="Loops around"
-                                      IsChecked="{Binding LoopsAround}" 
-                                      Margin="5 0"
-                                      VerticalContentAlignment="Center"/>
-                                    <CheckBox Grid.Column="5" Content="Ignore empty lines"
-                                      IsChecked="{Binding IgnoreEmptyLines}" 
-                                      Margin="5 0"
-                                      VerticalContentAlignment="Center"/>
-                                    <Button Tag="{Binding}" Grid.Column="6" 
-                                            Click="RemoveResource" Margin="0 0 5 0" Style="{StaticResource StyledDangerButton}" >
-                                        <StackPanel Orientation="Horizontal">
-                                            <iconPacks:PackIconBoxIcons Kind="RegularX" />
-                                        </StackPanel>
-                                    </Button>
-                                </Grid>
-                            </Border>
-                        </DataTemplate>
-                        <DataTemplate DataType="{x:Type resources:RandomLinesFromFileResourceOptions}">
-                            <Border Padding="0 5">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="auto" />
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="auto" />
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="auto" />
-                                        <ColumnDefinition Width="auto" />
-                                        <ColumnDefinition Width="auto" />
-                                    </Grid.ColumnDefinitions>
-                                    <Label Grid.Column="0" VerticalAlignment="Center" Content="Name" />
-                                    <TextBox Grid.Column="1" Text="{Binding Name}" Height="30" Margin="5 0" Style="{StaticResource MatchingTextBox}" />
-                                    <Label Grid.Column="2" VerticalAlignment="Center" Content="Location" />
-                                    <TextBox Grid.Column="3" Text="{Binding Location}" Height="30" Margin="5 0" Style="{StaticResource MatchingTextBox}" />
-                                    <CheckBox Grid.Column="4" Content="Unique"
-                                      IsChecked="{Binding Unique}" 
-                                      Margin="5 0"
-                                      VerticalContentAlignment="Center"/>
-                                    <CheckBox Grid.Column="5" Content="Ignore empty lines"
-                                      IsChecked="{Binding IgnoreEmptyLines}" 
-                                      Margin="5 0"
-                                      VerticalContentAlignment="Center"/>
-                                    <Button Tag="{Binding}" Grid.Column="6" 
-                                            Click="RemoveResource" Margin="0 0 5 0" Style="{StaticResource StyledDangerButton}" >
-                                        <StackPanel Orientation="Horizontal">
-                                            <iconPacks:PackIconBoxIcons Kind="RegularX" />
-                                        </StackPanel>
-                                    </Button>
-                                </Grid>
-                            </Border>
-                        </DataTemplate>
-                    </ItemsControl.Resources>
-                </ItemsControl>
+                        
+                        <ItemsControl ItemsSource="{Binding ResourcesCollection}">
+                             <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Vertical"/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.Resources>
+                                <!-- Lines From File Template -->
+                                <DataTemplate DataType="{x:Type resources:LinesFromFileResourceOptions}">
+                                    <Border Background="{StaticResource Modern.BackgroundTertiary}" CornerRadius="6" Padding="12" Margin="0,0,0,8">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="auto" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="auto" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="auto" />
+                                                <ColumnDefinition Width="auto" />
+                                                <ColumnDefinition Width="auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <Label Grid.Column="0" VerticalAlignment="Center" Content="Name" />
+                                            <TextBox Grid.Column="1" Text="{Binding Name}" Style="{StaticResource MatchingTextBox}" Margin="8,0" />
+                                            
+                                            <Label Grid.Column="2" VerticalAlignment="Center" Content="Location" />
+                                            <TextBox Grid.Column="3" Text="{Binding Location}" Style="{StaticResource MatchingTextBox}" Margin="8,0" />
+                                            
+                                            <CheckBox Grid.Column="4" Content="Loops around" IsChecked="{Binding LoopsAround}" Margin="8,0" VerticalAlignment="Center"/>
+                                            <CheckBox Grid.Column="5" Content="Ignore empty lines" IsChecked="{Binding IgnoreEmptyLines}" Margin="8,0" VerticalAlignment="Center"/>
+                                            
+                                            <Button Tag="{Binding}" Grid.Column="6" Click="RemoveResource" Style="{StaticResource ModernDangerButton}" Padding="8">
+                                                 <iconPacks:PackIconBoxIcons Kind="RegularX" Width="14" Height="14"/>
+                                            </Button>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                                
+                                <!-- Random Lines From File Template -->
+                                <DataTemplate DataType="{x:Type resources:RandomLinesFromFileResourceOptions}">
+                                    <Border Background="{StaticResource Modern.BackgroundTertiary}" CornerRadius="6" Padding="12" Margin="0,0,0,8">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="auto" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="auto" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="auto" />
+                                                <ColumnDefinition Width="auto" />
+                                                <ColumnDefinition Width="auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <Label Grid.Column="0" VerticalAlignment="Center" Content="Name" />
+                                            <TextBox Grid.Column="1" Text="{Binding Name}" Style="{StaticResource MatchingTextBox}" Margin="8,0" />
+                                            
+                                            <Label Grid.Column="2" VerticalAlignment="Center" Content="Location" />
+                                            <TextBox Grid.Column="3" Text="{Binding Location}" Style="{StaticResource MatchingTextBox}" Margin="8,0" />
+                                            
+                                            <CheckBox Grid.Column="4" Content="Unique" IsChecked="{Binding Unique}" Margin="8,0" VerticalAlignment="Center"/>
+                                            <CheckBox Grid.Column="5" Content="Ignore empty lines" IsChecked="{Binding IgnoreEmptyLines}" Margin="8,0" VerticalAlignment="Center"/>
+                                            
+                                            <Button Tag="{Binding}" Grid.Column="6" Click="RemoveResource" Style="{StaticResource ModernDangerButton}" Padding="8">
+                                                <iconPacks:PackIconBoxIcons Kind="RegularX" Width="14" Height="14"/>
+                                            </Button>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.Resources>
+                        </ItemsControl>
                     </StackPanel>
                 </Border>
 
-                <!-- Modern Section: Inputs -->
-                <Border Background="#C0353535" CornerRadius="12" Padding="20" Margin="0,0,0,16">
+                <!-- Input Settings Section -->
+                <Border Style="{StaticResource SettingsCardStyle}">
                     <StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
-                            <iconPacks:PackIconBoxIcons Kind="RegularEdit" Width="24" Height="24" Foreground="#FF1E90FF" Margin="0,0,12,0"/>
-                            <TextBlock Text="Input Settings" FontSize="20" FontWeight="Bold" Foreground="#FF1E90FF" VerticalAlignment="Center"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
+                            <Border Width="32" Height="32" CornerRadius="8" Background="#7F1D1D" Margin="0,0,12,0">
+                                <iconPacks:PackIconBoxIcons Kind="RegularEdit" Width="16" Height="16" Foreground="#F87171" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <TextBlock Text="Input Settings" Style="{StaticResource SettingsSectionHeaderStyle}"/>
                         </StackPanel>
-                        <!-- Custom Inputs -->
-                        <TextBlock Text="Custom Inputs" 
-                                   FontSize="16" FontWeight="SemiBold" 
-                                   Foreground="#FF1E90FF" Margin="0,0,0,12"/>
+                        
+                        <TextBlock Text="Custom Inputs" Style="{StaticResource SettingSubtitleStyle}"/>
+                        
                         <Button x:Name="addCustomInputButton" Click="AddCustomInput" 
-                        Style="{StaticResource StyledSuccessButton}"
-                                HorizontalAlignment="Left" Margin="0,0,0,8">
-                    <StackPanel Orientation="Horizontal">
-                                <iconPacks:PackIconBoxIcons Kind="RegularPlus" Width="16" Height="16" Margin="0,0,6,0"/>
+                                Style="{StaticResource ModernSuccessButton}"
+                                HorizontalAlignment="Left" Margin="0,0,0,16">
+                            <StackPanel Orientation="Horizontal">
+                                <iconPacks:PackIconBoxIcons Kind="RegularPlus" Width="16" Height="16" Margin="0,0,8,0"/>
                                 <TextBlock Text="Add Custom Input" VerticalAlignment="Center"/>
-                    </StackPanel>
-                </Button>
-                <ItemsControl x:Name="customInputsControl" ItemsSource="{Binding CustomInputsCollection}">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <StackPanel Orientation="Vertical"/>
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <Border Padding="0 5">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="auto" />
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="auto" />
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="auto" />
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="auto" />
-                                    </Grid.ColumnDefinitions>
-                                    <Label Grid.Column="0" VerticalAlignment="Center" Content="Description" />
-                                    <TextBox Grid.Column="1" Text="{Binding Description}" Height="30" Margin="5 0" Style="{StaticResource MatchingTextBox}" />
-                                    <Label Grid.Column="2" VerticalAlignment="Center" Content="Variable name" />
-                                    <TextBox Grid.Column="3" Text="{Binding VariableName}" Height="30" Margin="5 0" Style="{StaticResource MatchingTextBox}" />
-                                    <Label Grid.Column="4" VerticalAlignment="Center" Content="Default answer" />
-                                    <TextBox Grid.Column="5" Text="{Binding DefaultAnswer}" Height="30" Margin="5 0" Style="{StaticResource MatchingTextBox}" />
-                                    <Button x:Name="removeCustomInputButton" Tag="{Binding}" Grid.Column="6" 
-                                            Click="RemoveCustomInput" Margin="0 0 5 0" Style="{StaticResource StyledDangerButton}" >
-                                        <StackPanel Orientation="Horizontal">
-                                            <iconPacks:PackIconBoxIcons Kind="RegularX" />
-                                        </StackPanel>
-                                    </Button>
-                                </Grid>
-                            </Border>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
+                            </StackPanel>
+                        </Button>
+                        
+                        <ItemsControl x:Name="customInputsControl" ItemsSource="{Binding CustomInputsCollection}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Vertical"/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="{StaticResource Modern.BackgroundTertiary}" CornerRadius="6" Padding="12" Margin="0,0,0,8">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="auto" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="auto" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="auto" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <Label Grid.Column="0" VerticalAlignment="Center" Content="Description" />
+                                            <TextBox Grid.Column="1" Text="{Binding Description}" Style="{StaticResource MatchingTextBox}" Margin="8,0" />
+                                            
+                                            <Label Grid.Column="2" VerticalAlignment="Center" Content="Variable name" />
+                                            <TextBox Grid.Column="3" Text="{Binding VariableName}" Style="{StaticResource MatchingTextBox}" Margin="8,0" />
+                                            
+                                            <Label Grid.Column="4" VerticalAlignment="Center" Content="Default answer" />
+                                            <TextBox Grid.Column="5" Text="{Binding DefaultAnswer}" Style="{StaticResource MatchingTextBox}" Margin="8,0" />
+                                            
+                                            <Button x:Name="removeCustomInputButton" Tag="{Binding}" Grid.Column="6" 
+                                                    Click="RemoveCustomInput" Style="{StaticResource ModernDangerButton}" Padding="8">
+                                                <iconPacks:PackIconBoxIcons Kind="RegularX" Width="14" Height="14"/>
+                                            </Button>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
                     </StackPanel>
                 </Border>
 
-                <!-- Modern Section: Puppeteer -->
-                <Border Background="#C0353535" CornerRadius="12" Padding="20" Margin="0,0,0,16">
+                <!-- Puppeteer Settings Section -->
+               <Border Style="{StaticResource SettingsCardStyle}">
                     <StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
-                            <iconPacks:PackIconMaterial Kind="Web" Width="24" Height="24" Foreground="#FF1E90FF" Margin="0,0,12,0"/>
-                            <TextBlock Text="Puppeteer Settings" FontSize="20" FontWeight="Bold" Foreground="#FF1E90FF" VerticalAlignment="Center"/>
+                         <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
+                            <Border Width="32" Height="32" CornerRadius="8" Background="#7F1D1D" Margin="0,0,12,0">
+                                <iconPacks:PackIconMaterial Kind="Web" Width="16" Height="16" Foreground="#F87171" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <TextBlock Text="Puppeteer Settings" Style="{StaticResource SettingsSectionHeaderStyle}"/>
                         </StackPanel>
+
                         <!-- Browser Status Settings -->
                         <StackPanel Margin="0,0,0,16">
-                            <TextBlock Text="Quit the browser when the bot ends with one of these statuses:" 
-                                       FontWeight="SemiBold" Foreground="#FF1E90FF" Margin="0,0,0,8"/>
-                            <uc:MultipleSelector SelectedValues="{Binding QuitBrowserStatuses, Mode=TwoWay}" 
-                                                 PossibleValues="{Binding AllStatuses}"/>
+                            <TextBlock Text="Quit the browser when the bot ends with one of these statuses:" Style="{StaticResource SettingSubtitleStyle}"/>
+                            <uc:MultipleSelector SelectedValues="{Binding QuitBrowserStatuses, Mode=TwoWay}" PossibleValues="{Binding AllStatuses}"/>
                         </StackPanel>
                         
                         <!-- Browser Options -->
                         <StackPanel Margin="0,0,0,16">
-                            <CheckBox Content="Headless mode" 
-                                      IsChecked="{Binding BrowserSettings.Headless}" 
-                                      FontWeight="SemiBold" Foreground="White" 
-                                      VerticalContentAlignment="Center" Margin="0,8"/>
+                            <CheckBox Content="Headless mode" IsChecked="{Binding BrowserSettings.Headless}" Margin="0,8"/>
+                            
                             <StackPanel Margin="0,8">
-                                <TextBlock Text="Stealth Mode:" 
-                                           FontWeight="SemiBold" Foreground="#FF1E90FF" 
-                                           Margin="0,0,0,4"/>
+                                <TextBlock Text="Stealth Mode:" Style="{StaticResource SettingLabelStyle}" Margin="0,0,0,4"/>
                                 <ComboBox SelectedValue="{Binding BrowserSettings.StealthMode}" 
                                           Style="{StaticResource CleanComboBox}" 
-                                          Width="200" Height="30" HorizontalAlignment="Left"
+                                          Width="250" HorizontalAlignment="Left"
                                           SelectedValuePath="Tag">
                                     <ComboBoxItem Content="Default" Tag="{x:Static settings:BrowserStealthMode.Default}" />
-                        <ComboBoxItem Content="Stealth" Tag="{x:Static settings:BrowserStealthMode.Stealth}" />
-                        <ComboBoxItem Content="Enhanced Stealth" Tag="{x:Static settings:BrowserStealthMode.EnhancedStealth}" />
-                        <ComboBoxItem Content="Option4 Maximum Stealth" Tag="{x:Static settings:BrowserStealthMode.Option4}" />
+                                    <ComboBoxItem Content="Stealth" Tag="{x:Static settings:BrowserStealthMode.Stealth}" />
+                                    <ComboBoxItem Content="Enhanced Stealth" Tag="{x:Static settings:BrowserStealthMode.EnhancedStealth}" />
+                                    <ComboBoxItem Content="Option4 Maximum Stealth" Tag="{x:Static settings:BrowserStealthMode.Option4}" />
                                 </ComboBox>
                             </StackPanel>
-                            <CheckBox Content="Load only document and script" 
-                                      IsChecked="{Binding BrowserSettings.LoadOnlyDocumentAndScript}" 
-                                      FontWeight="SemiBold" Foreground="White" 
-                                      VerticalContentAlignment="Center" Margin="0,8"/>
-                            <CheckBox Content="Dismiss dialogs" 
-                                      IsChecked="{Binding BrowserSettings.DismissDialogs}" 
-                                      FontWeight="SemiBold" Foreground="White" 
-                                      VerticalContentAlignment="Center" Margin="0,8"/>
-                            <CheckBox Content="Ignore HTTPS errors" 
-                                      IsChecked="{Binding BrowserSettings.IgnoreHttpsErrors}" 
-                                      FontWeight="SemiBold" Foreground="White" 
-                                      VerticalContentAlignment="Center" Margin="0,8"/>
+                            
+                            <CheckBox Content="Load only document and script" IsChecked="{Binding BrowserSettings.LoadOnlyDocumentAndScript}" Margin="0,8"/>
+                            <CheckBox Content="Dismiss dialogs" IsChecked="{Binding BrowserSettings.DismissDialogs}" Margin="0,8"/>
+                            <CheckBox Content="Ignore HTTPS errors" IsChecked="{Binding BrowserSettings.IgnoreHttpsErrors}" Margin="0,8"/>
                         </StackPanel>
                         
                         <!-- Command Line Arguments -->
                         <StackPanel Margin="0,0,0,16">
-                            <TextBlock Text="Command line arguments:" 
-                                       FontWeight="SemiBold" Foreground="#FF1E90FF" Margin="0,0,0,8"/>
-                            <TextBox Text="{Binding BrowserSettings.CommandLineArgs}" 
-                                     Style="{StaticResource MatchingTextBox}" Height="30"/>
+                            <TextBlock Text="Command line arguments:" Style="{StaticResource SettingSubtitleStyle}"/>
+                            <TextBox Text="{Binding BrowserSettings.CommandLineArgs}" Style="{StaticResource MatchingTextBox}"/>
                         </StackPanel>
                         
                         <!-- Blocked URLs -->
                         <StackPanel>
-                            <TextBlock Text="Blocked URLs (one per line):" 
-                                       FontWeight="SemiBold" Foreground="#FF1E90FF" Margin="0,0,0,8"/>
+                            <TextBlock Text="Blocked URLs (one per line):" Style="{StaticResource SettingSubtitleStyle}"/>
                              <TextBox x:Name="blockedUrlsTextBox" 
-                                      Background="{DynamicResource BackgroundSecondary}" 
-                                      Foreground="{DynamicResource ForegroundMain}" 
+                                      Style="{StaticResource MatchingTextBox}"
                                       FontFamily="Consolas"
-                                      Margin="0,0,0,0"
                                       Height="100"
                                       VerticalContentAlignment="Top"
                                       AcceptsReturn="True"
@@ -464,8 +488,9 @@
                                       VerticalScrollBarVisibility="Auto"
                                       TextChanged="BlockedUrlsChanged"/>
                         </StackPanel>
-                </StackPanel>
-            </Border>
-        </StackPanel>
-    </ScrollViewer>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
 </Page>

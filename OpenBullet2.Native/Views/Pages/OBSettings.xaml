@@ -12,13 +12,45 @@
 
     <Page.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
+        
+        <!-- Premium Settings Card Style -->
+        <Style x:Key="SettingsCardStyle" TargetType="Border">
+            <Setter Property="Background" Value="{StaticResource Modern.BackgroundSecondary}"/>
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Padding" Value="24"/>
+            <Setter Property="Margin" Value="0,0,0,24"/>
+            <Setter Property="BorderBrush" Value="{StaticResource Modern.BorderSecondary}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="UseLayoutRounding" Value="True"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+        </Style>
+
+        <!-- Section Header Style -->
+        <Style x:Key="SettingsSectionHeaderStyle" TargetType="TextBlock" BasedOn="{StaticResource ModernHeading3}">
+            <Setter Property="Margin" Value="0,0,0,0"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="18"/>
+            <Setter Property="Foreground" Value="{StaticResource Modern.ThemeMain}"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        
+        <!-- Setting Label Style -->
+        <Style x:Key="SettingLabelStyle" TargetType="TextBlock" BasedOn="{StaticResource ModernBodyText}">
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="0,8,16,8"/>
+        </Style>
+
+        <Style x:Key="SettingDescriptionStyle" TargetType="TextBlock" BasedOn="{StaticResource ModernCaptionText}">
+             <Setter Property="Foreground" Value="{StaticResource Modern.ForegroundSecondary}"/>
+             <Setter Property="Margin" Value="0,0,0,12"/>
+        </Style>
     </Page.Resources>
     
     <!-- Modern OpenBullet Settings Layout -->
-    <Grid Background="Transparent" Margin="12,8,12,8">
+    <Grid Margin="24,16">
         <Grid.RowDefinitions>
             <RowDefinition Height="*"/>
-            <RowDefinition Height="auto"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
         
         <ScrollViewer Grid.Row="0" 
@@ -30,396 +62,410 @@
             <StackPanel Margin="0,0,0,20">
                 
                 <!-- General Settings Section -->
-                <Border Background="#C0353535" CornerRadius="8" Padding="16" Margin="0,0,0,12">
+                <Border Style="{StaticResource SettingsCardStyle}">
                     <StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
-                            <iconPacks:PackIconMaterial Kind="Cog" Width="24" Height="24" Foreground="#FF1E90FF" Margin="0,0,12,0"/>
-                            <TextBlock Text="General Settings" Style="{StaticResource H2TextStyle}" Foreground="#FF1E90FF" VerticalAlignment="Center"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
+                            <Border Width="32" Height="32" CornerRadius="8" Background="#1E3A5F" Margin="0,0,12,0">
+                                <iconPacks:PackIconMaterial Kind="Cog" Width="16" Height="16" Foreground="{StaticResource Modern.ThemeMain}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <TextBlock Text="General Settings" Style="{StaticResource SettingsSectionHeaderStyle}"/>
                         </StackPanel>
-                        <!-- Form Grid Layout -->
+                        
                         <Grid>
-        <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="220"/>
-            <ColumnDefinition Width="*"/>
-        </Grid.ColumnDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="250"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
                             <Grid.RowDefinitions>
-                                <RowDefinition Height="auto"/>
-                                <RowDefinition Height="auto"/>
-                                <RowDefinition Height="auto"/>
-                                <RowDefinition Height="auto"/>
-                                <RowDefinition Height="auto"/>
-                                <RowDefinition Height="auto"/>
-                                <RowDefinition Height="auto"/>
-                                <RowDefinition Height="auto"/>
-                                <RowDefinition Height="auto"/>
-                                <RowDefinition Height="auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
 
                             <!-- Config Edit Navigation -->
-                            <TextBlock Grid.Row="0" Grid.Column="0" Text="On config edit, navigate to:" Style="{StaticResource BodyTextStyle}" Margin="0,8,16,8" VerticalAlignment="Center"/>
-                            <ComboBox Grid.Row="0" Grid.Column="1" x:Name="configSectionOnLoadCombobox" SelectedValue="{Binding Path=ConfigSectionOnLoad}" Width="200" HorizontalAlignment="Left" Margin="0,8" Style="{StaticResource CleanComboBox}"/>
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="On config edit, navigate to:" Style="{StaticResource SettingLabelStyle}"/>
+                            <ComboBox Grid.Row="0" Grid.Column="1" x:Name="configSectionOnLoadCombobox" SelectedValue="{Binding Path=ConfigSectionOnLoad}" Width="250" HorizontalAlignment="Left" Margin="0,8" Style="{StaticResource CleanComboBox}"/>
 
                             <!-- Default Author -->
-                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Default author for new configs:" Style="{StaticResource BodyTextStyle}" Margin="0,8,16,8" VerticalAlignment="Center"/>
-                            <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding DefaultAuthor}" Width="240" HorizontalAlignment="Left" Margin="0,8" Style="{StaticResource MatchingTextBox}"/>
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Default author for new configs:" Style="{StaticResource SettingLabelStyle}"/>
+                            <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding DefaultAuthor}" Width="250" HorizontalAlignment="Left" Margin="0,8" Style="{StaticResource MatchingTextBox}"/>
 
                             <!-- Log Buffer Size -->
-                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Job log buffer size:" Style="{StaticResource BodyTextStyle}" Margin="0,8,16,8" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Job log buffer size:" Style="{StaticResource SettingLabelStyle}"/>
                             <mah:NumericUpDown Grid.Row="2" Grid.Column="1" Minimum="20" Maximum="10000" Interval="1" Value="{Binding LogBufferSize}" Width="150" HorizontalAlignment="Left" Margin="0,8"/>
 
                             <!-- Auto-save Interval -->
-                            <TextBlock Grid.Row="3" Grid.Column="0" Text="Auto-save interval (seconds):" Style="{StaticResource BodyTextStyle}" Margin="0,8,16,8" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Row="3" Grid.Column="0" Text="Auto-save interval (seconds):" Style="{StaticResource SettingLabelStyle}"/>
                             <mah:NumericUpDown Grid.Row="3" Grid.Column="1" Minimum="5" Maximum="3600" Interval="1" Value="{Binding AutoSaveInterval}" Width="150" HorizontalAlignment="Left" Margin="0,8"/>
 
                             <!-- Checkboxes -->
-                            <CheckBox Grid.Row="4" Grid.ColumnSpan="2" Content="Automatically set Recommended Bots" IsChecked="{Binding AutoSetRecommendedBots}" Foreground="White" Margin="0,8"/>
+                            <StackPanel Grid.Row="4" Grid.ColumnSpan="2" Margin="0,8">
+                                <CheckBox Content="Automatically set Recommended Bots" IsChecked="{Binding AutoSetRecommendedBots}" Margin="0,4"/>
+                            </StackPanel>
                             
-                            <CheckBox Grid.Row="5" Grid.ColumnSpan="2" Content="View warning when config is not saved" IsChecked="{Binding WarnConfigNotSaved}" Foreground="White" Margin="0,8"/>
+                            <StackPanel Grid.Row="5" Grid.ColumnSpan="2" Margin="0,8">
+                                <CheckBox Content="View warning when config is not saved" IsChecked="{Binding WarnConfigNotSaved}" Margin="0,4"/>
+                            </StackPanel>
                             
-                            <CheckBox Grid.Row="6" Grid.ColumnSpan="2" Content="Enable logging in the job viewer page" IsChecked="{Binding EnableJobLogging}" Foreground="White" Margin="0,8"/>
+                            <StackPanel Grid.Row="6" Grid.ColumnSpan="2" Margin="0,8">
+                                <CheckBox Content="Enable logging in the job viewer page" IsChecked="{Binding EnableJobLogging}" Margin="0,4"/>
+                            </StackPanel>
                             
-                            <CheckBox Grid.Row="7" Grid.ColumnSpan="2" Content="Group captures in debugger" IsChecked="{Binding GroupCapturesInDebugger}" Foreground="White" Margin="0,8"/>
+                            <StackPanel Grid.Row="7" Grid.ColumnSpan="2" Margin="0,8">
+                                <CheckBox Content="Group captures in debugger" IsChecked="{Binding GroupCapturesInDebugger}" Margin="0,4"/>
+                            </StackPanel>
                             
-                            <CheckBox Grid.Row="8" Grid.ColumnSpan="2" Content="Ignore wordlist name when removing duplicates from hits" IsChecked="{Binding IgnoreWordlistNameOnHitsDedupe}" Foreground="White" Margin="0,8"/>
+                            <StackPanel Grid.Row="8" Grid.ColumnSpan="2" Margin="0,8">
+                                <CheckBox Content="Ignore wordlist name when removing duplicates from hits" IsChecked="{Binding IgnoreWordlistNameOnHitsDedupe}" Margin="0,4"/>
+                            </StackPanel>
                             
-                            <CheckBox Grid.Row="9" Grid.ColumnSpan="2" Content="Ask for confirmation before destructive actions" IsChecked="{Binding PerformConfirmationOnDestructiveActions}" Foreground="White" Margin="0,8"/>
+                            <StackPanel Grid.Row="9" Grid.ColumnSpan="2" Margin="0,8">
+                                <CheckBox Content="Ask for confirmation before destructive actions" IsChecked="{Binding PerformConfirmationOnDestructiveActions}" Margin="0,4"/>
+                            </StackPanel>
                         </Grid>
-                </StackPanel>
+                    </StackPanel>
                 </Border>
 
                 <!-- Proxy Check Targets Section -->
-                <Border Background="#C0353535" CornerRadius="8" Padding="16" Margin="0,0,0,12">
+                <Border Style="{StaticResource SettingsCardStyle}">
                     <StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
-                            <iconPacks:PackIconMaterial Kind="Target" Width="24" Height="24" Foreground="#FF1E90FF" Margin="0,0,12,0"/>
-                            <TextBlock Text="Proxy Check Targets" Style="{StaticResource H2TextStyle}" Foreground="#FF1E90FF" VerticalAlignment="Center"/>
-                </StackPanel>
-                <Label Foreground="{DynamicResource ForegroundCustom}" Margin="0 10 0 0">Proxy check targets</Label>
-                        <Button Click="AddProxyCheckTarget" 
-                        Style="{StaticResource StyledSuccessButton}"
-                                Padding="8,6"
-                                Margin="0,0,0,12"
-                                Background="#FF28A745"
-                                BorderBrush="#FF34CE57">
-                    <StackPanel Orientation="Horizontal">
-                                <iconPacks:PackIconMaterial Kind="Plus" Width="14" Height="14"/>
-                                <TextBlock Text="Add Target" VerticalAlignment="Center" Margin="8,0,0,0" FontWeight="SemiBold"/>
-                    </StackPanel>
-                </Button>
-                <ItemsControl x:Name="proxyCheckTargetsControl" ItemsSource="{Binding ProxyCheckTargetsCollection}">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <StackPanel Orientation="Vertical"/>
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <Border Padding="0 5">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="auto" />
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="auto" />
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="auto" />
-                                    </Grid.ColumnDefinitions>
-                                    <Label Grid.Column="0" VerticalAlignment="Center" Content="Url" />
-                                    <TextBox Grid.Column="1" Text="{Binding Url}" Height="30" Margin="5 0" Style="{StaticResource MatchingTextBox}" />
-                                    <Label Grid.Column="2" VerticalAlignment="Center" Content="Success Key" />
-                                    <TextBox Grid.Column="3" Text="{Binding SuccessKey}" Height="30" Margin="5 0" Style="{StaticResource MatchingTextBox}" />
-                                    <Button x:Name="removeProxyCheckTargetButton" Tag="{Binding}" Grid.Column="4" 
-                                            Click="RemoveProxyCheckTarget" Margin="0 0 5 0" Style="{StaticResource StyledDangerButton}" >
-                                        <StackPanel Orientation="Horizontal">
-                                            <iconPacks:PackIconMaterial Kind="Close" />
-                                        </StackPanel>
-                                    </Button>
-                                </Grid>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
+                            <Border Width="32" Height="32" CornerRadius="8" Background="#064E3B" Margin="0,0,12,0">
+                                <iconPacks:PackIconMaterial Kind="Target" Width="16" Height="16" Foreground="{StaticResource Modern.Success}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Border>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-                        <TextBlock Text="Custom Editor Snippets" FontSize="14" Foreground="#FFB0B0B0" FontWeight="SemiBold" Margin="0,16,0,8"/>
-                        <TextBlock Text="(requires restart)" FontSize="12" Foreground="#FFB0B0B0" Margin="0,0,0,12"/>
+                            <TextBlock Text="Proxy Check Targets" Style="{StaticResource SettingsSectionHeaderStyle}"/>
+                        </StackPanel>
+
+                        <TextBlock Text="Define the targets used to check proxies functionality." Style="{StaticResource SettingDescriptionStyle}"/>
+                        
+                        <Button Click="AddProxyCheckTarget" 
+                                Style="{StaticResource ModernButtonStyle}"
+                                HorizontalAlignment="Left"
+                                Margin="0,0,0,16">
+                            <StackPanel Orientation="Horizontal">
+                                <iconPacks:PackIconMaterial Kind="Plus" Width="14" Height="14" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="Add Target" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+
+                        <ItemsControl x:Name="proxyCheckTargetsControl" ItemsSource="{Binding ProxyCheckTargetsCollection}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Vertical"/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="{StaticResource Modern.BackgroundTertiary}" CornerRadius="6" Padding="12" Margin="0,0,0,8">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" VerticalAlignment="Center" Text="Url" Margin="0,0,8,0" Foreground="{StaticResource Modern.ForegroundSecondary}"/>
+                                            <TextBox Grid.Column="1" Text="{Binding Url}" Margin="0,0,16,0" Style="{StaticResource MatchingTextBox}" />
+                                            
+                                            <TextBlock Grid.Column="2" VerticalAlignment="Center" Text="Success Key" Margin="0,0,8,0" Foreground="{StaticResource Modern.ForegroundSecondary}"/>
+                                            <TextBox Grid.Column="3" Text="{Binding SuccessKey}" Margin="0,0,16,0" Style="{StaticResource MatchingTextBox}" />
+                                            
+                                            <Button x:Name="removeProxyCheckTargetButton" Tag="{Binding}" Grid.Column="4" 
+                                                    Click="RemoveProxyCheckTarget" Style="{StaticResource ModernDangerButton}" Padding="8">
+                                                <iconPacks:PackIconMaterial Kind="Close" Width="14" Height="14"/>
+                                            </Button>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <Separator Background="{StaticResource Modern.BorderSecondary}" Margin="0,24"/>
+
+                        <TextBlock Text="Custom Editor Snippets" FontSize="16" FontWeight="SemiBold" Foreground="{StaticResource Modern.ForegroundMain}" Margin="0,0,0,4"/>
+                        <TextBlock Text="(requires restart)" Style="{StaticResource SettingDescriptionStyle}"/>
                         
                         <Button Click="AddCustomSnippet" 
-                        Style="{StaticResource StyledSuccessButton}"
-                                Padding="8,6"
-                                Margin="0,0,0,12"
-                                Background="#FF28A745"
-                                BorderBrush="#FF34CE57">
-                    <StackPanel Orientation="Horizontal">
-                                <iconPacks:PackIconMaterial Kind="Plus" Width="14" Height="14"/>
-                                <TextBlock Text="Add Snippet" VerticalAlignment="Center" Margin="8,0,0,0" FontWeight="SemiBold"/>
-                    </StackPanel>
-                </Button>
-                <ItemsControl ItemsSource="{Binding CustomSnippetsCollection}">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <StackPanel Orientation="Vertical"/>
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <Border Padding="0 5">
-                                <Grid>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="auto" />
-                                        <RowDefinition Height="auto" />
-                                        <RowDefinition Height="100" />
-                                    </Grid.RowDefinitions>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="auto" />
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="auto" />
-                                    </Grid.ColumnDefinitions>
-                                    <Label Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Content="Name" />
-                                    <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding Name}" Height="30" Margin="5 5" Style="{StaticResource MatchingTextBox}" />
-                                    <Button Tag="{Binding}" Grid.Row="0" Grid.Column="2" 
-                                            Click="RemoveCustomSnippet" Margin="0 5 5 5" Style="{StaticResource StyledDangerButton}" >
-                                        <StackPanel Orientation="Horizontal">
-                                            <iconPacks:PackIconMaterial Kind="Close" />
-                                        </StackPanel>
-                                    </Button>
-                                    <Label Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" Content="Description" />
-                                    <TextBox Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Text="{Binding Description}" Height="30" Margin="5 0" Style="{StaticResource MatchingTextBox}" />
-                                    <TextBox Grid.Row="2" Grid.ColumnSpan="3" Grid.Column="0" VerticalContentAlignment="Top" AcceptsReturn="True" Text="{Binding Body}" Margin="5" Style="{StaticResource MatchingTextBox}" />
-                                </Grid>
-                            </Border>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
+                                Style="{StaticResource ModernButtonStyle}"
+                                HorizontalAlignment="Left"
+                                Margin="0,0,0,16">
+                            <StackPanel Orientation="Horizontal">
+                                <iconPacks:PackIconMaterial Kind="Plus" Width="14" Height="14" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="Add Snippet" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                        
+                        <ItemsControl ItemsSource="{Binding CustomSnippetsCollection}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Vertical"/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="{StaticResource Modern.BackgroundTertiary}" CornerRadius="6" Padding="12" Margin="0,0,0,12">
+                                        <Grid>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="100" />
+                                            </Grid.RowDefinitions>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            
+                                            <TextBlock Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Text="Name" Margin="0,0,8,0" Foreground="{StaticResource Modern.ForegroundSecondary}"/>
+                                            <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding Name}" Margin="0,0,16,8" Style="{StaticResource MatchingTextBox}" />
+                                            
+                                            <Button Tag="{Binding}" Grid.Row="0" Grid.Column="2" 
+                                                    Click="RemoveCustomSnippet" Style="{StaticResource ModernDangerButton}" Padding="8" VerticalAlignment="Top">
+                                                <iconPacks:PackIconMaterial Kind="Close" Width="14" Height="14"/>
+                                            </Button>
+                                            
+                                            <TextBlock Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" Text="Desc" Margin="0,0,8,0" Foreground="{StaticResource Modern.ForegroundSecondary}"/>
+                                            <TextBox Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Text="{Binding Description}" Margin="0,0,0,8" Style="{StaticResource MatchingTextBox}" />
+                                            
+                                            <TextBox Grid.Row="2" Grid.ColumnSpan="3" VerticalContentAlignment="Top" AcceptsReturn="True" Text="{Binding Body}" Style="{StaticResource MatchingTextBox}" 
+                                                     FontFamily="Consolas"/>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
                     </StackPanel>
                 </Border>
 
                 <!-- Remote Configuration Section -->
-                <Border Background="#C0353535" CornerRadius="8" Padding="16" Margin="0,0,0,12">
+                <Border Style="{StaticResource SettingsCardStyle}">
                     <StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
-                            <iconPacks:PackIconMaterial Kind="CloudDownload" Width="24" Height="24" Foreground="#FF1E90FF" Margin="0,0,12,0"/>
-                            <TextBlock Text="Remote Configuration" Style="{StaticResource H2TextStyle}" Foreground="#FF1E90FF" VerticalAlignment="Center"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
+                            <Border Width="32" Height="32" CornerRadius="8" Background="#78350F" Margin="0,0,12,0">
+                                <iconPacks:PackIconMaterial Kind="CloudDownload" Width="16" Height="16" Foreground="{StaticResource Modern.Warning}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <TextBlock Text="Remote Configuration" Style="{StaticResource SettingsSectionHeaderStyle}"/>
                         </StackPanel>
                         
-                        <TextBlock Text="Remote Config Endpoints" FontSize="14" Foreground="#FFB0B0B0" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                        <TextBlock Text="Manage remote endpoints to fetch configurations." Style="{StaticResource SettingDescriptionStyle}"/>
                         
                         <Button Click="AddRemoteConfigsEndpoint" 
-                        Style="{StaticResource StyledSuccessButton}"
-                                Padding="8,6"
-                                Margin="0,0,0,12"
-                                Background="#FF28A745"
-                                BorderBrush="#FF34CE57">
-                    <StackPanel Orientation="Horizontal">
-                                <iconPacks:PackIconMaterial Kind="Plus" Width="14" Height="14"/>
-                                <TextBlock Text="Add Endpoint" VerticalAlignment="Center" Margin="8,0,0,0" FontWeight="SemiBold"/>
-                    </StackPanel>
-                </Button>
-                <ItemsControl x:Name="remoteConfigsEndpointsControl" 
-                              ItemsSource="{Binding RemoteConfigsEndpointsCollection}">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <StackPanel Orientation="Vertical"/>
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <Border Padding="0 5">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="auto" />
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="auto" />
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="auto" />
-                                    </Grid.ColumnDefinitions>
-                                    <Label Grid.Column="0" VerticalAlignment="Center" Content="Url" />
-                                    <TextBox Grid.Column="1" Text="{Binding Url}" Height="30" Margin="5 0" Style="{StaticResource MatchingTextBox}" />
-                                    <Label Grid.Column="2" VerticalAlignment="Center" Content="Success Key" />
-                                    <TextBox Grid.Column="3" Text="{Binding ApiKey}" Height="30" Margin="5 0" Style="{StaticResource MatchingTextBox}" />
-                                    <Button x:Name="removeRemoteConfigsEndpointButton" Tag="{Binding}" Grid.Column="4" 
-                                            Click="RemoveRemoteConfigsEndpoint" Margin="0 0 5 0" Style="{StaticResource StyledDangerButton}" >
-                                        <StackPanel Orientation="Horizontal">
-                                            <iconPacks:PackIconMaterial Kind="Close" />
-                                        </StackPanel>
-                                    </Button>
-                                </Grid>
-                            </Border>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
+                                Style="{StaticResource ModernButtonStyle}"
+                                HorizontalAlignment="Left"
+                                Margin="0,0,0,16">
+                            <StackPanel Orientation="Horizontal">
+                                <iconPacks:PackIconMaterial Kind="Plus" Width="14" Height="14" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="Add Endpoint" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                        
+                        <ItemsControl x:Name="remoteConfigsEndpointsControl" 
+                                      ItemsSource="{Binding RemoteConfigsEndpointsCollection}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Vertical"/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="{StaticResource Modern.BackgroundTertiary}" CornerRadius="6" Padding="12" Margin="0,0,0,8">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            
+                                            <TextBlock Grid.Column="0" VerticalAlignment="Center" Text="Url" Margin="0,0,8,0" Foreground="{StaticResource Modern.ForegroundSecondary}"/>
+                                            <TextBox Grid.Column="1" Text="{Binding Url}" Margin="0,0,16,0" Style="{StaticResource MatchingTextBox}" />
+                                            
+                                            <TextBlock Grid.Column="2" VerticalAlignment="Center" Text="Key" Margin="0,0,8,0" Foreground="{StaticResource Modern.ForegroundSecondary}"/>
+                                            <TextBox Grid.Column="3" Text="{Binding ApiKey}" Margin="0,0,16,0" Style="{StaticResource MatchingTextBox}" />
+                                            
+                                            <Button x:Name="removeRemoteConfigsEndpointButton" Tag="{Binding}" Grid.Column="4" 
+                                                    Click="RemoveRemoteConfigsEndpoint" Style="{StaticResource ModernDangerButton}" Padding="8">
+                                                <iconPacks:PackIconMaterial Kind="Close" Width="14" Height="14"/>
+                                            </Button>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
                     </StackPanel>
                 </Border>
 
                 <!-- Customization Section -->
-                <Border Background="#C0353535" CornerRadius="8" Padding="16" Margin="0,0,0,12">
+                <Border Style="{StaticResource SettingsCardStyle}">
                     <StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
-                            <iconPacks:PackIconMaterial Kind="Palette" Width="24" Height="24" Foreground="#FF1E90FF" Margin="0,0,12,0"/>
-                            <TextBlock Text="UI Customization" FontSize="20" FontWeight="Bold" Foreground="#FF1E90FF" VerticalAlignment="Center"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
+                            <Border Width="32" Height="32" CornerRadius="8" Background="#7F1D1D" Margin="0,0,12,0">
+                                <iconPacks:PackIconMaterial Kind="Palette" Width="16" Height="16" Foreground="#F87171" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <TextBlock Text="UI Customization" Style="{StaticResource SettingsSectionHeaderStyle}"/>
                         </StackPanel>
                         
                         <!-- Customization Options -->
-                <CheckBox Content="Play a sound when a hit is found" 
-                          IsChecked="{Binding PlaySoundOnHit}" 
-                                  Foreground="White" 
-                                  Margin="0,0,0,8"/>
+                        <CheckBox Content="Play a sound when a hit is found" IsChecked="{Binding PlaySoundOnHit}" Margin="0,8"/>
+                        <CheckBox Content="Enable Word Wrap in text editor" IsChecked="{Binding WordWrap}" Margin="0,8,0,24"/>
 
-                <CheckBox Content="Enable Word Wrap in text editor" 
-                          IsChecked="{Binding WordWrap}" 
-                                  Foreground="White" 
-                                  Margin="0,8,0,16"/>
+                        <TextBlock Text="Background Colors" Style="{StaticResource SettingLabelStyle}"/>
+                        <Grid Margin="0,0,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                                <TextBlock Text="Main" Style="{StaticResource ModernCaptionText}" Margin="0,0,0,4"/>
+                                <mah:ColorPicker SelectedColor="{Binding BackgroundMain}" Width="150" HorizontalAlignment="Left" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Margin="0,0,8,0">
+                                <TextBlock Text="Secondary" Style="{StaticResource ModernCaptionText}" Margin="0,0,0,4"/>
+                                <mah:ColorPicker SelectedColor="{Binding BackgroundSecondary}" Width="150" HorizontalAlignment="Left" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="2" Margin="0,0,8,0">
+                                <TextBlock Text="Inputs" Style="{StaticResource ModernCaptionText}" Margin="0,0,0,4"/>
+                                <mah:ColorPicker SelectedColor="{Binding BackgroundInput}" Width="150" HorizontalAlignment="Left" />
+                            </StackPanel>
+                        </Grid>
 
-                <Label Foreground="{DynamicResource ForegroundCustom}" Margin="0 10 0 0">Background colors</Label>
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="*" />
-                    </Grid.ColumnDefinitions>
-                    <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="0 5 0 0">
-                        <Label>Main</Label>
-                        <mah:ColorPicker SelectedColor="{Binding BackgroundMain}" Width="150" />
-                    </StackPanel>
-                    <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="0 5 0 0">
-                        <Label>Secondary</Label>
-                        <mah:ColorPicker SelectedColor="{Binding BackgroundSecondary}" Width="150" />
-                    </StackPanel>
-                    <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="0 5 0 0">
-                        <Label>Inputs</Label>
-                        <mah:ColorPicker SelectedColor="{Binding BackgroundInput}" Width="150" />
-                    </StackPanel>
-                </Grid>
+                        <TextBlock Text="Foreground Colors" Style="{StaticResource SettingLabelStyle}"/>
+                        <Grid Margin="0,0,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            
+                            <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,8,12">
+                                <TextBlock Text="Main" Style="{StaticResource ModernCaptionText}" Margin="0,0,0,4"/>
+                                <mah:ColorPicker SelectedColor="{Binding ForegroundMain}" Width="150" HorizontalAlignment="Left" />
+                            </StackPanel>
+                            <StackPanel Grid.Row="0" Grid.Column="1" Margin="0,0,8,12">
+                                <TextBlock Text="Good" Style="{StaticResource ModernCaptionText}" Margin="0,0,0,4"/>
+                                <mah:ColorPicker SelectedColor="{Binding ForegroundGood}" Width="150" HorizontalAlignment="Left" />
+                            </StackPanel>
+                            <StackPanel Grid.Row="0" Grid.Column="2" Margin="0,0,8,12">
+                                <TextBlock Text="Bad" Style="{StaticResource ModernCaptionText}" Margin="0,0,0,4"/>
+                                <mah:ColorPicker SelectedColor="{Binding ForegroundBad}" Width="150" HorizontalAlignment="Left" />
+                            </StackPanel>
+                            
+                            <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,8,12">
+                                <TextBlock Text="Custom" Style="{StaticResource ModernCaptionText}" Margin="0,0,0,4"/>
+                                <mah:ColorPicker SelectedColor="{Binding ForegroundCustom}" Width="150" HorizontalAlignment="Left" />
+                            </StackPanel>
+                            <StackPanel Grid.Row="1" Grid.Column="1" Margin="0,0,8,12">
+                                <TextBlock Text="Retry" Style="{StaticResource ModernCaptionText}" Margin="0,0,0,4"/>
+                                <mah:ColorPicker SelectedColor="{Binding ForegroundRetry}" Width="150" HorizontalAlignment="Left" />
+                            </StackPanel>
+                            <StackPanel Grid.Row="1" Grid.Column="2" Margin="0,0,8,12">
+                                <TextBlock Text="Banned" Style="{StaticResource ModernCaptionText}" Margin="0,0,0,4"/>
+                                <mah:ColorPicker SelectedColor="{Binding ForegroundBanned}" Width="150" HorizontalAlignment="Left" />
+                            </StackPanel>
+                            
+                            <StackPanel Grid.Row="2" Grid.Column="0" Margin="0,0,8,12">
+                                <TextBlock Text="To Check" Style="{StaticResource ModernCaptionText}" Margin="0,0,0,4"/>
+                                <mah:ColorPicker SelectedColor="{Binding ForegroundToCheck}" Width="150" HorizontalAlignment="Left" />
+                            </StackPanel>
+                            <StackPanel Grid.Row="2" Grid.Column="1" Margin="0,0,8,12">
+                                <TextBlock Text="Menu Selected" Style="{StaticResource ModernCaptionText}" Margin="0,0,0,4"/>
+                                <mah:ColorPicker SelectedColor="{Binding ForegroundMenuSelected}" Width="150" HorizontalAlignment="Left" />
+                            </StackPanel>
+                            <StackPanel Grid.Row="2" Grid.Column="2" Margin="0,0,8,12">
+                                <TextBlock Text="Inputs" Style="{StaticResource ModernCaptionText}" Margin="0,0,0,4"/>
+                                <mah:ColorPicker SelectedColor="{Binding ForegroundInput}" Width="150" HorizontalAlignment="Left" />
+                            </StackPanel>
+                        </Grid>
 
-                <Label Foreground="{DynamicResource ForegroundCustom}" Margin="0 10 0 0">Foreground colors</Label>
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="*" />
-                    </Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="auto" />
-                        <RowDefinition Height="auto" />
-                        <RowDefinition Height="auto" />
-                    </Grid.RowDefinitions>
-                    <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal" Margin="0 5 0 0">
-                        <Label>Main</Label>
-                        <mah:ColorPicker SelectedColor="{Binding ForegroundMain}" Width="150" />
-                    </StackPanel>
-                    <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Margin="0 5 0 0">
-                        <Label>Good</Label>
-                        <mah:ColorPicker SelectedColor="{Binding ForegroundGood}" Width="150" />
-                    </StackPanel>
-                    <StackPanel Grid.Row="0" Grid.Column="2" Orientation="Horizontal" Margin="0 5 0 0">
-                        <Label>Bad</Label>
-                        <mah:ColorPicker SelectedColor="{Binding ForegroundBad}" Width="150" />
-                    </StackPanel>
-                    <StackPanel Grid.Row="1" Grid.Column="0" Orientation="Horizontal" Margin="0 5 0 0">
-                        <Label>Custom</Label>
-                        <mah:ColorPicker SelectedColor="{Binding ForegroundCustom}" Width="150" />
-                    </StackPanel>
-                    <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Margin="0 5 0 0">
-                        <Label>Retry</Label>
-                        <mah:ColorPicker SelectedColor="{Binding ForegroundRetry}" Width="150" />
-                    </StackPanel>
-                    <StackPanel Grid.Row="1" Grid.Column="2" Orientation="Horizontal" Margin="0 5 0 0">
-                        <Label>Banned</Label>
-                        <mah:ColorPicker SelectedColor="{Binding ForegroundBanned}" Width="150" />
-                    </StackPanel>
-                    <StackPanel Grid.Row="2" Grid.Column="0" Orientation="Horizontal" Margin="0 5 0 0">
-                        <Label>To Check</Label>
-                        <mah:ColorPicker SelectedColor="{Binding ForegroundToCheck}" Width="150" />
-                    </StackPanel>
-                    <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" Margin="0 5 0 0">
-                        <Label>Menu Selected</Label>
-                        <mah:ColorPicker SelectedColor="{Binding ForegroundMenuSelected}" Width="150" />
-                    </StackPanel>
-                    <StackPanel Grid.Row="2" Grid.Column="2" Orientation="Horizontal" Margin="0 5 0 0">
-                        <Label>Inputs</Label>
-                        <mah:ColorPicker SelectedColor="{Binding ForegroundInput}" Width="150" />
-                    </StackPanel>
-                </Grid>
+                        <TextBlock Text="Button Colors" Style="{StaticResource SettingLabelStyle}"/>
+                        <Grid Margin="0,0,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
 
-                <Label Foreground="{DynamicResource ForegroundCustom}" Margin="0 10 0 0">Button colors</Label>
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="*" />
-                    </Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="auto" />
-                        <RowDefinition Height="auto" />
-                    </Grid.RowDefinitions>
+                            <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,8,12">
+                                <TextBlock Text="Success" Style="{StaticResource ModernCaptionText}" Margin="0,0,0,4"/>
+                                <mah:ColorPicker SelectedColor="{Binding SuccessButton}" Width="150" HorizontalAlignment="Left" />
+                            </StackPanel>
+                            <StackPanel Grid.Row="0" Grid.Column="1" Margin="0,0,8,12">
+                                <TextBlock Text="Primary" Style="{StaticResource ModernCaptionText}" Margin="0,0,0,4"/>
+                                <mah:ColorPicker SelectedColor="{Binding PrimaryButton}" Width="150" HorizontalAlignment="Left" />
+                            </StackPanel>
+                            <StackPanel Grid.Row="0" Grid.Column="2" Margin="0,0,8,12">
+                                <TextBlock Text="Warning" Style="{StaticResource ModernCaptionText}" Margin="0,0,0,4"/>
+                                <mah:ColorPicker SelectedColor="{Binding WarningButton}" Width="150" HorizontalAlignment="Left" />
+                            </StackPanel>
+                            
+                            <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,8,12">
+                                <TextBlock Text="Danger" Style="{StaticResource ModernCaptionText}" Margin="0,0,0,4"/>
+                                <mah:ColorPicker SelectedColor="{Binding DangerButton}" Width="150" HorizontalAlignment="Left" />
+                            </StackPanel>
+                            <StackPanel Grid.Row="1" Grid.Column="1" Margin="0,0,8,12">
+                                <TextBlock Text="Foreground" Style="{StaticResource ModernCaptionText}" Margin="0,0,0,4"/>
+                                <mah:ColorPicker SelectedColor="{Binding ForegroundButton}" Width="150" HorizontalAlignment="Left" />
+                            </StackPanel>
+                            <StackPanel Grid.Row="1" Grid.Column="2" Margin="0,0,8,12">
+                                <TextBlock Text="Background" Style="{StaticResource ModernCaptionText}" Margin="0,0,0,4"/>
+                                <mah:ColorPicker SelectedColor="{Binding BackgroundButton}" Width="150" HorizontalAlignment="Left" />
+                            </StackPanel>
+                        </Grid>
+                        
+                        <Separator Background="{StaticResource Modern.BorderSecondary}" Margin="0,24"/>
 
-                    <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal" Margin="0 5 0 0">
-                        <Label>Success</Label>
-                        <mah:ColorPicker SelectedColor="{Binding SuccessButton}" Width="150" />
-                    </StackPanel>
-                    <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Margin="0 5 0 0">
-                        <Label>Primary</Label>
-                        <mah:ColorPicker SelectedColor="{Binding PrimaryButton}" Width="150" />
-                    </StackPanel>
-                    <StackPanel Grid.Row="0" Grid.Column="2" Orientation="Horizontal" Margin="0 5 0 0">
-                        <Label>Warning</Label>
-                        <mah:ColorPicker SelectedColor="{Binding WarningButton}" Width="150" />
-                    </StackPanel>
-                    <StackPanel Grid.Row="1" Grid.Column="0" Orientation="Horizontal" Margin="0 5 0 0">
-                        <Label>Danger</Label>
-                        <mah:ColorPicker SelectedColor="{Binding DangerButton}" Width="150" />
-                    </StackPanel>
-                    <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Margin="0 5 0 0">
-                        <Label>Foreground</Label>
-                        <mah:ColorPicker SelectedColor="{Binding ForegroundButton}" Width="150" />
-                    </StackPanel>
-                    <StackPanel Grid.Row="1" Grid.Column="2" Orientation="Horizontal" Margin="0 5 0 0">
-                        <Label>Background</Label>
-                        <mah:ColorPicker SelectedColor="{Binding BackgroundButton}" Width="150" />
-                    </StackPanel>
-                </Grid>
-                <Grid Margin="0 5 0 0">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="auto" />
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="auto" />
-                        <ColumnDefinition Width="auto" />
-                        <ColumnDefinition Width="auto" />
-                    </Grid.ColumnDefinitions>
-                    <Label Grid.Column="0" Content="Background image" />
-                    <TextBox Grid.Column="1" Text="{Binding BackgroundImagePath, Mode=OneWay}" IsReadOnly="True" Style="{StaticResource MatchingTextBox}" />
-                    <Label Grid.Column="2" Content="Opacity" />
-                    <mah:NumericUpDown
-                        Grid.Column="3"
-                        Minimum="0"
-                        Maximum="100"
-                        Interval="1"
-                        Value="{Binding BackgroundOpacity}"
-                        Width="150"/>
-                    <Button
-                        Grid.Column="4"
-                        Margin="5 0"
-                        Click="ChooseBackgroundImage"
-                        Style="{StaticResource StyledPrimaryButton}" >
-                        <StackPanel Orientation="Horizontal">
-                            <iconPacks:PackIconForkAwesome Kind="File" />
-                            <TextBlock VerticalAlignment="Center" Margin="5 0">Choose</TextBlock>
-                        </StackPanel>
-                    </Button>
-                </Grid>
-                <Image 
-                    Source="{Binding BackgroundImage}"
-                    MaxWidth="150"
-                    MaxHeight="150"
-                    HorizontalAlignment="Left"
-                    Visibility="{Binding ShowBackgroundImage, Converter={StaticResource ResourceKey=BoolToVis}}"
-                    Margin="5 5 0 0"/>
-                <Button
-                    Click="ResetCustomization"
-                            Style="{StaticResource StyledWarningButton}"
-                            Margin="0,16,0,0"
-                            Background="#FFFFC107"
-                            BorderBrush="#FFFFDC69">
-                    <StackPanel Orientation="Horizontal">
-                                <iconPacks:PackIconMaterial Kind="Refresh" Width="14" Height="14"/>
-                                <TextBlock Text="Reset Customization" VerticalAlignment="Center" Margin="8,0,0,0" FontWeight="SemiBold" Foreground="Black"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" VerticalAlignment="Center" Text="Background Image" Margin="0,0,16,0" Style="{StaticResource SettingLabelStyle}"/>
+                            <TextBox Grid.Column="1" Text="{Binding BackgroundImagePath, Mode=OneWay}" IsReadOnly="True" Style="{StaticResource MatchingTextBox}" />
+                            
+                            <TextBlock Grid.Column="2" VerticalAlignment="Center" Text="Opacity" Margin="16,0,8,0" Style="{StaticResource SettingLabelStyle}"/>
+                            <mah:NumericUpDown Grid.Column="3" Minimum="0" Maximum="100" Interval="1" Value="{Binding BackgroundOpacity}" Width="80"/>
+                            
+                            <Button Grid.Column="4" Margin="16,0,0,0" Click="ChooseBackgroundImage" Style="{StaticResource ModernButtonStyle}">
+                                <StackPanel Orientation="Horizontal">
+                                    <iconPacks:PackIconForkAwesome Kind="File" Width="14" Height="14" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Choose" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                        </Grid>
+                        
+                        <Image Source="{Binding BackgroundImage}" MaxWidth="150" MaxHeight="150" HorizontalAlignment="Left"
+                               Visibility="{Binding ShowBackgroundImage, Converter={StaticResource ResourceKey=BoolToVis}}"
+                               Margin="0,16,0,0"/>
+
+                        <Button Click="ResetCustomization" 
+                                Style="{StaticResource ModernWarningButton}"
+                                HorizontalAlignment="Left"
+                                Margin="0,24,0,0">
+                            <StackPanel Orientation="Horizontal">
+                                <iconPacks:PackIconMaterial Kind="Refresh" Width="14" Height="14" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="Reset Customization" VerticalAlignment="Center" Foreground="#1F2937"/>
                             </StackPanel>
                         </Button>
                     </StackPanel>
@@ -427,31 +473,26 @@
             </StackPanel>
         </ScrollViewer>
 
-        <!-- Modern Action Buttons -->
-        <Border Grid.Row="1" Background="#C0353535" CornerRadius="8" Padding="16" Margin="0,8,0,0">
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-        <Button x:Name="saveButton" 
-                Click="Save" 
-                        Style="{StaticResource StyledPrimaryButton}"
-                        Padding="16,10"
-                        Margin="0,0,12,0"
-                        Background="#FF28A745"
-                        BorderBrush="#FF34CE57">
-            <StackPanel Orientation="Horizontal">
-                        <iconPacks:PackIconMaterial Kind="ContentSave" Width="16" Height="16"/>
-                        <TextBlock Text="Save" VerticalAlignment="Center" Margin="8,0,0,0" FontWeight="SemiBold"/>
-            </StackPanel>
-        </Button>
-
-                <Button x:Name="resetButton" 
-                Click="Reset" 
-                        Style="{StaticResource StyledDangerButton}"
-                        Padding="16,10"
-                        Background="#FFDC3545"
-                        BorderBrush="#FFFF6B6B">
-            <StackPanel Orientation="Horizontal">
-                        <iconPacks:PackIconMaterial Kind="Refresh" Width="16" Height="16"/>
-                        <TextBlock Text="Reset" VerticalAlignment="Center" Margin="8,0,0,0" FontWeight="SemiBold"/>
+        <!-- Action Buttons Footer -->
+        <Border Grid.Row="1" 
+                Background="{StaticResource Modern.BackgroundSecondary}" 
+                BorderBrush="{StaticResource Modern.BorderSecondary}"
+                BorderThickness="1"
+                CornerRadius="12" 
+                Padding="16" 
+                Margin="0,16,0,0">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button x:Name="resetButton" Click="Reset" Style="{StaticResource ModernDangerButton}" Margin="0,0,12,0" Width="100">
+                    <StackPanel Orientation="Horizontal">
+                        <iconPacks:PackIconMaterial Kind="Refresh" Width="14" Height="14" Margin="0,0,8,0"/>
+                        <TextBlock Text="Reset" FontWeight="SemiBold"/>
+                    </StackPanel>
+                </Button>
+                
+                <Button x:Name="saveButton" Click="Save" Style="{StaticResource ModernPrimaryButton}" Width="120">
+                    <StackPanel Orientation="Horizontal">
+                        <iconPacks:PackIconMaterial Kind="ContentSave" Width="14" Height="14" Margin="0,0,8,0"/>
+                        <TextBlock Text="Save Changes" FontWeight="SemiBold"/>
                     </StackPanel>
                 </Button>
             </StackPanel>

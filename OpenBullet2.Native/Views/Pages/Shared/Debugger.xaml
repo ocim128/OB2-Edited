@@ -807,6 +807,7 @@
                                                    RenderOptions.ClearTypeHint="Enabled" />
                                     </Border>
                                     <uc:HTMLViewer x:Name="htmlViewer"
+                                                   HTML="{Binding LastHtml, Mode=OneWay}"
                                                    VerticalAlignment="Stretch"
                                                    RenderOptions.BitmapScalingMode="HighQuality"
                                                    UseLayoutRounding="True" />

@@ -159,6 +159,17 @@ public class DebuggerViewModel : OpenBullet2.Native.ViewModels.Infrastructure.Vi
     }
 
     public void RefreshVariables() => OnPropertyChanged(nameof(Variables));
+    
+    private string lastHtml = string.Empty;
+    public string LastHtml
+    {
+        get => lastHtml;
+        set
+        {
+            lastHtml = value;
+            OnPropertyChanged();
+        }
+    }
 
     private string searchString = string.Empty;
     public string SearchString
@@ -303,9 +314,18 @@ public class DebuggerViewModel : OpenBullet2.Native.ViewModels.Infrastructure.Vi
     {
         logger?.Clear();
         LogLineCount = 0;
+        LastHtml = string.Empty;
         LogCleared?.Invoke(this, EventArgs.Empty);
     }
 
     private void OnStatusChanged(object? sender, ConfigDebuggerStatus status) => Status = status;
-    private void OnNewLogEntry(object? sender, BotLoggerEntry e) => NewLogEntry?.Invoke(this, e);
+    private void OnNewLogEntry(object? sender, BotLoggerEntry e)
+    {
+        if (e.CanViewAsHtml)
+        {
+            LastHtml = e.Message;
+        }
+        
+        NewLogEntry?.Invoke(this, e);
+    }
 }

@@ -170,7 +170,7 @@ public partial class Debugger : Page
 
     private void OnLogCleared(object? sender, EventArgs e)
     {
-        Dispatcher.InvokeAsync(() => _logService.ClearLog(html => htmlViewer.HTML = html));
+        Dispatcher.InvokeAsync(() => _logService.ClearLog());
     }
     #endregion
 

@@ -320,14 +320,7 @@
                                 <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
                             
-                            <!-- Icon Container -->
-                            <Border Grid.Row="0" Style="{StaticResource IconContainerStyle}" Background="#1E3A5F">
-                                <iconPacks:PackIconMaterial Kind="Cpu64Bit" 
-                                                            Width="18" Height="18" 
-                                                            Foreground="{StaticResource Modern.ThemeMain}"
-                                                            HorizontalAlignment="Center"
-                                                            VerticalAlignment="Center"/>
-                            </Border>
+                            <!-- Icon Container Removed -->
                             
                             <TextBlock Grid.Row="1" Text="CPU Usage" Style="{StaticResource MetricLabelStyle}"/>
                             <TextBlock Grid.Row="2" Text="{Binding CpuUsage, StringFormat='{}{0}'}" 
@@ -351,13 +344,7 @@
                                 <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
                             
-                            <Border Grid.Row="0" Style="{StaticResource IconContainerStyle}" Background="#064E3B">
-                                <iconPacks:PackIconMaterial Kind="Memory" 
-                                                            Width="18" Height="18" 
-                                                            Foreground="{StaticResource Modern.Success}"
-                                                            HorizontalAlignment="Center"
-                                                            VerticalAlignment="Center"/>
-                            </Border>
+
                             
                             <TextBlock Grid.Row="1" Text="Memory" Style="{StaticResource MetricLabelStyle}"/>
                             <TextBlock Grid.Row="2" Text="{Binding MemoryUsage}" 
@@ -381,13 +368,7 @@
                                 <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
                             
-                            <Border Grid.Row="0" Style="{StaticResource IconContainerStyle}" Background="#78350F">
-                                <iconPacks:PackIconMaterial Kind="ClockOutline" 
-                                                            Width="18" Height="18" 
-                                                            Foreground="{StaticResource Modern.Warning}"
-                                                            HorizontalAlignment="Center"
-                                                            VerticalAlignment="Center"/>
-                            </Border>
+
                             
                             <TextBlock Grid.Row="1" Text="Uptime" Style="{StaticResource MetricLabelStyle}"/>
                             <TextBlock Grid.Row="2" Text="{Binding ApplicationUptime}" 
@@ -524,13 +505,6 @@
                     <Border Grid.Column="0" Style="{StaticResource CollectionCardStyle}">
                         <StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                                <Border Width="28" Height="28" CornerRadius="6" Background="#1E3A5F" Margin="0,0,10,0">
-                                    <iconPacks:PackIconMaterial Kind="Briefcase" 
-                                                                Width="14" Height="14" 
-                                                                Foreground="{StaticResource Modern.ThemeMain}"
-                                                                HorizontalAlignment="Center"
-                                                                VerticalAlignment="Center"/>
-                                </Border>
                                 <TextBlock Text="Jobs" Style="{StaticResource MetricLabelStyle}" VerticalAlignment="Center"/>
                             </StackPanel>
                             <TextBlock Text="{Binding JobsCount}" 
@@ -543,13 +517,6 @@
                     <Border Grid.Column="2" Style="{StaticResource CollectionCardStyle}">
                         <StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                                <Border Width="28" Height="28" CornerRadius="6" Background="#064E3B" Margin="0,0,10,0">
-                                    <iconPacks:PackIconMaterial Kind="ServerNetwork" 
-                                                                Width="14" Height="14" 
-                                                                Foreground="{StaticResource Modern.Success}"
-                                                                HorizontalAlignment="Center"
-                                                                VerticalAlignment="Center"/>
-                                </Border>
                                 <TextBlock Text="Proxies" Style="{StaticResource MetricLabelStyle}" VerticalAlignment="Center"/>
                             </StackPanel>
                             <TextBlock Text="{Binding ProxiesCount}" 
@@ -562,13 +529,6 @@
                     <Border Grid.Column="4" Style="{StaticResource CollectionCardStyle}">
                         <StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                                <Border Width="28" Height="28" CornerRadius="6" Background="#78350F" Margin="0,0,10,0">
-                                    <iconPacks:PackIconMaterial Kind="FormatListBulleted" 
-                                                                Width="14" Height="14" 
-                                                                Foreground="{StaticResource Modern.Warning}"
-                                                                HorizontalAlignment="Center"
-                                                                VerticalAlignment="Center"/>
-                                </Border>
                                 <TextBlock Text="Wordlists" Style="{StaticResource MetricLabelStyle}" VerticalAlignment="Center"/>
                             </StackPanel>
                             <TextBlock Text="{Binding WordlistsCount}" 
@@ -581,13 +541,6 @@
                     <Border Grid.Column="6" Style="{StaticResource CollectionCardStyle}">
                         <StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                                <Border Width="28" Height="28" CornerRadius="6" Background="#92400E" Margin="0,0,10,0">
-                                    <iconPacks:PackIconMaterial Kind="FormatLineSpacing" 
-                                                                Width="14" Height="14" 
-                                                                Foreground="#FBBF24"
-                                                                HorizontalAlignment="Center"
-                                                                VerticalAlignment="Center"/>
-                                </Border>
                                 <TextBlock Text="Lines" Style="{StaticResource MetricLabelStyle}" VerticalAlignment="Center"/>
                             </StackPanel>
                             <TextBlock Text="{Binding WordlistLines}" 
@@ -613,13 +566,6 @@
                     <Border Grid.Column="0" Style="{StaticResource CollectionCardStyle}">
                         <StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                                <Border Width="28" Height="28" CornerRadius="6" Background="#7F1D1D" Margin="0,0,10,0">
-                                    <iconPacks:PackIconMaterial Kind="Target" 
-                                                                Width="14" Height="14" 
-                                                                Foreground="#F87171"
-                                                                HorizontalAlignment="Center"
-                                                                VerticalAlignment="Center"/>
-                                </Border>
                                 <TextBlock Text="Hits" Style="{StaticResource MetricLabelStyle}" VerticalAlignment="Center"/>
                             </StackPanel>
                             <TextBlock Text="{Binding HitsCount}" 
@@ -632,13 +578,6 @@
                     <Border Grid.Column="2" Style="{StaticResource CollectionCardStyle}">
                         <StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                                <Border Width="28" Height="28" CornerRadius="6" Background="#164E63" Margin="0,0,10,0">
-                                    <iconPacks:PackIconMaterial Kind="Cog" 
-                                                                Width="14" Height="14" 
-                                                                Foreground="#22D3EE"
-                                                                HorizontalAlignment="Center"
-                                                                VerticalAlignment="Center"/>
-                                </Border>
                                 <TextBlock Text="Configs" Style="{StaticResource MetricLabelStyle}" VerticalAlignment="Center"/>
                             </StackPanel>
                             <TextBlock Text="{Binding ConfigsCount}" 
@@ -651,13 +590,6 @@
                     <Border Grid.Column="4" Style="{StaticResource CollectionCardStyle}">
                         <StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                                <Border Width="28" Height="28" CornerRadius="6" Background="#365314" Margin="0,0,10,0">
-                                    <iconPacks:PackIconMaterial Kind="AccountGroup" 
-                                                                Width="14" Height="14" 
-                                                                Foreground="#A3E635"
-                                                                HorizontalAlignment="Center"
-                                                                VerticalAlignment="Center"/>
-                                </Border>
                                 <TextBlock Text="Guests" Style="{StaticResource MetricLabelStyle}" VerticalAlignment="Center"/>
                             </StackPanel>
                             <TextBlock Text="{Binding GuestsCount}" 
@@ -670,13 +602,6 @@
                     <Border Grid.Column="6" Style="{StaticResource CollectionCardStyle}">
                         <StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                                <Border Width="28" Height="28" CornerRadius="6" Background="#7C2D12" Margin="0,0,10,0">
-                                    <iconPacks:PackIconMaterial Kind="Puzzle" 
-                                                                Width="14" Height="14" 
-                                                                Foreground="#FB923C"
-                                                                HorizontalAlignment="Center"
-                                                                VerticalAlignment="Center"/>
-                                </Border>
                                 <TextBlock Text="Plugins" Style="{StaticResource MetricLabelStyle}" VerticalAlignment="Center"/>
                             </StackPanel>
                             <TextBlock Text="{Binding PluginsCount}" 

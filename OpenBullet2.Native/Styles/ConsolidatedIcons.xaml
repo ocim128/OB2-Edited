@@ -13,90 +13,32 @@
     <!-- CORE SYSTEM ICONS (Material Design)     -->
     <!-- ========================================= -->
     
-    <!-- Basic Actions -->
-    <iconPacks:PackIconMaterial x:Key="Icon.Play" Kind="Play" />
-    <iconPacks:PackIconMaterial x:Key="Icon.Pause" Kind="Pause" />
-    <iconPacks:PackIconMaterial x:Key="Icon.Stop" Kind="Stop" />
+    <!-- Application Control -->
     <iconPacks:PackIconMaterial x:Key="Icon.Close" Kind="Close" />
     <iconPacks:PackIconMaterial x:Key="Icon.Plus" Kind="Plus" />
-    <iconPacks:PackIconMaterial x:Key="Icon.Minus" Kind="Minus" />
-    <iconPacks:PackIconMaterial x:Key="Icon.Refresh" Kind="Refresh" />
-    <iconPacks:PackIconMaterial x:Key="Icon.Save" Kind="ContentSave" />
-    <iconPacks:PackIconMaterial x:Key="Icon.Export" Kind="Export" />
+    <iconPacks:PackIconMaterial x:Key="Icon.Check" Kind="Check" />
+    <iconPacks:PackIconMaterial x:Key="Icon.ChevronUp" Kind="ChevronUp" />
+    <iconPacks:PackIconMaterial x:Key="Icon.Search" Kind="Magnify" />
     <iconPacks:PackIconMaterial x:Key="Icon.DatabaseExport" Kind="DatabaseExport" />
     
-    <!-- Edit Actions -->
-    <iconPacks:PackIconMaterial x:Key="Icon.Edit" Kind="Pencil" />
-    <iconPacks:PackIconMaterial x:Key="Icon.Delete" Kind="Delete" />
-    <iconPacks:PackIconMaterial x:Key="Icon.DeleteSweep" Kind="DeleteSweep" />
-    <iconPacks:PackIconMaterial x:Key="Icon.TrashCan" Kind="TrashCan" />
-    <iconPacks:PackIconMaterial x:Key="Icon.Copy" Kind="ContentCopy" />
-    
-    <!-- Navigation -->
-    <iconPacks:PackIconMaterial x:Key="Icon.Home" Kind="Home" />
-    <iconPacks:PackIconMaterial x:Key="Icon.ChevronDown" Kind="ChevronDown" />
-    <iconPacks:PackIconMaterial x:Key="Icon.ChevronUp" Kind="ChevronUp" />
-    <iconPacks:PackIconMaterial x:Key="Icon.ChevronLeft" Kind="ChevronLeft" />
-    <iconPacks:PackIconMaterial x:Key="Icon.ChevronRight" Kind="ChevronRight" />
-    
-    <!-- Files & Folders -->
-    <iconPacks:PackIconMaterial x:Key="Icon.Folder" Kind="Folder" />
+    <!-- Application Specific -->
+    <iconPacks:PackIconMaterial x:Key="Icon.Cog" Kind="Cog" />
+    <iconPacks:PackIconMaterial x:Key="Icon.Tune" Kind="Tune" />
+    <iconPacks:PackIconMaterial x:Key="Icon.Database" Kind="Database" />
+    <iconPacks:PackIconMaterial x:Key="Icon.Network" Kind="ServerNetwork" />
+    <iconPacks:PackIconMaterial x:Key="Icon.Clock" Kind="ClockOutline" />
     <iconPacks:PackIconMaterial x:Key="Icon.FolderOpen" Kind="FolderOpen" />
     <iconPacks:PackIconMaterial x:Key="Icon.FolderOutline" Kind="FolderOutline" />
-    <iconPacks:PackIconMaterial x:Key="Icon.File" Kind="FileDocument" />
-    <iconPacks:PackIconMaterial x:Key="Icon.FileEdit" Kind="FileDocumentEdit" />
     <iconPacks:PackIconMaterial x:Key="Icon.FileOutline" Kind="FileDocumentOutline" />
-    
-    <!-- System & Settings -->
-    <iconPacks:PackIconMaterial x:Key="Icon.Cog" Kind="Cog" />
-    <iconPacks:PackIconMaterial x:Key="Icon.Settings" Kind="Settings" />
-    <iconPacks:PackIconMaterial x:Key="Icon.SettingsHelper" Kind="SettingsHelper" />
-    <iconPacks:PackIconMaterial x:Key="Icon.Tune" Kind="Tune" />
-    
-    <!-- Status & Feedback -->
-    <iconPacks:PackIconMaterial x:Key="Icon.Info" Kind="Information" />
-    <iconPacks:PackIconMaterial x:Key="Icon.Warning" Kind="Alert" />
-    <iconPacks:PackIconMaterial x:Key="Icon.AlertCircle" Kind="AlertCircle" />
-    <iconPacks:PackIconMaterial x:Key="Icon.Error" Kind="CloseCircle" />
-    <iconPacks:PackIconMaterial x:Key="Icon.Success" Kind="CheckCircle" />
-    <iconPacks:PackIconMaterial x:Key="Icon.Check" Kind="Check" />
-    
-    <!-- Search & Discovery -->
-    <iconPacks:PackIconMaterial x:Key="Icon.Search" Kind="Magnify" />
-    <iconPacks:PackIconMaterial x:Key="Icon.Target" Kind="Target" />
-    
-    <!-- ========================================= -->
-    <!-- APPLICATION SPECIFIC ICONS              -->
-    <!-- ========================================= -->
-    
-    <!-- OpenBullet Core -->
-    <iconPacks:PackIconMaterial x:Key="Icon.Rocket" Kind="RocketLaunchOutline" />
-    
-    <!-- Network & Server -->
-    <iconPacks:PackIconMaterial x:Key="Icon.Server" Kind="Server" />
-    <iconPacks:PackIconMaterial x:Key="Icon.Network" Kind="ServerNetwork" />
-    
-    <!-- Data & Analytics -->
-    <iconPacks:PackIconMaterial x:Key="Icon.Database" Kind="Database" />
-    
-    
-    <!-- System Resources -->
-    <iconPacks:PackIconMaterial x:Key="Icon.Clock" Kind="ClockOutline" />
-    
-    <!-- User & Social -->
-    <iconPacks:PackIconMaterial x:Key="Icon.Account" Kind="AccountOutline" />
-    
-    <!-- Miscellaneous - only used ones -->
-    <iconPacks:PackIconMaterial x:Key="Icon.Tag" Kind="TagText" />
     <iconPacks:PackIconMaterial x:Key="Icon.TagOutline" Kind="TagOutline" />
+    <iconPacks:PackIconMaterial x:Key="Icon.Account" Kind="AccountOutline" />
     <iconPacks:PackIconMaterial x:Key="Icon.History" Kind="History" />
-    
+
     <!-- ========================================= -->
     <!-- SPECIALIZED ICON PACKS                  -->
     <!-- ========================================= -->
     
-    
-    <!-- Remix Icons (Filled Variants - only used ones) -->
+    <!-- Remix Icons (Filled Variants) -->
     <iconPacks:PackIconRemixIcon x:Key="Icon.FolderFill" Kind="Folder2Fill" />
 
     <!-- ========================================= -->
@@ -143,8 +85,6 @@
     <!-- COMMON ICON + TEXT PATTERNS             -->
     <!-- ========================================= -->
     
-
-    
     <!-- Dialog Header with Icon Pattern -->
     <Style x:Key="DialogHeader.WithIcon" TargetType="StackPanel">
         <Setter Property="Orientation" Value="Horizontal" />
@@ -159,34 +99,5 @@
         <Setter Property="VerticalAlignment" Value="Center" />
         <Setter Property="Margin" Value="0,0,12,0" />
     </Style>
-
-    
-    <!-- Section Header Templates - Simplified -->
-    <DataTemplate x:Key="Template.SectionHeader.General">
-        <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
-            <iconPacks:PackIconBoxIcons Kind="RegularCog" Width="24" Height="24" 
-                                       Foreground="{StaticResource Icon.SecondaryBlue}" Margin="0,0,12,0"/>
-            <TextBlock Text="General Settings" FontSize="20" FontWeight="Bold" 
-                      Foreground="{StaticResource Icon.SecondaryBlue}" VerticalAlignment="Center"/>
-        </StackPanel>
-    </DataTemplate>
-    
-    <DataTemplate x:Key="Template.SectionHeader.Server">
-        <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
-            <iconPacks:PackIconBoxIcons Kind="RegularServer" Width="24" Height="24" 
-                                       Foreground="{StaticResource Icon.SecondaryBlue}" Margin="0,0,12,0"/>
-            <TextBlock Text="Proxy Settings" FontSize="20" FontWeight="Bold" 
-                      Foreground="{StaticResource Icon.SecondaryBlue}" VerticalAlignment="Center"/>
-        </StackPanel>
-    </DataTemplate>
-    
-    <DataTemplate x:Key="Template.SectionHeader.Data">
-        <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
-            <iconPacks:PackIconBoxIcons Kind="RegularData" Width="24" Height="24" 
-                                       Foreground="{StaticResource Icon.SecondaryBlue}" Margin="0,0,12,0"/>
-            <TextBlock Text="Data Settings" FontSize="20" FontWeight="Bold" 
-                      Foreground="{StaticResource Icon.SecondaryBlue}" VerticalAlignment="Center"/>
-        </StackPanel>
-    </DataTemplate>
 
 </ResourceDictionary>

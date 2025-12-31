@@ -29,9 +29,9 @@ namespace OpenBullet2.Native.Controls
             var newValue = e.NewValue as string;
             var source = d as HTMLViewer;
 
-            if (!string.IsNullOrEmpty(newValue))
+            if (newValue is not null)
             {
-                var html = new HtmlSanitizer().Sanitize(newValue);
+                var html = string.IsNullOrEmpty(newValue) ? string.Empty : new HtmlSanitizer().Sanitize(newValue);
                 source.Render(html);
             }
         }

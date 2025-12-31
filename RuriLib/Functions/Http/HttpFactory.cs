@@ -10,6 +10,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
+using System.Collections.Generic;
 
 namespace RuriLib.Functions.Http
 {
@@ -168,10 +169,15 @@ namespace RuriLib.Functions.Http
             var sslOptions = new SslClientAuthenticationOptions
             {
                 CertificateRevocationCheckMode = options.CertRevocationMode,
-                EnabledSslProtocols = ToSslProtocols(options.SecurityProtocol),
-                CipherSuitesPolicy = options.UseCustomCipherSuites
+                EnabledSslProtocols = ToSslProtocols(options.SecurityProtocol) == SslProtocols.None
+                        ? (SslProtocols.Tls12 | SslProtocols.Tls13)
+                        : ToSslProtocols(options.SecurityProtocol),
+                CipherSuitesPolicy = options.UseCustomCipherSuites && !RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
                         ? new CipherSuitesPolicy(options.CustomCipherSuites)
-                        : null
+                        : null,
+                ApplicationProtocols = new List<SslApplicationProtocol> { SslApplicationProtocol.Http2, SslApplicationProtocol.Http11 },
+                AllowRenegotiation = false,
+                EncryptionPolicy = EncryptionPolicy.RequireEncryption
             };
 
             if (handler is HttpClientHandler httpHandler)
@@ -216,10 +222,7 @@ namespace RuriLib.Functions.Http
         /// </summary>
         private static SslProtocols ToSslProtocols(SecurityProtocol protocol)
         {
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && protocol == SecurityProtocol.TLS13)
-            {
-                throw new Exception("To use TLS 1.3 on Windows please use the SystemDefault option");
-            }
+
 
             return protocol switch
             {

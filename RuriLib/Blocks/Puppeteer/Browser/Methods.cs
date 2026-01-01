@@ -145,8 +145,40 @@ public static class Methods
         // Workaround https://github.com/hardkoded/puppeteer-sharp/issues/1587
         _ = await browser.GetVersionAsync();
 
-        var pages = await browser.PagesAsync();
-        var page = pages[index];
+        IPage page = null;
+        var pageList = data.TryGetObject<List<string>>("puppeteer.pageList");
+
+        if (pageList != null)
+        {
+            string targetId = null;
+            lock (pageList)
+            {
+                if (index >= 0 && index < pageList.Count)
+                {
+                    targetId = pageList[index];
+                }
+            }
+
+            if (targetId != null)
+            {
+                var pages = await browser.PagesAsync();
+                page = pages.FirstOrDefault(p => p.Target.TargetId == targetId);
+            }
+        }
+
+        if (page == null)
+        {
+            var pages = await browser.PagesAsync();
+            if (index >= 0 && index < pages.Length)
+            {
+                page = pages[index];
+            }
+        }
+
+        if (page == null)
+        {
+            throw new Exception($"Could not find tab with index {index}");
+        }
 
         await page.BringToFrontAsync();
         SetPageAndFrame(data, page);
@@ -1028,6 +1060,7 @@ navigator.maxTouchPoints = 0;
             }
 
             data.Logger.Log("Connected to puppeteer-real-browser.", LogColors.Green);
+            await InitializePageTracking(data, browser).ConfigureAwait(false);
         }
         catch
         {
@@ -1119,6 +1152,8 @@ navigator.maxTouchPoints = 0;
         {
             await page.AuthenticateAsync(new Credentials { Username = proxy.Username, Password = proxy.Password }).ConfigureAwait(false);
         }
+        
+        await InitializePageTracking(data, browser).ConfigureAwait(false);
     }
 
     private static List<string> BuildBrowserArguments(BotData data, string extraCmdLineArgs, bool includeDefaultArgs)
@@ -1375,6 +1410,48 @@ navigator.maxTouchPoints = 0;
     private sealed record RealBrowserCustomConfig
     {
         public string? ChromePath { get; init; }
+    }
+
+    private static async Task InitializePageTracking(BotData data, IBrowser browser)
+    {
+        var pageList = new List<string>();
+        
+        // Add currently open pages to the list
+        var pages = await browser.PagesAsync().ConfigureAwait(false);
+        foreach (var page in pages)
+        {
+            pageList.Add(page.Target.TargetId);
+        }
+
+        data.SetObject("puppeteer.pageList", pageList);
+
+        browser.TargetCreated += (sender, e) =>
+        {
+            if (e.Target.Type == TargetType.Page)
+            {
+                lock (pageList)
+                {
+                    if (!pageList.Contains(e.Target.TargetId))
+                    {
+                        pageList.Add(e.Target.TargetId);
+                    }
+                }
+            }
+        };
+
+        browser.TargetDestroyed += (sender, e) =>
+        {
+            if (e.Target.Type == TargetType.Page)
+            {
+                lock (pageList)
+                {
+                    if (pageList.Contains(e.Target.TargetId))
+                    {
+                        pageList.Remove(e.Target.TargetId);
+                    }
+                }
+            }
+        };
     }
 
     private sealed record RealBrowserProxyOptions

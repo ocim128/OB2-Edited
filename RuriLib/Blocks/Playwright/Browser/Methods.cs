@@ -236,7 +236,7 @@ namespace RuriLib.Blocks.Playwright.Browser
         }
 
         [Block("Switches to a page by index", name = "Switch to Page")]
-        public static void PlaywrightSwitchToPage(BotData data, int index)
+        public static async Task PlaywrightSwitchToPage(BotData data, int index)
         {
             data.Logger.LogHeader();
 
@@ -246,6 +246,17 @@ namespace RuriLib.Blocks.Playwright.Browser
                 throw new ArgumentException($"Invalid page index {index}. Available pages: {pages.Length}");
 
             var page = pages[index];
+            
+            // Bring the page to front so it's visually active
+            try
+            {
+                await page.BringToFrontAsync();
+            }
+            catch
+            {
+                // Ignore errors (e.g. if the page is closed or not supported)
+            }
+
             data.SetObject("playwrightPage", page);
             
             // Reset frame to the new page's MainFrame to ensure text retrieval 

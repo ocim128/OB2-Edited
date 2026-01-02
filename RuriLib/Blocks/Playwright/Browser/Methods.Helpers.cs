@@ -333,11 +333,18 @@ namespace RuriLib.Blocks.Playwright.Browser
                 return;
             }
 
+            // Fix for issue where Playwright looks for extension in the browser folder instead of build folder
+            var resolvedPath = config.ExtensionPath;
+            if (!Path.IsPathRooted(resolvedPath))
+            {
+                resolvedPath = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, resolvedPath));
+            }
+
             if (config.BrowserType == PlaywrightBrowserType.Chromium)
             {
-                args.Add($"--disable-extensions-except={config.ExtensionPath}");
-                args.Add($"--load-extension={config.ExtensionPath}");
-                data.Logger.Log($"Loading Chromium extension from: {config.ExtensionPath}", LogColors.MediumPurple);
+                args.Add($"--disable-extensions-except={resolvedPath}");
+                args.Add($"--load-extension={resolvedPath}");
+                data.Logger.Log($"Loading Chromium extension from: {resolvedPath}", LogColors.MediumPurple);
             }
             else
             {

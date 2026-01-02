@@ -7,6 +7,8 @@ using RuriLib.Providers.Playwright;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
+using Newtonsoft.Json.Linq;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -128,17 +130,7 @@ namespace RuriLib.Blocks.Playwright.Browser
 
                 if (File.Exists(addonPath) && Path.GetExtension(addonPath).Equals(".xpi", StringComparison.OrdinalIgnoreCase))
                 {
-                    var originalFileName = Path.GetFileName(addonPath);
-                    var properFileName = GenerateProperAddonFileName(originalFileName);
-                    var destinationPath = Path.Combine(extensionsDir, properFileName);
-                    File.Copy(addonPath, destinationPath, true);
-
-                    if (!originalFileName.Equals(properFileName, StringComparison.OrdinalIgnoreCase))
-                    {
-                        data.Logger.Log($"Renamed addon from '{originalFileName}' to '{properFileName}' for proper Firefox recognition", LogColors.MediumPurple);
-                    }
-
-                    data.Logger.Log($"Installed Firefox addon: {properFileName}", LogColors.Green);
+                    InstallSingleAddon(addonPath, extensionsDir, data);
                 }
                 else if (Directory.Exists(addonPath))
                 {
@@ -151,17 +143,7 @@ namespace RuriLib.Blocks.Playwright.Browser
 
                     foreach (var xpiFile in xpiFiles)
                     {
-                        var originalFileName = Path.GetFileName(xpiFile);
-                        var properFileName = GenerateProperAddonFileName(originalFileName);
-                        var destinationPath = Path.Combine(extensionsDir, properFileName);
-                        File.Copy(xpiFile, destinationPath, true);
-
-                        if (!originalFileName.Equals(properFileName, StringComparison.OrdinalIgnoreCase))
-                        {
-                            data.Logger.Log($"Renamed addon from '{originalFileName}' to '{properFileName}' for proper Firefox recognition", LogColors.MediumPurple);
-                        }
-
-                        data.Logger.Log($"Installed Firefox addon: {properFileName}", LogColors.Green);
+                        InstallSingleAddon(xpiFile, extensionsDir, data);
                     }
                 }
                 else
@@ -172,6 +154,67 @@ namespace RuriLib.Blocks.Playwright.Browser
             catch (Exception ex)
             {
                 data.Logger.Log($"❌ Failed to install Firefox addon: {ex.Message}", LogColors.Red);
+            }
+        }
+
+        private static void InstallSingleAddon(string xpiPath, string extensionsDir, BotData data)
+        {
+            try
+            {
+                var id = GetIdFromManifest(xpiPath);
+                string properFileName;
+
+                if (!string.IsNullOrEmpty(id))
+                {
+                    properFileName = $"{id}.xpi";
+                    data.Logger.Log($"Extracted ID from manifest: {id}", LogColors.MediumPurple);
+                }
+                else
+                {
+                    var originalFileName = Path.GetFileName(xpiPath);
+                    properFileName = GenerateProperAddonFileName(originalFileName);
+                    data.Logger.Log($"⚠️ Could not extract ID from manifest, using generated name: {properFileName}", LogColors.Orange);
+                }
+
+                var destinationPath = Path.Combine(extensionsDir, properFileName);
+                File.Copy(xpiPath, destinationPath, true);
+                data.Logger.Log($"Installed Firefox addon: {properFileName}", LogColors.Green);
+            }
+            catch (Exception ex)
+            {
+                data.Logger.Log($"❌ Failed to process addon {Path.GetFileName(xpiPath)}: {ex.Message}", LogColors.Red);
+            }
+        }
+
+        private static string? GetIdFromManifest(string xpiPath)
+        {
+            try
+            {
+                using var stream = File.OpenRead(xpiPath);
+                using var archive = new ZipArchive(stream, ZipArchiveMode.Read);
+                var manifestEntry = archive.GetEntry("manifest.json");
+                
+                if (manifestEntry == null) return null;
+
+                using var entryStream = manifestEntry.Open();
+                using var reader = new StreamReader(entryStream);
+                var content = reader.ReadToEnd();
+                var json = JObject.Parse(content);
+
+                // Check browser_specific_settings.gecko.id (Manifest V2/V3 standard)
+                var id = json.SelectToken("browser_specific_settings.gecko.id")?.ToString();
+                
+                // Check applications.gecko.id (Legacy Manifest V2)
+                if (string.IsNullOrEmpty(id))
+                {
+                    id = json.SelectToken("applications.gecko.id")?.ToString();
+                }
+
+                return id;
+            }
+            catch
+            {
+                return null;
             }
         }
 
@@ -234,7 +277,8 @@ namespace RuriLib.Blocks.Playwright.Browser
             string[] args,
             int timeout,
             string? executablePath,
-            bool ignoreHttpsErrors)
+            bool ignoreHttpsErrors,
+            Dictionary<string, object>? firefoxUserPrefs = null)
         {
             var options = new BrowserTypeLaunchPersistentContextOptions
             {
@@ -242,7 +286,8 @@ namespace RuriLib.Blocks.Playwright.Browser
                 Args = args,
                 Timeout = timeout,
                 ExecutablePath = executablePath,
-                IgnoreHTTPSErrors = ignoreHttpsErrors
+                IgnoreHTTPSErrors = ignoreHttpsErrors,
+                FirefoxUserPrefs = firefoxUserPrefs
             };
 
             if (!headless)
@@ -275,6 +320,7 @@ namespace RuriLib.Blocks.Playwright.Browser
             public int Timeout { get; set; }
             public bool IgnoreHttpsErrors { get; set; }
             public Dictionary<int, string>? FirefoxProcessesBeforeLaunch { get; set; }
+            public Dictionary<string, object> FirefoxUserPrefs { get; set; } = new Dictionary<string, object>();
         }
 
         /// <summary>
@@ -357,9 +403,18 @@ namespace RuriLib.Blocks.Playwright.Browser
                 InstallFirefoxAddon(config.FirefoxProfilePath, config.FirefoxAddonPath, data);
             }
 
+            // force prefs to allow unsigned extensions
+            if (config.FirefoxUserPrefs == null)
+            {
+                config.FirefoxUserPrefs = new Dictionary<string, object>();
+            }
+            
+            config.FirefoxUserPrefs["xpinstall.signatures.required"] = false;
+            config.FirefoxUserPrefs["extensions.autoDisableScopes"] = 0;
+
             var persistentOptions = CreatePersistentContextOptions(
                 config.BrowserType, config.Headless, config.ExtraArgs, config.Timeout,
-                config.ExecutablePath, config.IgnoreHttpsErrors);
+                config.ExecutablePath, config.IgnoreHttpsErrors, config.FirefoxUserPrefs);
 
             try
             {
@@ -372,7 +427,7 @@ namespace RuriLib.Blocks.Playwright.Browser
 
                 var fallbackOptions = CreatePersistentContextOptions(
                     config.BrowserType, config.Headless, config.ExtraArgs, config.Timeout,
-                    null, config.IgnoreHttpsErrors);
+                    null, config.IgnoreHttpsErrors, config.FirefoxUserPrefs);
 
                 try
                 {

@@ -13,18 +13,7 @@ namespace RuriLib.Blocks.Playwright.Cookies
     [BlockCategory("Cookies", "Blocks for managing cookies in Playwright browsers", "#daa520")]
     public static class Methods
     {
-        [Block("Gets all cookies from the current page", name = "Get All Cookies")]
-        public static async Task PlaywrightGetAllCookies(BotData data, string variableName = "cookies")
-        {
-            data.Logger.LogHeader();
 
-            var page = GetPage(data);
-            var cookies = await page.Context.CookiesAsync();
-            var cookieStrings = cookies.Select(c => $"{c.Name}={c.Value}").ToList();
-            data.SetObject(variableName, cookieStrings);
-
-            data.Logger.Log($"Got {cookies.Count} cookies", LogColors.Orange);
-        }
 
         [Block("Gets a specific cookie by name", name = "Get Cookie")]
         public static async Task PlaywrightGetCookie(BotData data, string cookieName, string variableName = "cookieValue")
@@ -171,18 +160,7 @@ namespace RuriLib.Blocks.Playwright.Cookies
             data.Logger.Log($"Cookie '{cookieName}' exists: {exists}", LogColors.Orange);
         }
 
-        [Block("Gets cookies for a specific domain", name = "Get Domain Cookies")]
-        public static async Task PlaywrightGetDomainCookies(BotData data, string domain, string variableName = "domainCookies")
-        {
-            data.Logger.LogHeader();
 
-            var page = GetPage(data);
-            var cookies = await page.Context.CookiesAsync();
-            var domainCookies = cookies.Where(c => c.Domain.Contains(domain)).Select(c => $"{c.Name}={c.Value}").ToList();
-            data.SetObject(variableName, domainCookies);
-
-            data.Logger.Log($"Got {domainCookies.Count} cookies for domain '{domain}'", LogColors.Orange);
-        }
 
         [Block("Sets multiple cookies from a dictionary", name = "Set Multiple Cookies")]
         public static async Task PlaywrightSetMultipleCookies(BotData data, Dictionary<string, string> cookieDict, string domain = "", string path = "/")
@@ -208,6 +186,27 @@ namespace RuriLib.Blocks.Playwright.Cookies
             await page.Context.AddCookiesAsync(cookies);
 
             data.Logger.Log($"Set {cookies.Length} cookies for domain '{domain}'", LogColors.Orange);
+        }
+
+        [Block("Gets the cookies for a given domain from the browser. If the domain is empty, gets all cookies from the page.", name = "Get Cookies")]
+        public static async Task<Dictionary<string, string>> PlaywrightGetCookies(BotData data, string domain)
+        {
+            data.Logger.LogHeader();
+
+            var page = GetPage(data);
+            var cookies = await page.Context.CookiesAsync();
+
+            IEnumerable<BrowserContextCookiesResult> filteredCookies = cookies;
+
+            if (!string.IsNullOrWhiteSpace(domain))
+            {
+                filteredCookies = cookies.Where(c => c.Domain.Contains(domain, StringComparison.OrdinalIgnoreCase));
+            }
+
+            var resultCookies = filteredCookies.ToList();
+
+            data.Logger.Log($"Got {resultCookies.Count} cookies for {(string.IsNullOrWhiteSpace(domain) ? "all domains" : domain)}", LogColors.Orange);
+            return resultCookies.ToDictionary(c => c.Name, c => c.Value);
         }
 
         private static IPage GetPage(BotData data) => PlaywrightHelpers.GetPage(data);

@@ -277,6 +277,26 @@ namespace RuriLib.Blocks.Playwright.Page
 
         private static IFrame GetFrame(BotData data) => PlaywrightHelpers.GetFrame(data);
 
+        [Block("Scrolls to the top of the page", name = "Scroll to Top")]
+        public static async Task PlaywrightScrollToTop(BotData data)
+        {
+            data.Logger.LogHeader();
+
+            var page = GetPage(data);
+            await page.EvaluateAsync("window.scrollTo(0, 0);");
+            data.Logger.Log("Scrolled to the top of the page", LogColors.MediumPurple);
+        }
+
+        [Block("Scrolls to the bottom of the page", name = "Scroll to Bottom")]
+        public static async Task PlaywrightScrollToBottom(BotData data)
+        {
+            data.Logger.LogHeader();
+
+            var page = GetPage(data);
+            await page.EvaluateAsync("window.scrollTo(0, document.body.scrollHeight);");
+            data.Logger.Log("Scrolled to the bottom of the page", LogColors.MediumPurple);
+        }
+
         [Block("Sets the viewport size", name = "Set Viewport")]
         public static async Task PlaywrightSetViewport(BotData data, int width, int height)
         {

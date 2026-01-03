@@ -60,6 +60,7 @@ namespace RuriLib.Blocks.Playwright.Browser
             // Prepare launch arguments
             PlaywrightLaunchConfigurator.StripIncompatibleFlags(args, config.BrowserType);
             PlaywrightLaunchConfigurator.EnsureSandboxFlags(args, config.BrowserType);
+            PlaywrightLaunchConfigurator.EnsureChromiumStealthFlags(args, config.BrowserType);
             config.ExtraArgs = args.ToArray();
 
             // Resolve executable and timeout

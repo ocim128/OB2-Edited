@@ -778,30 +778,7 @@ namespace RuriLib.Blocks.Playwright.Browser
                         stealthify(console, 'profileEnd', fakeProfileEnd);
                     }
 
-                    // 2d. Complete console neutralization with getter detection prevention
-                    // Some detection uses Object.getOwnPropertyDescriptor on console to check for custom getters
-                    const consoleProxy = new Proxy(console, {
-                        get: function(target, prop) {
-                            if (typeof target[prop] === 'function') {
-                                const noop = function() {};
-                                mocks.set(noop, `function ${prop}() { [native code] }`);
-                                return noop;
-                            }
-                            return target[prop];
-                        },
-                        getOwnPropertyDescriptor: function(target, prop) {
-                            const desc = Object.getOwnPropertyDescriptor(target, prop);
-                            if (desc && typeof desc.value === 'function') {
-                                return {
-                                    value: desc.value,
-                                    writable: true,
-                                    enumerable: true,
-                                    configurable: true
-                                };
-                            }
-                            return desc;
-                        }
-                    });
+// Console proxy removed (dead code)
 
                     // Replace console methods with stealthified versions
                     const consoleMethods = [
@@ -957,6 +934,22 @@ namespace RuriLib.Blocks.Playwright.Browser
                     cleanWindow();
 
                     // ==============================================
+                    // 6b. POPUP DETECTOR CRASH FIX
+                    // ==============================================
+
+                    // Hook window.open globally to prevent crash exploits
+                    try {
+                        const originalOpen = window.open;
+                        window.open = function(url, target, features) {
+                            if (features && (features.includes('top=9999') || features.includes('left=9999'))) {
+                                return null;
+                            }
+                            return originalOpen.apply(this, arguments);
+                        };
+                        stealthify(window, 'open', window.open);
+                    } catch(e) {}
+
+                    // ==============================================
                     // 7. IFRAME PROTECTION
                     // ==============================================
                     
@@ -980,6 +973,29 @@ namespace RuriLib.Blocks.Playwright.Browser
                         return element;
                     };
                     stealthify(document, 'createElement', document.createElement);
+
+                    // Hook Node.prototype.appendChild to intercept iframe creation and patch window.open immediately
+                    const originalAppendChild = Node.prototype.appendChild;
+                    Node.prototype.appendChild = function(node) {
+                        const result = originalAppendChild.apply(this, arguments);
+                        
+                        if (node.tagName && node.tagName.toLowerCase() === 'iframe') {
+                            try {
+                                if (node.contentWindow) {
+                                    const frameWin = node.contentWindow;
+                                    const originalFrameOpen = frameWin.open;
+                                    frameWin.open = function(url, target, features) {
+                                        if (features && (features.includes('top=9999') || features.includes('left=9999'))) {
+                                            return null;
+                                        }
+                                        return originalFrameOpen.apply(this, arguments);
+                                    };
+                                }
+                            } catch(e) {}
+                        }
+                        return result;
+                    };
+                    stealthify(Node.prototype, 'appendChild', Node.prototype.appendChild);
                 ");
             }
         }

@@ -16,7 +16,7 @@ namespace RuriLib.Blocks.Playwright.Browser
 {
     public static partial class Methods
     {
-        private static string? GetExecutablePath(PlaywrightBrowserType browserType, BotData data)
+        private static string? GetExecutablePath(PlaywrightBrowserType browserType, BotData data, bool useBuildPath)
         {
             var provider = data.Providers.PlaywrightBrowser;
             var configuredPath = browserType switch
@@ -27,7 +27,7 @@ namespace RuriLib.Blocks.Playwright.Browser
                 _ => null
             };
 
-            return TryResolveExecutableOverride(configuredPath, browserType, data);
+            return TryResolveExecutableOverride(configuredPath, browserType, data, useBuildPath);
         }
 
         private static PlaywrightBrowserType ValidateBrowserType(PlaywrightBrowserType browserType, string? executablePath, BotData data)
@@ -56,7 +56,7 @@ namespace RuriLib.Blocks.Playwright.Browser
             };
         }
 
-        private static string? TryResolveExecutableOverride(string? configuredPath, PlaywrightBrowserType browserType, BotData data)
+        private static string? TryResolveExecutableOverride(string? configuredPath, PlaywrightBrowserType browserType, BotData data, bool useBuildPath)
         {
             if (string.IsNullOrWhiteSpace(configuredPath))
             {
@@ -88,7 +88,7 @@ namespace RuriLib.Blocks.Playwright.Browser
                 }
             }
 
-            data.Logger.Log($"Configured {browserType} executable not found at '{expandedPath}'. Falling back to Playwright managed runtime at '{PlaywrightRuntimeService.ActiveRuntimePath}'.", LogColors.Yellow);
+            data.Logger.Log($"Configured {browserType} executable not found at '{expandedPath}'. Falling back to Playwright managed runtime at '{PlaywrightRuntimeService.GetRuntimePath(useBuildPath)}'.", LogColors.Yellow);
             return null;
         }
 

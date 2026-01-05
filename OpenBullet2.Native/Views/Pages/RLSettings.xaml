@@ -549,20 +549,6 @@
                             <TextBlock Text="Playwright Settings" Style="{StaticResource SettingsSectionHeaderStyle}"/>
                         </StackPanel>
                         
-                        <!-- Browser Type Selection -->
-                        <Grid Margin="0,0,0,8">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="250"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            
-                            <TextBlock Grid.Column="0" Text="Browser Type:" Style="{StaticResource SettingLabelStyle}"/>
-                            <ComboBox Grid.Column="1" ItemsSource="{Binding PlaywrightBrowserTypes}"
-                                      SelectedValue="{Binding Path=PlaywrightBrowserType}"
-                                      Width="200" HorizontalAlignment="Left" Margin="0,8"
-                                      Style="{StaticResource CleanComboBox}"/>
-                        </Grid>
-                        
                         <!-- Chromium Binary Path -->
                         <Grid Margin="0,0,0,8">
                             <Grid.ColumnDefinitions>
@@ -596,17 +582,6 @@
                             <TextBox Grid.Column="1" Text="{Binding PlaywrightWebkitBinaryLocation}" Style="{StaticResource MatchingTextBox}" Width="500" HorizontalAlignment="Left" Margin="0,8"/>
                         </Grid>
                         
-                        <!-- Headless Mode -->
-                         <Grid Margin="0,0,0,8">
-                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="250"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            
-                            <TextBlock Grid.Column="0" Text="Headless Mode:" Style="{StaticResource SettingLabelStyle}"/>
-                            <CheckBox Grid.Column="1" IsChecked="{Binding PlaywrightHeadless}" VerticalAlignment="Center" Margin="0,8"/>
-                        </Grid>
-                        
                         <!-- Draw Mouse Movement -->
                          <Grid Margin="0,0,0,8">
                              <Grid.ColumnDefinitions>
@@ -616,39 +591,6 @@
                             
                             <TextBlock Grid.Column="0" Text="Draw Mouse Movement:" Style="{StaticResource SettingLabelStyle}"/>
                             <CheckBox Grid.Column="1" IsChecked="{Binding PlaywrightDrawMouseMovement}" VerticalAlignment="Center" Margin="0,8"/>
-                        </Grid>
-                        
-                        <!-- Timeout -->
-                         <Grid Margin="0,0,0,8">
-                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="250"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            
-                            <TextBlock Grid.Column="0" Text="Timeout (ms):" Style="{StaticResource SettingLabelStyle}"/>
-                            <TextBox Grid.Column="1" Text="{Binding PlaywrightTimeoutMilliseconds}" Style="{StaticResource MatchingTextBox}" Width="200" HorizontalAlignment="Left" Margin="0,8"/>
-                        </Grid>
-                        
-                        <!-- Ignore HTTPS Errors -->
-                         <Grid Margin="0,0,0,8">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="250"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            
-                            <TextBlock Grid.Column="0" Text="Ignore HTTPS Errors:" Style="{StaticResource SettingLabelStyle}"/>
-                            <CheckBox Grid.Column="1" IsChecked="{Binding PlaywrightIgnoreHTTPSErrors}" VerticalAlignment="Center" Margin="0,8"/>
-                        </Grid>
-                        
-                         <!-- Extra Args -->
-                         <Grid Margin="0,0,0,8">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="250"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            
-                            <TextBlock Grid.Column="0" Text="Extra Arguments:" Style="{StaticResource SettingLabelStyle}"/>
-                            <TextBox Grid.Column="1" Text="{Binding PlaywrightExtraArgs}" Style="{StaticResource MatchingTextBox}" Width="500" HorizontalAlignment="Left" Margin="0,8"/>
                         </Grid>
                     </StackPanel>
                 </Border>

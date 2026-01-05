@@ -22,7 +22,7 @@ namespace RuriLib.Blocks.Playwright.Browser
 
         [Block("Opens a new playwright browser", name = "Open Browser")]
         public static async Task PlaywrightOpenBrowser(BotData data, PlaywrightBrowserType? browserType = null,
-            bool? headless = null, string[] extraArgs = null, string firefoxProfilePath = null, string extensionPath = null, string firefoxAddonPath = null)
+            bool? headless = null, string[] extraArgs = null, string firefoxProfilePath = null, string extensionPath = null, string firefoxAddonPath = null, bool useBuildPath = true)
         {
             data.Logger.LogHeader();
 
@@ -65,7 +65,7 @@ namespace RuriLib.Blocks.Playwright.Browser
 
             // Resolve executable and timeout
             config.Timeout = ResolveLaunchTimeout(provider.TimeoutMilliseconds, config.BrowserType);
-            config.ExecutablePath = GetExecutablePath(config.BrowserType, data);
+            config.ExecutablePath = GetExecutablePath(config.BrowserType, data, useBuildPath);
             config.BrowserType = ValidateBrowserType(config.BrowserType, config.ExecutablePath, data);
             StoreBrowserRuntimeState(data, config.BrowserType, config.Headless);
 
@@ -78,7 +78,7 @@ namespace RuriLib.Blocks.Playwright.Browser
 
             // Create Playwright instance
             Action<string> runtimeLog = message => data.Logger.Log(message, LogColors.MediumPurple);
-            var playwright = await PlaywrightRuntimeService.CreateAsync(config.BrowserType, config.ExecutablePath, runtimeLog);
+            var playwright = await PlaywrightRuntimeService.CreateAsync(config.BrowserType, config.ExecutablePath, runtimeLog, useBuildPath);
             data.SetObject("playwrightInstance", playwright);
 
             // Launch browser or context

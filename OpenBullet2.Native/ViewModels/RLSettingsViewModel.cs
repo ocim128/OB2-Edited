@@ -582,18 +582,6 @@ public class RLSettingsViewModel : OpenBullet2.Native.ViewModels.Infrastructure.
         }
     }
 
-    public static IEnumerable<PlaywrightBrowserType> PlaywrightBrowserTypes => Enum.GetValues(typeof(PlaywrightBrowserType)).Cast<PlaywrightBrowserType>();
-
-    public PlaywrightBrowserType PlaywrightBrowserType
-    {
-        get => Playwright.BrowserType;
-        set
-        {
-            Playwright.BrowserType = value;
-            OnPropertyChanged();
-        }
-    }
-
     public string PlaywrightChromiumBinaryLocation
     {
         get => Playwright.ChromiumBinaryLocation;
@@ -624,52 +612,12 @@ public class RLSettingsViewModel : OpenBullet2.Native.ViewModels.Infrastructure.
         }
     }
 
-    public bool PlaywrightHeadless
-    {
-        get => Playwright.Headless;
-        set
-        {
-            Playwright.Headless = value;
-            OnPropertyChanged();
-        }
-    }
-
     public bool PlaywrightDrawMouseMovement
     {
         get => Playwright.DrawMouseMovement;
         set
         {
             Playwright.DrawMouseMovement = value;
-            OnPropertyChanged();
-        }
-    }
-
-    public int PlaywrightTimeoutMilliseconds
-    {
-        get => Playwright.TimeoutMilliseconds;
-        set
-        {
-            Playwright.TimeoutMilliseconds = value;
-            OnPropertyChanged();
-        }
-    }
-
-    public bool PlaywrightIgnoreHTTPSErrors
-    {
-        get => Playwright.IgnoreHTTPSErrors;
-        set
-        {
-            Playwright.IgnoreHTTPSErrors = value;
-            OnPropertyChanged();
-        }
-    }
-
-    public string[] PlaywrightExtraArgs
-    {
-        get => Playwright.ExtraArgs;
-        set
-        {
-            Playwright.ExtraArgs = value;
             OnPropertyChanged();
         }
     }

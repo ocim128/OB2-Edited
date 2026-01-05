@@ -34,7 +34,10 @@ public static class PlaywrightRuntimeService
     /// <summary>
     /// Returns the currently active runtime path (packaged or user-local) that Playwright will read from.
     /// </summary>
-    public static string ActiveRuntimePath => EnsureRuntimePath();
+    /// <summary>
+    /// Returns the runtime path (packaged or user-local) that Playwright will read from.
+    /// </summary>
+    public static string GetRuntimePath(bool useBuildPath) => EnsureRuntimePath(useBuildPath);
 
     /// <summary>
     /// Creates a new <see cref="IPlaywright"/> instance while ensuring that the requested browser binaries are available.
@@ -43,9 +46,10 @@ public static class PlaywrightRuntimeService
         PlaywrightBrowserType ensureBrowser,
         string? executableOverride = null,
         Action<string>? log = null,
+        bool useBuildPath = true,
         CancellationToken cancellationToken = default)
     {
-        await EnsureBrowserInstalledAsync(ensureBrowser, executableOverride, log, cancellationToken).ConfigureAwait(false);
+        await EnsureBrowserInstalledAsync(ensureBrowser, executableOverride, log, useBuildPath, cancellationToken).ConfigureAwait(false);
         return await Microsoft.Playwright.Playwright.CreateAsync().ConfigureAwait(false);
     }
 
@@ -57,6 +61,7 @@ public static class PlaywrightRuntimeService
         PlaywrightBrowserType browserType,
         string? executableOverride = null,
         Action<string>? log = null,
+        bool useBuildPath = true,
         CancellationToken cancellationToken = default)
     {
         if (!string.IsNullOrEmpty(executableOverride) && File.Exists(executableOverride))
@@ -66,7 +71,7 @@ public static class PlaywrightRuntimeService
             return;
         }
 
-        var runtimePath = EnsureRuntimePath();
+        var runtimePath = EnsureRuntimePath(useBuildPath);
         if (IsBrowserInstalled(runtimePath, browserType))
         {
             log?.Invoke($"Browser {browserType} is already installed at '{runtimePath}'");
@@ -240,10 +245,20 @@ public static class PlaywrightRuntimeService
         };
     }
 
-    private static string EnsureRuntimePath()
+    private static string EnsureRuntimePath(bool useBuildPath)
     {
-        // Fast path: already initialized (volatile read ensures visibility)
-        if (_environmentPrepared && Directory.Exists(_activeRuntimePath))
+        string targetPath;
+        if (useBuildPath)
+        {
+            targetPath = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, ".playwright"));
+        }
+        else
+        {
+            targetPath = RuntimePath.Value;
+        }
+
+        // Fast path: already initialized with correct path
+        if (_environmentPrepared && _activeRuntimePath == targetPath && Directory.Exists(_activeRuntimePath))
         {
             return _activeRuntimePath;
         }
@@ -252,12 +267,12 @@ public static class PlaywrightRuntimeService
         lock (_runtimePathLock)
         {
             // Re-check after acquiring lock
-            if (_environmentPrepared && Directory.Exists(_activeRuntimePath))
+            if (_environmentPrepared && _activeRuntimePath == targetPath && Directory.Exists(_activeRuntimePath))
             {
                 return _activeRuntimePath;
             }
 
-            _activeRuntimePath = RuntimePath.Value;
+            _activeRuntimePath = targetPath;
             Directory.CreateDirectory(_activeRuntimePath);
 
             Environment.SetEnvironmentVariable("PLAYWRIGHT_BROWSERS_PATH", _activeRuntimePath);

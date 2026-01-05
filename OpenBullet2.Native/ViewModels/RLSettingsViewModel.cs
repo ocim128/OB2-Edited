@@ -658,6 +658,24 @@ public class RLSettingsViewModel : OpenBullet2.Native.ViewModels.Infrastructure.
 
     public Task Save() => _service.Save();
 
+    public async Task InstallPlaywrightBrowsers(Action<string> onLog)
+    {
+        var browsers = new[] { PlaywrightBrowserType.Chromium, PlaywrightBrowserType.Firefox };
+        
+        foreach (var browser in browsers)
+        {
+            onLog($"Installing {browser}...");
+            await RuriLib.Providers.Playwright.PlaywrightRuntimeService.EnsureBrowserInstalledAsync(
+                browser, 
+                null, 
+                onLog, 
+                true // useBuildPath
+            );
+        }
+        
+        onLog("All browsers installed successfully!");
+    }
+
     public void Reset()
     {
         _service.RuriLibSettings = new GlobalSettings();

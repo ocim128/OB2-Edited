@@ -262,6 +262,13 @@
         <Content Remove="*.test.*" />
     </ItemGroup>
     
+    <ItemGroup>
+        <!-- Exclude Playwright browser folder to reduce build size -->
+        <None Remove=".playwright\**" />
+        <Content Remove=".playwright\**" />
+        <EmbeddedResource Remove=".playwright\**" />
+    </ItemGroup>
+    
     <!-- Trim unused assemblies and dependencies -->
     <ItemGroup Condition="'$(Configuration)' == 'Release'">
         <TrimmerRootAssembly Include="OpenBullet2.Native" />

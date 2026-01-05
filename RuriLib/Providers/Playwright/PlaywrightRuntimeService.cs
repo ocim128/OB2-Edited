@@ -96,16 +96,48 @@ public static class PlaywrightRuntimeService
             
             var browserCliName = GetBrowserCliName(browserType);
             var installArgs = new[] { "install", browserCliName };
-            
+
+            // Redirect input to prevent waiting for user input
+            var originalIn = Console.In;
+            var originalOut = Console.Out;
+            var originalError = Console.Error;
+            using var inputReader = new StringReader("");
+            using var outputWriter = new StringWriter();
+            using var errorWriter = new StringWriter();
+
             try
             {
-                var exitCode = await Task.Run(() => Microsoft.Playwright.Program.Main(installArgs), cancellationToken)
-                    .ConfigureAwait(false);
+                Console.SetIn(inputReader);
+                Console.SetOut(outputWriter);
+                Console.SetError(errorWriter);
+
+                // Run the installation task and poll for log updates
+                var installTask = Task.Run(() => Microsoft.Playwright.Program.Main(installArgs), cancellationToken);
+                
+                // Poll output while running to provide feedback
+                while (!installTask.IsCompleted)
+                {
+                    await Task.Delay(500, cancellationToken).ConfigureAwait(false);
+                    var partialOutput = outputWriter.ToString();
+                    if (!string.IsNullOrWhiteSpace(partialOutput))
+                    {
+                        var lastLine = partialOutput.Trim().Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries).LastOrDefault();
+                        if (lastLine != null) log?.Invoke(lastLine);
+                    }
+                }
+
+                var exitCode = await installTask.ConfigureAwait(false);
+                var fullOutput = outputWriter.ToString(); 
+                var fullError = errorWriter.ToString();
+
+                if (!string.IsNullOrWhiteSpace(fullOutput)) log?.Invoke(fullOutput);
+                if (!string.IsNullOrWhiteSpace(fullError)) log?.Invoke($"Error Output: {fullError}");
 
                 if (exitCode != 0)
                 {
                     throw new InvalidOperationException(
                         $"Playwright CLI exited with code {exitCode} while installing {browserType}.\n" +
+                        $"Output: {fullOutput}\nError: {fullError}\n" +
                         BuildManualInstallationMessage(browserType, browserCliName, runtimePath));
                 }
 
@@ -114,6 +146,7 @@ public static class PlaywrightRuntimeService
                 {
                     throw new InvalidOperationException(
                         $"Browser installation reported success but {browserType} was not found in '{runtimePath}'.\n" +
+                        $"Output: {fullOutput}\nError: {fullError}\n" +
                         BuildManualInstallationMessage(browserType, browserCliName, runtimePath));
                 }
 
@@ -121,16 +154,27 @@ public static class PlaywrightRuntimeService
             }
             catch (Exception ex) when (ex is not InvalidOperationException)
             {
+                var fullOutput = outputWriter.ToString();
+                var fullError = errorWriter.ToString();
+                
                 // Wrap unexpected exceptions with helpful context
                 throw new InvalidOperationException(
                     $"Failed to install Playwright {browserType} browser: {ex.Message}\n" +
+                    $"Output: {fullOutput}\nError: {fullError}\n" +
                     BuildManualInstallationMessage(browserType, browserCliName, runtimePath),
                     ex);
+            }
+            finally
+            {
+                Console.SetIn(originalIn);
+                Console.SetOut(originalOut);
+                Console.SetError(originalError);
+                InstallGate.Release();
             }
         }
         finally
         {
-            InstallGate.Release();
+            // Gate is released in the inner finally block if acquired
         }
     }
 

@@ -592,6 +592,12 @@
                             <TextBlock Grid.Column="0" Text="Draw Mouse Movement:" Style="{StaticResource SettingLabelStyle}"/>
                             <CheckBox Grid.Column="1" IsChecked="{Binding PlaywrightDrawMouseMovement}" VerticalAlignment="Center" Margin="0,8"/>
                         </Grid>
+
+                        <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
+                            <Button x:Name="installBrowsersButton" Content="Install Browsers" Click="InstallPlaywrightBrowsers" Style="{StaticResource ModernPrimaryButton}" Width="150" Margin="0,0,16,0"/>
+                            <mah:ProgressRing x:Name="playwrightInstallProgressRing" IsActive="True" Visibility="Collapsed" Width="20" Height="20" Margin="0,0,12,0" Foreground="{StaticResource Modern.ThemeMain}"/>
+                            <TextBlock x:Name="playwrightInstallStatus" VerticalAlignment="Center" Foreground="{StaticResource Modern.ThemeMain}" TextWrapping="Wrap" MaxWidth="400"/>
+                        </StackPanel>
                     </StackPanel>
                 </Border>
                 

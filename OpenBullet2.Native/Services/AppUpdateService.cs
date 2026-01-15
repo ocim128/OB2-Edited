@@ -101,70 +101,75 @@ public class AppUpdateService : IAppUpdateService
                 dispatcher.Invoke(() =>
                 {
                     MessageBox.Show(
-                        "Failed to check for updates. Please check your internet connection or visit:\nhttps://github.com/ocim128/OB2-Edited/releases",
-                        "Update Check Failed", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        $"Failed to check for updates. Status code: {response.StatusCode}",
+                        "Update Check Failed", MessageBoxButton.OK, MessageBoxImage.Error);
                 });
                 return;
             }
 
-            var jsonContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-            var releaseInfo = JsonConvert.DeserializeObject<dynamic>(jsonContent);
+            var json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            var releaseInfo = JsonConvert.DeserializeObject<GitHubRelease>(json);
 
-            var latestVersion = (string)releaseInfo.tag_name;
-            var currentVersionPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "version.txt");
-            string currentVersion = "Unknown";
-
-            if (File.Exists(currentVersionPath))
-            {
-                try
-                {
-                    currentVersion = (await File.ReadAllTextAsync(currentVersionPath).ConfigureAwait(false)).Trim();
-                }
-                catch (Exception ioEx)
-                {
-                    Debug.WriteLine($"Failed reading version.txt: {ioEx.Message}");
-                }
-            }
-
-            if (!string.Equals(currentVersion, "Unknown", StringComparison.OrdinalIgnoreCase) &&
-                string.Equals(currentVersion, latestVersion, StringComparison.OrdinalIgnoreCase))
+            if (releaseInfo == null)
             {
                 dispatcher.Invoke(() =>
                 {
-                    Alert.Success("Update Check", "You are already running the latest version!");
-                    PlayPopSound();
+                    MessageBox.Show("Failed to parse release information.",
+                        "Update Check Failed", MessageBoxButton.OK, MessageBoxImage.Error);
                 });
                 return;
             }
 
-            await DownloadAndInstallUpdate(releaseInfo, latestVersion).ConfigureAwait(false);
+            var latestVersion = releaseInfo.TagName.TrimStart('v');
+            var currentVersion = GetCurrentVersion();
+
+            if (string.IsNullOrEmpty(currentVersion))
+            {
+                dispatcher.Invoke(() =>
+                {
+                    MessageBox.Show("Could not determine current application version.",
+                        "Update Check Failed", MessageBoxButton.OK, MessageBoxImage.Error);
+                });
+                return;
+            }
+
+            if (Version.Parse(latestVersion) <= Version.Parse(currentVersion))
+            {
+                Alert.Success("Update Check", "You are running the latest version.");
+                return;
+            }
+
+            var result = dispatcher.Invoke(() =>
+            {
+                return MessageBox.Show(
+                    $"A new version ({latestVersion}) is available. You are currently on {currentVersion}. Do you want to download and install it now?",
+                    "Update Available", MessageBoxButton.YesNo, MessageBoxImage.Information);
+            });
+
+            if (result == MessageBoxResult.Yes)
+            {
+                await DownloadAndInstallUpdate(releaseInfo, latestVersion).ConfigureAwait(false);
+            }
+            else
+            {
+                Alert.Info("Update Check", "Update deferred.");
+            }
         }
         catch (Exception ex)
         {
             dispatcher.Invoke(() =>
-                Alert.Error("Update Error",
-                    $"Failed to check for updates: {ex.Message}\n\nPlease visit manually:\nhttps://github.com/ocim128/OB2-Edited/releases"));
+            {
+                MessageBox.Show($"An error occurred during update check: {ex.Message}",
+                    "Update Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            });
         }
     }
 
-    private async Task DownloadAndInstallUpdate(dynamic releaseInfo, string latestVersion)
+    private async Task DownloadAndInstallUpdate(GitHubRelease releaseInfo, string latestVersion)
     {
         try
         {
-            var assets = releaseInfo.assets;
-            string downloadUrl = null;
-            long fileSize = 0;
-
-            foreach (var asset in assets)
-            {
-                string assetName = asset.name.ToString().ToLower();
-                if (assetName.Contains("windows") || assetName.Contains("win") || assetName.EndsWith(".zip") || assetName.EndsWith(".rar") || assetName.Contains("ob2"))
-                {
-                    downloadUrl = asset.browser_download_url.ToString();
-                    fileSize = asset.size != null ? (long)asset.size : 0;
-                    break;
-                }
-            }
+            var (downloadUrl, fileSize) = FindSuitableAsset(releaseInfo.Assets);
 
             if (string.IsNullOrEmpty(downloadUrl))
             {
@@ -174,12 +179,7 @@ public class AppUpdateService : IAppUpdateService
                         "Download Error", MessageBoxButton.OK, MessageBoxImage.Warning);
                 });
 
-                var startInfo = new ProcessStartInfo
-                {
-                    FileName = releaseInfo.html_url.ToString(),
-                    UseShellExecute = true
-                };
-                Process.Start(startInfo);
+                Process.Start(new ProcessStartInfo { FileName = releaseInfo.HtmlUrl, UseShellExecute = true });
                 return;
             }
 
@@ -214,8 +214,8 @@ public class AppUpdateService : IAppUpdateService
                     if (expectedSize > 0 && existingFileInfo.Length == expectedSize && await VerifyFileIntegrity(downloadPath, expectedSize, msg => AppendUpdateLog($"Existing download check: {msg}")).ConfigureAwait(false))
                     {
                         needsDownload = false;
-                        MessageBox.Show("Update file already downloaded and verified. Proceeding with installation...",
-                            "Update", MessageBoxButton.OK, MessageBoxImage.Information);
+                        dispatcher.Invoke(() => MessageBox.Show("Update file already downloaded and verified. Proceeding with installation...",
+                            "Update", MessageBoxButton.OK, MessageBoxImage.Information));
                     }
                     else
                     {
@@ -230,59 +230,20 @@ public class AppUpdateService : IAppUpdateService
 
             using var cts = new CancellationTokenSource();
             var downloadCancelled = false;
-            var downloadCompleted = false;
 
-            Window progressWindow = null!;
-            ProgressBar progressBar = null!;
-            Label statusLabel = null!;
-
+            IUpdateProgress progressUi = null!;
             await dispatcher.InvokeAsync(() =>
             {
-                progressWindow = new Window
+                progressUi = new WpfUpdateProgress(() =>
                 {
-                    Title = "Downloading Update",
-                    Width = 400,
-                    Height = 150,
-                    WindowStartupLocation = WindowStartupLocation.CenterScreen,
-                    ResizeMode = ResizeMode.NoResize,
-                    ShowInTaskbar = false,
-                    Topmost = true
-                };
-
-                progressBar = new ProgressBar
-                {
-                    Margin = new Thickness(20),
-                    Height = 20
-                };
-
-                statusLabel = new Label
-                {
-                    Content = "Downloading...",
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    Margin = new Thickness(20, 10, 20, 0)
-                };
-
-                progressWindow.Closing += (_, _) =>
-                {
-                    if (downloadCompleted)
-                    {
-                        return;
-                    }
-
                     downloadCancelled = true;
                     if (!cts.IsCancellationRequested)
                     {
                         cts.Cancel();
                     }
-                };
-
-                var stackPanel = new StackPanel();
-                stackPanel.Children.Add(statusLabel);
-                stackPanel.Children.Add(progressBar);
-                progressWindow.Content = stackPanel;
-
-                progressWindow.Show();
-            }).Task.ConfigureAwait(true);
+                });
+                progressUi.Show();
+            });
 
             try
             {
@@ -295,8 +256,7 @@ public class AppUpdateService : IAppUpdateService
                     {
                         try
                         {
-                            statusLabel.Dispatcher.Invoke(() => statusLabel.Content = attempt > 1 ? $"Downloading (Attempt {attempt}/{maxRetries})..." : "Downloading...");
-                            await DownloadFileWithProgress(downloadUrl, downloadPath, progressBar, statusLabel, fileSize, cts.Token).ConfigureAwait(false);
+                            await DownloadFileWithProgress(downloadUrl, downloadPath, progressUi, fileSize, cts.Token).ConfigureAwait(false);
                             break;
                         }
                         catch (OperationCanceledException)
@@ -306,7 +266,7 @@ public class AppUpdateService : IAppUpdateService
                         }
                         catch (Exception ex) when (attempt < maxRetries)
                         {
-                            statusLabel.Dispatcher.Invoke(() => statusLabel.Content = $"Download failed (Attempt {attempt}/{maxRetries}): {ex.Message}\nRetrying in {retryDelay / 1000} seconds...");
+                            progressUi.Report(0, $"Download failed (Attempt {attempt}/{maxRetries}): {ex.Message}\nRetrying in {retryDelay / 1000} seconds...");
                             await Task.Delay(retryDelay).ConfigureAwait(false);
                             retryDelay *= 2;
 
@@ -320,8 +280,7 @@ public class AppUpdateService : IAppUpdateService
                 }
                 else
                 {
-                    progressBar.Dispatcher.Invoke(() => progressBar.Value = 100);
-                    statusLabel.Dispatcher.Invoke(() => statusLabel.Content = "Using existing verified download...");
+                    progressUi.Report(100, "Using existing verified download...");
                 }
             }
             catch (OperationCanceledException)
@@ -343,177 +302,25 @@ public class AppUpdateService : IAppUpdateService
                     // ignore cleanup failures
                 }
 
-                await dispatcher.InvokeAsync(() =>
-                {
-                    downloadCompleted = true;
-                    if (progressWindow.IsVisible)
-                    {
-                        progressWindow.Close();
-                    }
-                    MessageBox.Show("Update download cancelled.", "Update", MessageBoxButton.OK, MessageBoxImage.Information);
-                }).Task.ConfigureAwait(true);
-
+                progressUi.Close();
+                dispatcher.Invoke(() => MessageBox.Show("Update download cancelled.", "Update", MessageBoxButton.OK, MessageBoxImage.Information));
                 return;
             }
 
-            await dispatcher.InvokeAsync(() =>
+            progressUi.Report(100, "Extracting...");
+
+            var extractPath = await ExtractUpdatePackage(downloadPath, tempDir, progressUi).ConfigureAwait(false);
+            
+            if (extractPath == null)
             {
-                statusLabel.Content = "Extracting...";
-                progressBar.Value = 100;
-            }).Task.ConfigureAwait(true);
-
-            var extractPath = Path.Combine(tempDir, "extracted");
-
-            if (Directory.Exists(extractPath))
-            {
-                try
-                {
-                    Directory.Delete(extractPath, true);
-                }
-                catch
-                {
-                    extractPath = Path.Combine(tempDir, $"extracted_{DateTime.Now.Ticks}");
-                }
-            }
-
-            Directory.CreateDirectory(extractPath);
-
-            var fileExtension = Path.GetExtension(downloadPath).ToLower();
-            if (fileExtension == ".zip")
-            {
-                try
-                {
-                    ZipFile.ExtractToDirectory(downloadPath, extractPath);
-
-                    if (!Directory.GetFiles(extractPath, "*", SearchOption.AllDirectories).Any())
-                    {
-                        throw new InvalidOperationException("Extraction resulted in no files");
-                    }
-
-                    var extractedItems = Directory.GetDirectories(extractPath);
-                    if (extractedItems.Length == 1 && !Directory.GetFiles(extractPath).Any())
-                    {
-                        extractPath = extractedItems[0];
-                    }
-                }
-                catch (Exception ex)
-                {
-                    await dispatcher.InvokeAsync(() =>
-                    {
-                        downloadCompleted = true;
-                        progressWindow.Close();
-                    }).Task.ConfigureAwait(true);
-                    await dispatcher.InvokeAsync(() =>
-                        MessageBox.Show($"Failed to extract update file: {ex.Message}\n\nPlease download and extract manually.",
-                            "Extraction Error", MessageBoxButton.OK, MessageBoxImage.Error)).Task.ConfigureAwait(true);
-                    return;
-                }
-            }
-            else if (fileExtension == ".rar")
-            {
-                await dispatcher.InvokeAsync(() =>
-                {
-                    downloadCompleted = true;
-                    progressWindow.Close();
-                }).Task.ConfigureAwait(true);
-                MessageBox.Show(
-                    $"Downloaded update file: {fileName}\n\n" +
-                    $"This is a RAR archive. Please extract it manually to:\n{currentDir}\n\n" +
-                    $"The file has been saved to: {downloadPath}\n\n" +
-                    $"After extraction, restart the application.",
-                    "Manual Extraction Required",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Information);
-
-                Process.Start("explorer.exe", tempDir);
-                return;
-            }
-            else
-            {
-                await dispatcher.InvokeAsync(() =>
-                {
-                    downloadCompleted = true;
-                    progressWindow.Close();
-                }).Task.ConfigureAwait(true);
-                await dispatcher.InvokeAsync(() =>
-                    MessageBox.Show($"Unsupported file format: {fileExtension}", "Error", MessageBoxButton.OK, MessageBoxImage.Error)).Task.ConfigureAwait(true);
+                // Extraction failed or handled manually
+                progressUi.Close();
                 return;
             }
 
-            await dispatcher.InvokeAsync(() =>
-            {
-                downloadCompleted = true;
-                progressWindow.Close();
-            }).Task.ConfigureAwait(true);
+            progressUi.Close();
 
-            var updateScript = Path.Combine(tempDir, "update.bat");
-            var rollbackScript = Path.Combine(tempDir, "rollback.bat");
-            var exePath = Process.GetCurrentProcess().MainModule.FileName;
-
-            var versionFile = Path.Combine(currentDir, "version.txt");
-            var logFile = Path.Combine(tempDir, "update.log");
-
-            var scriptContent = "@echo off\n" +
-                "setlocal enabledelayedexpansion\n" +
-                $"set LOGFILE={logFile}\n" +
-                "echo %date% %time% - Starting OpenBullet2 Update Installation >> %LOGFILE%\n" +
-                "timeout /t 3 /nobreak > nul\n" +
-                "taskkill /f /im OpenBullet2.Native.exe 2>nul\n" +
-                "timeout /t 2 /nobreak > nul\n" +
-                "echo Creating rollback script...\n" +
-                $"echo @echo off > \"{rollbackScript}\"\n" +
-                $"echo xcopy /E /Y /R \"{backupDir}\\*\" \"{currentDir}\" 2^>nul >> \"{rollbackScript}\"\n" +
-                $"echo start \"\" \"{exePath}\" >> \"{rollbackScript}\"\n" +
-                "set RETRY_COUNT=0\n" +
-                ":retry_copy\n" +
-                "set /a RETRY_COUNT+=1\n" +
-                "echo %date% %time% - Copying files (attempt %RETRY_COUNT%) >> %LOGFILE%\n" +
-                $"xcopy /E /Y /R \"{extractPath}\\*\" \"{currentDir}\" 2>>%LOGFILE%\n" +
-                "if errorlevel 1 (\n" +
-                "    if %RETRY_COUNT% LSS 5 (\n" +
-                "        timeout /t 2 /nobreak > nul\n" +
-                "        goto retry_copy\n" +
-                "    ) else (\n" +
-                "        echo %date% %time% - CRITICAL: File copy failed after 5 attempts >> %LOGFILE%\n" +
-                $"        call \"{rollbackScript}\"\n" +
-                "        exit /b 1\n" +
-                "    )\n" +
-                ")\n" +
-                "set VERSION_RETRY=0\n" +
-                ":retry_version\n" +
-                "set /a VERSION_RETRY+=1\n" +
-                $"echo {latestVersion} > \"{versionFile}\" 2>>%LOGFILE%\n" +
-                "if errorlevel 1 (\n" +
-                "    if %VERSION_RETRY% LSS 3 (\n" +
-                "        timeout /t 1 /nobreak > nul\n" +
-                "        goto retry_version\n" +
-                "    )\n" +
-                ")\n" +
-                $"if not exist \"{Path.Combine(currentDir, "OpenBullet2.Native.exe")}\" (\n" +
-                "    echo %date% %time% - CRITICAL: Main executable missing, running rollback >> %LOGFILE%\n" +
-                $"    call \"{rollbackScript}\"\n" +
-                "    exit /b 1\n" +
-                ")\n" +
-                "echo %date% %time% - Update completed successfully >> %LOGFILE%\n" +
-                $"start \"\" \"{exePath}\"\n" +
-                "timeout /t 5 /nobreak > nul\n" +
-                $"rd /s /q \"{tempDir}\" 2>nul\n" +
-                $"del \"{updateScript}\" 2>nul\n" +
-                "exit";
-
-            await File.WriteAllTextAsync(updateScript, scriptContent).ConfigureAwait(false);
-
-            var updateProcess = new ProcessStartInfo
-            {
-                FileName = updateScript,
-                UseShellExecute = true,
-                CreateNoWindow = true,
-                WindowStyle = ProcessWindowStyle.Hidden
-            };
-
-            Process.Start(updateProcess);
-
-            Application.Current.Shutdown();
+            await CreateAndRunUpdateBatch(tempDir, currentDir, backupDir, extractPath, latestVersion).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -555,7 +362,7 @@ public class AppUpdateService : IAppUpdateService
         }
     }
 
-    private static async Task DownloadFileWithProgress(string url, string destination, ProgressBar progressBar, Label statusLabel, long expectedSize, CancellationToken cancellationToken)
+    private static async Task DownloadFileWithProgress(string url, string destination, IUpdateProgress progressUi, long expectedSize, CancellationToken cancellationToken)
     {
         using var httpClient = new HttpClient { Timeout = TimeSpan.FromMinutes(10) };
         using var response = await httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
@@ -588,32 +395,17 @@ public class AppUpdateService : IAppUpdateService
 
                     if (totalBytes > 0)
                     {
-                        var progress = (double)totalRead / totalBytes * 100;
+                        var percent = (double)totalRead / totalBytes * 100;
                         var eta = speed > 0 ? TimeSpan.FromSeconds(Math.Max(0, (totalBytes - totalRead) / speed)) : TimeSpan.Zero;
                         var etaText = speed > 0 ? $" ETA {FormatDuration(eta)}" : string.Empty;
                         var totalText = HumanReadable.Bytes(totalBytes);
 
-                        if (!progressBar.Dispatcher.HasShutdownStarted)
-                        {
-                            progressBar.Dispatcher.Invoke(() => progressBar.Value = progress);
-                        }
-
-                        if (!statusLabel.Dispatcher.HasShutdownStarted)
-                        {
-                            statusLabel.Dispatcher.Invoke(() => statusLabel.Content = $"Downloading... {progress:F1}% ({downloadedText} / {totalText}, {speedText}{etaText})");
-                        }
+                        progressUi.Report(percent, $"Downloading... {percent:F1}% ({downloadedText} / {totalText}, {speedText}{etaText})");
                     }
                     else
                     {
-                        if (!progressBar.Dispatcher.HasShutdownStarted)
-                        {
-                            progressBar.Dispatcher.Invoke(() => progressBar.IsIndeterminate = true);
-                        }
-
-                        if (!statusLabel.Dispatcher.HasShutdownStarted)
-                        {
-                            statusLabel.Dispatcher.Invoke(() => statusLabel.Content = $"Downloading... {downloadedText} ({speedText})");
-                        }
+                        progressUi.SetIndeterminate(true);
+                        progressUi.Report(0, $"Downloading... {downloadedText} ({speedText})");
                     }
                 }
             }
@@ -629,15 +421,7 @@ public class AppUpdateService : IAppUpdateService
         var finalDownloadText = HumanReadable.Bytes(totalRead);
         var durationText = FormatDuration(stopwatch.Elapsed);
 
-        if (!progressBar.Dispatcher.HasShutdownStarted)
-        {
-            progressBar.Dispatcher.Invoke(() => progressBar.Value = 100);
-        }
-
-        if (!statusLabel.Dispatcher.HasShutdownStarted)
-        {
-            statusLabel.Dispatcher.Invoke(() => statusLabel.Content = $"Download complete ({finalDownloadText} in {durationText}, avg {finalSpeedText}) - validating file...");
-        }
+        progressUi.Report(100, $"Download complete ({finalDownloadText} in {durationText}, avg {finalSpeedText}) - validating file...");
 
         var expected = totalBytes > 0 ? totalBytes : expectedSize;
 
@@ -853,6 +637,271 @@ public class AppUpdateService : IAppUpdateService
                 SystemSounds.Asterisk.Play();
             }
         });
+    }
+    private class GitHubRelease
+    {
+        [JsonProperty("tag_name")]
+        public string TagName { get; set; }
+
+        [JsonProperty("html_url")]
+        public string HtmlUrl { get; set; }
+
+        [JsonProperty("assets")]
+        public GitHubAsset[] Assets { get; set; }
+    }
+
+    private class GitHubAsset
+    {
+        [JsonProperty("name")]
+        public string Name { get; set; }
+
+        [JsonProperty("browser_download_url")]
+        public string BrowserDownloadUrl { get; set; }
+
+        [JsonProperty("size")]
+        public long Size { get; set; }
+    }
+    private string GetCurrentVersion()
+    {
+        var currentVersionPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "version.txt");
+        if (File.Exists(currentVersionPath))
+        {
+            try
+            {
+                return File.ReadAllText(currentVersionPath).Trim();
+            }
+            catch (Exception ioEx)
+            {
+                Debug.WriteLine($"Failed reading version.txt: {ioEx.Message}");
+            }
+        }
+        return "Unknown";
+    }
+
+
+    private async Task<string?> ExtractUpdatePackage(string downloadPath, string tempDir, IUpdateProgress progressUi)
+    {
+        var extractPath = Path.Combine(tempDir, "extracted");
+        if (Directory.Exists(extractPath))
+        {
+            try { Directory.Delete(extractPath, true); }
+            catch { extractPath = Path.Combine(tempDir, $"extracted_{DateTime.Now.Ticks}"); }
+        }
+        Directory.CreateDirectory(extractPath);
+
+        var fileExtension = Path.GetExtension(downloadPath).ToLower();
+        if (fileExtension == ".zip")
+        {
+            try
+            {
+                ZipFile.ExtractToDirectory(downloadPath, extractPath);
+
+                if (!Directory.GetFiles(extractPath, "*", SearchOption.AllDirectories).Any())
+                    throw new InvalidOperationException("Extraction resulted in no files");
+
+                var extractedItems = Directory.GetDirectories(extractPath);
+                if (extractedItems.Length == 1 && !Directory.GetFiles(extractPath).Any())
+                    extractPath = extractedItems[0];
+                
+                return extractPath;
+            }
+            catch (Exception ex)
+            {
+                progressUi.Close();
+                await dispatcher.InvokeAsync(() =>
+                    MessageBox.Show($"Failed to extract update file: {ex.Message}\n\nPlease download and extract manually.",
+                        "Extraction Error", MessageBoxButton.OK, MessageBoxImage.Error));
+                return null;
+            }
+        }
+        else if (fileExtension == ".rar")
+        {
+            progressUi.Close();
+            var fileName = Path.GetFileName(downloadPath);
+            MessageBox.Show(
+                $"Downloaded update file: {fileName}\n\n" +
+                $"This is a RAR archive. Please extract it manually to:\n{AppDomain.CurrentDomain.BaseDirectory}\n\n" +
+                $"The file has been saved to: {downloadPath}\n\n" +
+                $"After extraction, restart the application.",
+                "Manual Extraction Required", MessageBoxButton.OK, MessageBoxImage.Information);
+
+            Process.Start("explorer.exe", tempDir);
+            return null;
+        }
+        else
+        {
+            progressUi.Close();
+            await dispatcher.InvokeAsync(() =>
+                MessageBox.Show($"Unsupported file format: {fileExtension}", "Error", MessageBoxButton.OK, MessageBoxImage.Error));
+            return null;
+        }
+    }
+
+    private async Task CreateAndRunUpdateBatch(string tempDir, string currentDir, string backupDir, string extractPath, string latestVersion)
+    {
+        var updateScript = Path.Combine(tempDir, "update.bat");
+        var rollbackScript = Path.Combine(tempDir, "rollback.bat");
+        var exePath = Process.GetCurrentProcess().MainModule.FileName;
+
+        var versionFile = Path.Combine(currentDir, "version.txt");
+        var logFile = Path.Combine(tempDir, "update.log");
+
+        var scriptContent = "@echo off\n" +
+            "setlocal enabledelayedexpansion\n" +
+            $"set LOGFILE={logFile}\n" +
+            "echo %date% %time% - Starting OpenBullet2 Update Installation >> %LOGFILE%\n" +
+            "timeout /t 3 /nobreak > nul\n" +
+            "taskkill /f /im OpenBullet2.Native.exe 2>nul\n" +
+            "timeout /t 2 /nobreak > nul\n" +
+            "echo Creating rollback script...\n" +
+            $"echo @echo off > \"{rollbackScript}\"\n" +
+            $"echo xcopy /E /Y /R \"{backupDir}\\*\" \"{currentDir}\" 2^>nul >> \"{rollbackScript}\"\n" +
+            $"echo start \"\" \"{exePath}\" >> \"{rollbackScript}\"\n" +
+            "set RETRY_COUNT=0\n" +
+            ":retry_copy\n" +
+            "set /a RETRY_COUNT+=1\n" +
+            "echo %date% %time% - Copying files (attempt %RETRY_COUNT%) >> %LOGFILE%\n" +
+            $"xcopy /E /Y /R \"{extractPath}\\*\" \"{currentDir}\" 2>>%LOGFILE%\n" +
+            "if errorlevel 1 (\n" +
+            "    if %RETRY_COUNT% LSS 5 (\n" +
+            "        timeout /t 2 /nobreak > nul\n" +
+            "        goto retry_copy\n" +
+            "    ) else (\n" +
+            "        echo %date% %time% - CRITICAL: File copy failed after 5 attempts >> %LOGFILE%\n" +
+            $"        call \"{rollbackScript}\"\n" +
+            "        exit /b 1\n" +
+            "    )\n" +
+            ")\n" +
+            "set VERSION_RETRY=0\n" +
+            ":retry_version\n" +
+            "set /a VERSION_RETRY+=1\n" +
+            $"echo {latestVersion} > \"{versionFile}\" 2>>%LOGFILE%\n" +
+            "if errorlevel 1 (\n" +
+            "    if %VERSION_RETRY% LSS 3 (\n" +
+            "        timeout /t 1 /nobreak > nul\n" +
+            "        goto retry_version\n" +
+            "    )\n" +
+            ")\n" +
+            $"if not exist \"{Path.Combine(currentDir, "OpenBullet2.Native.exe")}\" (\n" +
+            "    echo %date% %time% - CRITICAL: Main executable missing, running rollback >> %LOGFILE%\n" +
+            $"    call \"{rollbackScript}\"\n" +
+            "    exit /b 1\n" +
+            ")\n" +
+            "echo %date% %time% - Update completed successfully >> %LOGFILE%\n" +
+            $"start \"\" \"{exePath}\"\n" +
+            "timeout /t 5 /nobreak > nul\n" +
+            $"rd /s /q \"{tempDir}\" 2>nul\n" +
+            $"del \"{updateScript}\" 2>nul\n" +
+            "exit";
+
+        await File.WriteAllTextAsync(updateScript, scriptContent).ConfigureAwait(false);
+
+        var updateProcess = new ProcessStartInfo
+        {
+            FileName = updateScript,
+            UseShellExecute = true,
+            CreateNoWindow = true,
+            WindowStyle = ProcessWindowStyle.Hidden
+        };
+
+        Process.Start(updateProcess);
+
+        Application.Current.Shutdown();
+    }
+
+    private (string? downloadUrl, long fileSize) FindSuitableAsset(GitHubAsset[] assets)
+    {
+        foreach (var asset in assets)
+        {
+            string assetName = asset.Name.ToLower();
+            if (assetName.Contains("windows") || assetName.Contains("win") || assetName.EndsWith(".zip") || assetName.EndsWith(".rar") || assetName.Contains("ob2"))
+            {
+                return (asset.BrowserDownloadUrl, asset.Size);
+            }
+        }
+        return (null, 0);
+    }
+
+    private interface IUpdateProgress
+    {
+        void Show();
+        void Report(double percent, string message);
+        void SetIndeterminate(bool isIndeterminate);
+        void Close();
+        bool IsVisible { get; }
+    }
+
+    private class WpfUpdateProgress : IUpdateProgress
+    {
+        private readonly Window _window;
+        private readonly ProgressBar _progressBar;
+        private readonly Label _statusLabel;
+        private readonly Action _onCancel;
+
+        public bool IsVisible => _window.IsVisible;
+
+        public WpfUpdateProgress(Action onCancel)
+        {
+            _onCancel = onCancel;
+            
+            _progressBar = new ProgressBar
+            {
+                Margin = new Thickness(20),
+                Height = 20
+            };
+
+            _statusLabel = new Label
+            {
+                Content = "Downloading...",
+                HorizontalAlignment = HorizontalAlignment.Center,
+                Margin = new Thickness(20, 10, 20, 0)
+            };
+
+            var stackPanel = new StackPanel();
+            stackPanel.Children.Add(_statusLabel);
+            stackPanel.Children.Add(_progressBar);
+
+            _window = new Window
+            {
+                Title = "Downloading Update",
+                Width = 400,
+                Height = 150,
+                WindowStartupLocation = WindowStartupLocation.CenterScreen,
+                ResizeMode = ResizeMode.NoResize,
+                ShowInTaskbar = false,
+                Topmost = true,
+                Content = stackPanel
+            };
+
+            _window.Closing += (s, e) => _onCancel();
+        }
+
+        public void Show() => _window.Show();
+
+        public void Report(double percent, string message)
+        {
+            if (_window.Dispatcher.HasShutdownStarted) return;
+            
+            _window.Dispatcher.Invoke(() =>
+            {
+                _progressBar.IsIndeterminate = false;
+                _progressBar.Value = percent;
+                _statusLabel.Content = message;
+            });
+        }
+
+        public void SetIndeterminate(bool isIndeterminate)
+        {
+            if (_window.Dispatcher.HasShutdownStarted) return;
+
+            _window.Dispatcher.Invoke(() => _progressBar.IsIndeterminate = isIndeterminate);
+        }
+
+        public void Close()
+        {
+             if (_window.Dispatcher.HasShutdownStarted) return;
+             _window.Dispatcher.Invoke(() => _window.Close());
+        }
     }
 }
 

@@ -406,6 +406,41 @@ public class JobViewModel(Job job) : OpenBullet2.Native.ViewModels.Infrastructur
         OnPropertyChanged(nameof(StatusColor));
         OnPropertyChanged(nameof(IdAndStatus));
     }
+
+    public virtual int CPM => 0;
+    public virtual float Progress => 0f;
+    public virtual long TestedCount => 0;
+    public virtual long TotalCount => 0;
+
+    public string ElapsedString => $"{(int)Job.Elapsed.TotalDays} day(s) {Job.Elapsed:hh\\:mm\\:ss}";
+    public string RemainingString =>
+        Status == JobStatus.Idle || Status == JobStatus.Stopping || Progress >= 1.0f || TestedCount >= TotalCount
+            ? "0 day(s) 00:00:00"
+            : $"{(int)Job.Remaining.TotalDays} day(s) {Job.Remaining:hh\\:mm\\:ss}";
+
+    public virtual string ProgressString => $"{TestedCount} / {TotalCount} ({(Progress < 0 ? 0 : Progress * 100):0.00}%)";
+
+    public virtual void PeriodicUpdate()
+    {
+        OnPropertyChanged(nameof(ElapsedString));
+        OnPropertyChanged(nameof(RemainingString));
+        OnPropertyChanged(nameof(CPM));
+    }
+
+    public virtual void UpdateStats()
+    {
+        OnPropertyChanged(nameof(Progress));
+        OnPropertyChanged(nameof(ProgressString));
+    }
+
+    /// <summary>
+    /// Updates the status of the job.
+    /// </summary>
+    public void UpdateStatus()
+    {
+        OnPropertyChanged(nameof(Status));
+        OnPropertyChanged(nameof(IdAndStatus));
+    }
 }
 
 public class MultiRunJobViewModel(MultiRunJob job) : JobViewModel(job)
@@ -460,35 +495,19 @@ public class MultiRunJobViewModel(MultiRunJob job) : JobViewModel(job)
     public int ProxiesBad => MultiRunJob.ProxiesBad;
     public int ProxiesBanned => MultiRunJob.ProxiesBanned;
 
-    public float Progress => MultiRunJob.Progress;
-    public string ProgressString
-    {
-        get
-        {
-            var tested = MultiRunJob.Status == JobStatus.Idle ? Skip : DataTested + Skip;
-            return $"{tested} / {MultiRunJob.DataPool.Size} ({(Progress < 0 ? 0 : Progress * 100):0.00}%)";
-        }
-    }
+    public override int CPM => MultiRunJob.CPM;
+    public override float Progress => MultiRunJob.Progress;
+    public override long TestedCount => MultiRunJob.Status == JobStatus.Idle ? Skip : DataTested + Skip;
+    public override long TotalCount => MultiRunJob.DataPool.Size;
 
     public decimal CaptchaCredit => MultiRunJob.CaptchaCredit;
-    public string ElapsedString => $"{(int)MultiRunJob.Elapsed.TotalDays} day(s) {MultiRunJob.Elapsed:hh\\:mm\\:ss}";
-    public string RemainingString =>
-            // If job is completed, show 00:00:00 instead of continuing to calculate
-            MultiRunJob.Status == JobStatus.Idle || MultiRunJob.Status == JobStatus.Stopping ||
-                MultiRunJob.Progress >= 1.0f || MultiRunJob.DataTested >= MultiRunJob.DataPool.Size
-                ? "0 day(s) 00:00:00"
-                : $"{(int)MultiRunJob.Remaining.TotalDays} day(s) {MultiRunJob.Remaining:hh\\:mm\\:ss}";
-
-    public int CPM => MultiRunJob.CPM;
 
     /// <summary>
     /// Update properties that only need to be updated every second.
     /// </summary>
-    public void PeriodicUpdate()
+    public override void PeriodicUpdate()
     {
-        OnPropertyChanged(nameof(ElapsedString));
-        OnPropertyChanged(nameof(RemainingString));
-        OnPropertyChanged(nameof(CPM));
+        base.PeriodicUpdate();
         OnPropertyChanged(nameof(CaptchaCredit));
 
         OnPropertyChanged(nameof(DataRetried));
@@ -505,16 +524,14 @@ public class MultiRunJobViewModel(MultiRunJob job) : JobViewModel(job)
     /// <summary>
     /// Update properties that need to be updated every time there is a result.
     /// </summary>
-    public void UpdateStats()
+    public override void UpdateStats()
     {
+        base.UpdateStats();
         OnPropertyChanged(nameof(DataTested));
         OnPropertyChanged(nameof(DataHits));
         OnPropertyChanged(nameof(DataCustom));
         OnPropertyChanged(nameof(DataToCheck));
         OnPropertyChanged(nameof(DataFails));
-
-        OnPropertyChanged(nameof(Progress));
-        OnPropertyChanged(nameof(ProgressString));
     }
 
     /// <summary>
@@ -527,14 +544,7 @@ public class MultiRunJobViewModel(MultiRunJob job) : JobViewModel(job)
     /// </summary>
     public void UpdateSkip() => OnPropertyChanged(nameof(Skip));
 
-    /// <summary>
-    /// Updates the status of the job.
-    /// </summary>
-    public void UpdateStatus()
-    {
-        OnPropertyChanged(nameof(Status));
-        OnPropertyChanged(nameof(IdAndStatus));
-    }
+
 
     public override void UpdateViewModel()
     {
@@ -571,27 +581,17 @@ public class ProxyCheckJobViewModel(ProxyCheckJob job) : JobViewModel(job)
     public int DataHits => Working;
     /// <summary>
     /// Proxy check doesn&#39;t have custom results
-    public float Progress => ProxyCheckJob.Progress;
-    public string ProgressString => $"{Tested} / {Total} ({(Progress < 0 ? 0 : Progress * 100):0.00}%)";
-
-    public int CPM => ProxyCheckJob.CPM;
-    public string ElapsedString => $"{(int)ProxyCheckJob.Elapsed.TotalDays} day(s) {ProxyCheckJob.Elapsed:hh\\:mm\\:ss}";
-    public string RemainingString =>
-            // If job is completed, show 00:00:00 instead of continuing to calculate
-            ProxyCheckJob.Status == JobStatus.Idle || ProxyCheckJob.Status == JobStatus.Stopping ||
-                ProxyCheckJob.Progress >= 1.0f || ProxyCheckJob.Tested >= ProxyCheckJob.Total
-                ? "0 day(s) 00:00:00"
-                : $"{(int)ProxyCheckJob.Remaining.TotalDays} day(s) {ProxyCheckJob.Remaining:hh\\:mm\\:ss}";
+    public override int CPM => ProxyCheckJob.CPM;
+    public override float Progress => ProxyCheckJob.Progress;
+    public override long TestedCount => Tested;
+    public override long TotalCount => Total;
 
     /// <summary>
     /// Update properties that only need to be updated every second.
     /// </summary>
-    public void PeriodicUpdate()
+    public override void PeriodicUpdate()
     {
-        OnPropertyChanged(nameof(ElapsedString));
-        OnPropertyChanged(nameof(RemainingString));
-        OnPropertyChanged(nameof(CPM));
-
+        base.PeriodicUpdate();
         OnPropertyChanged(nameof(Total));
         OnPropertyChanged(nameof(Tested));
         OnPropertyChanged(nameof(Working));
@@ -601,10 +601,9 @@ public class ProxyCheckJobViewModel(ProxyCheckJob job) : JobViewModel(job)
     /// <summary>
     /// Update properties that need to be updated every time there is a result.
     /// </summary>
-    public void UpdateStats()
+    public override void UpdateStats()
     {
-        OnPropertyChanged(nameof(Progress));
-        OnPropertyChanged(nameof(ProgressString));
+        base.UpdateStats();
         OnPropertyChanged(nameof(DataHits));
     }
 
@@ -613,14 +612,7 @@ public class ProxyCheckJobViewModel(ProxyCheckJob job) : JobViewModel(job)
     /// </summary>
     public void UpdateBots() => OnPropertyChanged(nameof(Bots));
 
-    /// <summary>
-    /// Updates the status of the job.
-    /// </summary>
-    public void UpdateStatus()
-    {
-        OnPropertyChanged(nameof(Status));
-        OnPropertyChanged(nameof(IdAndStatus));
-    }
+
 
     public override void UpdateViewModel()
     {

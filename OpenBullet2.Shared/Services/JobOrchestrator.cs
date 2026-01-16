@@ -79,7 +79,7 @@ public class JobOrchestrator : IJobOrchestrator
 
         await jobRepo.AddAsync(entity, cancellationToken).ConfigureAwait(false);
 
-        if (_jobFactory.FromOptions(entity.Id, ownerId: 0, options) is not MultiRunJob job)
+        if (await _jobFactory.FromOptionsAsync(entity.Id, ownerId: 0, options).ConfigureAwait(false) is not MultiRunJob job)
         {
             throw new InvalidOperationException("Expected MultiRunJob from factory");
         }

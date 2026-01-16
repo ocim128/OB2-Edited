@@ -256,7 +256,7 @@ public class JobsViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewMo
 
         await jobRepo.AddAsync(entity);
 
-        var job = jobFactory.FromOptions(entity.Id, 0, options);
+        var job = await jobFactory.FromOptionsAsync(entity.Id, 0, options);
         var jobVM = MakeViewModel(job);
 
         jobManager.AddJob(job);
@@ -275,7 +275,7 @@ public class JobsViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewMo
         await jobRepo.UpdateAsync(entity);
 
         var oldJob = jobManager.Jobs.First(j => j.Id == entity.Id);
-        var newJob = jobFactory.FromOptions(entity.Id, 0, options);
+        var newJob = await jobFactory.FromOptionsAsync(entity.Id, 0, options);
 
         jobManager.RemoveJob(oldJob);
         jobManager.AddJob(newJob);
@@ -298,7 +298,7 @@ public class JobsViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewMo
 
         await jobRepo.AddAsync(entity);
 
-        var job = jobFactory.FromOptions(entity.Id, 0, options);
+        var job = await jobFactory.FromOptionsAsync(entity.Id, 0, options);
         jobManager.AddJob(job);
 
         JobViewModel jobVM = type switch

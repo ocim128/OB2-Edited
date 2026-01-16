@@ -13,6 +13,7 @@ using RuriLib.Providers.UserAgents;
 using RuriLib.Services;
 using System;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace OpenBullet2.Core.Services;
 
@@ -68,12 +69,12 @@ public class JobFactoryService
     /// <param name="id">The ID of the newly created job, must be unique</param>
     /// <param name="ownerId">The ID of the user who owns the job. 0 for admin</param>
     /// <param name="options">The options to create the job from</param>
-    public Job FromOptions(int id, int ownerId, JobOptions options)
+    public async Task<Job> FromOptionsAsync(int id, int ownerId, JobOptions options)
     {
         Job job = options switch
         {
-            MultiRunJobOptions x => MakeMultiRunJob(x),
-            ProxyCheckJobOptions x => MakeProxyCheckJob(x),
+            MultiRunJobOptions x => await MakeMultiRunJobAsync(x).ConfigureAwait(false),
+            ProxyCheckJobOptions x => await MakeProxyCheckJobAsync(x).ConfigureAwait(false),
             _ => throw new NotImplementedException()
         };
 
@@ -82,7 +83,7 @@ public class JobFactoryService
         return job;
     }
 
-    private MultiRunJob MakeMultiRunJob(MultiRunJobOptions options)
+    private async Task<MultiRunJob> MakeMultiRunJobAsync(MultiRunJobOptions options)
     {
         using var scope = _scopeFactory.CreateScope();
         var proxySourceFactory = scope.ServiceProvider.GetRequiredService<ProxySourceFactoryService>();
@@ -101,7 +102,7 @@ public class JobFactoryService
             {
                 try
                 {
-                    config = configRepository.GetAsync(options.ConfigId).GetAwaiter().GetResult();
+                    config = await configRepository.GetAsync(options.ConfigId).ConfigureAwait(false);
 
                     if (config is not null && !_configService.GetConfigsList().Any(c => c.Id == config.Id))
                     {
@@ -114,6 +115,14 @@ public class JobFactoryService
                 }
             }
         }
+
+        // Parallelize async operations where appropriate to speed up initialization
+        var proxySourcesTask = Task.WhenAll(options.ProxySources
+            .Select(s => proxySourceFactory.FromOptions(s)));
+            
+        var dataPoolTask = dataPoolFactory.FromOptionsAsync(options.DataPool);
+
+        await Task.WhenAll(proxySourcesTask, dataPoolTask).ConfigureAwait(false);
 
         var job = new MultiRunJob(_settingsService, _pluginRepo, _logger)
         {
@@ -139,7 +148,7 @@ public class JobFactoryService
             CurrentBotDatas = new BotData[BotLimit],
             Skip = options.Skip,
             HitOutputs = options.HitOutputs.Select(o => hitOutputsFactory.FromOptions(o)).ToList(),
-            ProxySources = options.ProxySources.Select(s => proxySourceFactory.FromOptions(s).Result).ToList(),
+            ProxySources = (await proxySourcesTask).ToList(),
             Providers = new(_settingsService)
             {
                 RandomUA = _settingsService.RuriLibSettings.GeneralSettings.UseCustomUserAgentsList
@@ -147,13 +156,13 @@ public class JobFactoryService
                     : _randomUaProvider,
                 RNG = _rngProvider
             },
-            DataPool = dataPoolFactory.FromOptionsAsync(options.DataPool).Result
+            DataPool = await dataPoolTask
         };
 
         return job;
     }
 
-    private ProxyCheckJob MakeProxyCheckJob(ProxyCheckJobOptions options)
+    private async Task<ProxyCheckJob> MakeProxyCheckJobAsync(ProxyCheckJobOptions options)
     {
         var job = new ProxyCheckJob(_settingsService, _pluginRepo, _logger)
         {
@@ -168,7 +177,7 @@ public class JobFactoryService
             GeoProvider = new DBIPProxyGeolocationProvider("dbip-country-lite.mmdb")
         };
 
-        job.Proxies = _proxyReloadService.ReloadAsync(options.GroupId, job.OwnerId).Result;
+        job.Proxies = await _proxyReloadService.ReloadAsync(options.GroupId, job.OwnerId).ConfigureAwait(false);
 
         // Update the stats
         var proxies = options.CheckOnlyUntested

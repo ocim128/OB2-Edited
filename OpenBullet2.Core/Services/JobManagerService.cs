@@ -66,7 +66,7 @@ public class JobManagerService : IDisposable
                 }
 
                 var options = JsonConvert.DeserializeObject<JobOptionsWrapper>(entity.JobOptions, jsonSettings).Options;
-                var job = jobFactory.FromOptions(entity.Id, entity.Owner == null ? 0 : entity.Owner.Id, options);
+                var job = await jobFactory.FromOptionsAsync(entity.Id, entity.Owner == null ? 0 : entity.Owner.Id, options).ConfigureAwait(false);
                 AddJob(job);
             }
         }

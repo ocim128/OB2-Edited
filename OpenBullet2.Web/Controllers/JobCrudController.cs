@@ -219,7 +219,7 @@ public class JobCrudController(
 
         try
         {
-            var job = _jobFactory.FromOptions(entity.Id, apiUser.Id, jobOptions);
+            var job = await _jobFactory.FromOptionsAsync(entity.Id, apiUser.Id, jobOptions);
             _jobManager.AddJob(job);
             return await MapMultiRunJobDto((MultiRunJob)job);
         }
@@ -254,7 +254,7 @@ public class JobCrudController(
 
         try
         {
-            var job = _jobFactory.FromOptions(entity.Id, apiUser.Id, jobOptions);
+            var job = await _jobFactory.FromOptionsAsync(entity.Id, apiUser.Id, jobOptions);
             _jobManager.AddJob(job);
             return await MapProxyCheckJobDto((ProxyCheckJob)job);
         }
@@ -292,7 +292,7 @@ public class JobCrudController(
         await _jobRepo.UpdateAsync(entity);
 
         var oldJob = _jobManager.Jobs.First(j => j.Id == dto.Id);
-        var newJob = _jobFactory.FromOptions(dto.Id, entity.Owner?.Id ?? 0, jobOptions);
+        var newJob = await _jobFactory.FromOptionsAsync(dto.Id, entity.Owner?.Id ?? 0, jobOptions);
 
         _jobManager.RemoveJob(oldJob);
         _jobManager.AddJob(newJob);
@@ -328,7 +328,7 @@ public class JobCrudController(
         await _jobRepo.UpdateAsync(entity);
 
         var oldJob = _jobManager.Jobs.First(j => j.Id == dto.Id);
-        var newJob = _jobFactory.FromOptions(dto.Id, entity.Owner?.Id ?? 0, jobOptions);
+        var newJob = await _jobFactory.FromOptionsAsync(dto.Id, entity.Owner?.Id ?? 0, jobOptions);
 
         _jobManager.RemoveJob(oldJob);
         _jobManager.AddJob(newJob);

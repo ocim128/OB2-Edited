@@ -362,6 +362,11 @@ public partial class HttpRequestBlockInstance(HttpRequestBlockDescriptor descrip
         writer.Write("ReadResponseContent = " + GetSettingValue("readResponseContent") + ", ");
         writer.Write("AbsoluteUriInFirstLine = " + GetSettingValue("absoluteUriInFirstLine") + ", ");
         writer.Write("HttpLibrary = " + GetSettingValue("httpLibrary") + ", ");
+        writer.Write("UseTlsFingerprinting = " + GetSettingValue("useTlsFingerprinting") + ", ");
+        writer.Write("TlsClientProfile = " + GetSettingValue("tlsClientProfile") + ", ");
+        writer.Write("CustomJa3String = " + GetSettingValue("customJa3String") + ", ");
+        writer.Write("RandomizeTlsExtensionOrder = " + GetSettingValue("randomizeTlsExtensionOrder") + ", ");
+        writer.Write("InsecureSkipVerify = " + GetSettingValue("insecureSkipVerify") + ", ");
         writer.Write("SecurityProtocol = " + GetSettingValue("securityProtocol") + ", ");
         writer.Write("CustomCookies = " + GetSettingValue("customCookies") + ", ");
         writer.Write("CustomHeaders = " + GetSettingValue("customHeaders") + ", ");

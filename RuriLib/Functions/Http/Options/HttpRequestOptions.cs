@@ -10,6 +10,11 @@ namespace RuriLib.Functions.Http.Options
         public int MaxNumberOfRedirects { get; set; } = 8;
         public bool AbsoluteUriInFirstLine { get; set; } = false;
         public HttpLibrary HttpLibrary { get; set; } = HttpLibrary.RuriLibHttp;
+        public bool UseTlsFingerprinting { get; set; } = false;
+        public string TlsClientProfile { get; set; } = "Chrome120";
+        public string CustomJa3String { get; set; } = string.Empty;
+        public bool RandomizeTlsExtensionOrder { get; set; } = true;
+        public bool InsecureSkipVerify { get; set; } = false;
         public SecurityProtocol SecurityProtocol { get; set; } = SecurityProtocol.SystemDefault;
         public Dictionary<string, string> CustomCookies { get; set; } = new();
         public Dictionary<string, string> CustomHeaders { get; set; } = new();

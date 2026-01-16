@@ -2,12 +2,14 @@ using RuriLib.Functions.Http.Options;
 using RuriLib.Logging;
 using RuriLib.Models.Blocks.Custom.HttpRequest.Multipart;
 using RuriLib.Models.Bots;
+using RuriLib.Models.Proxies;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -59,6 +61,11 @@ namespace RuriLib.Functions.Http
         /// Gets or sets whether to skip TLS certificate verification.
         /// </summary>
         public bool InsecureSkipVerify { get; set; } = false;
+
+        private static readonly Lazy<IReadOnlyDictionary<string, TlsClientIdentifier>> _tlsProfileMap = new(() =>
+            typeof(TlsClientIdentifier).GetFields(BindingFlags.Public | BindingFlags.Static)
+                .Where(static f => f.FieldType == typeof(TlsClientIdentifier))
+                .ToDictionary(static f => f.Name, static f => (TlsClientIdentifier)f.GetValue(null), StringComparer.OrdinalIgnoreCase));
 
         /// <summary>
         /// Initialize the TLS client native library and create shared client. Must be called before any requests.
@@ -242,27 +249,87 @@ namespace RuriLib.Functions.Http
             await ExecuteRequestAsync(data, options, request);
         }
 
+        private static TlsClientIdentifier ResolveTlsClientProfile(string profile, TlsClientIdentifier fallback, IBotLogger logger)
+        {
+            if (!string.IsNullOrWhiteSpace(profile) && _tlsProfileMap.Value.TryGetValue(profile, out var resolved))
+            {
+                return resolved;
+            }
+
+            if (!string.IsNullOrWhiteSpace(profile) && logger?.Enabled == true)
+            {
+                logger.Log($"[TLS Client] Unknown profile '{profile}', falling back to {fallback}", LogColors.Orange);
+            }
+
+            return fallback ?? TlsClientIdentifier.Chrome120;
+        }
+
+        private static string BuildProxyUrl(Proxy proxy)
+        {
+            if (proxy == null)
+            {
+                return null;
+            }
+
+            var scheme = proxy.Type switch
+            {
+                ProxyType.Http => "http",
+                ProxyType.Socks4 => "socks4",
+                ProxyType.Socks4a => "socks4a",
+                ProxyType.Socks5 => "socks5",
+                _ => "http"
+            };
+
+            if (proxy.NeedsAuthentication)
+            {
+                var user = Uri.EscapeDataString(proxy.Username ?? string.Empty);
+                var pass = Uri.EscapeDataString(proxy.Password ?? string.Empty);
+                return $"{scheme}://{user}:{pass}@{proxy.Host}:{proxy.Port}";
+            }
+
+            return $"{scheme}://{proxy.Host}:{proxy.Port}";
+        }
+
         private Request BuildRequest(BotData data, Options.HttpRequestOptions options)
         {
+            var tlsProfile = ResolveTlsClientProfile(options.TlsClientProfile, ClientProfile, data.Logger);
             var request = new Request
             {
                 RequestUrl = options.Url,
                 RequestMethod = new System.Net.Http.HttpMethod(options.Method.ToString()),
-                TlsClientIdentifier = ClientProfile,
+                TlsClientIdentifier = tlsProfile,
                 FollowRedirects = options.AutoRedirect,
                 TimeoutMilliseconds = options.TimeoutMilliseconds,
                 TimeoutSeconds = 0,
-                WithRandomTLSExtensionOrder = true,       // Randomize extension order to avoid detection
-                InsecureSkipVerify = InsecureSkipVerify,  // Allow skipping cert verification if needed
+                WithRandomTLSExtensionOrder = options.RandomizeTlsExtensionOrder,
+                InsecureSkipVerify = options.InsecureSkipVerify || InsecureSkipVerify,
                 WithDefaultCookieJar = true,              // Enable cookie jar for session persistence
                 TransportOptions = _defaultTransportOptions, // Connection pooling settings
                 Headers = new Dictionary<string, string>()
             };
 
+            if (options.HttpLibrary == HttpLibrary.RuriLibHttp)
+            {
+                request.ForceHttp1 = true;
+            }
+
+            if (!string.IsNullOrWhiteSpace(options.CustomJa3String))
+            {
+                request.CustomTlsClient = new CustomTlsClient
+                {
+                    Ja3String = options.CustomJa3String
+                };
+            }
+
             // Add custom headers in order (header order matters for fingerprinting)
             foreach (var header in options.CustomHeaders)
             {
                 request.Headers[header.Key] = header.Value;
+            }
+
+            if (options.CustomHeaders.Count > 0)
+            {
+                request.HeaderOrder = options.CustomHeaders.Keys.ToList();
             }
 
             // Set cookies
@@ -272,9 +339,14 @@ namespace RuriLib.Functions.Http
                 request.Headers["Cookie"] = cookieString;
             }
 
+            if (data.UseProxy && data.Proxy != null)
+            {
+                request.ProxyUrl = BuildProxyUrl(data.Proxy);
+            }
+
             // Log request details
             data.Logger?.Log($"[TLS Client] Building request to {options.Url}", LogColors.DarkOrchid);
-            data.Logger?.Log($"[TLS Client] Using browser profile: {ClientProfile} (shared client)", LogColors.DarkOrchid);
+            data.Logger?.Log($"[TLS Client] Using browser profile: {tlsProfile} (shared client)", LogColors.DarkOrchid);
 
             return request;
         }
@@ -293,9 +365,13 @@ namespace RuriLib.Functions.Http
                     .ConfigureAwait(false);
 
                 var elapsed = DateTime.UtcNow - startTime;
+                var logEnabled = data.Logger?.Enabled == true;
 
                 // Log response info with request tracking
-                data.Logger?.Log($"[TLS Client] Response: {response.Status} in {elapsed.TotalMilliseconds:F0}ms (Total requests: {requestNumber})", LogColors.DarkOrchid);
+                if (logEnabled)
+                {
+                    data.Logger.Log($"[TLS Client] Response: {response.Status} in {elapsed.TotalMilliseconds:F0}ms (Total requests: {requestNumber})", LogColors.DarkOrchid);
+                }
 
                 // Set response code
                 data.RESPONSECODE = (int)response.Status;
@@ -303,19 +379,42 @@ namespace RuriLib.Functions.Http
                 // Set address
                 data.ADDRESS = options.Url;
 
-                // Set raw source as byte array
-                if (!string.IsNullOrEmpty(response.Body))
+                var responseBody = response.Body ?? string.Empty;
+                string source = string.Empty;
+
+                // Set raw source as byte array only if needed
+                if (options.ReadResponseContent && responseBody.Length > 0)
                 {
-                    data.RAWSOURCE = Encoding.UTF8.GetBytes(response.Body);
+                    data.RAWSOURCE = Encoding.UTF8.GetBytes(responseBody);
+
+                    if (!string.IsNullOrWhiteSpace(options.CodePagesEncoding))
+                    {
+                        source = CodePagesEncodingProvider.Instance
+                            .GetEncoding(options.CodePagesEncoding)
+                            .GetString(data.RAWSOURCE);
+                    }
+                    else
+                    {
+                        source = responseBody;
+                    }
+
+                    // Decode HTML entities if requested
+                    if (options.DecodeHtml)
+                    {
+                        source = WebUtility.HtmlDecode(source);
+                        data.RAWSOURCE = Encoding.UTF8.GetBytes(source);
+                    }
                 }
                 else
                 {
                     data.RAWSOURCE = Array.Empty<byte>();
                 }
 
+                data.SOURCE = source;
+
                 // Parse headers
                 data.HEADERS.Clear();
-                if (response.Headers != null)
+                if (!options.DisableHeaderParsing && response.Headers != null)
                 {
                     foreach (var header in response.Headers)
                     {
@@ -325,6 +424,11 @@ namespace RuriLib.Functions.Http
                             data.HEADERS[header.Key] = string.Join(", ", header.Value);
                         }
                     }
+                }
+
+                if (!data.HEADERS.ContainsKey("Content-Length"))
+                {
+                    data.HEADERS["Content-Length"] = data.RAWSOURCE.Length.ToString();
                 }
 
                 // Parse cookies from Set-Cookie headers
@@ -347,7 +451,7 @@ namespace RuriLib.Functions.Http
                 }
 
                 // Log headers
-                if (!options.DisableHeaderParsing)
+                if (!options.DisableHeaderParsing && logEnabled)
                 {
                     var sbHeaders = new StringBuilder();
                     sbHeaders.AppendLine("Received Headers:");
@@ -355,11 +459,11 @@ namespace RuriLib.Functions.Http
                     {
                         sbHeaders.AppendLine($"{header.Key}: {header.Value}");
                     }
-                    data.Logger?.Log(sbHeaders.ToString(), LogColors.Violet);
+                    data.Logger.Log(sbHeaders.ToString(), LogColors.Violet);
                 }
 
                 // Log cookies
-                if (!options.DisableCookieParsing)
+                if (!options.DisableCookieParsing && logEnabled)
                 {
                     var sbCookies = new StringBuilder();
                     sbCookies.AppendLine("Received Cookies:");
@@ -367,23 +471,14 @@ namespace RuriLib.Functions.Http
                     {
                         sbCookies.AppendLine($"{cookie.Key}: {cookie.Value}");
                     }
-                    data.Logger?.Log(sbCookies.ToString(), LogColors.Khaki);
+                    data.Logger.Log(sbCookies.ToString(), LogColors.Khaki);
                 }
 
                 // Log response body preview
-                if (data.RAWSOURCE.Length > 0)
+                if (logEnabled && source.Length > 0)
                 {
-                    var responseString = Encoding.UTF8.GetString(data.RAWSOURCE);
-                    
-                    // Decode HTML entities if requested
-                    if (options.DecodeHtml)
-                    {
-                        responseString = WebUtility.HtmlDecode(responseString);
-                        data.RAWSOURCE = Encoding.UTF8.GetBytes(responseString);
-                    }
-
-                    var preview = responseString.Length > 500 ? responseString[..500] + "..." : responseString;
-                    data.Logger?.Log($"Response: {preview}", LogColors.White);
+                    var preview = source.Length > 500 ? source[..500] + "..." : source;
+                    data.Logger.Log($"Response: {preview}", LogColors.White);
                 }
             }
             catch (OperationCanceledException) when (data.CancellationToken.IsCancellationRequested)

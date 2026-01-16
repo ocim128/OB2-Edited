@@ -231,6 +231,12 @@ namespace RuriLib.Functions.Http
         }
         public async override Task HttpRequestStandard(BotData data, StandardHttpRequestOptions options)
         {
+            if (options.UseTlsFingerprinting)
+            {
+                await new TlsClientRequestHandler().HttpRequestStandard(data, options).ConfigureAwait(false);
+                return;
+            }
+
             var clientOptions = GetClientOptions(data, options);
 
             var pooledClient = GetOrCreateClient(data, clientOptions);
@@ -326,6 +332,12 @@ namespace RuriLib.Functions.Http
 
         public async override Task HttpRequestRaw(BotData data, RawHttpRequestOptions options)
         {
+            if (options.UseTlsFingerprinting)
+            {
+                await new TlsClientRequestHandler().HttpRequestRaw(data, options).ConfigureAwait(false);
+                return;
+            }
+
             var clientOptions = GetClientOptions(data, options);
             var pooledClient = GetOrCreateClient(data, clientOptions);
             var client = pooledClient.Client;
@@ -372,6 +384,12 @@ namespace RuriLib.Functions.Http
 
         public async override Task HttpRequestBasicAuth(BotData data, BasicAuthHttpRequestOptions options)
         {
+            if (options.UseTlsFingerprinting)
+            {
+                await new TlsClientRequestHandler().HttpRequestBasicAuth(data, options).ConfigureAwait(false);
+                return;
+            }
+
             var clientOptions = GetClientOptions(data, options);
             var pooledClient = GetOrCreateClient(data, clientOptions);
             var client = pooledClient.Client;
@@ -419,6 +437,12 @@ namespace RuriLib.Functions.Http
 
         public async override Task HttpRequestMultipart(BotData data, MultipartHttpRequestOptions options)
         {
+            if (options.UseTlsFingerprinting)
+            {
+                await new TlsClientRequestHandler().HttpRequestMultipart(data, options).ConfigureAwait(false);
+                return;
+            }
+
             var clientOptions = GetClientOptions(data, options);
             var pooledClient = GetOrCreateClient(data, clientOptions);
             var client = pooledClient.Client;

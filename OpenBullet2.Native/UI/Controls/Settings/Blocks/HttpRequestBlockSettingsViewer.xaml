@@ -177,6 +177,16 @@
         <local:EnumSettingViewer x:Name="securityProtocolSetting" />
         <local:BoolSettingViewer x:Name="useCustomCipherSuitesSetting" />
         <local:ListOfStringsSettingViewer x:Name="customCipherSuitesSetting" />
+
+        <Label 
+            Content="TLS fingerprinting (RuriLibHttp):"
+            Margin="0 10 0 0"
+            Foreground="{DynamicResource ForegroundCustom}" />
+        <local:BoolSettingViewer x:Name="useTlsFingerprintingSetting" />
+        <local:StringSettingViewer x:Name="tlsClientProfileSetting" />
+        <local:StringSettingViewer x:Name="customJa3StringSetting" />
+        <local:BoolSettingViewer x:Name="randomizeTlsExtensionOrderSetting" />
+        <local:BoolSettingViewer x:Name="insecureSkipVerifySetting" />
         
     </StackPanel>
 </UserControl>

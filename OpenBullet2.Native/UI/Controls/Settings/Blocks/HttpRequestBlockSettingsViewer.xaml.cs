@@ -83,6 +83,11 @@ namespace OpenBullet2.Native.Controls
             securityProtocolSetting.Setting = vm.HttpRequestBlock.Settings["securityProtocol"];
             useCustomCipherSuitesSetting.Setting = vm.HttpRequestBlock.Settings["useCustomCipherSuites"];
             customCipherSuitesSetting.Setting = vm.HttpRequestBlock.Settings["customCipherSuites"];
+            useTlsFingerprintingSetting.Setting = vm.HttpRequestBlock.Settings["useTlsFingerprinting"];
+            tlsClientProfileSetting.Setting = vm.HttpRequestBlock.Settings["tlsClientProfile"];
+            customJa3StringSetting.Setting = vm.HttpRequestBlock.Settings["customJa3String"];
+            randomizeTlsExtensionOrderSetting.Setting = vm.HttpRequestBlock.Settings["randomizeTlsExtensionOrder"];
+            insecureSkipVerifySetting.Setting = vm.HttpRequestBlock.Settings["insecureSkipVerify"];
         }
     }
 

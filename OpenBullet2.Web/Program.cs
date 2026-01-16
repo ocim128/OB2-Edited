@@ -116,6 +116,9 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
         b => b.MigrationsAssembly("OpenBullet2.Core")));
 
 builder.Services.AddAutoMapper(typeof(AutoMapperProfile).Assembly);
+builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblies(
+    typeof(ApplicationDbContext).Assembly,
+    typeof(Program).Assembly));
 
 builder.Host.UseSerilog((context, configuration) =>
     configuration.ReadFrom.Configuration(context.Configuration));

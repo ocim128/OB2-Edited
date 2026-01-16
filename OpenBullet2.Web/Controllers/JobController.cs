@@ -32,32 +32,24 @@ namespace OpenBullet2.Web.Controllers;
 /// </summary>
 [TypeFilter<GuestFilter>]
 [ApiVersion("1.0")]
-public class JobController : ApiController
+public class JobController(
+    IJobRepository jobRepo,
+    ILogger<JobController> logger,
+    IGuestRepository guestRepo,
+    IMapper mapper,
+    JobManagerService jobManager,
+    JobFactoryService jobFactory,
+    IProxyGroupRepository proxyGroupRepo,
+    IRecordRepository recordRepo) : ApiController
 {
-    private readonly IGuestRepository _guestRepo;
-    private readonly JobFactoryService _jobFactory;
-    private readonly JobManagerService _jobManager;
-    private readonly IJobRepository _jobRepo;
-    private readonly ILogger<JobController> _logger;
-    private readonly IMapper _mapper;
-    private readonly IProxyGroupRepository _proxyGroupRepo;
-    private readonly IRecordRepository _recordRepo;
-
-    /// <summary></summary>
-    public JobController(IJobRepository jobRepo, ILogger<JobController> logger,
-        IGuestRepository guestRepo, IMapper mapper, JobManagerService jobManager,
-        JobFactoryService jobFactory, IProxyGroupRepository proxyGroupRepo,
-        IRecordRepository recordRepo)
-    {
-        _jobRepo = jobRepo;
-        _logger = logger;
-        _guestRepo = guestRepo;
-        _mapper = mapper;
-        _jobManager = jobManager;
-        _jobFactory = jobFactory;
-        _proxyGroupRepo = proxyGroupRepo;
-        _recordRepo = recordRepo;
-    }
+    private readonly IGuestRepository _guestRepo = guestRepo;
+    private readonly JobFactoryService _jobFactory = jobFactory;
+    private readonly JobManagerService _jobManager = jobManager;
+    private readonly IJobRepository _jobRepo = jobRepo;
+    private readonly ILogger<JobController> _logger = logger;
+    private readonly IMapper _mapper = mapper;
+    private readonly IProxyGroupRepository _proxyGroupRepo = proxyGroupRepo;
+    private readonly IRecordRepository _recordRepo = recordRepo;
 
     /// <summary>
     /// Get overview information about all jobs.
@@ -101,9 +93,7 @@ public class JobController : ApiController
             .Cast<MultiRunJob>()
             .OrderBy(j => j.Id);
 
-        var dtos = new List<MultiRunJobOverviewDto>();
-
-        foreach (var job in jobs)
+        var dtos = jobs.Select(job =>
         {
             var dataPoolInfo = job.DataPool switch {
                 WordlistDataPool w => $"{w.Wordlist?.Name} (Wordlist)",
@@ -114,7 +104,7 @@ public class JobController : ApiController
                 _ => throw new NotImplementedException()
             };
 
-            var dto = new MultiRunJobOverviewDto {
+            return new MultiRunJobOverviewDto {
                 Id = job.Id,
                 OwnerId = job.OwnerId,
                 Type = JobType.MultiRun,
@@ -132,9 +122,7 @@ public class JobController : ApiController
                 CPM = job.CPM,
                 Progress = job.Progress < 0 ? 0 : job.Progress
             };
-
-            dtos.Add(dto);
-        }
+        }).ToList();
 
         return Ok(dtos);
     }

@@ -15,10 +15,10 @@ public class ProxyGroupEntity : Entity
     /// <summary>
     /// The owner of this group (null if admin).
     /// </summary>
-    public GuestEntity Owner { get; set; }
+    public GuestEntity? Owner { get; set; }
     
     /// <summary>
     /// The proxies in this group.
     /// </summary>
-    public ICollection<ProxyEntity> Proxies { get; set; }
+    public ICollection<ProxyEntity> Proxies { get; set; } = new List<ProxyEntity>();
 }

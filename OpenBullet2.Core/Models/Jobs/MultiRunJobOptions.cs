@@ -10,12 +10,12 @@ namespace OpenBullet2.Core.Models.Jobs;
 /// <summary>
 /// Options for a <see cref="MultiRunJob"/>.
 /// </summary>
-public class MultiRunJobOptions : JobOptions
+public record MultiRunJobOptions : JobOptions
 {
     /// <summary>
     /// The ID of the config to use.
     /// </summary>
-    public string ConfigId { get; set; }
+    public string ConfigId { get; set; } = string.Empty;
 
     /// <summary>
     /// The amount of bots that will process the data lines concurrently.

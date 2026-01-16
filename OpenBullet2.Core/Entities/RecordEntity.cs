@@ -10,7 +10,7 @@ public class RecordEntity : Entity
     /// <summary>
     /// The ID of the config that was running.
     /// </summary>
-    public string ConfigId { get; set; }
+    public string ConfigId { get; set; } = string.Empty;
 
     /// <summary>
     /// The ID of the wordlist that was being used.

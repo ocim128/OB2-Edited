@@ -30,7 +30,7 @@ public class HitEntity : Entity
     /// <summary>
     /// The type of hit, for example SUCCESS, NONE, CUSTOM etc.
     /// </summary>
-    public string Type { get; set; }
+    public string Type { get; set; } = string.Empty;
 
     /// <summary>
     /// The ID of the owner of this hit (0 if admin).
@@ -40,7 +40,7 @@ public class HitEntity : Entity
     /// <summary>
     /// The ID of the config that was used to get the hit.
     /// </summary>
-    public string ConfigId { get; set; } = null;
+    public string? ConfigId { get; set; } = null;
 
     /// <summary>
     /// The name of the config that was used to get the hit.

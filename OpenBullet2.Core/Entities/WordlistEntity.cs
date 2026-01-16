@@ -28,10 +28,10 @@ public class WordlistEntity : Entity
     /// <summary>
     /// The Wordlist Type.
     /// </summary>
-    public string Type { get; set; }
+    public string Type { get; set; } = string.Empty;
 
     /// <summary>
     /// The owner of the wordlist (null if admin).
     /// </summary>
-    public GuestEntity Owner { get; set; }
+    public GuestEntity? Owner { get; set; }
 }

@@ -11,12 +11,12 @@ public class GuestEntity : Entity
     /// <summary>
     /// The username that the guest uses to log in.
     /// </summary>
-    public string Username { get; set; }
+    public string Username { get; set; } = string.Empty;
 
     /// <summary>
     /// The bcrypt hash of the password of the guest.
     /// </summary>
-    public string PasswordHash { get; set; }
+    public string PasswordHash { get; set; } = string.Empty;
 
     /// <summary>
     /// The time when access will expire for this guest.

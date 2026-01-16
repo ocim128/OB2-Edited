@@ -7,7 +7,7 @@ namespace OpenBullet2.Core.Models.Jobs;
 /// <summary>
 /// Options for a <see cref="ProxyCheckJob"/>.
 /// </summary>
-public class ProxyCheckJobOptions : JobOptions
+public record ProxyCheckJobOptions : JobOptions
 {
     /// <summary>
     /// The amount of bots that will check the proxies concurrently.

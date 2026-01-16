@@ -132,7 +132,7 @@ public sealed class ConfigDebuggerService : IDisposable
 
         // Right now, only when the status goes back to idle, we
         // update the variables.
-        // TODO: In the future it would be nice to update them more often.
+        // Note: In the future it would be nice to update them more often.
         var varMessage = new DbgVariablesChangedMessage {
             Variables = (sender as ConfigDebugger)!.Variables.Select(MapVariable)
         };

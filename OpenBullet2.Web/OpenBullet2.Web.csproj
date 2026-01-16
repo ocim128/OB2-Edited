@@ -17,7 +17,7 @@
     <PropertyGroup>
         <ProduceReferenceAssembly>true</ProduceReferenceAssembly>
         <Version>1.0.0</Version>
-        <AssemblyVersion>1.0.*</AssemblyVersion>
+        <AssemblyVersion>1.0.0.0</AssemblyVersion>
         <Deterministic>false</Deterministic>
         <UserSecretsId>84096099-9bc0-494f-80a0-d9a7d9e7ecbb</UserSecretsId>
         <GenerateDocumentationFile Condition="'$(Configuration)' == 'Debug'">True</GenerateDocumentationFile>

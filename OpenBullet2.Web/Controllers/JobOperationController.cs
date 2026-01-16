@@ -206,7 +206,7 @@ public class JobOperationController(
 
         if (job is not T casted)
         {
-            throw new Exception($"Job with ID {id} is not a {typeof(T).Name}");
+            throw new InvalidCastException($"Job with ID {id} is not a {typeof(T).Name}");
         }
 
         EnsureOwnership(job);

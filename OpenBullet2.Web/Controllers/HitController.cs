@@ -437,7 +437,7 @@ public class HitController : ApiController
 
         if (dto.MinDate is not null)
         {
-            // TODO: Save dates in UTC in the database! (evaluate the implications)
+            // Note: Save dates in UTC in the database! (evaluate the implications)
             query = query.Where(
                 h => h.Date >= TimeZoneInfo.ConvertTimeFromUtc(
                     dto.MinDate.Value, TimeZoneInfo.Local));
@@ -445,7 +445,7 @@ public class HitController : ApiController
 
         if (dto.MaxDate is not null)
         {
-            // TODO: Save dates in UTC in the database! (evaluate the implications)
+            // Note: Save dates in UTC in the database! (evaluate the implications)
             query = query.Where(
                 h => h.Date <= TimeZoneInfo.ConvertTimeFromUtc(
                     dto.MaxDate.Value, TimeZoneInfo.Local));

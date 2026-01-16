@@ -109,11 +109,17 @@ public class JobCrudController(
                 return dto;
             }));
 
+    /// <summary>
+    /// Get a multi run job by ID.
+    /// </summary>
     [HttpGet("multi-run")]
     [MapToApiVersion("1.0")]
     public async Task<ActionResult<MultiRunJobDto>> GetMultiRunJob(int id)
         => await MapMultiRunJobDto(GetJob<MultiRunJob>(id));
 
+    /// <summary>
+    /// Get a proxy check job by ID.
+    /// </summary>
     [HttpGet("proxy-check")]
     [MapToApiVersion("1.0")]
     public async Task<ActionResult<ProxyCheckJobDto>> GetProxyCheckJob(int id)
@@ -457,7 +463,7 @@ public class JobCrudController(
 
         if (job is not T casted)
         {
-            throw new Exception($"Job with ID {id} is not a {typeof(T).Name}");
+            throw new InvalidCastException($"Job with ID {id} is not a {typeof(T).Name}");
         }
 
         EnsureOwnership(job);

@@ -31,8 +31,7 @@
 	<PackageReference Include="BCrypt.Net-Core" Version="1.6.0" />
     <PackageReference Include="CaptchaSharp" Version="2.1.0" />
     <PackageReference Include="DeviceId" Version="5.2.0" />
-    <PackageReference Include="RestSharp" Version="113.0.0" />
-    <PackageReference Include="System.Net.Http.WinHttpHandler" Version="10.0.1" />
+
     <PackageReference Include="TextCopy" Version="6.2.1" />
     <PackageReference Include="FluentFTP" Version="50.0.1" />
     <PackageReference Include="HtmlAgilityPack" Version="1.11.61" />

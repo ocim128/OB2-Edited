@@ -591,11 +591,6 @@
           "Microsoft.Extensions.Logging": "8.0.0"
         }
       },
-      "RestSharp": {
-        "type": "Transitive",
-        "resolved": "113.0.0",
-        "contentHash": "ijR2XOerzv8+rzHbC1pSkf5pEWw3JiqgtvJkJqL5XBwuNfokTNCt0SGV0xfbQe1Ty1Oc/WyshGP+L7x+j6m/mw=="
-      },
       "runtime.native.System": {
         "type": "Transitive",
         "resolved": "4.3.0",
@@ -795,11 +790,6 @@
         "type": "Transitive",
         "resolved": "4.5.3",
         "contentHash": "3oDzvc/zzetpTKWMShs1AADwZjQ/36HnsufHRPcOjyRAAMLDlu2iD33MBI2opxnezcVUtXyqDXXjoFMOU9c7SA=="
-      },
-      "System.Net.Http.WinHttpHandler": {
-        "type": "Transitive",
-        "resolved": "10.0.1",
-        "contentHash": "ncePumpfKGzlf8pM/UGVRyE0jZXPycYRFgjx/uTpv6akDo80Gbvtru+OvYE2II9roeqjh+DaE5HV1F2GL8JkIg=="
       },
       "System.Reactive": {
         "type": "Transitive",
@@ -1074,7 +1064,6 @@
           "Newtonsoft.Json": "[13.0.3, )",
           "PuppeteerExtraSharp": "[3.0.1, )",
           "PuppeteerSharp": "[20.2.4, )",
-          "RestSharp": "[113.0.0, )",
           "RuriLib.Http": "[1.0.1, )",
           "RuriLib.Parallelization": "[1.0.6, )",
           "RuriLib.Proxies": "[1.0.2, )",
@@ -1084,7 +1073,6 @@
           "Selenium.WebDriver": "[4.21.0, )",
           "Svg": "[3.4.7, )",
           "System.CodeDom": "[8.0.0, )",
-          "System.Net.Http.WinHttpHandler": "[10.0.1, )",
           "System.Speech": "[8.0.0, )",
           "System.Text.Encoding.CodePages": "[8.0.0, )",
           "TextCopy": "[6.2.1, )",
@@ -1235,11 +1223,6 @@
           "Microsoft.Win32.Registry": "4.6.0",
           "System.CodeDom": "4.6.0"
         }
-      },
-      "System.Net.Http.WinHttpHandler": {
-        "type": "Transitive",
-        "resolved": "10.0.1",
-        "contentHash": "ncePumpfKGzlf8pM/UGVRyE0jZXPycYRFgjx/uTpv6akDo80Gbvtru+OvYE2II9roeqjh+DaE5HV1F2GL8JkIg=="
       },
       "System.Private.Uri": {
         "type": "Transitive",

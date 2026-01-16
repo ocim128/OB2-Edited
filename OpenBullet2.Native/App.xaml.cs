@@ -198,6 +198,8 @@ public partial class App : Application
 
     private void ConfigureServices(IServiceCollection services)
     {
+        services.AddLogging();
+
         // Get the app directory for absolute paths
         var appDirectory = AppDomain.CurrentDomain.BaseDirectory;
         var userDataPath = Path.Combine(appDirectory, "UserData");

@@ -1,7 +1,9 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using OpenBullet2.Core.Entities;
+using OpenBullet2.Core.Extensions;
 using OpenBullet2.Core.Models.Data;
 using OpenBullet2.Core.Models.Jobs;
 using OpenBullet2.Core.Repositories;
@@ -30,11 +32,14 @@ public class JobManagerService : IDisposable
     private readonly SemaphoreSlim _jobSemaphore = new(1, 1);
     private readonly SemaphoreSlim _recordSemaphore = new(1, 1);
     private readonly IServiceScopeFactory _scopeFactory;
+    private readonly ILogger<JobManagerService> _logger;
 
-    public JobManagerService(IServiceScopeFactory scopeFactory, JobFactoryService jobFactory)
+    public JobManagerService(IServiceScopeFactory scopeFactory, JobFactoryService jobFactory, ILogger<JobManagerService> logger)
     {
         _scopeFactory = scopeFactory;
-        _ = InitializeJobsAsync(scopeFactory, jobFactory);
+        _logger = logger;
+        InitializeJobsAsync(scopeFactory, jobFactory).Forget(
+            ex => _logger.LogError(ex, "Failed to initialize jobs"));
     }
 
     private async Task InitializeJobsAsync(IServiceScopeFactory scopeFactory, JobFactoryService jobFactory)
@@ -67,8 +72,7 @@ public class JobManagerService : IDisposable
         }
         catch (Exception ex)
         {
-            // Log the error but don't crash the application
-            Console.WriteLine($"Failed to initialize jobs: {ex.Message}");
+            _logger.LogError(ex, "Failed to initialize jobs");
         }
     }
 
@@ -111,18 +115,18 @@ public class JobManagerService : IDisposable
         _jobSaveStates.Clear();
     }
 
-    private async void MultiRunJobOnCompleted(object sender, EventArgs e)
+    private void MultiRunJobOnCompleted(object? sender, EventArgs e)
     {
-        if (sender is not MultiRunJob job)
+        if (sender is MultiRunJob job)
         {
-            return;
+            SaveRecordAsync(job, includeRuntimeProgress: false).Forget(
+                ex => _logger.LogError(ex, "Failed to save record for job {JobId}", job.Id));
+            SaveMultiRunJobOptionsAsync(job, includeRuntimeProgress: false).Forget(
+                ex => _logger.LogError(ex, "Failed to save options for job {JobId}", job.Id));
         }
-
-        await SaveRecordAsync(job, includeRuntimeProgress: false);
-        await SaveMultiRunJobOptionsAsync(job, includeRuntimeProgress: false);
     }
 
-    private async void MultiRunJobOnTimerTick(object sender, EventArgs e)
+    private void MultiRunJobOnTimerTick(object? sender, EventArgs e)
     {
         if (sender is not MultiRunJob job)
         {
@@ -146,19 +150,21 @@ public class JobManagerService : IDisposable
         _jobSaveStates[job.Id] = (now, job.DataTested);
 
         var includeRuntimeProgress = IsActivelyProcessing(job.Status);
-        await SaveRecordAsync(job, includeRuntimeProgress);
-        await SaveMultiRunJobOptionsAsync(job, includeRuntimeProgress);
+        
+        SaveRecordAsync(job, includeRuntimeProgress).Forget(
+            ex => _logger.LogError(ex, "Failed to periodically save record for job {JobId}", job.Id));
+        SaveMultiRunJobOptionsAsync(job, includeRuntimeProgress).Forget(
+            ex => _logger.LogError(ex, "Failed to periodically save options for job {JobId}", job.Id));
     }
 
-    private async void MultiRunJobOnBotsChanged(object sender, EventArgs e)
+    private void MultiRunJobOnBotsChanged(object? sender, EventArgs e)
     {
-        if (sender is not MultiRunJob job)
+        if (sender is MultiRunJob job)
         {
-            return;
+            var includeRuntimeProgress = IsActivelyProcessing(job.Status);
+            SaveMultiRunJobOptionsAsync(job, includeRuntimeProgress).Forget(
+                ex => _logger.LogError(ex, "Failed to save options after bots change for job {JobId}", job.Id));
         }
-
-        var includeRuntimeProgress = IsActivelyProcessing(job.Status);
-        await SaveMultiRunJobOptionsAsync(job, includeRuntimeProgress);
     }
 
     private static bool IsActivelyProcessing(JobStatus status) => status is JobStatus.Starting

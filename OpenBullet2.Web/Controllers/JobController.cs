@@ -82,49 +82,42 @@ public class JobController(
     /// </summary>
     [HttpGet("multi-run/all")]
     [MapToApiVersion("1.0")]
-    public ActionResult<IEnumerable<MultiRunJobOverviewDto>>
-        GetAllMultiRunJobs()
-    {
-        var apiUser = HttpContext.GetApiUser();
-
-        // Only get the jobs of the user!
-        var jobs = _jobManager.Jobs
-            .Where(j => CanSee(apiUser, j) && j is MultiRunJob)
+    public ActionResult<IEnumerable<MultiRunJobOverviewDto>> GetAllMultiRunJobs()
+        => Ok(_jobManager.Jobs
+            .Where(j => CanSee(HttpContext.GetApiUser(), j) && j is MultiRunJob)
             .Cast<MultiRunJob>()
-            .OrderBy(j => j.Id);
+            .OrderBy(j => j.Id)
+            .Select(MapMultiRunJobOverviewDto));
 
-        var dtos = jobs.Select(job =>
-        {
-            var dataPoolInfo = job.DataPool switch {
-                WordlistDataPool w => $"{w.Wordlist?.Name} (Wordlist)",
-                CombinationsDataPool => "Combinations",
-                InfiniteDataPool => "Infinite",
-                RangeDataPool => "Range",
-                FileDataPool f => $"{f.FileName} (File)",
-                _ => throw new NotImplementedException()
-            };
+    private static MultiRunJobOverviewDto MapMultiRunJobOverviewDto(MultiRunJob job)
+    {
+        var dataPoolInfo = job.DataPool switch {
+            WordlistDataPool w => $"{w.Wordlist?.Name} (Wordlist)",
+            CombinationsDataPool => "Combinations",
+            InfiniteDataPool => "Infinite",
+            RangeDataPool => "Range",
+            FileDataPool f => $"{f.FileName} (File)",
+            _ => throw new NotImplementedException()
+        };
 
-            return new MultiRunJobOverviewDto {
-                Id = job.Id,
-                OwnerId = job.OwnerId,
-                Type = JobType.MultiRun,
-                Status = job.Status,
-                Name = job.Name,
-                ConfigName = job.Config?.Metadata.Name,
-                UseProxies = RuriLib.Models.Jobs.ProxyManager.ShouldUseProxies(job.ProxyMode, job.Config?.Settings.ProxySettings),
-                Bots = job.Bots,
-                DataPoolInfo = dataPoolInfo,
-                DataHits = job.DataHits,
-                DataCustom = job.DataCustom,
-                DataToCheck = job.DataToCheck,
-                DataTotal = job.DataPool.Size,
-                DataTested = job.Status is JobStatus.Idle ? job.Skip : job.DataTested + job.Skip,
-                CPM = job.CPM,
-                Progress = job.Progress < 0 ? 0 : job.Progress
-            };
-        }).ToList();
-
-        return Ok(dtos);
+        return new MultiRunJobOverviewDto {
+            Id = job.Id,
+            OwnerId = job.OwnerId,
+            Type = JobType.MultiRun,
+            Status = job.Status,
+            Name = job.Name,
+            ConfigName = job.Config?.Metadata.Name,
+            UseProxies = RuriLib.Models.Jobs.ProxyManager.ShouldUseProxies(job.ProxyMode, job.Config?.Settings.ProxySettings),
+            Bots = job.Bots,
+            DataPoolInfo = dataPoolInfo,
+            DataHits = job.DataHits,
+            DataCustom = job.DataCustom,
+            DataToCheck = job.DataToCheck,
+            DataTotal = job.DataPool.Size,
+            DataTested = job.Status is JobStatus.Idle ? job.Skip : job.DataTested + job.Skip,
+            CPM = job.CPM,
+            Progress = job.Progress < 0 ? 0 : job.Progress
+        };
     }
 
     /// <summary>
@@ -132,22 +125,16 @@ public class JobController(
     /// </summary>
     [HttpGet("proxy-check/all")]
     [MapToApiVersion("1.0")]
-    public ActionResult<IEnumerable<ProxyCheckJobOverviewDto>>
-        GetAllProxyCheckJobs()
-    {
-        var apiUser = HttpContext.GetApiUser();
-
-        // Only get the jobs of the user!
-        var jobs = _jobManager.Jobs
-            .Where(j => CanSee(apiUser, j) && j is ProxyCheckJob)
+    public ActionResult<IEnumerable<ProxyCheckJobOverviewDto>> GetAllProxyCheckJobs()
+        => Ok(_jobManager.Jobs
+            .Where(j => CanSee(HttpContext.GetApiUser(), j) && j is ProxyCheckJob)
             .Cast<ProxyCheckJob>()
-            .OrderBy(j => j.Id);
-
-        var dtos = _mapper.Map<IEnumerable<ProxyCheckJobOverviewDto>>(jobs).ToList();
-
-        dtos.ForEach(dto => dto.Type = JobType.ProxyCheck);
-        return Ok(dtos);
-    }
+            .OrderBy(j => j.Id)
+            .Select(j => {
+                var dto = _mapper.Map<ProxyCheckJobOverviewDto>(j);
+                dto.Type = JobType.ProxyCheck;
+                return dto;
+            }));
 
     /// <summary>
     /// Get the details of a multi run job.
@@ -155,10 +142,7 @@ public class JobController(
     [HttpGet("multi-run")]
     [MapToApiVersion("1.0")]
     public async Task<ActionResult<MultiRunJobDto>> GetMultiRunJob(int id)
-    {
-        var job = GetJob<MultiRunJob>(id);
-        return await MapMultiRunJobDto(job);
-    }
+        => await MapMultiRunJobDto(GetJob<MultiRunJob>(id));
 
     /// <summary>
     /// Get the details of a proxy check job.
@@ -166,10 +150,7 @@ public class JobController(
     [HttpGet("proxy-check")]
     [MapToApiVersion("1.0")]
     public async Task<ActionResult<ProxyCheckJobDto>> GetProxyCheckJob(int id)
-    {
-        var job = GetJob<ProxyCheckJob>(id);
-        return await MapProxyCheckJobDto(job);
-    }
+        => await MapProxyCheckJobDto(GetJob<ProxyCheckJob>(id));
 
     /// <summary>
     /// Get the options of a multi run job. If <paramref name="id" /> is -1,
@@ -1045,15 +1026,7 @@ public class JobController(
     }
 
     private async Task<string> GetProxyGroupName(int id)
-    {
-        if (id == -1)
-        {
-            return "All";
-        }
-
-        var proxyGroup = await _proxyGroupRepo.GetAsync(id);
-        return proxyGroup is null ? "Invalid" : proxyGroup.Name;
-    }
+        => id == -1 ? "All" : (await _proxyGroupRepo.GetAsync(id))?.Name ?? "Invalid";
 
     private static JobType GetJobType(Job job) =>
         job switch {

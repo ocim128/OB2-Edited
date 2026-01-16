@@ -1089,7 +1089,7 @@
           "System.Text.Encoding.CodePages": "[8.0.0, )",
           "TextCopy": "[6.2.1, )",
           "TlsClient.Native": "[0.4.3, )",
-          "TlsClient.Native.win-x64": "[0.4.3, )",
+          "TlsClient.Native.win-x64": "[1.9.1, )",
           "Websocket.Client": "[5.1.1, )",
           "Yove.Proxy": "[1.1.1, )"
         }

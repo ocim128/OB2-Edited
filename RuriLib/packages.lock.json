@@ -284,7 +284,7 @@
       },
       "TlsClient.Native.win-x64": {
         "type": "Direct",
-        "requested": "[0.4.3, )",
+        "requested": "[1.9.1, )",
         "resolved": "1.9.1",
         "contentHash": "6dKp5hdBQUhbBcz0Jb/zQvP3QI8ExT84dtatUV/LdETVlMzW2F7Z4vY8jDOL00W7XwW72jMcLLlEtGV16k7k5A=="
       },

@@ -261,6 +261,12 @@ public class DebuggerViewModel : OpenBullet2.Native.ViewModels.Infrastructure.Vi
 
     public async Task RunAsync()
     {
+        // Immediately update UI to show we're starting (prevents multiple clicks)
+        Status = ConfigDebuggerStatus.Running;
+        
+        // Yield to the UI thread to allow the status change to render before heavy work begins
+        await Task.Yield();
+        
         if (logger == null || !PersistLog)
         {
             logger = new();

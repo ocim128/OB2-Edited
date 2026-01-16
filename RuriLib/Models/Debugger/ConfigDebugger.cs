@@ -81,23 +81,30 @@ public partial class ConfigDebugger : IDisposable
 
     public async Task Run()
     {
-        // Build scripts
-        if (Config.Mode is ConfigMode.Stack or ConfigMode.LoliCode)
+        // Offload CPU-intensive transpilation and compilation to a background thread
+        // This prevents the UI thread from hanging during initialization
+        var (script, startupScript) = await Task.Run(() =>
         {
-            Config.CSharpScript = Config.Mode == ConfigMode.Stack
-                ? Stack2CSharpTranspiler.Transpile(Config.Stack, Config.Settings, Options.StepByStep)
-                : Loli2CSharpTranspiler.Transpile(Config.LoliCodeScript, Config.Settings, Options.StepByStep);
+            // Build scripts
+            if (Config.Mode is ConfigMode.Stack or ConfigMode.LoliCode)
+            {
+                Config.CSharpScript = Config.Mode == ConfigMode.Stack
+                    ? Stack2CSharpTranspiler.Transpile(Config.Stack, Config.Settings, Options.StepByStep)
+                    : Loli2CSharpTranspiler.Transpile(Config.LoliCodeScript, Config.Settings, Options.StepByStep);
 
-            Config.StartupCSharpScript = Loli2CSharpTranspiler.Transpile(Config.StartupLoliCodeScript, Config.Settings, Options.StepByStep);
-        }
+                Config.StartupCSharpScript = Loli2CSharpTranspiler.Transpile(Config.StartupLoliCodeScript, Config.Settings, Options.StepByStep);
+            }
 
-        var scriptBuilder = new ScriptBuilder();
-        var script = scriptBuilder.Build(Config.CSharpScript, Config.Settings.ScriptSettings, PluginRepo);
-        IScript startupScript = null;
-        if (!string.IsNullOrWhiteSpace(Config.StartupCSharpScript))
-        {
-            startupScript = scriptBuilder.Build(Config.StartupCSharpScript, Config.Settings.ScriptSettings, PluginRepo);
-        }
+            var scriptBuilder = new ScriptBuilder();
+            var compiledScript = scriptBuilder.Build(Config.CSharpScript, Config.Settings.ScriptSettings, PluginRepo);
+            IScript compiledStartupScript = null;
+            if (!string.IsNullOrWhiteSpace(Config.StartupCSharpScript))
+            {
+                compiledStartupScript = scriptBuilder.Build(Config.StartupCSharpScript, Config.Settings.ScriptSettings, PluginRepo);
+            }
+            
+            return (compiledScript, compiledStartupScript);
+        }).ConfigureAwait(false);
 
         if (Options.UseProxy && !Options.TestProxy.Contains(':'))
         {

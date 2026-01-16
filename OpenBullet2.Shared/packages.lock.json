@@ -778,8 +778,8 @@
       },
       "System.IO.Pipelines": {
         "type": "Transitive",
-        "resolved": "8.0.0",
-        "contentHash": "FHNOatmUq0sqJOkTx+UF/9YK1f180cnW5FVqnQMvYUN0elp6wFzbtPSiqbo1/ru8ICp43JM1i7kKkk6GsNGHlA=="
+        "resolved": "9.0.8",
+        "contentHash": "6vPmJt73mgUo1gzc/OcXlJvClz/2jxZ4TQPRfriVaLoGRH2mye530D9WHJYbFQRNMxF3PWCoeofsFdCyN7fLzA=="
       },
       "System.Management": {
         "type": "Transitive",
@@ -954,15 +954,16 @@
       },
       "System.Text.Encodings.Web": {
         "type": "Transitive",
-        "resolved": "8.0.0",
-        "contentHash": "yev/k9GHAEGx2Rg3/tU6MQh4HGBXJs70y7j1LaM1i/ER9po+6nnQ6RRqTJn1E7Xu0fbIFK80Nh5EoODxrbxwBQ=="
+        "resolved": "9.0.8",
+        "contentHash": "W+LotQsM4wBJ4PG7uRkyul4wqL4Fz7R4ty6uXrCNZUhbaHYANgrPaYR2ZpMVpdCjQEJ17Jr1NMN8hv4SHaHY4A=="
       },
       "System.Text.Json": {
         "type": "Transitive",
-        "resolved": "8.0.4",
-        "contentHash": "bAkhgDJ88XTsqczoxEMliSrpijKZHhbJQldhAmObj/RbrN3sU5dcokuXmWJWsdQAhiMJ9bTayWsL1C9fbbCRhw==",
+        "resolved": "9.0.8",
+        "contentHash": "mIQir9jBqk0V7X0Nw5hzPJZC8DuGdf+2DS3jAVsr6rq5+/VyH5rza0XGcONJUWBrZ+G6BCwNyjWYd9lncBu48A==",
         "dependencies": {
-          "System.Text.Encodings.Web": "8.0.0"
+          "System.IO.Pipelines": "9.0.8",
+          "System.Text.Encodings.Web": "9.0.8"
         }
       },
       "System.Threading": {
@@ -996,6 +997,27 @@
         "dependencies": {
           "Microsoft.Extensions.DependencyInjection.Abstractions": "7.0.0"
         }
+      },
+      "TlsClient.Core": {
+        "type": "Transitive",
+        "resolved": "0.4.3",
+        "contentHash": "iwW7jzU7mAXx89C8YxfIKuXGhz+IZQjxgUgWrXLAlbjn2V4dxKuwBn0fX5pgWXy2wIBLtq4lVVy9GfcoHWqJwQ==",
+        "dependencies": {
+          "System.Text.Json": "9.0.8"
+        }
+      },
+      "TlsClient.Native": {
+        "type": "Transitive",
+        "resolved": "0.4.3",
+        "contentHash": "VN6M4xENQZoRyKnK2TJ20/cDWVBNy3REUT9jNTmIaf2Wj8vSEWK4dgMIQ3ySlemKwAC16PrCFJLW3JRI6pkXSA==",
+        "dependencies": {
+          "TlsClient.Core": "0.4.3"
+        }
+      },
+      "TlsClient.Native.win-x64": {
+        "type": "Transitive",
+        "resolved": "1.9.1",
+        "contentHash": "6dKp5hdBQUhbBcz0Jb/zQvP3QI8ExT84dtatUV/LdETVlMzW2F7Z4vY8jDOL00W7XwW72jMcLLlEtGV16k7k5A=="
       },
       "Websocket.Client": {
         "type": "Transitive",
@@ -1066,6 +1088,8 @@
           "System.Speech": "[8.0.0, )",
           "System.Text.Encoding.CodePages": "[8.0.0, )",
           "TextCopy": "[6.2.1, )",
+          "TlsClient.Native": "[0.4.3, )",
+          "TlsClient.Native.win-x64": "[0.4.3, )",
           "Websocket.Client": "[5.1.1, )",
           "Yove.Proxy": "[1.1.1, )"
         }
@@ -1369,8 +1393,8 @@
       },
       "System.Text.Encodings.Web": {
         "type": "Transitive",
-        "resolved": "8.0.0",
-        "contentHash": "yev/k9GHAEGx2Rg3/tU6MQh4HGBXJs70y7j1LaM1i/ER9po+6nnQ6RRqTJn1E7Xu0fbIFK80Nh5EoODxrbxwBQ=="
+        "resolved": "9.0.8",
+        "contentHash": "W+LotQsM4wBJ4PG7uRkyul4wqL4Fz7R4ty6uXrCNZUhbaHYANgrPaYR2ZpMVpdCjQEJ17Jr1NMN8hv4SHaHY4A=="
       },
       "System.Threading.Tasks": {
         "type": "Transitive",

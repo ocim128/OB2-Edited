@@ -41,6 +41,7 @@ namespace RuriLib.Blocks.Requests.Http
                 HttpLibrary.SystemNet => new HttpClientRequestHandler(),
                 HttpLibrary.RestSharp => new RestSharpRequestHandler(),
                 HttpLibrary.WinHttp => new WinHttpClientRequestHandler(),
+                HttpLibrary.TlsClient => new TlsClientRequestHandler(),
                 _ => throw new System.NotImplementedException()
             };
     }

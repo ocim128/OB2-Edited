@@ -46,7 +46,7 @@ public class MultiRunJob(RuriLibSettingsService settings, PluginRepository plugi
     /// Options
     /// </summary>
     public int Bots { get; set; } = 1;
-    public int BotLimit { get; init; } = 200;
+    public int BotLimit { get; init; } = 500;
     public int Skip { get; set; }
     public Config Config { get; set; }
     public DataPool DataPool { get; set; }

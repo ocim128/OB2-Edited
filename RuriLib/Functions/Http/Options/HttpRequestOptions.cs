@@ -36,6 +36,11 @@ namespace RuriLib.Functions.Http.Options
         SystemNet,
         RuriLibHttp,
         RestSharp,
-        WinHttp
+        WinHttp,
+        /// <summary>
+        /// Uses TlsClient.NET for TLS fingerprint spoofing (JA3/JA4).
+        /// Ideal for bypassing anti-bot detection that uses TLS fingerprinting.
+        /// </summary>
+        TlsClient
     }
 }

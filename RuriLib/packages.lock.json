@@ -273,6 +273,21 @@
           "Microsoft.Extensions.DependencyInjection.Abstractions": "7.0.0"
         }
       },
+      "TlsClient.Native": {
+        "type": "Direct",
+        "requested": "[0.4.3, )",
+        "resolved": "0.4.3",
+        "contentHash": "VN6M4xENQZoRyKnK2TJ20/cDWVBNy3REUT9jNTmIaf2Wj8vSEWK4dgMIQ3ySlemKwAC16PrCFJLW3JRI6pkXSA==",
+        "dependencies": {
+          "TlsClient.Core": "0.4.3"
+        }
+      },
+      "TlsClient.Native.win-x64": {
+        "type": "Direct",
+        "requested": "[0.4.3, )",
+        "resolved": "1.9.1",
+        "contentHash": "6dKp5hdBQUhbBcz0Jb/zQvP3QI8ExT84dtatUV/LdETVlMzW2F7Z4vY8jDOL00W7XwW72jMcLLlEtGV16k7k5A=="
+      },
       "Websocket.Client": {
         "type": "Direct",
         "requested": "[5.1.1, )",
@@ -634,8 +649,8 @@
       },
       "System.IO.Pipelines": {
         "type": "Transitive",
-        "resolved": "8.0.0",
-        "contentHash": "FHNOatmUq0sqJOkTx+UF/9YK1f180cnW5FVqnQMvYUN0elp6wFzbtPSiqbo1/ru8ICp43JM1i7kKkk6GsNGHlA=="
+        "resolved": "9.0.8",
+        "contentHash": "6vPmJt73mgUo1gzc/OcXlJvClz/2jxZ4TQPRfriVaLoGRH2mye530D9WHJYbFQRNMxF3PWCoeofsFdCyN7fLzA=="
       },
       "System.Management": {
         "type": "Transitive",
@@ -790,19 +805,16 @@
       },
       "System.Text.Encodings.Web": {
         "type": "Transitive",
-        "resolved": "6.0.0",
-        "contentHash": "Vg8eB5Tawm1IFqj4TVK1czJX89rhFxJo9ELqc/Eiq0eXy13RK00eubyU6TJE6y+GQXjyV5gSfiewDUZjQgSE0w==",
-        "dependencies": {
-          "System.Runtime.CompilerServices.Unsafe": "6.0.0"
-        }
+        "resolved": "9.0.8",
+        "contentHash": "W+LotQsM4wBJ4PG7uRkyul4wqL4Fz7R4ty6uXrCNZUhbaHYANgrPaYR2ZpMVpdCjQEJ17Jr1NMN8hv4SHaHY4A=="
       },
       "System.Text.Json": {
         "type": "Transitive",
-        "resolved": "6.0.7",
-        "contentHash": "/Tf/9XjprpHolbcDOrxsKVYy/mUG/FS7aGd9YUgBVEiHeQH4kAE0T1sMbde7q6B5xcrNUsJ5iW7D1RvHudQNqA==",
+        "resolved": "9.0.8",
+        "contentHash": "mIQir9jBqk0V7X0Nw5hzPJZC8DuGdf+2DS3jAVsr6rq5+/VyH5rza0XGcONJUWBrZ+G6BCwNyjWYd9lncBu48A==",
         "dependencies": {
-          "System.Runtime.CompilerServices.Unsafe": "6.0.0",
-          "System.Text.Encodings.Web": "6.0.0"
+          "System.IO.Pipelines": "9.0.8",
+          "System.Text.Encodings.Web": "9.0.8"
         }
       },
       "System.Threading": {
@@ -827,6 +839,14 @@
           "Microsoft.NETCore.Platforms": "1.1.0",
           "Microsoft.NETCore.Targets": "1.1.0",
           "System.Runtime": "4.3.0"
+        }
+      },
+      "TlsClient.Core": {
+        "type": "Transitive",
+        "resolved": "0.4.3",
+        "contentHash": "iwW7jzU7mAXx89C8YxfIKuXGhz+IZQjxgUgWrXLAlbjn2V4dxKuwBn0fX5pgWXy2wIBLtq4lVVy9GfcoHWqJwQ==",
+        "dependencies": {
+          "System.Text.Json": "9.0.8"
         }
       },
       "rurilib.http": {
@@ -1126,11 +1146,8 @@
       },
       "System.Text.Encodings.Web": {
         "type": "Transitive",
-        "resolved": "6.0.0",
-        "contentHash": "Vg8eB5Tawm1IFqj4TVK1czJX89rhFxJo9ELqc/Eiq0eXy13RK00eubyU6TJE6y+GQXjyV5gSfiewDUZjQgSE0w==",
-        "dependencies": {
-          "System.Runtime.CompilerServices.Unsafe": "6.0.0"
-        }
+        "resolved": "9.0.8",
+        "contentHash": "W+LotQsM4wBJ4PG7uRkyul4wqL4Fz7R4ty6uXrCNZUhbaHYANgrPaYR2ZpMVpdCjQEJ17Jr1NMN8hv4SHaHY4A=="
       },
       "System.Threading.Tasks": {
         "type": "Transitive",

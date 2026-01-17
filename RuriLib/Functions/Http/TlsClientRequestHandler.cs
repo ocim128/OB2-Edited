@@ -474,11 +474,11 @@ namespace RuriLib.Functions.Http
                     data.Logger.Log(sbCookies.ToString(), LogColors.Khaki);
                 }
 
-                // Log response body preview
+                // Log response body to match other HTTP handlers
                 if (logEnabled && source.Length > 0)
                 {
-                    var preview = source.Length > 500 ? source[..500] + "..." : source;
-                    data.Logger.Log($"Response: {preview}", LogColors.White);
+                    data.Logger.Log("Received Payload:", LogColors.ForestGreen);
+                    data.Logger.Log(source, LogColors.GreenYellow, true);
                 }
             }
             catch (OperationCanceledException) when (data.CancellationToken.IsCancellationRequested)

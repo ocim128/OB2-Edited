@@ -41,6 +41,7 @@ namespace RuriLib.Blocks.Requests.Http
                 HttpLibrary.SystemNet => new HttpClientRequestHandler(),
 
                 HttpLibrary.TlsClient => new TlsClientRequestHandler(),
+                HttpLibrary.HttpCloak => new HttpCloakRequestHandler(),
                 _ => throw new System.NotImplementedException($"HttpLibrary not implemented: {options.HttpLibrary} ({(int)options.HttpLibrary})")
             };
     }

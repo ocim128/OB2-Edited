@@ -305,6 +305,7 @@ namespace RuriLib.Functions.Http
                 WithRandomTLSExtensionOrder = options.RandomizeTlsExtensionOrder,
                 InsecureSkipVerify = options.InsecureSkipVerify || InsecureSkipVerify,
                 WithDefaultCookieJar = true,              // Enable cookie jar for session persistence
+                SessionId = data.TlsClientSessionId ??= Guid.NewGuid(),
                 TransportOptions = _defaultTransportOptions, // Connection pooling settings
                 Headers = new Dictionary<string, string>()
             };

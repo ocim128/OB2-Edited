@@ -43,6 +43,8 @@ public class BotData(Providers providers, ConfigSettings configSettings, IBotLog
     public Dictionary<string, string> HEADERS { get; set; } = [];
     public string ERROR { get; set; } = string.Empty;
     public int BOTNUM { get; set; }
+    // Isolates TlsClient cookie jars per bot run to avoid cross-run leakage.
+    public Guid? TlsClientSessionId { get; set; }
 
     [Obsolete("Do not use this property, it's only here for retro compatibility but it can cause memory leaks." +
               " Use the SetObject and TryGetObject methods instead!")]
@@ -125,6 +127,7 @@ public class BotData(Providers providers, ConfigSettings configSettings, IBotLog
         RESPONSECODE = 0;
         COOKIES.Clear();
         HEADERS.Clear();
+        TlsClientSessionId = null;
         MarkedForCapture.Clear();
 
         if (Logger.Enabled)

@@ -21,6 +21,7 @@ namespace RuriLib.Blocks.Utility
         public static void ClearCookies(BotData data)
         {
             data.COOKIES = new();
+            data.TlsClientSessionId = null;
             data.Logger.LogHeader();
             data.Logger.Log($"Cleared the HTTP cookie jar", LogColors.DeepChampagne);
         }

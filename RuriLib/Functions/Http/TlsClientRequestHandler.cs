@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -363,6 +364,32 @@ namespace RuriLib.Functions.Http
                 // Use shared client with native async and cancellation token support
                 var response = await _sharedClient.RequestAsync(request, data.CancellationToken)
                     .ConfigureAwait(false);
+
+                // Native TLS client surfaces transport failures as status 0 or synthetic timeouts.
+                var statusCode = (int)response.Status;
+                if (statusCode == 0)
+                {
+                    var message = string.IsNullOrWhiteSpace(response.Body)
+                        ? "TLS client request failed (status 0)."
+                        : response.Body.Trim();
+                    if (message.Contains("timeout", StringComparison.OrdinalIgnoreCase))
+                    {
+                        throw new TimeoutException(message);
+                    }
+                    throw new HttpRequestException(message);
+                }
+                else if (response.Status == HttpStatusCode.RequestTimeout)
+                {
+                    var message = response.Body ?? string.Empty;
+                    var looksLikeTimeout = message.Contains("timeout", StringComparison.OrdinalIgnoreCase);
+                    var hasHeaders = response.Headers != null && response.Headers.Count > 0;
+                    if (looksLikeTimeout && !hasHeaders)
+                    {
+                        throw new TimeoutException(string.IsNullOrWhiteSpace(message)
+                            ? "TLS client request timed out."
+                            : message.Trim());
+                    }
+                }
 
                 var elapsed = DateTime.UtcNow - startTime;
                 var logEnabled = data.Logger?.Enabled == true;

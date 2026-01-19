@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using RuriLib.Functions.Http;
 
 namespace RuriLib.Models.Bots;
 
@@ -127,7 +128,21 @@ public class BotData(Providers providers, ConfigSettings configSettings, IBotLog
         RESPONSECODE = 0;
         COOKIES.Clear();
         HEADERS.Clear();
-        TlsClientSessionId = null;
+
+        if (TlsClientSessionId.HasValue)
+        {
+            try
+            {
+                // Destroy the native session to prevent memory leaks
+                TlsClientRequestHandler.DestroySession(TlsClientSessionId.Value);
+            }
+            catch
+            {
+                // Ignore errors during reset
+            }
+            TlsClientSessionId = null;
+        }
+
         MarkedForCapture.Clear();
 
         if (Logger.Enabled)

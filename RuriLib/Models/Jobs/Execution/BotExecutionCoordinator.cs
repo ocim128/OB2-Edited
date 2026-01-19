@@ -297,6 +297,17 @@ public class BotExecutionCoordinator
             botData.Logger.Log("Disposing of browser objects except puppeteer, puppeteerPage, puppeteerFrame, httpClient, ironPyEngine", LogColors.Yellow);
             botData.DisposeObjectsExcept(BotData.DefaultExclusions);
         }
+
+        // Cleanup TlsClient session if it exists to prevent native memory leaks
+        if (botData.TlsClientSessionId.HasValue)
+        {
+            try
+            {
+                TlsClientRequestHandler.DestroySession(botData.TlsClientSessionId.Value);
+            }
+            catch { /* Ignore cleanup errors */ }
+            botData.TlsClientSessionId = null;
+        }
     }
 
     private static async Task ReportBadCaptchaAsync(BotData botData)

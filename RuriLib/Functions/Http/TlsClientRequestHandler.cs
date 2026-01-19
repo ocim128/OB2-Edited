@@ -556,5 +556,56 @@ namespace RuriLib.Functions.Http
         /// Gets the total number of requests made by the shared client.
         /// </summary>
         public static long GetRequestCount() => Interlocked.Read(ref _requestCount);
+
+        /// <summary>
+        /// Destroys a TlsClient session by its session ID to free native memory.
+        /// This should be called when a bot run completes to prevent memory leaks.
+        /// </summary>
+        /// <param name="sessionId">The session ID (GUID) to destroy</param>
+        /// <returns>True if the session was destroyed successfully, false otherwise</returns>
+        public static bool DestroySession(Guid sessionId)
+        {
+            if (!_initialized || _sharedClient == null)
+            {
+                return false;
+            }
+
+            try
+            {
+                // The TlsClient.Native library uses string session IDs
+                // Call the static DestroySession method to remove the session from the Go native layer's session map
+                var payload = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(new { sessionId = sessionId.ToString() });
+                TlsClient.Native.Wrappers.TlsClientWrapper.DestroySession(payload);
+                return true;
+            }
+            catch
+            {
+                // Ignore destruction errors - session may already be gone
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Destroys all TlsClient sessions to free native memory.
+        /// This should be called when a job completes to prevent memory leaks.
+        /// </summary>
+        /// <returns>True if sessions were destroyed successfully, false otherwise</returns>
+        public static bool DestroyAllSessions()
+        {
+            if (!_initialized || _sharedClient == null)
+            {
+                return false;
+            }
+
+            try
+            {
+                _sharedClient.DestroyAll();
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
     }
 }

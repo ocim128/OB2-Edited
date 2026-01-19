@@ -24,7 +24,7 @@ namespace RuriLib.Helpers
                     };
                     break;
                 case ".ps1":
-                    startInfo = new("powershell.exe", $@"""&'{scriptPath}'""")
+                    startInfo = new("powershell.exe", $@"-NonInteractive -NoProfile -ExecutionPolicy Bypass -File ""{scriptPath}""")
                     {
                         RedirectStandardOutput = true,
                         UseShellExecute = false,

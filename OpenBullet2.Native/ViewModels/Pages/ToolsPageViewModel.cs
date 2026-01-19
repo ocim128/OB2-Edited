@@ -1,5 +1,5 @@
 using System;
-using OpenBullet2.Native.ViewModels.Infrastructure;
+using OpenBullet2.Native.ViewModels.Base;
 using OpenBullet2.Native.ViewModels.Tools;
 
 namespace OpenBullet2.Native.ViewModels.Pages

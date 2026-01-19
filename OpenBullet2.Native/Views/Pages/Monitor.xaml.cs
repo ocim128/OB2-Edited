@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Extensions.DependencyInjection;
+using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -21,7 +22,7 @@ using System.Windows.Threading;
 using Microsoft.VisualBasic.Devices;
 using Microsoft.Win32;
 using OpenBullet2.Core.Services;
-using OpenBullet2.Native.Infrastructure.DependencyInjection;
+
 using OpenBullet2.Native.Services;
 using OpenBullet2.Native.ViewModels.Pages;
 using RuriLib;
@@ -39,6 +40,7 @@ using RuriLib.Models.Environment;
 using RuriLib.Models.Settings;
 using RuriLib.Services;
 using HumanReadable = OpenBullet2.Native.Helpers.HumanReadable;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace OpenBullet2.Native.Views.Pages
 {
@@ -1024,7 +1026,7 @@ namespace OpenBullet2.Native.Views.Pages
 
             var normalized = line;
 
-            if (normalized.IndexOf('Ã', StringComparison.Ordinal) >= 0)
+            if (normalized.IndexOf('�', StringComparison.Ordinal) >= 0)
             {
                 var bytes = LegacyEncoding.GetBytes(normalized);
                 normalized = Encoding.UTF8.GetString(bytes);
@@ -1084,9 +1086,9 @@ namespace OpenBullet2.Native.Views.Pages
             builder.AppendLine($"check email: akunlama.com/inbox/{usernamePart}");
             builder.AppendLine($"auth_token={authToken ?? "N/A"}");
             builder.AppendLine();
-            builder.Append($"Username•Post•Follower•Tahun = {username ?? "N/A"}•{post}");
-            builder.Append($"•{(string.IsNullOrEmpty(follower) ? "N/A" : follower)}");
-            builder.Append($"•{(string.IsNullOrEmpty(year) ? "N/A" : year)}");
+            builder.Append($"Username�Post�Follower�Tahun = {username ?? "N/A"}�{post}");
+            builder.Append($"�{(string.IsNullOrEmpty(follower) ? "N/A" : follower)}");
+            builder.Append($"�{(string.IsNullOrEmpty(year) ? "N/A" : year)}");
             return builder.ToString();
         }
 
@@ -1384,7 +1386,7 @@ namespace OpenBullet2.Native.Views.Pages
                 return;
             }
 
-            var settingsService = ServiceLocator.GetService<RuriLibSettingsService>();
+            var settingsService = App.ServiceProvider.GetRequiredService<RuriLibSettingsService>();
             var playwrightSettings = settingsService.RuriLibSettings?.PlaywrightSettings ?? new PlaywrightSettings();
             var firefoxBinary = playwrightSettings.FirefoxBinaryLocation;
 
@@ -1552,7 +1554,7 @@ namespace OpenBullet2.Native.Views.Pages
             {
                 builder.AppendLine();
                 builder.Append(
-                    $"Username•Post•Follower•Tahun = {(string.IsNullOrEmpty(username) ? "N/A" : username)}•{(string.IsNullOrEmpty(post) ? "N/A" : post)}•{(string.IsNullOrEmpty(follower) ? "N/A" : follower)}•{(string.IsNullOrEmpty(year) ? "N/A" : year)}");
+                    $"Username�Post�Follower�Tahun = {(string.IsNullOrEmpty(username) ? "N/A" : username)}�{(string.IsNullOrEmpty(post) ? "N/A" : post)}�{(string.IsNullOrEmpty(follower) ? "N/A" : follower)}�{(string.IsNullOrEmpty(year) ? "N/A" : year)}");
             }
 
             return builder.ToString();
@@ -1773,7 +1775,7 @@ namespace OpenBullet2.Native.Views.Pages
 
             try
             {
-                context.ConfigService = ServiceLocator.GetOptionalService<ConfigService>();
+                context.ConfigService = App.ServiceProvider.GetService<ConfigService>();
             }
             catch (Exception ex)
             {
@@ -1782,7 +1784,7 @@ namespace OpenBullet2.Native.Views.Pages
 
             try
             {
-                context.SettingsService = ServiceLocator.GetOptionalService<RuriLibSettingsService>();
+                context.SettingsService = App.ServiceProvider.GetService<RuriLibSettingsService>();
             }
             catch (Exception ex)
             {
@@ -1803,7 +1805,7 @@ namespace OpenBullet2.Native.Views.Pages
 
             try
             {
-                context.PluginRepository = ServiceLocator.GetOptionalService<PluginRepository>();
+                context.PluginRepository = App.ServiceProvider.GetService<PluginRepository>();
             }
             catch (Exception ex)
             {

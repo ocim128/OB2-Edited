@@ -4,7 +4,7 @@ using OpenBullet2.Core.Models.Proxies.Sources;
 using OpenBullet2.Core.Repositories;
 using OpenBullet2.Core.Services;
 using OpenBullet2.Native.Helpers;
-using OpenBullet2.Native.Infrastructure.DependencyInjection;
+
 using OpenBullet2.Native.Utils;
 using RuriLib.Extensions;
 using RuriLib.Models.Bots;
@@ -26,10 +26,12 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using OpenBullet2.Native.ViewModels.Base;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace OpenBullet2.Native.ViewModels;
 
-public class MultiRunJobViewerViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase, IDisposable
+public class MultiRunJobViewerViewModel : ViewModelBase, IDisposable
 {
     private readonly OpenBulletSettingsService obSettingsService;
     private readonly List<ProxyGroupEntity> proxyGroups;
@@ -196,7 +198,7 @@ public class MultiRunJobViewerViewModel : OpenBullet2.Native.ViewModels.Infrastr
 
     public MultiRunJobViewerViewModel(MultiRunJobViewModel jobVM)
     {
-        obSettingsService = ServiceLocator.GetService<OpenBulletSettingsService>();
+        obSettingsService = App.ServiceProvider.GetRequiredService<OpenBulletSettingsService>();
         Job = jobVM;
 
         #region Setup
@@ -206,7 +208,7 @@ public class MultiRunJobViewerViewModel : OpenBullet2.Native.ViewModels.Infrastr
             ConfigNameAndAuthor = $"{MultiRunJob.Config.Metadata.Name} by {MultiRunJob.Config.Metadata.Author}";
         }
 
-        var proxyGroupRepo = ServiceLocator.GetService<IProxyGroupRepository>();
+        var proxyGroupRepo = App.ServiceProvider.GetRequiredService<IProxyGroupRepository>();
         proxyGroups = [.. proxyGroupRepo.GetAll()];
 
         var sb = new StringBuilder();
@@ -643,7 +645,7 @@ public class MultiRunJobViewerViewModel : OpenBullet2.Native.ViewModels.Infrastr
 }
 
 #region Other ViewModels
-public class BotViewModel(int index, BotData[] datas) : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
+public class BotViewModel(int index, BotData[] datas) : ViewModelBase
 {
     private readonly int index = index;
     private readonly BotData[] datas = datas;
@@ -663,7 +665,7 @@ public class BotViewModel(int index, BotData[] datas) : OpenBullet2.Native.ViewM
     }
 }
 
-public class HitViewModel(Hit hit) : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
+public class HitViewModel(Hit hit) : ViewModelBase
 {
     public Hit Hit { get; init; } = hit;
 

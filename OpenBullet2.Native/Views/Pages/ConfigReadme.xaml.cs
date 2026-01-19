@@ -2,7 +2,8 @@ using OpenBullet2.Native.Extensions;
 using OpenBullet2.Native.Services;
 using OpenBullet2.Native.ViewModels;
 using System.Windows.Controls;
-using OpenBullet2.Native.Infrastructure.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
+
 
 namespace OpenBullet2.Native.Views.Pages
 {
@@ -15,7 +16,7 @@ namespace OpenBullet2.Native.Views.Pages
 
         public ConfigReadme()
         {
-            vm = ServiceLocator.GetService<ViewModelsService>().ConfigReadme;
+            vm = App.ServiceProvider.GetRequiredService<ViewModelsService>().ConfigReadme;
             DataContext = vm;
 
             InitializeComponent();

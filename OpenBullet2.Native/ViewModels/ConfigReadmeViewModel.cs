@@ -1,11 +1,12 @@
 using OpenBullet2.Core.Services;
 using RuriLib.Models.Configs;
 using System;
-using OpenBullet2.Native.Infrastructure.DependencyInjection;
+using OpenBullet2.Native.ViewModels.Base;
+
 
 namespace OpenBullet2.Native.ViewModels
 {
-    public class ConfigReadmeViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
+    public class ConfigReadmeViewModel : ViewModelBase
     {
         private readonly ConfigService configService;
         private Config Config => configService.SelectedConfig;

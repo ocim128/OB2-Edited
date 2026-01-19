@@ -10,7 +10,8 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Forms;
 using System.Windows.Input;
-using OpenBullet2.Native.Infrastructure.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
+
 
 namespace OpenBullet2.Native.Views.Dialogs
 {
@@ -27,7 +28,7 @@ namespace OpenBullet2.Native.Views.Dialogs
             this.caller = caller;
             InitializeComponent();
 
-            env = ServiceLocator.GetService<RuriLibSettingsService>().Environment;
+            env = App.ServiceProvider.GetRequiredService<RuriLibSettingsService>().Environment;
 
             typeCombobox.ItemsSource = env.WordlistTypes.Select(t => t.Name);
             typeCombobox.SelectedIndex = 0;

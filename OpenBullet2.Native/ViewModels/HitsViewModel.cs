@@ -8,11 +8,12 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Data;
-using OpenBullet2.Native.Infrastructure.DependencyInjection;
+using OpenBullet2.Native.ViewModels.Base;
+
 
 namespace OpenBullet2.Native.ViewModels
 {
-    public class HitsViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
+    public class HitsViewModel : ViewModelBase
     {
         private readonly OpenBulletSettingsService obSettingsService;
         private readonly IHitRepository hitRepo;
@@ -122,16 +123,16 @@ namespace OpenBullet2.Native.ViewModels
                     System.Diagnostics.Debug.WriteLine(errorDetails);
                     System.Diagnostics.Debug.WriteLine($"Full HitsViewModel error: {ex}");
                     
-                    // Log to crash system
+                    /* Overkill diagnostic logging removed
                     try
                     {
-                        OpenBullet2.Native.Infrastructure.Diagnostics.CrashLoggingService.Instance.LogCrash(
                             ex, 
                             "HitsViewModel.InitializeAsync", 
                             "Failed to initialize HitsViewModel during page navigation", 
                             false);
                     }
-                    catch { /* Ignore logging errors */ }
+                    catch { }
+                    */
                     
                     throw; // Re-throw so the UI can handle it
                 }
@@ -184,16 +185,16 @@ namespace OpenBullet2.Native.ViewModels
                 System.Diagnostics.Debug.WriteLine(errorDetails);
                 System.Diagnostics.Debug.WriteLine($"Full RefreshListAsync error: {ex}");
                 
-                // Log database access failures
+                /* Overkill diagnostic logging removed
                 try
                 {
-                    OpenBullet2.Native.Infrastructure.Diagnostics.CrashLoggingService.Instance.LogCrash(
                         ex, 
                         "HitsViewModel.RefreshListAsync", 
                         "Failed to refresh hits list from database", 
                         false);
                 }
-                catch { /* Ignore logging errors */ }
+                catch { }
+                */
                 
                 // Initialize with empty collection to prevent further UI errors
                 HitsCollection = new ObservableCollection<HitEntity>();

@@ -24,9 +24,11 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media.Imaging;
 using MahApps.Metro.Controls;
-using OpenBullet2.Native.Infrastructure.DependencyInjection;
+
 using System.Windows.Input;
 using System.Windows.Media;
+using OpenBullet2.Native.ViewModels.Base;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace OpenBullet2.Native.Views.Dialogs
 {
@@ -172,7 +174,7 @@ namespace OpenBullet2.Native.Views.Dialogs
         }
     }
 
-    public class MultiRunJobOptionsViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
+    public class MultiRunJobOptionsViewModel : ViewModelBase
     {
         private readonly IRecordRepository recordRepo;
         private readonly IWordlistRepository wordlistRepo;
@@ -442,12 +444,12 @@ namespace OpenBullet2.Native.Views.Dialogs
         public MultiRunJobOptionsViewModel(MultiRunJobOptions options)
         {
             Options = options ?? JobOptionsFactory.CreateNew(JobType.MultiRun) as MultiRunJobOptions;
-            recordRepo = ServiceLocator.GetService<IRecordRepository>();
-            wordlistRepo = ServiceLocator.GetService<IWordlistRepository>();
-            rlSettingsService = ServiceLocator.GetService<RuriLibSettingsService>();
-            configService = ServiceLocator.GetService<ConfigService>();
-            jobFactory = ServiceLocator.GetService<JobFactoryService>();
-            proxyGroupRepo = ServiceLocator.GetService<IProxyGroupRepository>();
+            recordRepo = App.ServiceProvider.GetRequiredService<IRecordRepository>();
+            wordlistRepo = App.ServiceProvider.GetRequiredService<IWordlistRepository>();
+            rlSettingsService = App.ServiceProvider.GetRequiredService<RuriLibSettingsService>();
+            configService = App.ServiceProvider.GetRequiredService<ConfigService>();
+            jobFactory = App.ServiceProvider.GetRequiredService<JobFactoryService>();
+            proxyGroupRepo = App.ServiceProvider.GetRequiredService<IProxyGroupRepository>();
 
             SetConfigData();
 
@@ -671,7 +673,7 @@ namespace OpenBullet2.Native.Views.Dialogs
     }
 
     #region Data Pool ViewModels
-    public class DataPoolOptionsViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
+    public class DataPoolOptionsViewModel : ViewModelBase
     {
         public DataPoolOptions Options { get; init; }
 
@@ -691,7 +693,7 @@ namespace OpenBullet2.Native.Views.Dialogs
 
         public WordlistDataPoolOptionsViewModel(WordlistDataPoolOptions options) : base(options)
         {
-            wordlistRepo = ServiceLocator.GetService<IWordlistRepository>();
+            wordlistRepo = App.ServiceProvider.GetRequiredService<IWordlistRepository>();
 
             if (options.WordlistId != -1)
             {
@@ -869,7 +871,7 @@ namespace OpenBullet2.Native.Views.Dialogs
     #endregion
 
     #region Proxy Sources ViewModels
-    public class ProxySourceOptionsViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
+    public class ProxySourceOptionsViewModel : ViewModelBase
     {
         public ProxySourceOptions Options { get; init; }
 

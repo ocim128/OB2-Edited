@@ -1,3 +1,4 @@
+﻿using Microsoft.Extensions.DependencyInjection;
 using MahApps.Metro.IconPacks;
 using OpenBullet2.Native.ViewModels;
 using RuriLib.Models.Data;
@@ -9,7 +10,9 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows.Controls;
 using System.Windows.Media;
-using OpenBullet2.Native.Infrastructure.DependencyInjection;
+using OpenBullet2.Native.ViewModels.Base;
+using Microsoft.Extensions.DependencyInjection;
+
 
 namespace OpenBullet2.Native.Views.Dialogs
 {
@@ -29,7 +32,7 @@ namespace OpenBullet2.Native.Views.Dialogs
         }
     }
 
-    public class TestDataRulesDialogViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
+    public class TestDataRulesDialogViewModel : ViewModelBase
     {
         public string WordlistType { get; init; }
         
@@ -70,7 +73,7 @@ namespace OpenBullet2.Native.Views.Dialogs
         {
             WordlistType = wordlistType;
 
-            var env = ServiceLocator.GetService<RuriLibSettingsService>().Environment;
+            var env = App.ServiceProvider.GetRequiredService<RuriLibSettingsService>().Environment;
             var wt = env.WordlistTypes.First(w => w.Name == wordlistType);
             var dataLine = new DataLine(testData, wt);
             var slices =dataLine.GetVariables().Select(v => new SliceViewModel(v.Name, v.AsString()));
@@ -107,7 +110,7 @@ namespace OpenBullet2.Native.Views.Dialogs
         }
     }
 
-    public class RegexValidationViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
+    public class RegexValidationViewModel : ViewModelBase
     {
         public bool Passed { get; set; }
         public string Result => Passed ? "Passed" : "Invalid";
@@ -120,7 +123,7 @@ namespace OpenBullet2.Native.Views.Dialogs
         }
     }
 
-    public class SliceViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
+    public class SliceViewModel : ViewModelBase
     {
         public string Name { get; set; }
         public string Value { get; set; }
@@ -132,7 +135,7 @@ namespace OpenBullet2.Native.Views.Dialogs
         }
     }
 
-    public class ResultViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
+    public class ResultViewModel : ViewModelBase
     {
         public bool Passed { get; set; }
         public string Text { get; set; }

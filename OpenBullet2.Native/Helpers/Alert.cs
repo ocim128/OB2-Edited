@@ -4,7 +4,8 @@ using OpenBullet2.Native.Services;
 using System;
 using System.Windows;
 using System.Windows.Controls;
-using OpenBullet2.Native.Infrastructure.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
+
 
 namespace OpenBullet2.Native.Helpers
 {
@@ -189,7 +190,7 @@ namespace OpenBullet2.Native.Helpers
 
         public static bool Confirm(string title, string message, string settingName)
         {
-            var obSettingsService = ServiceLocator.GetService<OpenBullet2.Core.Services.OpenBulletSettingsService>();
+            var obSettingsService = App.ServiceProvider.GetRequiredService<OpenBullet2.Core.Services.OpenBulletSettingsService>();
 
             // If the user checked 'don't ask again' for this specific setting
             if (obSettingsService.Settings.GeneralSettings.GetProperty(settingName) is bool b && !b)

@@ -1,7 +1,7 @@
 using System;
 using System.Windows.Input;
 
-namespace OpenBullet2.Native.ViewModels.Infrastructure
+namespace OpenBullet2.Native.ViewModels.Base
 {
     /// <summary>
     /// A command whose sole purpose is to relay its functionality to other objects by invoking delegates.

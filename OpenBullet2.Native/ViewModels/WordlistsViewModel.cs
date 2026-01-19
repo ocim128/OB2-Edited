@@ -7,11 +7,12 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Data;
-using OpenBullet2.Native.Infrastructure.DependencyInjection;
+using OpenBullet2.Native.ViewModels.Base;
+
 
 namespace OpenBullet2.Native.ViewModels;
 
-    public class WordlistsViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
+    public class WordlistsViewModel : ViewModelBase
 {
     private readonly IWordlistRepository wordlistRepo;
     private bool initialized;

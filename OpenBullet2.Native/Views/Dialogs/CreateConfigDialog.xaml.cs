@@ -6,7 +6,8 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using OpenBullet2.Native.Infrastructure.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
+
 
 namespace OpenBullet2.Native.Views.Dialogs
 {
@@ -22,13 +23,13 @@ namespace OpenBullet2.Native.Views.Dialogs
             InitializeComponent();
             this.caller = caller;
 
-            var settings = ServiceLocator.GetService<OpenBulletSettingsService>().Settings;
+            var settings = App.ServiceProvider.GetRequiredService<OpenBulletSettingsService>().Settings;
             authorTextbox.Text = settings.GeneralSettings.DefaultAuthor;
             nameTextbox.Focus();
 
             categoryCombobox.Items.Add("Default");
 
-            var categories = ServiceLocator.GetService<ConfigService>().Configs
+            var categories = App.ServiceProvider.GetRequiredService<ConfigService>().Configs
                 .Select(c => c.Metadata.Category)
                 .Where(category => category != "Default")
                 .Distinct();

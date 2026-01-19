@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
+using OpenBullet2.Native.ViewModels.Base;
 
 namespace OpenBullet2.Native.Controls
 {
@@ -50,7 +51,7 @@ namespace OpenBullet2.Native.Controls
             };
     }
 
-    public class KeyViewerViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
+    public class KeyViewerViewModel : ViewModelBase
     {
         private readonly Key key;
 

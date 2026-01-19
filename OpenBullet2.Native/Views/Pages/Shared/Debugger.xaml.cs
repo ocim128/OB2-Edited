@@ -2,7 +2,7 @@ using ICSharpCode.AvalonEdit;
 using OpenBullet2.Core.Models.Settings;
 using OpenBullet2.Core.Services;
 using OpenBullet2.Native.Helpers;
-using OpenBullet2.Native.Infrastructure.DependencyInjection;
+
 using OpenBullet2.Native.Services;
 using OpenBullet2.Native.ViewModels;
 using RuriLib.Logging;
@@ -12,6 +12,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Threading;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace OpenBullet2.Native.Views.Pages.Shared;
 
@@ -42,10 +43,10 @@ public partial class Debugger : Page
     #region Constructor
     public Debugger()
     {
-        var settingsService = ServiceLocator.GetService<OpenBulletSettingsService>();
+        var settingsService = App.ServiceProvider.GetRequiredService<OpenBulletSettingsService>();
         _accessibility = settingsService.Settings.AccessibilitySettings ?? new AccessibilitySettings();
 
-        _viewModel = ServiceLocator.GetService<ViewModelsService>().Debugger;
+        _viewModel = App.ServiceProvider.GetRequiredService<ViewModelsService>().Debugger;
         DataContext = _viewModel;
 
         _uiManager = new DebuggerUIManager(() => Application.Current.MainWindow as MainWindow);

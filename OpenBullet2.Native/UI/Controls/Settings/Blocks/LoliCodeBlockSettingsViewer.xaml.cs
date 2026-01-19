@@ -9,7 +9,8 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Xml;
-using OpenBullet2.Native.Infrastructure.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
+
 
 namespace OpenBullet2.Native.Controls
 {
@@ -28,7 +29,7 @@ namespace OpenBullet2.Native.Controls
                 throw new Exception("Wrong block type for this UC");
             }
 
-            obSettingsService = ServiceLocator.GetService<OpenBulletSettingsService>();
+            obSettingsService = App.ServiceProvider.GetRequiredService<OpenBulletSettingsService>();
             vm = new LoliCodeBlockSettingsViewerViewModel(blockVM);
             DataContext = vm;
 

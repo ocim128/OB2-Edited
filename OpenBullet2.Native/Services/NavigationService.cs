@@ -102,48 +102,30 @@ public class NavigationService : INavigationService
 
     private Page CreatePage(MainWindowPage pageEnum)
     {
-        switch (pageEnum)
+        return pageEnum switch
         {
-            case MainWindowPage.Home: return new Home();
-            case MainWindowPage.Jobs: return new Jobs(); // Jobs page was handled specifically, but a new instance seems fine if cached.
-            case MainWindowPage.Tools: return new Tools();
-            case MainWindowPage.Proxies: return new Proxies();
-            case MainWindowPage.Wordlists: return new Wordlists();
-            case MainWindowPage.Configs: return new Configs();
-            case MainWindowPage.Hits: return new Hits();
-            case MainWindowPage.Plugins: return new Plugins();
-            case MainWindowPage.OBSettings: return new OBSettings();
-            case MainWindowPage.RLSettings: return new RLSettings();
-            case MainWindowPage.About: return new About(); // About was cached
-            
+            MainWindowPage.Home => ActivatorUtilities.CreateInstance<Home>(_serviceProvider),
+            MainWindowPage.Jobs => ActivatorUtilities.CreateInstance<Jobs>(_serviceProvider),
+            MainWindowPage.Tools => ActivatorUtilities.CreateInstance<Tools>(_serviceProvider),
+            MainWindowPage.Proxies => ActivatorUtilities.CreateInstance<Proxies>(_serviceProvider),
+            MainWindowPage.Wordlists => ActivatorUtilities.CreateInstance<Wordlists>(_serviceProvider),
+            MainWindowPage.Configs => ActivatorUtilities.CreateInstance<Configs>(_serviceProvider),
+            MainWindowPage.Hits => ActivatorUtilities.CreateInstance<Hits>(_serviceProvider),
+            MainWindowPage.Plugins => ActivatorUtilities.CreateInstance<Plugins>(_serviceProvider),
+            MainWindowPage.OBSettings => ActivatorUtilities.CreateInstance<OBSettings>(_serviceProvider),
+            MainWindowPage.RLSettings => ActivatorUtilities.CreateInstance<RLSettings>(_serviceProvider),
+            MainWindowPage.About => ActivatorUtilities.CreateInstance<About>(_serviceProvider),
+
             // Config Related Pages
-            case MainWindowPage.ConfigMetadata: return new Views.Pages.ConfigMetadata();
-            case MainWindowPage.ConfigReadme: return new ConfigReadme();
-            case MainWindowPage.ConfigSettings: return new Views.Pages.ConfigSettings();
-            
-            // These all share the ConfigEditor page instance
-            case MainWindowPage.ConfigStacker:
-            case MainWindowPage.ConfigLoliCode:
-            case MainWindowPage.ConfigCSharpCode:
-                // Check if we already have a ConfigEditor instance cached under any of these keys
-                // Actually, the original code had a single `configEditorPage` field. 
-                // So we should probably cache it under one key (e.g. ConfigStacker?) or handle it specially.
-                // Let's use a shared instance strategy.
-                return GetOrCreateSharedConfigEditor();
+            MainWindowPage.ConfigMetadata => ActivatorUtilities.CreateInstance<Views.Pages.ConfigMetadata>(_serviceProvider),
+            MainWindowPage.ConfigReadme => ActivatorUtilities.CreateInstance<ConfigReadme>(_serviceProvider),
+            MainWindowPage.ConfigSettings => ActivatorUtilities.CreateInstance<Views.Pages.ConfigSettings>(_serviceProvider),
 
-            // CheckUpdate is an action, not really a page, handled in MainWindow usually?
-            // If it's a page in the enum, we should have a page for it? 
-            // In original code: MenuNavigationMap["menuOptionCheckUpdate"] = MainWindowPage.CheckUpdate;
-            // But HandleNavigationClick had a special check: if (button?.Name == "menuOptionCheckUpdate")
-            // So it might not be a real page. 
-            // If NavigateTo is called with CheckUpdate, what should happen? 
-            // Probably nothing or return Home if invalid.
-            case MainWindowPage.CheckUpdate: 
-                throw new InvalidOperationException("CheckUpdate is an action, not a navigable page.");
+            MainWindowPage.ConfigStacker or MainWindowPage.ConfigLoliCode or MainWindowPage.ConfigCSharpCode 
+                => GetOrCreateSharedConfigEditor(),
 
-            default:
-                throw new ArgumentException($"Unknown page type: {pageEnum}");
-        }
+            _ => throw new ArgumentException($"Unknown page type: {pageEnum}")
+        };
     }
 
     private ConfigEditor _sharedConfigEditor;
@@ -151,7 +133,7 @@ public class NavigationService : INavigationService
     {
         if (_sharedConfigEditor == null)
         {
-            _sharedConfigEditor = new ConfigEditor();
+            _sharedConfigEditor = ActivatorUtilities.CreateInstance<ConfigEditor>(_serviceProvider);
         }
         return _sharedConfigEditor;
     }

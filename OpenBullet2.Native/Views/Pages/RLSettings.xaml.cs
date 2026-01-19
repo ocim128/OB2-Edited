@@ -7,7 +7,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using OpenBullet2.Native.Infrastructure.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
+
 
 namespace OpenBullet2.Native.Views.Pages;
 
@@ -20,7 +21,7 @@ public partial class RLSettings : Page
 
     public RLSettings()
     {
-        vm = ServiceLocator.GetService<ViewModelsService>().RLSettings;
+        vm = App.ServiceProvider.GetRequiredService<ViewModelsService>().RLSettings;
         vm.CaptchaServiceChanged += UpdateCaptchaTabControl;
         DataContext = vm;
 

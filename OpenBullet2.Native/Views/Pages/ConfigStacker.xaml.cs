@@ -19,9 +19,10 @@ using System.Windows;
 using System.Windows.Threading;
 using System.Windows.Controls; // Make sure this is included for TextBox and TextChangedEventArgs
 using System.Windows.Input;
-using OpenBullet2.Native.Infrastructure.DependencyInjection;
+
 
 using OpenBullet2.Native.Enums;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace OpenBullet2.Native.Views.Pages
 {
@@ -50,8 +51,8 @@ namespace OpenBullet2.Native.Views.Pages
 
         public ConfigStacker()
         {
-            configService = ServiceLocator.GetService<ConfigService>();
-            vm = ServiceLocator.GetService<ViewModelsService>().ConfigStacker;
+            configService = App.ServiceProvider.GetRequiredService<ConfigService>();
+            vm = App.ServiceProvider.GetRequiredService<ViewModelsService>().ConfigStacker;
             vm.SelectionChanged += SelectionChanged;
             DataContext = vm;
 
@@ -79,7 +80,7 @@ namespace OpenBullet2.Native.Views.Pages
             {
                 // On fail, prompt it to the user and go back to the configs page
                 Alert.Exception(ex);
-                ServiceLocator.GetService<MainWindow>().NavigateTo(MainWindowPage.Configs);
+                App.ServiceProvider.GetRequiredService<MainWindow>().NavigateTo(MainWindowPage.Configs);
             }
 
             vm.UpdateViewModel();

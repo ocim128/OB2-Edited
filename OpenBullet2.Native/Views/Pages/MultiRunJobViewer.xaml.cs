@@ -15,7 +15,8 @@ using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Threading.Tasks;
-using OpenBullet2.Native.Infrastructure.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
+
 
 namespace OpenBullet2.Native.Views.Pages
 {
@@ -57,7 +58,7 @@ namespace OpenBullet2.Native.Views.Pages
 
         public MultiRunJobViewer()
         {
-            mainWindow = ServiceLocator.GetService<MainWindow>();
+            mainWindow = App.ServiceProvider.GetRequiredService<MainWindow>();
             InitializeComponent();
         }
 
@@ -143,7 +144,7 @@ namespace OpenBullet2.Native.Views.Pages
 
             if (hitVM is not null)
             {
-                var debugger = ServiceLocator.GetService<ViewModelsService>().Debugger;
+                var debugger = App.ServiceProvider.GetRequiredService<ViewModelsService>().Debugger;
                 debugger.TestData = hitVM.Data;
 
                 if (hitVM.Hit.Proxy is not null)

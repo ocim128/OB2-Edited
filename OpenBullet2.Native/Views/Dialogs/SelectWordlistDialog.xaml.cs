@@ -14,7 +14,9 @@ using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Documents;
 using System.Windows.Input;
-using OpenBullet2.Native.Infrastructure.DependencyInjection;
+using OpenBullet2.Native.ViewModels.Base;
+using Microsoft.Extensions.DependencyInjection;
+
 
 namespace OpenBullet2.Native.Views.Dialogs
 {
@@ -95,7 +97,7 @@ namespace OpenBullet2.Native.Views.Dialogs
         private void ShowNoWordlistSelectedError() => Alert.Error("No wordlist selected", "Please select a wordlist first!");
     }
 
-    public class SelectWordlistDialogViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
+    public class SelectWordlistDialogViewModel : ViewModelBase
     {
         private readonly WordlistsViewModel wordlistsViewModel;
         private readonly IWordlistRepository wordlistRepo;
@@ -162,10 +164,10 @@ namespace OpenBullet2.Native.Views.Dialogs
 
         public SelectWordlistDialogViewModel()
         {
-            wordlistRepo = ServiceLocator.GetService<IWordlistRepository>();
+            wordlistRepo = App.ServiceProvider.GetRequiredService<IWordlistRepository>();
             CreateCollection();
 
-            wordlistsViewModel = ServiceLocator.GetService<ViewModelsService>().Wordlists;
+            wordlistsViewModel = App.ServiceProvider.GetRequiredService<ViewModelsService>().Wordlists;
 
             if (wordlistsViewModel is not null)
             {

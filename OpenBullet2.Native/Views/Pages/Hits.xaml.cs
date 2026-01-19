@@ -6,7 +6,7 @@ using OpenBullet2.Core.Models.Jobs;
 using OpenBullet2.Core.Services;
 using OpenBullet2.Native.Extensions;
 using OpenBullet2.Native.Helpers;
-using OpenBullet2.Native.Infrastructure.DependencyInjection;
+
 using OpenBullet2.Native.Services;
 using OpenBullet2.Native.ViewModels;
 using RuriLib.Extensions;
@@ -21,6 +21,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace OpenBullet2.Native.Views.Pages
 {
@@ -54,18 +55,18 @@ namespace OpenBullet2.Native.Views.Pages
             try
             {
                 System.Diagnostics.Debug.WriteLine("Hits: Starting page construction");
-                vm = ServiceLocator.GetService<ViewModelsService>().Hits;
+                vm = App.ServiceProvider.GetRequiredService<ViewModelsService>().Hits;
                 DataContext = vm;
                 
                 System.Diagnostics.Debug.WriteLine("Hits: Initializing ViewModel");
                 _ = vm.InitializeAsync();
 
                 InitializeComponent();
-                window = ServiceLocator.GetService<MainWindow>();
-                configService = ServiceLocator.GetService<ConfigService>();
-                rlSettingsService = ServiceLocator.GetService<RuriLibSettingsService>();
-                obSettingsService = ServiceLocator.GetService<OpenBulletSettingsService>();
-                var env = ServiceLocator.GetService<RuriLibSettingsService>().Environment;
+                window = App.ServiceProvider.GetRequiredService<MainWindow>();
+                configService = App.ServiceProvider.GetRequiredService<ConfigService>();
+                rlSettingsService = App.ServiceProvider.GetRequiredService<RuriLibSettingsService>();
+                obSettingsService = App.ServiceProvider.GetRequiredService<OpenBulletSettingsService>();
+                var env = App.ServiceProvider.GetRequiredService<RuriLibSettingsService>().Environment;
 
                 // HACK: Hardcoded stuff
                 var menu = (ContextMenu)Resources["ItemContextMenu"];
@@ -90,16 +91,16 @@ namespace OpenBullet2.Native.Views.Pages
                 System.Diagnostics.Debug.WriteLine(errorDetails);
                 System.Diagnostics.Debug.WriteLine($"Full Hits constructor error: {ex}");
                 
-                // Log page construction failures
+                /* Overkill diagnostic logging removed
                 try
                 {
-                    OpenBullet2.Native.Infrastructure.Diagnostics.CrashLoggingService.Instance.LogCrash(
                         ex, 
                         "Hits.Constructor", 
                         "Failed to construct Hits page during navigation", 
                         false);
                 }
-                catch { /* Ignore logging errors */ }
+                catch { }
+                */
                 
                 throw; // Re-throw so navigation can handle it
             }
@@ -251,7 +252,7 @@ namespace OpenBullet2.Native.Views.Pages
                 // Create the job entity and add it to the database
                 await Application.Current.Dispatcher.InvokeAsync(async () =>
                 {
-                    var jobs = ServiceLocator.GetService<ViewModelsService>().Jobs;
+                    var jobs = App.ServiceProvider.GetRequiredService<ViewModelsService>().Jobs;
                     var jobVM = await jobs.CreateJobAsync(jobOptions);
                     window.DisplayJob(jobVM);
                 });

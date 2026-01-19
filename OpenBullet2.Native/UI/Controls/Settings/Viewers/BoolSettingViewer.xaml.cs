@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
+using OpenBullet2.Native.ViewModels.Base;
 
 namespace OpenBullet2.Native.Controls
 {
@@ -65,7 +66,7 @@ namespace OpenBullet2.Native.Controls
         }
     }
 
-    public class BoolSettingViewerViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
+    public class BoolSettingViewerViewModel : ViewModelBase
     {
         public BlockSetting Setting { get; init; }
 

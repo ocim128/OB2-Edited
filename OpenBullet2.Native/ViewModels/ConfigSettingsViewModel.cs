@@ -9,11 +9,12 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
-using OpenBullet2.Native.Infrastructure.DependencyInjection;
+using OpenBullet2.Native.ViewModels.Base;
+
 
 namespace OpenBullet2.Native.ViewModels
 {
-    public class ConfigSettingsViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
+    public class ConfigSettingsViewModel : ViewModelBase
     {
         private readonly RuriLibSettingsService rlSettingsService;
         private readonly ConfigService configService;

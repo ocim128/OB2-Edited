@@ -1,7 +1,7 @@
 using System;
 using System.Windows.Input;
 
-namespace OpenBullet2.Native.ViewModels.Infrastructure
+namespace OpenBullet2.Native.ViewModels.Base
 {
     /// <summary>
     /// Interface for a command that implements ICommand and supports parameter types

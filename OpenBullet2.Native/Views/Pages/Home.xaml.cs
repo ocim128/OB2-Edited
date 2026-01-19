@@ -2,9 +2,9 @@ using OpenBullet2.Core.Repositories;
 using OpenBullet2.Core.Services;
 using OpenBullet2.Native.Services;
 using OpenBullet2.Native.ViewModels;
-using OpenBullet2.Native.ViewModels.Infrastructure;
+using OpenBullet2.Native.ViewModels.Base;
 using OpenBullet2.Native.Helpers;
-using OpenBullet2.Native.Infrastructure.DependencyInjection;
+
 using OpenBullet2.Native.Utils;
 using System;
 using System.Collections.Generic;
@@ -21,6 +21,8 @@ using Microsoft.Extensions.Configuration;
 using static OpenBullet2.Native.MainWindow;
 
 using OpenBullet2.Native.Enums;
+using OpenBullet2.Native.ViewModels.Base;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace OpenBullet2.Native.Views.Pages
 {
@@ -68,7 +70,7 @@ namespace OpenBullet2.Native.Views.Pages
         }
     }
 
-    public class HomeViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase, IDisposable
+    public class HomeViewModel : ViewModelBase, IDisposable
     {
         private readonly IJobRepository jobRepo;
         private readonly IConfigRepository configRepo;
@@ -272,15 +274,15 @@ namespace OpenBullet2.Native.Views.Pages
         {
             try
             {
-                jobRepo = ServiceLocator.GetService<IJobRepository>();
-                configRepo = ServiceLocator.GetService<IConfigRepository>();
-                hitRepo = ServiceLocator.GetService<IHitRepository>();
-                proxyRepo = ServiceLocator.GetService<IProxyGroupRepository>();
-                wordlistRepo = ServiceLocator.GetService<IWordlistRepository>();
-                guestRepo = ServiceLocator.GetService<IGuestRepository>();
+                jobRepo = App.ServiceProvider.GetRequiredService<IJobRepository>();
+                configRepo = App.ServiceProvider.GetRequiredService<IConfigRepository>();
+                hitRepo = App.ServiceProvider.GetRequiredService<IHitRepository>();
+                proxyRepo = App.ServiceProvider.GetRequiredService<IProxyGroupRepository>();
+                wordlistRepo = App.ServiceProvider.GetRequiredService<IWordlistRepository>();
+                guestRepo = App.ServiceProvider.GetRequiredService<IGuestRepository>();
 
                 // Get performance settings from configuration
-                var config = ServiceLocator.GetService<IConfiguration>();
+                var config = App.ServiceProvider.GetRequiredService<IConfiguration>();
                 var performanceSection = config.GetSection("Performance");
                 var statisticsInterval = performanceSection.GetValue<int>("StatisticsUpdateInterval", 45);
                 var systemMetricsInterval = performanceSection.GetValue<int>("SystemMetricsUpdateInterval", 8);
@@ -369,7 +371,7 @@ namespace OpenBullet2.Native.Views.Pages
                 }
 
                 // Get timeout setting from configuration
-                var config = ServiceLocator.GetService<IConfiguration>();
+                var config = App.ServiceProvider.GetRequiredService<IConfiguration>();
                 var timeoutSeconds = config?.GetSection("Performance")?.GetValue<int>("DatabaseQueryTimeout", 10) ?? 10;
                 var timeout = TimeSpan.FromSeconds(isLowSpecMode ? 15 : timeoutSeconds);
 

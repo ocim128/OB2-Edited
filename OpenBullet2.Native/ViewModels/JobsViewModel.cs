@@ -14,12 +14,13 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Media;
-using OpenBullet2.Native.Infrastructure.DependencyInjection;
+
 using OpenBullet2.Native.Services;
+using OpenBullet2.Native.ViewModels.Base;
 
 namespace OpenBullet2.Native.ViewModels;
 
-public class JobsViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
+public class JobsViewModel : ViewModelBase
 {
     private readonly IJobRepository jobRepo;
     private readonly JobManagerService jobManager;
@@ -361,7 +362,7 @@ public class JobsViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewMo
     };
 }
 
-public class JobViewModel(Job job) : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
+public class JobViewModel(Job job) : ViewModelBase
 {
     public Job Job { get; init; } = job;
 

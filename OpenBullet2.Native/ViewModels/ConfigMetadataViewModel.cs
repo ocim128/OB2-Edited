@@ -7,11 +7,12 @@ using System.IO;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Windows.Media.Imaging;
-using OpenBullet2.Native.Infrastructure.DependencyInjection;
+using OpenBullet2.Native.ViewModels.Base;
+
 
 namespace OpenBullet2.Native.ViewModels
 {
-    public class ConfigMetadataViewModel(ConfigService configService) : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
+    public class ConfigMetadataViewModel(ConfigService configService) : ViewModelBase
     {
         private Config Config => configService.SelectedConfig;
 

@@ -13,9 +13,11 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Xml;
-using OpenBullet2.Native.Infrastructure.DependencyInjection;
+
 
 using OpenBullet2.Native.Enums;
+using OpenBullet2.Native.ViewModels.Base;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace OpenBullet2.Native.Views.Pages
 {
@@ -34,7 +36,7 @@ namespace OpenBullet2.Native.Views.Pages
             DataContext = vm;
 
             InitializeComponent();
-            configService = ServiceLocator.GetService<ConfigService>();
+            configService = App.ServiceProvider.GetRequiredService<ConfigService>();
 
             HighlightSyntax(editor);
             HighlightSyntax(startupEditor);
@@ -70,7 +72,7 @@ namespace OpenBullet2.Native.Views.Pages
             {
                 // On fail, prompt it to the user and go back to the configs page
                 Alert.Exception(ex);
-                ServiceLocator.GetService<MainWindow>().NavigateTo(MainWindowPage.Configs);
+                App.ServiceProvider.GetRequiredService<MainWindow>().NavigateTo(MainWindowPage.Configs);
             }
         }
 
@@ -89,7 +91,7 @@ namespace OpenBullet2.Native.Views.Pages
             startupEditorContainer.Visibility == Visibility.Collapsed ? Visibility.Visible : Visibility.Collapsed;
     }
 
-    public class ConfigCSharpCodeViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
+    public class ConfigCSharpCodeViewModel : ViewModelBase
     {
         private readonly ConfigService configService;
         private readonly OpenBulletSettingsService obSettingsService;
@@ -97,8 +99,8 @@ namespace OpenBullet2.Native.Views.Pages
 
         public ConfigCSharpCodeViewModel()
         {
-            configService = ServiceLocator.GetService<ConfigService>();
-            obSettingsService = ServiceLocator.GetService<OpenBulletSettingsService>();
+            configService = App.ServiceProvider.GetRequiredService<ConfigService>();
+            obSettingsService = App.ServiceProvider.GetRequiredService<OpenBulletSettingsService>();
         }
 
         public bool WordWrap => obSettingsService.Settings.CustomizationSettings.WordWrap;

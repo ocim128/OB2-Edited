@@ -6,10 +6,11 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Media;
+using OpenBullet2.Native.ViewModels.Base;
 
 namespace OpenBullet2.Native.ViewModels
 {
-    public class ProxyCheckJobViewerViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase, IDisposable
+    public class ProxyCheckJobViewerViewModel : ViewModelBase, IDisposable
     {
         private readonly Timer secondsTicker;
 

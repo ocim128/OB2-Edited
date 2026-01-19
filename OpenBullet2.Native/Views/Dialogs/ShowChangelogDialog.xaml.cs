@@ -2,6 +2,7 @@ using OpenBullet2.Native.Services;
 using OpenBullet2.Native.ViewModels;
 using System.Net.Http;
 using System.Windows.Controls;
+using OpenBullet2.Native.ViewModels.Base;
 
 namespace OpenBullet2.Native.Views.Dialogs
 {
@@ -19,7 +20,7 @@ namespace OpenBullet2.Native.Views.Dialogs
             DataContext = vm;
         }
 
-        public class ChangelogViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
+        public class ChangelogViewModel : ViewModelBase
         {
             private string text = "Loading...";
             public string Text

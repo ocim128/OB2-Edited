@@ -4,12 +4,13 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
-using OpenBullet2.Native.Infrastructure.DependencyInjection;
+
 using OpenBullet2.Native.Helpers;
 
 using OpenBullet2.Native.Enums;
+using Microsoft.Extensions.DependencyInjection;
 
-namespace OpenBullet2.Native.ViewModels.Infrastructure
+namespace OpenBullet2.Native.ViewModels.Base
 {
     /// <summary>
     /// Enhanced base class for ViewModels with improved property change notification
@@ -91,20 +92,11 @@ namespace OpenBullet2.Native.ViewModels.Infrastructure
         /// <summary>
         /// Centralized navigation helper that reduces duplication.
         /// </summary>
-        protected void NavigateToPage(MainWindowPage page)
-        {
-            var mainWindow = Application.Current.MainWindow as MainWindow;
-            mainWindow?.NavigateTo(page);
-        }
-
-        /// <summary>
-        /// Helper method for safe service retrieval with error handling.
-        /// </summary>
         protected T GetService<T>() where T : class
         {
             try
             {
-                return ServiceLocator.GetService<T>();
+                return (T)App.ServiceProvider.GetService(typeof(T));
             }
             catch (Exception ex)
             {
@@ -113,12 +105,9 @@ namespace OpenBullet2.Native.ViewModels.Infrastructure
             }
         }
 
-        /// <summary>
-        /// Helper method for safe service retrieval with exception throwing.
-        /// </summary>
         protected T GetRequiredService<T>() where T : class
         {
-            return ServiceLocator.GetService<T>() ?? throw new InvalidOperationException($"{typeof(T).Name} service is null");
+            return (T)App.ServiceProvider.GetService(typeof(T)) ?? throw new InvalidOperationException($"{typeof(T).Name} service is null");
         }
     }
 
@@ -173,14 +162,11 @@ namespace OpenBullet2.Native.ViewModels.Infrastructure
             mainWindow?.NavigateTo(targetPage);
         }
 
-        /// <summary>
-        /// Helper method for safe service retrieval with error handling.
-        /// </summary>
         public T GetService<T>() where T : class
         {
             try
             {
-                return ServiceLocator.GetService<T>();
+                return (T)App.ServiceProvider.GetService(typeof(T));
             }
             catch (Exception ex)
             {
@@ -194,7 +180,7 @@ namespace OpenBullet2.Native.ViewModels.Infrastructure
         /// </summary>
         public T GetRequiredService<T>() where T : class
         {
-            return ServiceLocator.GetService<T>() ?? throw new InvalidOperationException($"{typeof(T).Name} service is null");
+            return (T)App.ServiceProvider.GetService(typeof(T)) ?? throw new InvalidOperationException($"{typeof(T).Name} service is null");
         }
     }
 
@@ -255,16 +241,16 @@ namespace OpenBullet2.Native.ViewModels.Infrastructure
             System.Diagnostics.Debug.WriteLine(errorDetails);
             System.Diagnostics.Debug.WriteLine($"Full UI Exception: {ex}");
             
-            // Enhanced crash logging for UI exceptions
+            /* Overkill diagnostic logging removed
             try
             {
-                OpenBullet2.Native.Infrastructure.Diagnostics.CrashLoggingService.Instance.LogCrash(
                     ex, 
                     $"ViewModelBase.HandleUIException", 
                     $"UI exception during {operation}", 
                     false);
             }
-            catch { /* Ignore logging errors */ }
+            catch { }
+            */
             
             try
             {

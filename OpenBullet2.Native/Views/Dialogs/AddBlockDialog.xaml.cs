@@ -10,7 +10,9 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
-using OpenBullet2.Native.Infrastructure.DependencyInjection;
+using OpenBullet2.Native.ViewModels.Base;
+using Microsoft.Extensions.DependencyInjection;
+
 
 namespace OpenBullet2.Native.Views.Dialogs
 {
@@ -80,7 +82,7 @@ namespace OpenBullet2.Native.Views.Dialogs
         }
     }
 
-    public class AddBlockDialogViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
+    public class AddBlockDialogViewModel : ViewModelBase
     {
         private readonly VolatileSettingsService volatileSettings;
 
@@ -136,7 +138,7 @@ namespace OpenBullet2.Native.Views.Dialogs
 
         public AddBlockDialogViewModel()
         {
-            volatileSettings = ServiceLocator.GetService<VolatileSettingsService>();
+            volatileSettings = App.ServiceProvider.GetRequiredService<VolatileSettingsService>();
 
             var root = RuriLib.Globals.DescriptorsRepository.AsTree();
             CurrentNode = root

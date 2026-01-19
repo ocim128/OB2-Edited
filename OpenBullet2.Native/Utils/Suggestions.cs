@@ -7,7 +7,8 @@ using RuriLib.Services;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using OpenBullet2.Native.Infrastructure.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
+
 
 namespace OpenBullet2.Native.Utils
 {
@@ -15,9 +16,9 @@ namespace OpenBullet2.Native.Utils
     {
         public static IEnumerable<string> GetInputVariableSuggestions(BlockSetting setting)
         {
-            var debuggerVM = ServiceLocator.GetService<ViewModelsService>().Debugger;
-            var rlSettings = ServiceLocator.GetService<RuriLibSettingsService>();
-            var configService = ServiceLocator.GetService<ConfigService>();
+            var debuggerVM = App.ServiceProvider.GetRequiredService<ViewModelsService>().Debugger;
+            var rlSettings = App.ServiceProvider.GetRequiredService<RuriLibSettingsService>();
+            var configService = App.ServiceProvider.GetRequiredService<ConfigService>();
 
             List<string> suggestions = [
             "data.SOURCE", "data.ERROR", "data.ADDRESS",

@@ -12,7 +12,9 @@ using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Documents;
 using System.Windows.Input;
-using OpenBullet2.Native.Infrastructure.DependencyInjection;
+using OpenBullet2.Native.ViewModels.Base;
+using Microsoft.Extensions.DependencyInjection;
+
 
 namespace OpenBullet2.Native.Views.Dialogs
 {
@@ -42,7 +44,7 @@ namespace OpenBullet2.Native.Views.Dialogs
         public SelectConfigDialog(object caller)
         {
             this.caller = caller;
-            volatileSettings = ServiceLocator.GetService<VolatileSettingsService>();
+            volatileSettings = App.ServiceProvider.GetRequiredService<VolatileSettingsService>();
 
             vm = new SelectConfigDialogViewModel();
             DataContext = vm;
@@ -112,7 +114,7 @@ namespace OpenBullet2.Native.Views.Dialogs
         private void ShowNoConfigSelectedError() => Alert.Error("No config selected", "Please select a config first!");
     }
 
-    public class SelectConfigDialogViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
+    public class SelectConfigDialogViewModel : ViewModelBase
     {
         private readonly ConfigsViewModel configsViewModel;
         private readonly ConfigService configService;
@@ -163,10 +165,10 @@ namespace OpenBullet2.Native.Views.Dialogs
 
         public SelectConfigDialogViewModel()
         {
-            configService = ServiceLocator.GetService<ConfigService>();
+            configService = App.ServiceProvider.GetRequiredService<ConfigService>();
             CreateCollection();
 
-            configsViewModel = ServiceLocator.GetService<ViewModelsService>().Configs;
+            configsViewModel = App.ServiceProvider.GetRequiredService<ViewModelsService>().Configs;
 
             if (configsViewModel is not null)
             {

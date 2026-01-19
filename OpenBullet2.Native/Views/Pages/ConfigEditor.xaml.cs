@@ -11,9 +11,11 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Threading;
 using System.Windows.Media;
-using OpenBullet2.Native.Infrastructure.DependencyInjection;
+
 
 using OpenBullet2.Native.Enums;
+using OpenBullet2.Native.ViewModels.Base;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace OpenBullet2.Native.Views.Pages
 {
@@ -57,10 +59,10 @@ namespace OpenBullet2.Native.Views.Pages
 
         public ConfigEditor()
         {
-            mainWindow = ServiceLocator.GetService<MainWindow>();
+            mainWindow = App.ServiceProvider.GetRequiredService<MainWindow>();
             vm = new ConfigEditorViewModel();
             DataContext = vm;
-            obSettingsService = ServiceLocator.GetService<OpenBulletSettingsService>();
+            obSettingsService = App.ServiceProvider.GetRequiredService<OpenBulletSettingsService>();
 
             InitializeComponent();
 
@@ -245,7 +247,7 @@ namespace OpenBullet2.Native.Views.Pages
         CSharp
     }
 
-    public class ConfigEditorViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
+    public class ConfigEditorViewModel : ViewModelBase
     {
         private readonly IConfigRepository configRepo;
         private readonly ConfigService configService;
@@ -253,8 +255,8 @@ namespace OpenBullet2.Native.Views.Pages
 
         public ConfigEditorViewModel()
         {
-            configRepo = ServiceLocator.GetService<IConfigRepository>();
-            configService = ServiceLocator.GetService<ConfigService>();
+            configRepo = App.ServiceProvider.GetRequiredService<IConfigRepository>();
+            configService = App.ServiceProvider.GetRequiredService<ConfigService>();
         }
 
         public async Task Save()

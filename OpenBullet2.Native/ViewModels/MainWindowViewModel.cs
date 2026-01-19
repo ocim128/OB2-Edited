@@ -2,7 +2,7 @@ using OpenBullet2.Core.Services;
 using OpenBullet2.Native.Services;
 using OpenBullet2.Native.Enums;
 using OpenBullet2.Native.Helpers;
-using OpenBullet2.Native.ViewModels.Infrastructure;
+using OpenBullet2.Native.ViewModels.Base;
 using RuriLib.Models.Configs;
 using RuriLib.Models.Jobs;
 using System;

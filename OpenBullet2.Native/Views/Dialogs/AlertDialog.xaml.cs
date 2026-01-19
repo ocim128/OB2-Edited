@@ -1,5 +1,5 @@
 using MahApps.Metro.IconPacks;
-using OpenBullet2.Native.ViewModels.Infrastructure;
+using OpenBullet2.Native.ViewModels.Base;
 using System;
 using System.Windows;
 using System.Windows.Controls;

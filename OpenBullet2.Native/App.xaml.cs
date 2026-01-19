@@ -7,8 +7,7 @@ using OpenBullet2.Core.Repositories;
 using OpenBullet2.Core.Services;
 using OpenBullet2.Logging;
 using OpenBullet2.Native.Helpers;
-using OpenBullet2.Native.Infrastructure.DependencyInjection;
-using OpenBullet2.Native.Infrastructure.Diagnostics;
+
 using OpenBullet2.Native.Services;
 using OpenBullet2.Native.Utils;
 using OpenBullet2.Native.ViewModels;
@@ -43,6 +42,8 @@ public partial class App : Application
     private readonly ServiceProvider _serviceProvider;
     private readonly IConfiguration _config;
     private readonly CancellationTokenSource _startupCts = new();
+
+    public static IServiceProvider ServiceProvider => ((App)Current)._serviceProvider;
 
 
     public App()
@@ -97,7 +98,7 @@ public partial class App : Application
         serviceCollection.AddTransient(_ => _config);
         ConfigureServices(serviceCollection);
         _serviceProvider = serviceCollection.BuildServiceProvider();
-        ServiceLocator.Initialize(_serviceProvider);
+
 
         Trace("ServiceProvider built");
 
@@ -181,11 +182,13 @@ public partial class App : Application
             {
                 Trace($"Startup optimization error: {ex.Message}");
 
+                /* Removed overkill crash logging
                 try
                 {
                     CrashLoggingService.Instance.LogCrash(ex, "App.BackgroundInit", "Background initialization failure", false);
                 }
                 catch { }
+                */
 
                 _ = Dispatcher.BeginInvoke(() => Alert.Error("Startup Error", $"Some background initialization failed: {ex.Message}"));
             }
@@ -302,11 +305,9 @@ public partial class App : Application
         // Call base implementation first
         base.OnStartup(e);
 
-        // Initialize enhanced centralized exception handling with comprehensive crash logging
+        /* Centralized crash logging removed for optimization
         try
         {
-
-
             var appDirectory = AppDomain.CurrentDomain.BaseDirectory;
             var userDataPath = System.IO.Path.Combine(appDirectory, "UserData");
             var logsRoot = System.IO.Path.Combine(userDataPath, "Logs");
@@ -316,19 +317,12 @@ public partial class App : Application
             var geh = new GlobalExceptionHandler(logsRoot);
             geh.Initialize();
             Resources["GlobalExceptionHandler"] = geh;
-
-
         }
         catch (Exception gehEx)
         {
             Debug.WriteLine($"GlobalExceptionHandler init failed: {gehEx.Message}");
-
-            try
-            {
-                CrashLoggingService.Instance.LogCrash(gehEx, "App.OnStartup", "GlobalExceptionHandler initialization failure", false);
-            }
-            catch { }
         }
+        */
 
         // Allow multiple instances without confirmation
         // Note: Mutex is no longer used for instance control

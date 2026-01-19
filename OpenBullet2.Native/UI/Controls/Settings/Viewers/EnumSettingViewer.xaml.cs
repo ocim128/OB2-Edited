@@ -3,6 +3,7 @@ using RuriLib.Models.Blocks.Settings;
 using System;
 using System.Collections.Generic;
 using System.Windows.Controls;
+using OpenBullet2.Native.ViewModels.Base;
 
 namespace OpenBullet2.Native.Controls
 {
@@ -34,7 +35,7 @@ namespace OpenBullet2.Native.Controls
         }
     }
 
-    public class EnumSettingViewerViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
+    public class EnumSettingViewerViewModel : ViewModelBase
     {
         public BlockSetting Setting { get; init; }
 

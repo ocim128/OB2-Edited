@@ -8,6 +8,7 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using MahApps.Metro.IconPacks;
+using OpenBullet2.Native.ViewModels.Base;
 
 namespace OpenBullet2.Native.Controls
 {
@@ -218,7 +219,7 @@ namespace OpenBullet2.Native.Controls
         }
     }
 
-    public class BlockSettingsViewerViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
+    public class BlockSettingsViewerViewModel : ViewModelBase
     {
         public BlockViewModel BlockVM { get; init; }
         public BlockInstance Block => BlockVM.Block;

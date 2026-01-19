@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
+using OpenBullet2.Native.ViewModels.Base;
 
 namespace OpenBullet2.Native.Views.Dialogs
 {
@@ -39,7 +40,7 @@ namespace OpenBullet2.Native.Views.Dialogs
         private void GoBack(object sender, RoutedEventArgs e) => ((MainDialog)Parent).Close();
     }
 
-    public class UpdateConfirmationDialogViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
+    public class UpdateConfirmationDialogViewModel : ViewModelBase
     {
         private string currentVersion = string.Empty;
         public string CurrentVersion

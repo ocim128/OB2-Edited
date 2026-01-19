@@ -17,7 +17,8 @@ using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Input;
 using System.Threading.Tasks;
-using OpenBullet2.Native.Infrastructure.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
+
 
 namespace OpenBullet2.Native.Views.Pages;
 
@@ -38,7 +39,7 @@ public partial class Proxies : Page
         try
         {
             System.Diagnostics.Debug.WriteLine("Proxies: Starting page construction");
-            vm = ServiceLocator.GetService<ViewModelsService>().Proxies;
+            vm = App.ServiceProvider.GetRequiredService<ViewModelsService>().Proxies;
             DataContext = vm;
             
             System.Diagnostics.Debug.WriteLine("Proxies: Initializing ViewModel");
@@ -58,16 +59,16 @@ public partial class Proxies : Page
             System.Diagnostics.Debug.WriteLine(errorDetails);
             System.Diagnostics.Debug.WriteLine($"Full Proxies constructor error: {ex}");
             
-            // Log page construction failures
+            /* Overkill diagnostic logging removed
             try
             {
-                OpenBullet2.Native.Infrastructure.Diagnostics.CrashLoggingService.Instance.LogCrash(
                     ex, 
                     "Proxies.Constructor", 
                     "Failed to construct Proxies page during navigation", 
                     false);
             }
-            catch { /* Ignore logging errors */ }
+            catch { }
+            */
             
             throw; // Re-throw so navigation can handle it
         }

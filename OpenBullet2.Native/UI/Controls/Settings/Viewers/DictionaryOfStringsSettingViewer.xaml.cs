@@ -7,6 +7,7 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using OpenBullet2.Native.ViewModels.Base;
 
 namespace OpenBullet2.Native.Controls
 {
@@ -88,7 +89,7 @@ namespace OpenBullet2.Native.Controls
         }
     }
 
-    public class DictionaryOfStringsSettingViewerViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
+    public class DictionaryOfStringsSettingViewerViewModel : ViewModelBase
     {
         public BlockSetting Setting { get; init; }
 

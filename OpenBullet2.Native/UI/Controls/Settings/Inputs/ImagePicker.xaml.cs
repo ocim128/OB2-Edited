@@ -8,6 +8,7 @@ using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media.Imaging;
+using OpenBullet2.Native.ViewModels.Base;
 
 namespace OpenBullet2.Native.Controls
 {
@@ -54,7 +55,7 @@ namespace OpenBullet2.Native.Controls
         }
     }
 
-    public class ImagePickerViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
+    public class ImagePickerViewModel : ViewModelBase
     {
         private byte[] imageBytes;
         public byte[] ImageBytes

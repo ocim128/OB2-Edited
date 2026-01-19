@@ -10,11 +10,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using OpenBullet2.Native.Infrastructure.DependencyInjection;
+using OpenBullet2.Native.ViewModels.Base;
+
 
 namespace OpenBullet2.Native.ViewModels;
 
-public class DebuggerViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
+public class DebuggerViewModel : ViewModelBase
 {
     private readonly RuriLibSettingsService rlSettingsService;
     private readonly OpenBulletSettingsService obSettingsService;

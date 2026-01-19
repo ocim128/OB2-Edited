@@ -5,7 +5,8 @@ using OpenBullet2.Native.ViewModels;
 using System;
 using System.Windows;
 using System.Windows.Controls;
-using OpenBullet2.Native.Infrastructure.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
+
 
 namespace OpenBullet2.Native.Views.Pages
 {
@@ -18,7 +19,7 @@ namespace OpenBullet2.Native.Views.Pages
 
         public ConfigMetadata()
         {
-            vm = ServiceLocator.GetService<ViewModelsService>().ConfigMetadata;
+            vm = App.ServiceProvider.GetRequiredService<ViewModelsService>().ConfigMetadata;
             DataContext = vm;
 
             InitializeComponent();

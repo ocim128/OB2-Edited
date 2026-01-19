@@ -8,6 +8,7 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using MahApps.Metro.IconPacks;
 using RuriLib.Models.Blocks.Settings.Interpolated;
+using OpenBullet2.Native.ViewModels.Base;
 
 namespace OpenBullet2.Native.Controls
 {
@@ -237,7 +238,7 @@ namespace OpenBullet2.Native.Controls
 
     }
 
-    public class CreateMultipleConstantViewerViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
+    public class CreateMultipleConstantViewerViewModel : ViewModelBase
     {
         public BlockViewModel BlockVM { get; init; }
 

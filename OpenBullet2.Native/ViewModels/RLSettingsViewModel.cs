@@ -6,11 +6,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using OpenBullet2.Native.Infrastructure.DependencyInjection;
+using OpenBullet2.Native.ViewModels.Base;
+
 
 namespace OpenBullet2.Native.ViewModels;
 
-public class RLSettingsViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
+public class RLSettingsViewModel : ViewModelBase
 {
     private readonly RuriLibSettingsService _service;
     private GeneralSettings General => _service.RuriLibSettings.GeneralSettings;

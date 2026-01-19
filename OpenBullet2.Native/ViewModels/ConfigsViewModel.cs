@@ -14,11 +14,12 @@ using System.Windows;
 using System.Windows.Data;
 using System.Windows.Media.Imaging;
 using RuriLib.Helpers;
-using OpenBullet2.Native.Infrastructure.DependencyInjection;
+using OpenBullet2.Native.ViewModels.Base;
+
 
 namespace OpenBullet2.Native.ViewModels
 {
-    public class ConfigsViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
+    public class ConfigsViewModel : ViewModelBase
     {
         private readonly ConfigService configService;
         private readonly IConfigRepository configRepo;
@@ -221,7 +222,7 @@ namespace OpenBullet2.Native.ViewModels
             .Metadata.Name.Contains(searchString, StringComparison.OrdinalIgnoreCase);
     } // Closing ConfigsViewModel class
 
-    public class ConfigViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
+    public class ConfigViewModel : ViewModelBase
     {
         public Config Config { get; init; }
 

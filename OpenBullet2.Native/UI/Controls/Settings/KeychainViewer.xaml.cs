@@ -7,7 +7,9 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
-using OpenBullet2.Native.Infrastructure.DependencyInjection;
+using OpenBullet2.Native.ViewModels.Base;
+using Microsoft.Extensions.DependencyInjection;
+
 
 namespace OpenBullet2.Native.Controls
 {
@@ -56,14 +58,14 @@ namespace OpenBullet2.Native.Controls
         }
     }
 
-    public class KeychainViewerViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
+    public class KeychainViewerViewModel : ViewModelBase
     {
         private readonly RuriLibSettingsService rlSettingsService;
         private readonly Keychain keychain;
 
         public KeychainViewerViewModel(Keychain keychain)
         {
-            rlSettingsService = ServiceLocator.GetService<RuriLibSettingsService>();
+            rlSettingsService = App.ServiceProvider.GetRequiredService<RuriLibSettingsService>();
             this.keychain = keychain;
         }
 

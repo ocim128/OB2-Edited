@@ -1,7 +1,7 @@
 using System;
 using System.Windows;
 using System.Windows.Threading;
-using OpenBullet2.Native.ViewModels.Infrastructure;
+using OpenBullet2.Native.ViewModels.Base;
 using RuriLib.Blocks.Utility;
 
 namespace OpenBullet2.Native.ViewModels.Tools

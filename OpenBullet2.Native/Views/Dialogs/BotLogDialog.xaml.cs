@@ -8,6 +8,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using OpenBullet2.Native.ViewModels.Base;
 
 namespace OpenBullet2.Native.Views.Dialogs
 {
@@ -247,7 +248,7 @@ namespace OpenBullet2.Native.Views.Dialogs
         #endregion
     }
     
-    public class BotLogDialogViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
+    public class BotLogDialogViewModel : ViewModelBase
     {
         private string searchString = string.Empty;
         public string SearchString

@@ -85,9 +85,10 @@ Clean MVVM infrastructure:
 2. Follow naming conventions (e.g., `*Viewer` for display, `*Picker` for input)
 3. Use constants from `UIConstants` for consistent styling (when needed)
 
-### Service Usage
+#### Service Usage
 1. Continue using the existing `ViewModelsService` which works well
-2. Follow the established service location pattern with `ServiceLocator.GetService<T>()`
+2. Use constructor injection for new Pages and ViewModels (supported via `NavigationService`)
+3. For existing code or static helpers, use `App.ServiceProvider.GetRequiredService<T>()` instead of the removed ServiceLocator.
 
 ## Migration Guide
 

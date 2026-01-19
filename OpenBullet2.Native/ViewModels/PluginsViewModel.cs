@@ -4,11 +4,12 @@ using System;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
-using OpenBullet2.Native.Infrastructure.DependencyInjection;
+using OpenBullet2.Native.ViewModels.Base;
+
 
 namespace OpenBullet2.Native.ViewModels
 {
-    public class PluginsViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
+    public class PluginsViewModel : ViewModelBase
     {
         private ObservableCollection<PluginInfo> pluginsCollection;
         private PluginRepository pluginRepo;

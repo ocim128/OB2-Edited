@@ -7,7 +7,8 @@ using System;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
-using OpenBullet2.Native.Infrastructure.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
+
 
 namespace OpenBullet2.Native.Views.Pages;
 
@@ -20,7 +21,7 @@ public partial class OBSettings : Page
 
     public OBSettings()
     {
-        vm = ServiceLocator.GetService<ViewModelsService>().OBSettings;
+        vm = App.ServiceProvider.GetRequiredService<ViewModelsService>().OBSettings;
         DataContext = vm;
 
         InitializeComponent();

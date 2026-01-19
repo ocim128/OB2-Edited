@@ -12,11 +12,12 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Data;
-using OpenBullet2.Native.Infrastructure.DependencyInjection;
+using OpenBullet2.Native.ViewModels.Base;
+
 
 namespace OpenBullet2.Native.ViewModels;
 
-    public class ProxiesViewModel : OpenBullet2.Native.ViewModels.Infrastructure.ViewModelBase
+    public class ProxiesViewModel : ViewModelBase
 {
     private ObservableCollection<ProxyGroupEntity> proxyGroupsCollection;
     private ObservableCollection<ProxyEntity> proxiesCollection;
@@ -180,16 +181,16 @@ namespace OpenBullet2.Native.ViewModels;
                 System.Diagnostics.Debug.WriteLine(errorDetails);
                 System.Diagnostics.Debug.WriteLine($"Full ProxiesViewModel error: {ex}");
                 
-                // Log to crash system
+                /* Overkill diagnostic logging removed
                 try
                 {
-                    OpenBullet2.Native.Infrastructure.Diagnostics.CrashLoggingService.Instance.LogCrash(
                         ex, 
                         "ProxiesViewModel.InitializeAsync", 
                         "Failed to initialize ProxiesViewModel during page navigation", 
                         false);
                 }
-                catch { /* Ignore logging errors */ }
+                catch { }
+                */
                 
                 throw; // Re-throw so the UI can handle it
             }
@@ -260,16 +261,16 @@ namespace OpenBullet2.Native.ViewModels;
             System.Diagnostics.Debug.WriteLine(errorDetails);
             System.Diagnostics.Debug.WriteLine($"Full RefreshListAsync error: {ex}");
             
-            // Log database access failures
+            /* Overkill diagnostic logging removed
             try
             {
-                OpenBullet2.Native.Infrastructure.Diagnostics.CrashLoggingService.Instance.LogCrash(
                     ex, 
                     "ProxiesViewModel.RefreshListAsync", 
                     $"Failed to refresh proxies list from database. SelectedGroup: {SelectedGroup?.Name ?? "null"}", 
                     false);
             }
-            catch { /* Ignore logging errors */ }
+            catch { }
+            */
             
             // Initialize with empty collection to prevent further UI errors
             ProxiesCollection = new ObservableCollection<ProxyEntity>();

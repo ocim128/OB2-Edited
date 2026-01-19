@@ -18,6 +18,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using TlsClient.Core.Models.Entities;
 using TlsClient.Core.Models.Requests;
+using TlsClient.Core.Helpers;
 using TlsClient.Native;
 
 namespace RuriLib.Functions.Http
@@ -334,11 +335,13 @@ namespace RuriLib.Functions.Http
                 request.HeaderOrder = options.CustomHeaders.Keys.ToList();
             }
 
-            // Set cookies
+            // Set cookies using RequestCookies (the proper way in TlsClient)
+            // Note: Using Cookie header doesn't work reliably in TlsClient
             if (data.COOKIES?.Count > 0)
             {
-                var cookieString = string.Join("; ", data.COOKIES.Select(c => $"{c.Key}={c.Value}"));
-                request.Headers["Cookie"] = cookieString;
+                request.RequestCookies = data.COOKIES
+                    .Select(c => new TlsClientCookie(c.Key, c.Value))
+                    .ToList();
             }
 
             if (data.UseProxy && data.Proxy != null)
@@ -346,9 +349,40 @@ namespace RuriLib.Functions.Http
                 request.ProxyUrl = BuildProxyUrl(data.Proxy);
             }
 
+            // Enable debug mode for detailed logging
+            request.WithDebug = data.Logger?.Enabled == true;
+
             // Log request details
-            data.Logger?.Log($"[TLS Client] Building request to {options.Url}", LogColors.DarkOrchid);
-            data.Logger?.Log($"[TLS Client] Using browser profile: {tlsProfile} (shared client)", LogColors.DarkOrchid);
+            if (data.Logger?.Enabled == true)
+            {
+                data.Logger.Log($"[TLS Client] Building request to {options.Url}", LogColors.DarkOrchid);
+                data.Logger.Log($"[TLS Client] Using browser profile: {tlsProfile} (shared client)", LogColors.DarkOrchid);
+                data.Logger.Log($"[TLS Client] Method: {options.Method}", LogColors.DarkOrchid);
+                
+                // Log headers being sent
+                if (request.Headers?.Count > 0)
+                {
+                    var sbHeaders = new StringBuilder();
+                    sbHeaders.AppendLine("[TLS Client] Request Headers:");
+                    foreach (var header in request.Headers)
+                    {
+                        sbHeaders.AppendLine($"  {header.Key}: {header.Value}");
+                    }
+                    data.Logger.Log(sbHeaders.ToString(), LogColors.MediumPurple);
+                }
+                
+                // Log cookies being sent
+                if (request.RequestCookies?.Count > 0)
+                {
+                    var sbCookies = new StringBuilder();
+                    sbCookies.AppendLine("[TLS Client] Request Cookies:");
+                    foreach (var cookie in request.RequestCookies)
+                    {
+                        sbCookies.AppendLine($"  {cookie.Name}={cookie.Value}");
+                    }
+                    data.Logger.Log(sbCookies.ToString(), LogColors.Khaki);
+                }
+            }
 
             return request;
         }
@@ -359,6 +393,32 @@ namespace RuriLib.Functions.Http
             var requestNumber = Interlocked.Increment(ref _requestCount);
 
             var startTime = DateTime.UtcNow;
+            
+            // Log request body before execution (so we can see what's being sent)
+            if (data.Logger?.Enabled == true && !string.IsNullOrEmpty(request.RequestBody))
+            {
+                data.Logger.Log("[TLS Client] Request Body (PostData):", LogColors.Gold);
+                // For byte requests, show that it's base64 encoded
+                if (request.IsByteRequest)
+                {
+                    data.Logger.Log($"  [Base64 Encoded - {request.RequestBody.Length} chars]", LogColors.Gold);
+                    // Optionally decode and show first part for debugging
+                    try
+                    {
+                        var decoded = Encoding.UTF8.GetString(Convert.FromBase64String(request.RequestBody));
+                        var preview = decoded.Length > 500 ? decoded.Substring(0, 500) + "..." : decoded;
+                        data.Logger.Log(preview, LogColors.GreenYellow, true);
+                    }
+                    catch { /* Ignore decode errors */ }
+                }
+                else
+                {
+                    var bodyPreview = request.RequestBody.Length > 2000 
+                        ? request.RequestBody.Substring(0, 2000) + "..." 
+                        : request.RequestBody;
+                    data.Logger.Log(bodyPreview, LogColors.GreenYellow, true);
+                }
+            }
             
             try
             {

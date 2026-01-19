@@ -47,6 +47,9 @@ namespace OpenBullet2.Native.Views.Pages.Shared
             _logRTB = logRTB;
             _viewModel = viewModel;
 
+            // Configure hyperlink color for readability on dark background
+            _logRTB.TextArea.TextView.LinkTextForegroundBrush = new SolidColorBrush(Color.FromRgb(88, 209, 235)); // Bright cyan #58D1EB
+
             // Initialize Syntax Highlighting for Log
             _colorizer = new DebuggerLogColorizer(_segments);
             _logRTB.TextArea.TextView.LineTransformers.Add(_colorizer);

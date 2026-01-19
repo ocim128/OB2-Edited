@@ -1,0 +1,34 @@
+<Project>
+  <!-- Libraries Directory Build Properties -->
+  <!-- MSBuild automatically imports parent Directory.Build.props files -->
+  
+  <PropertyGroup>
+    <!-- Library-specific optimizations -->
+    <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <IncludeSymbols>false</IncludeSymbols>
+    <IncludeSource>false</IncludeSource>
+    
+    <!-- Suppress warnings for external library code -->
+    <NoWarn>$(NoWarn);CS8618;CS8600;CS8602;CS8604;CS8625;CS8622;CS8601;CS8603;CS0618;SYSLIB0039;CA1416;NU1701</NoWarn>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    
+    <!-- Build speed optimizations -->
+    <EnableNETAnalyzers>false</EnableNETAnalyzers>
+    <RunAnalyzersDuringBuild>false</RunAnalyzersDuringBuild>
+    <AnalysisLevel>none</AnalysisLevel>
+    
+    <!-- Deterministic builds -->
+    <Deterministic>true</Deterministic>
+    
+    <!-- Optimize for consuming project -->
+    <Optimize>true</Optimize>
+  </PropertyGroup>
+  
+  <!-- Release-specific optimizations -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+  </PropertyGroup>
+</Project>

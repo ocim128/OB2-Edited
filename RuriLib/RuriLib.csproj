@@ -58,7 +58,7 @@
     <PackageReference Include="System.CodeDom" Version="8.0.0" />
     <PackageReference Include="System.Text.Encoding.CodePages" Version="8.0.0" />
     <PackageReference Include="HttpCloak.Ob2" Version="1.5.6-ob2.1" />
-    <PackageReference Include="TlsClient.Native" Version="0.4.3" />
+    <ProjectReference Include="..\Libraries\TlsClient.NET\src\TlsClient.Native\TlsClient.Native.csproj" />
     <PackageReference Include="TlsClient.Native.win-x64" Version="1.9.1" />
     <PackageReference Include="Websocket.Client" Version="5.1.1" />
     <PackageReference Include="Yove.Proxy" Version="1.1.1" />

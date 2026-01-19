@@ -507,7 +507,7 @@ public class MultiRunJobViewerViewModel : OpenBullet2.Native.ViewModels.Infrastr
             HitsCollection = [];
             AskCustomInputs();
             OnPropertyChanged(nameof(CustomInputsInfo));
-            await MultiRunJob.Start(startCTS.Token);
+            await Task.Run(async () => await MultiRunJob.Start(startCTS.Token));
             UpdateBots();
         }
         finally

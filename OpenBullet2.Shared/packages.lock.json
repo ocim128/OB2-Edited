@@ -117,6 +117,11 @@
         "resolved": "1.11.61",
         "contentHash": "hqZASeEFHS9quHvfZSwaULoAJLWkOYVPiQjc3P9J4pQS8vSYzrP3bxe04Vm7vYYuxwbQhq9hCSVvZVLTyRaNaQ=="
       },
+      "HttpCloak.Ob2": {
+        "type": "Transitive",
+        "resolved": "1.5.6-ob2.1",
+        "contentHash": "Tf77GRyW57mlKMqB8uwP0IhoURYa97DC8UghWuwUZfbm6/s1dJFzPNYgSlaFogc/IsflpGmZdYKmYyjtN+fYMQ=="
+      },
       "Humanizer.Core": {
         "type": "Transitive",
         "resolved": "2.14.1",
@@ -988,22 +993,6 @@
           "Microsoft.Extensions.DependencyInjection.Abstractions": "7.0.0"
         }
       },
-      "TlsClient.Core": {
-        "type": "Transitive",
-        "resolved": "0.4.3",
-        "contentHash": "iwW7jzU7mAXx89C8YxfIKuXGhz+IZQjxgUgWrXLAlbjn2V4dxKuwBn0fX5pgWXy2wIBLtq4lVVy9GfcoHWqJwQ==",
-        "dependencies": {
-          "System.Text.Json": "9.0.8"
-        }
-      },
-      "TlsClient.Native": {
-        "type": "Transitive",
-        "resolved": "0.4.3",
-        "contentHash": "VN6M4xENQZoRyKnK2TJ20/cDWVBNy3REUT9jNTmIaf2Wj8vSEWK4dgMIQ3ySlemKwAC16PrCFJLW3JRI6pkXSA==",
-        "dependencies": {
-          "TlsClient.Core": "0.4.3"
-        }
-      },
       "TlsClient.Native.win-x64": {
         "type": "Transitive",
         "resolved": "1.9.1",
@@ -1050,6 +1039,7 @@
           "DeviceId": "[5.2.0, )",
           "FluentFTP": "[50.0.1, )",
           "HtmlAgilityPack": "[1.11.61, )",
+          "HttpCloak.Ob2": "[1.5.6-ob2.1, )",
           "IronPython": "[3.4.2, )",
           "IronPython.StdLib": "[3.4.2, )",
           "JWT": "[10.1.1, )",
@@ -1076,7 +1066,7 @@
           "System.Speech": "[8.0.0, )",
           "System.Text.Encoding.CodePages": "[8.0.0, )",
           "TextCopy": "[6.2.1, )",
-          "TlsClient.Native": "[0.4.3, )",
+          "TlsClient.Native": "[1.0.0, )",
           "TlsClient.Native.win-x64": "[1.9.1, )",
           "Websocket.Client": "[5.1.1, )",
           "Yove.Proxy": "[1.1.1, )"
@@ -1094,9 +1084,26 @@
       },
       "rurilib.proxies": {
         "type": "Project"
+      },
+      "tlsclient.core": {
+        "type": "Project",
+        "dependencies": {
+          "System.Text.Json": "[9.0.8, )"
+        }
+      },
+      "tlsclient.native": {
+        "type": "Project",
+        "dependencies": {
+          "TlsClient.Core": "[1.0.0, )"
+        }
       }
     },
     "net8.0/win-x64": {
+      "HttpCloak.Ob2": {
+        "type": "Transitive",
+        "resolved": "1.5.6-ob2.1",
+        "contentHash": "Tf77GRyW57mlKMqB8uwP0IhoURYa97DC8UghWuwUZfbm6/s1dJFzPNYgSlaFogc/IsflpGmZdYKmYyjtN+fYMQ=="
+      },
       "Microsoft.Win32.Registry": {
         "type": "Transitive",
         "resolved": "4.7.0",

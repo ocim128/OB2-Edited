@@ -267,15 +267,6 @@
           "Microsoft.Extensions.DependencyInjection.Abstractions": "7.0.0"
         }
       },
-      "TlsClient.Native": {
-        "type": "Direct",
-        "requested": "[0.4.3, )",
-        "resolved": "0.4.3",
-        "contentHash": "VN6M4xENQZoRyKnK2TJ20/cDWVBNy3REUT9jNTmIaf2Wj8vSEWK4dgMIQ3ySlemKwAC16PrCFJLW3JRI6pkXSA==",
-        "dependencies": {
-          "TlsClient.Core": "0.4.3"
-        }
-      },
       "TlsClient.Native.win-x64": {
         "type": "Direct",
         "requested": "[1.9.1, )",
@@ -835,14 +826,6 @@
           "System.Runtime": "4.3.0"
         }
       },
-      "TlsClient.Core": {
-        "type": "Transitive",
-        "resolved": "0.4.3",
-        "contentHash": "iwW7jzU7mAXx89C8YxfIKuXGhz+IZQjxgUgWrXLAlbjn2V4dxKuwBn0fX5pgWXy2wIBLtq4lVVy9GfcoHWqJwQ==",
-        "dependencies": {
-          "System.Text.Json": "9.0.8"
-        }
-      },
       "rurilib.http": {
         "type": "Project",
         "dependencies": {
@@ -855,6 +838,18 @@
       },
       "rurilib.proxies": {
         "type": "Project"
+      },
+      "tlsclient.core": {
+        "type": "Project",
+        "dependencies": {
+          "System.Text.Json": "[9.0.8, )"
+        }
+      },
+      "tlsclient.native": {
+        "type": "Project",
+        "dependencies": {
+          "TlsClient.Core": "[1.0.0, )"
+        }
       }
     },
     "net8.0/win-x64": {

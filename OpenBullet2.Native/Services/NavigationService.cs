@@ -1,13 +1,29 @@
 using OpenBullet2.Native.Enums;
 using OpenBullet2.Native.ViewModels;
 using OpenBullet2.Native.Views.Pages;
+using Home = OpenBullet2.Native.Views.Pages.Home.Home;
+using Jobs = OpenBullet2.Native.Views.Pages.Jobs.Jobs;
+using Tools = OpenBullet2.Native.Views.Pages.Tools.Monitor;
+using Proxies = OpenBullet2.Native.Views.Pages.Data.Proxies;
+using Wordlists = OpenBullet2.Native.Views.Pages.Data.Wordlists;
+using Hits = OpenBullet2.Native.Views.Pages.Data.Hits;
+using Plugins = OpenBullet2.Native.Views.Pages.Tools.Plugins;
+using OBSettings = OpenBullet2.Native.Views.Pages.Settings.OBSettings;
+using RLSettings = OpenBullet2.Native.Views.Pages.Settings.RLSettings;
+using About = OpenBullet2.Native.Views.Pages.About.About;
+using ConfigMetadata = OpenBullet2.Native.Views.Pages.Configs.ConfigMetadata;
+using ConfigReadme = OpenBullet2.Native.Views.Pages.Configs.ConfigReadme;
+using ConfigSettings = OpenBullet2.Native.Views.Pages.Configs.ConfigSettings;
+using ConfigEditor = OpenBullet2.Native.Views.Pages.Configs.ConfigEditor;
+using ConfigEditorSection = OpenBullet2.Native.Views.Pages.Configs.ConfigEditorSection;
+using ConfigsPage = OpenBullet2.Native.Views.Pages.Configs.Configs;
+using OpenBullet2.Native.Views.Pages.Shared;
 using System;
 using System.Collections.Generic;
 using System.Windows.Controls;
 using OpenBullet2.Core.Models.Settings;
 using OpenBullet2.Core.Services;
 using OpenBullet2.Native.Helpers;
-using OpenBullet2.Native.Views.Pages.Shared; // For Debugger if needed
 using Microsoft.Extensions.DependencyInjection;
 
 namespace OpenBullet2.Native.Services;
@@ -37,9 +53,9 @@ public class NavigationService : INavigationService
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly Dictionary<MainWindowPage, Page> _pageCache = new();
-    
+
     public event EventHandler<NavigationEventArgs>? Navigated;
-    
+
     public Page? CurrentPage { get; private set; }
     public MainWindowPage CurrentPageEnum { get; private set; } = MainWindowPage.Home; // Default
 
@@ -81,14 +97,14 @@ public class NavigationService : INavigationService
         // These are actually just setting the ConfigEditor to a specific section.
         if (page is ConfigEditor configEditor && IsConfigEditorPage(pageEnum))
         {
-             // We need to tell the ConfigEditor which section to show.
-             // This was originally done via helper methods in MainWindow.
-             // We can do this by casting logic.
-             var section = GetConfigEditorSection(pageEnum);
-             configEditor.NavigateTo(section);
-             
-             // Ensure we update UI
-             configEditor.UpdateUI();
+            // We need to tell the ConfigEditor which section to show.
+            // This was originally done via helper methods in MainWindow.
+            // We can do this by casting logic.
+            var section = GetConfigEditorSection(pageEnum);
+            configEditor.NavigateTo(section);
+
+            // Ensure we update UI
+            configEditor.UpdateUI();
         }
 
         // Update ViewModel if the page supports it (consistent with original CreateAndNavigateToPage)
@@ -109,7 +125,7 @@ public class NavigationService : INavigationService
             MainWindowPage.Tools => ActivatorUtilities.CreateInstance<Tools>(_serviceProvider),
             MainWindowPage.Proxies => ActivatorUtilities.CreateInstance<Proxies>(_serviceProvider),
             MainWindowPage.Wordlists => ActivatorUtilities.CreateInstance<Wordlists>(_serviceProvider),
-            MainWindowPage.Configs => ActivatorUtilities.CreateInstance<Configs>(_serviceProvider),
+            MainWindowPage.Configs => ActivatorUtilities.CreateInstance<ConfigsPage>(_serviceProvider),
             MainWindowPage.Hits => ActivatorUtilities.CreateInstance<Hits>(_serviceProvider),
             MainWindowPage.Plugins => ActivatorUtilities.CreateInstance<Plugins>(_serviceProvider),
             MainWindowPage.OBSettings => ActivatorUtilities.CreateInstance<OBSettings>(_serviceProvider),
@@ -117,11 +133,11 @@ public class NavigationService : INavigationService
             MainWindowPage.About => ActivatorUtilities.CreateInstance<About>(_serviceProvider),
 
             // Config Related Pages
-            MainWindowPage.ConfigMetadata => ActivatorUtilities.CreateInstance<Views.Pages.ConfigMetadata>(_serviceProvider),
+            MainWindowPage.ConfigMetadata => ActivatorUtilities.CreateInstance<ConfigMetadata>(_serviceProvider),
             MainWindowPage.ConfigReadme => ActivatorUtilities.CreateInstance<ConfigReadme>(_serviceProvider),
-            MainWindowPage.ConfigSettings => ActivatorUtilities.CreateInstance<Views.Pages.ConfigSettings>(_serviceProvider),
+            MainWindowPage.ConfigSettings => ActivatorUtilities.CreateInstance<ConfigSettings>(_serviceProvider),
 
-            MainWindowPage.ConfigStacker or MainWindowPage.ConfigLoliCode or MainWindowPage.ConfigCSharpCode 
+            MainWindowPage.ConfigStacker or MainWindowPage.ConfigLoliCode or MainWindowPage.ConfigCSharpCode
                 => GetOrCreateSharedConfigEditor(),
 
             _ => throw new ArgumentException($"Unknown page type: {pageEnum}")
@@ -137,7 +153,7 @@ public class NavigationService : INavigationService
         }
         return _sharedConfigEditor;
     }
-    
+
     // Helper to sync cache if we use shared instance
     private void SyncConfigEditorCache(ConfigEditor editor)
     {
@@ -148,8 +164,8 @@ public class NavigationService : INavigationService
 
     private bool IsConfigEditorPage(MainWindowPage page)
     {
-        return page == MainWindowPage.ConfigStacker || 
-               page == MainWindowPage.ConfigLoliCode || 
+        return page == MainWindowPage.ConfigStacker ||
+               page == MainWindowPage.ConfigLoliCode ||
                page == MainWindowPage.ConfigCSharpCode;
     }
 

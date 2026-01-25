@@ -2,6 +2,7 @@
 using OpenBullet2.Native.DTOs;
 using OpenBullet2.Native.Helpers;
 using OpenBullet2.Native.Views.Pages;
+using OpenBullet2.Native.Views.Pages.Configs;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;

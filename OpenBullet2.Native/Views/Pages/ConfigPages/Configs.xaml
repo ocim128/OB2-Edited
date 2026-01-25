@@ -1,0 +1,394 @@
+<Page x:Class="OpenBullet2.Native.Views.Pages.Configs.Configs"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+      xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
+      xmlns:uc="clr-namespace:OpenBullet2.Native.Controls"
+      xmlns:converters="clr-namespace:OpenBullet2.Native.Converters"
+      xmlns:local="clr-namespace:OpenBullet2.Native.Views.Pages"
+      mc:Ignorable="d" 
+      d:DesignHeight="450" d:DesignWidth="800"
+      Title="Configs"
+      TextOptions.TextFormattingMode="Display"
+      TextOptions.TextRenderingMode="ClearType"
+      RenderOptions.ClearTypeHint="Enabled"
+      UseLayoutRounding="True"
+      SnapsToDevicePixels="True">
+
+    <Page.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+        <converters:LessThanConverter x:Key="LessThanConverter" />
+    </Page.Resources>
+
+    <Grid Margin="16,12,16,16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="auto" />
+            <RowDefinition Height="auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="auto" />
+            <RowDefinition Height="40" MinHeight="35" MaxHeight="80" />
+        </Grid.RowDefinitions>
+
+        <!-- Modern Header Section -->
+        <Border Grid.Row="0" Margin="0,0,0,16">
+            
+            <Border.Style>
+                <Style TargetType="Border" BasedOn="{StaticResource ModernCardLite}">
+                    <Style.Triggers>
+                        <!-- Hide toolbar when window width is very small -->
+                        <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=Page}, Path=ActualWidth, Converter={StaticResource LessThanConverter}, ConverterParameter=1050}" Value="True">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <StackPanel Orientation="Horizontal" Grid.Column="0">
+                    <TextBlock Text="Current Config:" Style="{StaticResource LabelTextStyle}" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding SelectedConfig.Name}" Style="{StaticResource LabelTextStyle}" Foreground="#FF1E90FF" VerticalAlignment="Center" Margin="8,0,0,0"/>
+            </StackPanel>
+                <StackPanel Orientation="Horizontal" Grid.Column="1" HorizontalAlignment="Right">
+                    <TextBlock Text="Total Configs:" Style="{StaticResource LabelTextStyle}" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding Total}" Style="{StaticResource LabelTextStyle}" Foreground="#FF4CAF50" VerticalAlignment="Center" Margin="8,0,0,0"/>
+            </StackPanel>
+        </Grid>
+        </Border>
+
+        <!-- Modern Toolbar Section -->
+        <Border Grid.Row="1" Margin="0,0,0,16">
+            <Border.Style>
+                <Style TargetType="Border" BasedOn="{StaticResource ModernCardLite}">
+                    <Style.Triggers>
+                        <!-- Hide toolbar when window width is very small -->
+                        <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=Page}, Path=ActualWidth, Converter={StaticResource LessThanConverter}, ConverterParameter=1000}" Value="True">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="auto" />
+            </Grid.ColumnDefinitions>
+
+                <!-- Action Buttons Group -->
+                <WrapPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button x:Name="newButton" Click="Create" Margin="0,0,8,0" Style="{StaticResource StyledSuccessButton}">
+                    <StackPanel Orientation="Horizontal">
+                            <iconPacks:PackIconMaterialDesign Kind="Add" Width="16" Height="16"/>
+                            <TextBlock VerticalAlignment="Center" Margin="8,0,0,0" FontWeight="SemiBold">New</TextBlock>
+                    </StackPanel>
+                </Button>
+                    <Button x:Name="editButton" Click="Edit" Margin="0,0,8,0" Style="{StaticResource StyledPrimaryButton}">
+                    <StackPanel Orientation="Horizontal">
+                            <iconPacks:PackIconRemixIcon Kind="Edit2Fill" Width="16" Height="16"/>
+                            <TextBlock VerticalAlignment="Center" Margin="8,0,0,0" FontWeight="SemiBold">Edit</TextBlock>
+                    </StackPanel>
+                </Button>
+                    <Button x:Name="saveButton" Click="Save" Margin="0,0,8,0" Style="{StaticResource StyledPrimaryButton}">
+                    <StackPanel Orientation="Horizontal">
+                            <iconPacks:PackIconRemixIcon Kind="Save3Fill" Width="16" Height="16"/>
+                            <TextBlock VerticalAlignment="Center" Margin="8,0,0,0" FontWeight="SemiBold">Save</TextBlock>
+                    </StackPanel>
+                </Button>
+                    <Button x:Name="deleteButton" Click="Delete" Margin="0,0,8,0" Style="{StaticResource StyledDangerButton}">
+                    <StackPanel Orientation="Horizontal">
+                            <iconPacks:PackIconMaterial Kind="Close" Width="16" Height="16"/>
+                            <TextBlock VerticalAlignment="Center" Margin="8,0,0,0" FontWeight="SemiBold">Delete</TextBlock>
+                    </StackPanel>
+                </Button>
+                    <Button x:Name="exportSelectedButton" Click="ExportSelected" Margin="0,0,16,0" Style="{StaticResource StyledPrimaryButton}">
+                    <StackPanel Orientation="Horizontal">
+                            <iconPacks:PackIconMaterial Kind="Export" Width="16" Height="16"/>
+                            <TextBlock VerticalAlignment="Center" Margin="8,0,0,0" FontWeight="SemiBold">Export Selected</TextBlock>
+                    </StackPanel>
+                </Button>
+                    
+                    <!-- Search Section -->
+                    <Border Background="{DynamicResource BackgroundInput}" CornerRadius="8" Padding="12,8" Margin="0,0,8,0">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBox x:Name="filterTextbox" 
+                                     Text="{Binding SearchString, UpdateSourceTrigger=PropertyChanged}" 
+                                     Width="160" 
+                                     Background="Transparent" 
+                                     BorderThickness="0" 
+                                     Foreground="{DynamicResource ForegroundInput}"
+                                     FontSize="13"
+                                     VerticalAlignment="Center"
+                                     TextChanged="UpdateSearch"
+                                     Padding="8,6"/>
+                            <Button x:Name="searchButton"
+                                     Style="{StaticResource StyledPrimaryButton}">
+                                <StackPanel Orientation="Horizontal">
+                                    <iconPacks:PackIconMaterialDesign Kind="Search" Width="16" Height="16" Margin="0,0,4,0"/>
+                                    <TextBlock Text="Search" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                </StackPanel>
+                            </Button>
+            </StackPanel>
+                    </Border>
+                </WrapPanel>
+
+                <!-- Utility Buttons Group -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Style="{StaticResource StyledButton}" x:Name="openFolderButton" Click="OpenFolder" Margin="0,0,8,0">
+                    <StackPanel Orientation="Horizontal">
+                            <iconPacks:PackIconRemixIcon Kind="Folder2Fill" Width="16" Height="16"/>
+                            <TextBlock VerticalAlignment="Center" Margin="8,0,0,0" FontWeight="SemiBold">Open Folder</TextBlock>
+                    </StackPanel>
+                </Button>
+                    <Button Style="{StaticResource StyledButton}" x:Name="rescanButton" Click="Rescan">
+                    <StackPanel Orientation="Horizontal">
+                            <iconPacks:PackIconRadixIcons Kind="Update" Width="16" Height="16"/>
+                            <TextBlock VerticalAlignment="Center" Margin="8,0,0,0" FontWeight="SemiBold">Rescan</TextBlock>
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+        </Grid>
+        </Border>
+
+        <!-- Modern Configs List View (single-scroll: rely on ListView's own scrolling) -->
+        <Border Grid.Row="2" Style="{StaticResource ModernCardLite}" Margin="0,0,0,16">
+            <ListView x:Name="configsListView"
+                      Foreground="{DynamicResource ForegroundMain}"
+                      Background="Transparent"
+                      ItemsSource="{Binding Path=ConfigsCollection}"
+                      SelectionMode="Extended"
+                      BorderThickness="0"
+                      VirtualizingPanel.IsVirtualizing="True"
+                      VirtualizingPanel.VirtualizationMode="Recycling"
+                      VirtualizingPanel.ScrollUnit="Item"
+                      VirtualizingPanel.CacheLengthUnit="Item"
+                      VirtualizingPanel.CacheLength="40,40"
+                      SelectionChanged="ItemHovered"
+                      AllowDrop="True"
+                      Drop="configsListView_Drop"
+                      PreviewMouseLeftButtonDown="configsListView_PreviewMouseLeftButtonDown"
+                      MouseMove="configsListView_MouseMove"
+                      ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                      ScrollViewer.VerticalScrollBarVisibility="Auto"
+                      ScrollViewer.CanContentScroll="True"
+                      ScrollViewer.IsDeferredScrollingEnabled="True"
+                      UseLayoutRounding="True"
+                      SnapsToDevicePixels="True"
+                      Padding="0">
+
+            <!-- Show Headers by overriding the default style -->
+            <ListView.Style>
+                <Style TargetType="{x:Type ListView}" />
+            </ListView.Style>
+
+            <!-- Align Headers to the Left -->
+            <ListView.Resources>
+                <!-- Simplified ScrollBar Style -->
+                <Style TargetType="{x:Type ScrollBar}">
+                    <Setter Property="Background" Value="Transparent"/>
+                    <Setter Property="Width" Value="12"/>
+                    <Setter Property="Margin" Value="0,0,2,0"/>
+                </Style>
+                
+                <Style x:Key="GridViewColumnHeaderGripper" TargetType="Thumb">
+                    <Setter Property="Width" Value="18" />
+                    <Setter Property="Background" Value="#FF555555"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="{x:Type Thumb}">
+                                <Border Background="Transparent">
+                                    <Rectangle Width="1" Fill="{TemplateBinding Background}" />
+                                </Border>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+                <Style TargetType="{x:Type GridViewColumnHeader}">
+                    <Setter Property="HorizontalContentAlignment" Value="Left" />
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="{x:Type GridViewColumnHeader}">
+                                <Grid>
+                                    <Border BorderThickness="0,0,0,2" BorderBrush="#FF1E90FF" Background="#FF333333" Padding="2">
+                                        <TextBlock x:Name="ContentHeader" 
+                                                   Text="{TemplateBinding Content}" 
+                                                   Padding="12,8,8,8" 
+                                                   Width="{TemplateBinding Width}" 
+                                                   TextAlignment="Left" 
+                                                   FontWeight="SemiBold"
+                                                   Foreground="White"/>
+                                    </Border>
+                                    <Thumb x:Name="PART_HeaderGripper"
+                                         HorizontalAlignment="Right"
+                                         Margin="0,0,-9,0"
+                                         Style="{StaticResource GridViewColumnHeaderGripper}" />
+                                </Grid>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                    <Setter Property="OverridesDefaultStyle" Value="True" />
+                    <Setter Property="Foreground" Value="White" />
+                    <Setter Property="FontFamily" Value="Segoe UI" />
+                    <Setter Property="FontSize" Value="13" />
+                    <Setter Property="FontWeight" Value="SemiBold" />
+                </Style>
+                <Style TargetType="{x:Type ListViewItem}">
+                    <EventSetter Event="MouseDoubleClick" Handler="ListItemDoubleClick" />
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="{x:Type ListViewItem}">
+                                <Border x:Name="Bd" 
+                                        BorderBrush="Transparent" 
+                                        BorderThickness="0,0,0,1" 
+                                        Background="Transparent" 
+                                        Padding="4,8"
+                    SnapsToDevicePixels="true">
+                                    <GridViewRowPresenter 
+                    HorizontalAlignment="Left" 
+                    SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"
+                    VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Bd" Property="Background" Value="#FF404040" />
+                                        <Setter TargetName="Bd" Property="BorderBrush" Value="#FF555555" />
+                                    </Trigger>
+                                    <Trigger Property="IsSelected" Value="True">
+                                        <Setter TargetName="Bd" Property="Background" Value="#FF1E90FF" />
+                                        <Setter TargetName="Bd" Property="BorderBrush" Value="#FF4A9EFF" />
+                                    </Trigger>
+                                    <MultiTrigger>
+                                        <MultiTrigger.Conditions>
+                                            <Condition Property="IsSelected" Value="True"/>
+                                            <Condition Property="IsMouseOver" Value="True"/>
+                                        </MultiTrigger.Conditions>
+                                        <Setter TargetName="Bd" Property="Background" Value="#FF2A9AFF" />
+                                        <Setter TargetName="Bd" Property="BorderBrush" Value="#FF5AADFF" />
+                                    </MultiTrigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                    <Setter Property="Foreground" Value="White" />
+                    <Setter Property="FontFamily" Value="Segoe UI" />
+                    <Setter Property="FontSize" Value="12" />
+                </Style>
+
+            </ListView.Resources>
+
+            <ListView.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <VirtualizingStackPanel VirtualizationMode="Recycling"/>
+                </ItemsPanelTemplate>
+            </ListView.ItemsPanel>
+
+            <ListView.View>
+                <GridView>
+                    <GridViewColumn Width="30">
+                        <GridViewColumn.Header>
+                            <CheckBox x:Name="selectAllCheckbox" ToolTip="Select All" Checked="SelectAll" Unchecked="DeselectAll" />
+                        </GridViewColumn.Header>
+                        <GridViewColumn.CellTemplate>
+                            <DataTemplate>
+                                <Image Source="{Binding Path=Icon}" />
+                            </DataTemplate>
+                        </GridViewColumn.CellTemplate>
+                    </GridViewColumn>
+                    <GridViewColumn DisplayMemberBinding="{Binding Path=Name}">
+                        <GridViewColumn.Header>
+                            <GridViewColumnHeader Tag="Name" Click="ColumnHeaderClicked">Name</GridViewColumnHeader>
+                        </GridViewColumn.Header>
+                    </GridViewColumn>
+                    <GridViewColumn DisplayMemberBinding="{Binding Path=Author}">
+                        <GridViewColumn.Header>
+                            <GridViewColumnHeader Tag="Author" Click="ColumnHeaderClicked">Author</GridViewColumnHeader>
+                        </GridViewColumn.Header>
+                    </GridViewColumn>
+                    <GridViewColumn Width="100" DisplayMemberBinding="{Binding Path=Category}">
+                        <GridViewColumn.Header>
+                            <GridViewColumnHeader Tag="Category" Click="ColumnHeaderClicked">Category</GridViewColumnHeader>
+                        </GridViewColumn.Header>
+                    </GridViewColumn>
+                    <GridViewColumn DisplayMemberBinding="{Binding Path=NeedsProxies}">
+                        <GridViewColumn.Header>
+                            <GridViewColumnHeader Tag="NeedsProxies" Click="ColumnHeaderClicked">Proxies</GridViewColumnHeader>
+                        </GridViewColumn.Header>
+                    </GridViewColumn>
+                    <GridViewColumn DisplayMemberBinding="{Binding Path=IsRemote}">
+                        <GridViewColumn.Header>
+                            <GridViewColumnHeader Tag="IsRemote" Click="ColumnHeaderClicked">Remote</GridViewColumnHeader>
+                        </GridViewColumn.Header>
+                    </GridViewColumn>
+                    <GridViewColumn DisplayMemberBinding="{Binding Path=AllowedWordlistTypes}">
+                        <GridViewColumn.Header>
+                            <GridViewColumnHeader Tag="AllowedWordlistTypes" Click="ColumnHeaderClicked">Wordlists</GridViewColumnHeader>
+                        </GridViewColumn.Header>
+                    </GridViewColumn>
+                    <GridViewColumn Width="150" DisplayMemberBinding="{Binding Path=CreationDate}">
+                        <GridViewColumn.Header>
+                            <GridViewColumnHeader Tag="CreationDate" Click="ColumnHeaderClicked">Creation Date</GridViewColumnHeader>
+                        </GridViewColumn.Header>
+                    </GridViewColumn>
+                    <GridViewColumn Width="150" DisplayMemberBinding="{Binding Path=LastModified}">
+                        <GridViewColumn.Header>
+                            <GridViewColumnHeader Tag="LastModified" Click="ColumnHeaderClicked">Last Modified</GridViewColumnHeader>
+                        </GridViewColumn.Header>
+                    </GridViewColumn>
+                </GridView>
+            </ListView.View>
+        </ListView>
+        </Border>
+
+        <GridSplitter 
+            ResizeDirection="Rows"
+            ResizeBehavior="PreviousAndNext"
+            Grid.Row="3" 
+            Height="6"
+            HorizontalAlignment="Stretch" 
+            Background="Transparent"
+            Margin="8,2"/>
+        
+        <!-- Modern Information Section -->
+        <Border Grid.Row="4" Background="#C0353535" CornerRadius="8" Padding="8">
+            
+            <Border.Style>
+                <Style TargetType="Border" BasedOn="{StaticResource ModernCardLite}">
+                    <Style.Triggers>
+                        <!-- Hide when window width is very small -->
+                        <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=Page}, Path=ActualWidth, Converter={StaticResource LessThanConverter}, ConverterParameter=1050}" Value="True">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0"
+                          Text="Configuration Information"
+                          FontWeight="SemiBold"
+                          Foreground="#FF1E90FF"
+                          FontSize="9"
+                          Margin="0,0,0,2"/>
+                <!-- Single-scroll inside the info pane -->
+                <ScrollViewer Grid.Row="1"
+                              VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Auto"
+                              Padding="0,0,8,0"
+                              UseLayoutRounding="True"
+                              SnapsToDevicePixels="True">
+                    <uc:MarkdownViewer
+                        MarkdownText="{Binding HoveredConfig.Readme}"
+                        FontSize="8"
+                        Background="Transparent"/>
+                </ScrollViewer>
+            </Grid>
+        </Border>
+    </Grid>
+</Page>
+

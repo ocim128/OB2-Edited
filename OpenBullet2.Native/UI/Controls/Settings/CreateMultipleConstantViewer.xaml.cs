@@ -1,4 +1,5 @@
 using OpenBullet2.Native.ViewModels;
+using OpenBullet2.Native.ViewModels.Configs;
 using RuriLib.Models.Blocks.Settings;
 using System;
 using System.Collections.Generic;

@@ -1,6 +1,7 @@
 ﻿using OpenBullet2.Core.Entities;
 using OpenBullet2.Native.Helpers;
 using OpenBullet2.Native.Views.Pages;
+using OpenBullet2.Native.Views.Pages.Data;
 using System.Windows;
 using System.Windows.Controls;
 

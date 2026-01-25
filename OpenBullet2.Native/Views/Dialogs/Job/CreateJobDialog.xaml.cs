@@ -1,5 +1,6 @@
 ﻿using OpenBullet2.Core.Models.Jobs;
 using OpenBullet2.Native.Views.Pages;
+using OpenBullet2.Native.Views.Pages.Jobs;
 using OpenBullet2.Native.Helpers;
 using OpenBullet2.Native.ViewModels.Base;
 using System;

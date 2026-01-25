@@ -3,6 +3,7 @@ using ICSharpCode.AvalonEdit.Highlighting.Xshd;
 using ICSharpCode.AvalonEdit.Search;
 using OpenBullet2.Core.Services;
 using OpenBullet2.Native.ViewModels;
+using OpenBullet2.Native.ViewModels.Configs;
 using RuriLib.Models.Blocks;
 using System;
 using System.Windows;

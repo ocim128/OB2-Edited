@@ -1,5 +1,11 @@
 using System;
 using OpenBullet2.Native.ViewModels;
+using OpenBullet2.Native.ViewModels.Configs;
+using OpenBullet2.Native.ViewModels.Jobs;
+using OpenBullet2.Native.ViewModels.Data;
+using OpenBullet2.Native.ViewModels.Settings;
+using OpenBullet2.Native.ViewModels.Tools;
+using OpenBullet2.Native.ViewModels.Shared;
 
 namespace OpenBullet2.Native.Services
 {

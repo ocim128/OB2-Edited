@@ -5,6 +5,7 @@ using OpenBullet2.Native.Helpers;
 
 using OpenBullet2.Native.Services;
 using OpenBullet2.Native.ViewModels;
+using OpenBullet2.Native.ViewModels.Shared;
 using RuriLib.Logging;
 using System;
 using System.Collections.Generic;

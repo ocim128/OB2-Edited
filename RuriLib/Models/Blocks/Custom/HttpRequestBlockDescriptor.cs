@@ -34,7 +34,7 @@ namespace RuriLib.Models.Blocks.Custom
                 { "httpLibrary", new EnumParameter("httpLibrary", typeof(HttpLibrary), HttpLibrary.RuriLibHttp.ToString()) },
                 { "useTlsFingerprinting", new BoolParameter("useTlsFingerprinting", false) },
                 { "tlsClientProfile", new StringParameter("tlsClientProfile", "Chrome120") },
-                { "httpCloakPreset", new StringParameter("httpCloakPreset", "chrome-143") },
+
                 { "customJa3String", new StringParameter("customJa3String", string.Empty) },
                 { "randomizeTlsExtensionOrder", new BoolParameter("randomizeTlsExtensionOrder", false) },
                 { "insecureSkipVerify", new BoolParameter("insecureSkipVerify", false) },

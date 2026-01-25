@@ -1,6 +1,7 @@
 ﻿using OpenBullet2.Native.Services;
 using OpenBullet2.Native.ViewModels;
 using OpenBullet2.Native.Views.Pages;
+using OpenBullet2.Native.Views.Pages.Configs;
 using RuriLib.Models.Blocks;
 using RuriLib.Models.Trees;
 using System;

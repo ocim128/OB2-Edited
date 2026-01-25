@@ -51,12 +51,6 @@
         "resolved": "1.11.61",
         "contentHash": "hqZASeEFHS9quHvfZSwaULoAJLWkOYVPiQjc3P9J4pQS8vSYzrP3bxe04Vm7vYYuxwbQhq9hCSVvZVLTyRaNaQ=="
       },
-      "HttpCloak.Ob2": {
-        "type": "Direct",
-        "requested": "[1.5.6-ob2.1, )",
-        "resolved": "1.5.6-ob2.1",
-        "contentHash": "Tf77GRyW57mlKMqB8uwP0IhoURYa97DC8UghWuwUZfbm6/s1dJFzPNYgSlaFogc/IsflpGmZdYKmYyjtN+fYMQ=="
-      },
       "IronPython": {
         "type": "Direct",
         "requested": "[3.4.2, )",
@@ -853,12 +847,6 @@
       }
     },
     "net8.0/win-x64": {
-      "HttpCloak.Ob2": {
-        "type": "Direct",
-        "requested": "[1.5.6-ob2.1, )",
-        "resolved": "1.5.6-ob2.1",
-        "contentHash": "Tf77GRyW57mlKMqB8uwP0IhoURYa97DC8UghWuwUZfbm6/s1dJFzPNYgSlaFogc/IsflpGmZdYKmYyjtN+fYMQ=="
-      },
       "System.Speech": {
         "type": "Direct",
         "requested": "[8.0.0, )",

@@ -2,6 +2,7 @@ using ICSharpCode.AvalonEdit.Highlighting;
 using ICSharpCode.AvalonEdit.Highlighting.Xshd;
 using OpenBullet2.Core.Services;
 using OpenBullet2.Native.ViewModels;
+using OpenBullet2.Native.ViewModels.Configs;
 using RuriLib.Models.Blocks.Custom;
 using RuriLib.Models.Blocks.Custom.Script;
 using RuriLib.Models.Variables;

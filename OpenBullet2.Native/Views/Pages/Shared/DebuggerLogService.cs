@@ -1,6 +1,7 @@
 using ICSharpCode.AvalonEdit;
 using ICSharpCode.AvalonEdit.Document;
 using OpenBullet2.Native.ViewModels;
+using OpenBullet2.Native.ViewModels.Shared;
 using RuriLib.Logging;
 using System;
 using System.Collections.Concurrent;

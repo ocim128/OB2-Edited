@@ -10,6 +10,7 @@ using OpenBullet2.Core.Services;
 using OpenBullet2.Native.Helpers;
 using OpenBullet2.Native.Utils;
 using OpenBullet2.Native.ViewModels;
+using OpenBullet2.Native.ViewModels.Configs;
 using RuriLib.Models.Configs;
 using RuriLib.Models.Jobs;
 using RuriLib.Models.Jobs.StartConditions;

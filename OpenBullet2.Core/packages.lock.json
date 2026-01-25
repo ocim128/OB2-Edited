@@ -176,11 +176,6 @@
         "resolved": "1.11.61",
         "contentHash": "hqZASeEFHS9quHvfZSwaULoAJLWkOYVPiQjc3P9J4pQS8vSYzrP3bxe04Vm7vYYuxwbQhq9hCSVvZVLTyRaNaQ=="
       },
-      "HttpCloak.Ob2": {
-        "type": "Transitive",
-        "resolved": "1.5.6-ob2.1",
-        "contentHash": "Tf77GRyW57mlKMqB8uwP0IhoURYa97DC8UghWuwUZfbm6/s1dJFzPNYgSlaFogc/IsflpGmZdYKmYyjtN+fYMQ=="
-      },
       "Humanizer.Core": {
         "type": "Transitive",
         "resolved": "2.14.1",
@@ -1045,7 +1040,6 @@
           "DeviceId": "[5.2.0, )",
           "FluentFTP": "[50.0.1, )",
           "HtmlAgilityPack": "[1.11.61, )",
-          "HttpCloak.Ob2": "[1.5.6-ob2.1, )",
           "IronPython": "[3.4.2, )",
           "IronPython.StdLib": "[3.4.2, )",
           "JWT": "[10.1.1, )",
@@ -1102,11 +1096,6 @@
       }
     },
     "net8.0/win-x64": {
-      "HttpCloak.Ob2": {
-        "type": "Transitive",
-        "resolved": "1.5.6-ob2.1",
-        "contentHash": "Tf77GRyW57mlKMqB8uwP0IhoURYa97DC8UghWuwUZfbm6/s1dJFzPNYgSlaFogc/IsflpGmZdYKmYyjtN+fYMQ=="
-      },
       "Microsoft.Win32.Registry": {
         "type": "Transitive",
         "resolved": "4.7.0",

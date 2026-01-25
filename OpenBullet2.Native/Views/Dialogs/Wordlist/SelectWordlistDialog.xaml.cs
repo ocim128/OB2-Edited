@@ -3,6 +3,7 @@ using OpenBullet2.Core.Repositories;
 using OpenBullet2.Native.Helpers;
 using OpenBullet2.Native.Services;
 using OpenBullet2.Native.ViewModels;
+using OpenBullet2.Native.ViewModels.Data;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;

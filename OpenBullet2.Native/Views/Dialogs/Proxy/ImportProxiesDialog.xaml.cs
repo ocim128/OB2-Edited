@@ -2,6 +2,7 @@
 using OpenBullet2.Native.Extensions;
 using OpenBullet2.Native.Helpers;
 using OpenBullet2.Native.Views.Pages;
+using OpenBullet2.Native.Views.Pages.Data;
 using RuriLib.Models.Proxies;
 using System;
 using System.IO;

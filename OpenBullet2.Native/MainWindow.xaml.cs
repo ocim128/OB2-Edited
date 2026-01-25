@@ -7,6 +7,18 @@ using OpenBullet2.Native.Services;
 using OpenBullet2.Native.Enums;
 using OpenBullet2.Native.ViewModels;
 using OpenBullet2.Native.Views.Pages;
+using OpenBullet2.Native.Views.Pages.Configs;
+using OpenBullet2.Native.Views.Pages.Jobs;
+using OpenBullet2.Native.Views.Pages.Data;
+using OpenBullet2.Native.Views.Pages.Settings;
+using OpenBullet2.Native.Views.Pages.Shared;
+using OpenBullet2.Native.Views.Pages.Tools;
+using OpenBullet2.Native.ViewModels.Data;
+using OpenBullet2.Native.ViewModels.Jobs;
+using OpenBullet2.Native.ViewModels.Configs;
+using OpenBullet2.Native.ViewModels.Settings;
+using OpenBullet2.Native.ViewModels.Tools;
+using OpenBullet2.Native.ViewModels.Shared;
 using RuriLib.Models.Configs;
 using RuriLib.Models.Jobs;
 using System;
@@ -38,7 +50,7 @@ public partial class MainWindow : MetroWindow
 
     private readonly Button[] labels;
     private readonly Button[] navigationButtons; // Modern navigation buttons array
-    
+
     private readonly HotkeyService hotkeyService;
     private readonly OpenBulletSettingsService openBulletSettingsService;
     private readonly ConfigService configService;
@@ -53,7 +65,7 @@ public partial class MainWindow : MetroWindow
 
     // Pages are now managed by NavigationService
     public Page CurrentPage { get; private set; }
-    
+
     // ConfigEditor property for accessing shared instance if needed (e.g. by ViewModelsService or similar?)
     // Originally exposed for some reason. Let's redirect to NavigationService or Cast current page.
     public ConfigEditor ConfigEditorPage => navigationService.CurrentPage as ConfigEditor;
@@ -82,9 +94,9 @@ public partial class MainWindow : MetroWindow
         this.navigationService = navigationService ?? throw new ArgumentNullException(nameof(navigationService));
         this.windowLayoutService = windowLayoutService ?? throw new ArgumentNullException(nameof(windowLayoutService));
         this.themeService = themeService ?? throw new ArgumentNullException(nameof(themeService));
-        
+
         this.themeService.Initialize(this);
-        
+
         this.navigationService.Navigated += OnNavigated;
 
         DataContext = vm;
@@ -173,14 +185,14 @@ public partial class MainWindow : MetroWindow
         // Initialize layout service
         windowLayoutService.Initialize(this, Root);
         windowLayoutService.RestoreWindowState();
-        
+
         // Initialize button map dynamically
         InitializePageButtonMap();
-        
+
         // Initialize sidebar in collapsed state
         InitializeSidebarState();
     }
-    
+
     private void OnWindowStateChanged(object sender, EventArgs e)
     {
         NotifyDebuggerWindowStateChanged(WindowState == WindowState.Minimized);
@@ -223,16 +235,16 @@ public partial class MainWindow : MetroWindow
     {
         CurrentPage = e.Page;
         MainFrame.Content = e.Page;
-        
+
         UpdateMenuHighlight(e.PageEnum);
-        
+
         vm.IsLoading = false;
     }
 
     private void UpdateMenuHighlight(MainWindowPage page)
     {
         var button = GetButtonForPage(page);
-        
+
         if (button == currentSelectedButton)
             return;
 
@@ -267,7 +279,7 @@ public partial class MainWindow : MetroWindow
         MapButton(MainWindowPage.RLSettings, menuOptionRLSettings);
         MapButton(MainWindowPage.CheckUpdate, menuOptionCheckUpdate);
         MapButton(MainWindowPage.About, menuOptionAbout);
-        
+
         // Map config submenu buttons
         MapButton(MainWindowPage.ConfigMetadata, menuOptionMetadata);
         MapButton(MainWindowPage.ConfigReadme, menuOptionReadme);
@@ -306,7 +318,7 @@ public partial class MainWindow : MetroWindow
         // But NavigationService takes an Enum.
         // Let's create the page and set it manually, updating CurrentPage.
         // This bypasses NavigationService cache which might be desired for transient job views.
-        
+
         switch (jobVM)
         {
             case MultiRunJobViewModel mrj:
@@ -333,7 +345,7 @@ public partial class MainWindow : MetroWindow
         // My implementation fires Navigated synchronously.
         if (navigationService.CurrentPage is Jobs initialJobsPage) // Use NavigationService.CurrentPage
         {
-             initialJobsPage.EditJob(jobVM);
+            initialJobsPage.EditJob(jobVM);
         }
     }
 
@@ -363,18 +375,18 @@ public partial class MainWindow : MetroWindow
             // Simplified:
             if (button != null)
             {
-                 // Try to find which page this button corresponds to
-                 // Iterate Enum?
-                 foreach (MainWindowPage page in Enum.GetValues(typeof(MainWindowPage)))
-                 {
-                     if (GetButtonForPage(page) == button)
-                     {
-                         await NavigateTo(page);
-                         return;
-                     }
-                 }
+                // Try to find which page this button corresponds to
+                // Iterate Enum?
+                foreach (MainWindowPage page in Enum.GetValues(typeof(MainWindowPage)))
+                {
+                    if (GetButtonForPage(page) == button)
+                    {
+                        await NavigateTo(page);
+                        return;
+                    }
+                }
             }
-            
+
             await NavigateTo(MainWindowPage.Home);
         }
     }
@@ -389,12 +401,12 @@ public partial class MainWindow : MetroWindow
         if (currentSelectedButton != null)
         {
             // Revert previous
-             if (currentSelectedButton.Name.StartsWith("menuOptionConfig"))
-                 currentSelectedButton.Style = FindResource("SidebarSubmenuButton") as Style;
-             else
-                 currentSelectedButton.Style = FindResource("SidebarNavButton") as Style;
-            
-             currentSelectedButton = null;
+            if (currentSelectedButton.Name.StartsWith("menuOptionConfig"))
+                currentSelectedButton.Style = FindResource("SidebarSubmenuButton") as Style;
+            else
+                currentSelectedButton.Style = FindResource("SidebarNavButton") as Style;
+
+            currentSelectedButton = null;
         }
 
         if (newButton != null)
@@ -406,25 +418,25 @@ public partial class MainWindow : MetroWindow
         vm.IsLoading = false;
     }
 
-    private void OnCanExecuteConfigCommand(object sender, CanExecuteRoutedEventArgs e) 
-        => e.CanExecute = navigationService.CurrentPageEnum is 
-            MainWindowPage.Configs or 
-            MainWindowPage.ConfigStacker or 
-            MainWindowPage.ConfigLoliCode or 
+    private void OnCanExecuteConfigCommand(object sender, CanExecuteRoutedEventArgs e)
+        => e.CanExecute = navigationService.CurrentPageEnum is
+            MainWindowPage.Configs or
+            MainWindowPage.ConfigStacker or
+            MainWindowPage.ConfigLoliCode or
             MainWindowPage.ConfigCSharpCode or
-            MainWindowPage.ConfigMetadata or 
-            MainWindowPage.ConfigReadme or 
+            MainWindowPage.ConfigMetadata or
+            MainWindowPage.ConfigReadme or
             MainWindowPage.ConfigSettings;
 
-    private void OnNewConfigExecuted(object sender, ExecutedRoutedEventArgs e) 
+    private void OnNewConfigExecuted(object sender, ExecutedRoutedEventArgs e)
     {
-        if (CurrentPage is Configs page) 
+        if (CurrentPage is Configs page)
             page.Create(null, null);
     }
 
-    private void OnOpenConfigExecuted(object sender, ExecutedRoutedEventArgs e) 
+    private void OnOpenConfigExecuted(object sender, ExecutedRoutedEventArgs e)
     {
-        if (CurrentPage is Configs page) 
+        if (CurrentPage is Configs page)
             page.Edit(null, null);
     }
 
@@ -435,7 +447,7 @@ public partial class MainWindow : MetroWindow
             configs.Save(null, null);
             return;
         }
-        
+
         if (CurrentPage is ConfigEditor editor)
         {
             editor.Save(null, null);
@@ -485,12 +497,12 @@ public partial class MainWindow : MetroWindow
         }
     }
 
-    private void OnCanExecuteRefreshCommand(object sender, CanExecuteRoutedEventArgs e) 
-        => e.CanExecute = navigationService.CurrentPageEnum is 
-            MainWindowPage.Configs or 
-            MainWindowPage.Hits or 
-            MainWindowPage.Proxies or 
-            MainWindowPage.Wordlists or 
+    private void OnCanExecuteRefreshCommand(object sender, CanExecuteRoutedEventArgs e)
+        => e.CanExecute = navigationService.CurrentPageEnum is
+            MainWindowPage.Configs or
+            MainWindowPage.Hits or
+            MainWindowPage.Proxies or
+            MainWindowPage.Wordlists or
             MainWindowPage.Plugins;
 
     private void OnQuitExecuted(object sender, ExecutedRoutedEventArgs e) => Application.Current.Shutdown();
@@ -527,12 +539,12 @@ public partial class MainWindow : MetroWindow
     private void ToggleSidebar()
     {
         isSidebarCollapsed = !isSidebarCollapsed;
-        
+
         var targetWidth = isSidebarCollapsed ? 60.0 : 220.0;
         var currentWidth = SidebarColumn.Width.Value;
         var duration = TimeSpan.FromMilliseconds(200);
         var easing = new System.Windows.Media.Animation.QuadraticEase { EasingMode = System.Windows.Media.Animation.EasingMode.EaseInOut };
-        
+
         // Animate toggle icon rotation
         var rotationAnimation = new System.Windows.Media.Animation.DoubleAnimation
         {
@@ -542,26 +554,26 @@ public partial class MainWindow : MetroWindow
             EasingFunction = easing
         };
         ToggleIconRotation.BeginAnimation(System.Windows.Media.RotateTransform.AngleProperty, rotationAnimation);
-        
+
         // Animate the column width using a timer-based approach
         AnimateSidebarWidth(currentWidth, targetWidth, duration);
-        
+
         // Toggle visibility of text elements
         var textVisibility = isSidebarCollapsed ? Visibility.Collapsed : Visibility.Visible;
-        
+
         // Hide/show text labels
         SetSidebarTextVisibility(textVisibility);
-        
+
         // Update section headers
         SectionMain.Visibility = textVisibility;
         SectionResources.Visibility = textVisibility;
         SectionSystem.Visibility = textVisibility;
-        
+
         // Update header
         SidebarHeader.Visibility = textVisibility;
         VersionText.Visibility = textVisibility;
         BottomSeparator.Visibility = textVisibility;
-        
+
         // Hide submenu when collapsed
         if (isSidebarCollapsed)
         {
@@ -573,7 +585,7 @@ public partial class MainWindow : MetroWindow
             ConfigsChevron.Visibility = Visibility.Visible;
         }
     }
-    
+
     private void AnimateSidebarWidth(double from, double to, TimeSpan duration)
     {
         var startTime = DateTime.Now;
@@ -581,30 +593,30 @@ public partial class MainWindow : MetroWindow
         {
             Interval = TimeSpan.FromMilliseconds(16) // ~60fps
         };
-        
+
         timer.Tick += (s, e) =>
         {
             var elapsed = (DateTime.Now - startTime).TotalMilliseconds;
             var progress = Math.Min(elapsed / duration.TotalMilliseconds, 1.0);
-            
+
             // Apply easing (quadratic ease-in-out)
-            var easedProgress = progress < 0.5 
-                ? 2 * progress * progress 
+            var easedProgress = progress < 0.5
+                ? 2 * progress * progress
                 : 1 - Math.Pow(-2 * progress + 2, 2) / 2;
-            
+
             var currentWidth = from + (to - from) * easedProgress;
             SidebarColumn.Width = new GridLength(currentWidth);
-            
+
             if (progress >= 1.0)
             {
                 timer.Stop();
                 SidebarColumn.Width = new GridLength(to);
             }
         };
-        
+
         timer.Start();
     }
-    
+
     private void SetSidebarTextVisibility(Visibility visibility)
     {
         // Main navigation items
@@ -621,31 +633,31 @@ public partial class MainWindow : MetroWindow
         menuOptionCheckUpdateText.Visibility = visibility;
         menuOptionAboutText.Visibility = visibility;
     }
-    
+
     private void InitializeSidebarState()
     {
         // Set initial state for collapsed sidebar
         if (isSidebarCollapsed)
         {
             var textVisibility = Visibility.Collapsed;
-            
+
             // Hide text labels
             SetSidebarTextVisibility(textVisibility);
-            
+
             // Update section headers
             SectionMain.Visibility = textVisibility;
             SectionResources.Visibility = textVisibility;
             SectionSystem.Visibility = textVisibility;
-            
+
             // Update header
             SidebarHeader.Visibility = textVisibility;
             VersionText.Visibility = textVisibility;
             BottomSeparator.Visibility = textVisibility;
-            
+
             // Hide submenu elements
             configSubmenu.Visibility = Visibility.Collapsed;
             ConfigsChevron.Visibility = Visibility.Collapsed;
-            
+
             // Set toggle icon rotation to indicate collapsed state
             ToggleIconRotation.Angle = 180;
         }
@@ -697,7 +709,7 @@ public partial class MainWindow : MetroWindow
 
     private void CloseSubmenu() => configSubmenu.Visibility = Visibility.Collapsed;
     #endregion Dropdown submenu logic
-    
+
     private void ApplyAccessibilitySettings()
     {
         var accessibility = AccessibilitySettings;

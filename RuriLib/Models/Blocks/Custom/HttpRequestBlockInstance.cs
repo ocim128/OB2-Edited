@@ -364,7 +364,7 @@ public partial class HttpRequestBlockInstance(HttpRequestBlockDescriptor descrip
         writer.Write("HttpLibrary = " + GetSettingValue("httpLibrary") + ", ");
         writer.Write("UseTlsFingerprinting = " + GetSettingValue("useTlsFingerprinting") + ", ");
         writer.Write("TlsClientProfile = " + GetSettingValue("tlsClientProfile") + ", ");
-        writer.Write("HttpCloakPreset = " + GetSettingValue("httpCloakPreset") + ", ");
+
         writer.Write("CustomJa3String = " + GetSettingValue("customJa3String") + ", ");
         writer.Write("RandomizeTlsExtensionOrder = " + GetSettingValue("randomizeTlsExtensionOrder") + ", ");
         writer.Write("InsecureSkipVerify = " + GetSettingValue("insecureSkipVerify") + ", ");

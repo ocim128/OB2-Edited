@@ -833,7 +833,7 @@ public class AppUpdateService : IAppUpdateService
 
     private class WpfUpdateProgress : IUpdateProgress
     {
-        private readonly Window _window;
+        private readonly System.Windows.Window _window;
         private readonly ProgressBar _progressBar;
         private readonly Label _statusLabel;
         private readonly Action _onCancel;
@@ -861,7 +861,7 @@ public class AppUpdateService : IAppUpdateService
             stackPanel.Children.Add(_statusLabel);
             stackPanel.Children.Add(_progressBar);
 
-            _window = new Window
+            _window = new System.Windows.Window
             {
                 Title = "Downloading Update",
                 Width = 400,

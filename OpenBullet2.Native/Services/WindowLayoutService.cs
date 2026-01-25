@@ -3,12 +3,13 @@ using OpenBullet2.Native.Helpers;
 using System;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
 
 namespace OpenBullet2.Native.Services;
 
 public interface IWindowLayoutService
 {
-    void Initialize(Window window, FrameworkElement rootElement);
+    void Initialize(System.Windows.Window window, FrameworkElement rootElement);
     void UpdateResponsiveLayout();
     void SaveWindowState();
     void RestoreWindowState();
@@ -17,7 +18,7 @@ public interface IWindowLayoutService
 public class WindowLayoutService : IWindowLayoutService
 {
     private readonly OpenBulletSettingsService _settingsService;
-    private Window _window;
+    private System.Windows.Window _window;
     private FrameworkElement _rootElement;
 
     public WindowLayoutService(OpenBulletSettingsService settingsService)
@@ -25,7 +26,7 @@ public class WindowLayoutService : IWindowLayoutService
         _settingsService = settingsService;
     }
 
-    public void Initialize(Window window, FrameworkElement rootElement)
+    public void Initialize(System.Windows.Window window, FrameworkElement rootElement)
     {
         _window = window ?? throw new ArgumentNullException(nameof(window));
         _rootElement = rootElement; // specific element trigger updates if needed, logic from original code

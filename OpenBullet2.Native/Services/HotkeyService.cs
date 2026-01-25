@@ -90,7 +90,7 @@ namespace OpenBullet2.Native.Services
             // Plugin is enabled by default, no need to load settings
         }
 
-        public void Initialize(Window window)
+        public void Initialize(System.Windows.Window window)
         {
             if (window == null)
             {
@@ -527,7 +527,7 @@ namespace OpenBullet2.Native.Services
     }
 
     // Shared notification window using App.xaml styles
-    public partial class SharedNotificationWindow : Window
+    public partial class SharedNotificationWindow : System.Windows.Window
     {
         public SharedNotificationWindow(string title, string message)
         {

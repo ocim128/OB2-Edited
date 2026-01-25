@@ -20,5 +20,7 @@ public enum MainWindowPage
     OBSettings = 15,
     RLSettings = 16,
     CheckUpdate = 17,
-    About = 18
+    About = 18,
+    JobViewer = 19,
+    None = 20
 }

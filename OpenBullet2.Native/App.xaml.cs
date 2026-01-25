@@ -9,6 +9,11 @@ using OpenBullet2.Logging;
 using OpenBullet2.Native.Helpers;
 
 using OpenBullet2.Native.Services;
+using OpenBullet2.Native.Services.Navigation;
+using OpenBullet2.Native.Services.Menu;
+using OpenBullet2.Native.Services.Sidebar;
+using OpenBullet2.Native.Services.Commands;
+using OpenBullet2.Native.Services.Window;
 using OpenBullet2.Native.Utils;
 using OpenBullet2.Native.ViewModels;
 using OpenBullet2.Native.ViewModels.Jobs;
@@ -270,6 +275,15 @@ public partial class App : Application
         services.AddSingleton<ViewModelsService>();
         services.AddSingleton<ConfigService>();
         services.AddSingleton<INavigationService, NavigationService>();
+        services.AddSingleton<INavigationHandler, NavigationHandler>();
+        services.AddSingleton<IMenuHandler, MenuHandler>();
+        services.AddSingleton<SubmenuController>();
+        services.AddSingleton<PageButtonMapper>();
+        services.AddSingleton<ISidebarHandler, SidebarHandler>();
+        services.AddSingleton<ICommandHandler, CommandHandler>();
+        services.AddSingleton<IWindowControlHandler, WindowControlHandler>();
+        services.AddSingleton<AccessibilityHandler>();
+        services.AddSingleton<SidebarAnimator>();
         services.AddSingleton<IWindowLayoutService, WindowLayoutService>();
         services.AddSingleton<IThemeService, ThemeService>();
         services.AddSingleton<IUIStateService, UIStateService>();

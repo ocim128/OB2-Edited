@@ -12,7 +12,7 @@ namespace OpenBullet2.Native.Views.Dialogs.Common
         public string Message { get; set; } = "Are you sure?";
         public bool Result { get; private set; } = false;
 
-        private Window parentWindow;
+        private System.Windows.Window parentWindow;
 
         public ConfirmationDialog(string title = "Confirmation", string message = "Are you sure?")
         {
@@ -22,9 +22,9 @@ namespace OpenBullet2.Native.Views.Dialogs.Common
             DataContext = this;
         }
 
-        public bool? ShowDialog(Window owner = null)
+        public bool? ShowDialog(System.Windows.Window owner = null)
         {
-            parentWindow = new Window
+            parentWindow = new System.Windows.Window
             {
                 Title = Title,
                 Content = this,

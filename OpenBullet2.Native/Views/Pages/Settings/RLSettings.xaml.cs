@@ -82,7 +82,7 @@ public partial class RLSettings : Page
         playwrightInstallStatus.Text = "Opening installation window...";
 
         // Create a progress dialog window similar to the Update flow
-        Window progressWindow = null!;
+        System.Windows.Window progressWindow = null!;
         System.Windows.Controls.ProgressBar progressBar = null!;
         System.Windows.Controls.Label statusLabel = null!;
         System.Windows.Controls.TextBox logTextBox = null!;
@@ -93,7 +93,7 @@ public partial class RLSettings : Page
         try
         {
             // Create the progress window on the UI thread
-            progressWindow = new Window
+            progressWindow = new System.Windows.Window
             {
                 Title = "Installing Playwright Browsers",
                 Width = 550,

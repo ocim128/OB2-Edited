@@ -14,7 +14,7 @@ namespace RuriLib.Functions.Http.Options
         public string TlsClientProfile { get; set; } = "Chrome120";
         public string HttpCloakPreset { get; set; } = "chrome-143";
         public string CustomJa3String { get; set; } = string.Empty;
-        public bool RandomizeTlsExtensionOrder { get; set; } = true;
+        public bool RandomizeTlsExtensionOrder { get; set; } = false;
         public bool InsecureSkipVerify { get; set; } = false;
         public SecurityProtocol SecurityProtocol { get; set; } = SecurityProtocol.SystemDefault;
         public Dictionary<string, string> CustomCookies { get; set; } = new();

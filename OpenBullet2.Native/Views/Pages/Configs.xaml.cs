@@ -4,7 +4,7 @@ using OpenBullet2.Native.DTOs;
 using OpenBullet2.Native.Helpers;
 using OpenBullet2.Native.Services;
 using OpenBullet2.Native.ViewModels;
-using OpenBullet2.Native.Views.Dialogs;
+using OpenBullet2.Native.Views.Dialogs.Config;
 using RuriLib.Models.Configs;
 using System;
 using System.Collections.Generic;

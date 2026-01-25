@@ -5,7 +5,7 @@ using OpenBullet2.Native.Extensions;
 using OpenBullet2.Native.Helpers;
 using OpenBullet2.Native.Services;
 using OpenBullet2.Native.ViewModels;
-using OpenBullet2.Native.Views.Dialogs;
+using OpenBullet2.Native.Views.Dialogs.Proxy;
 using RuriLib.Models.Proxies;
 using System;
 using System.Collections.Generic;

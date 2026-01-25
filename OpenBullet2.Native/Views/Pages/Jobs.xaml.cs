@@ -5,7 +5,7 @@ using OpenBullet2.Native.Helpers;
 using OpenBullet2.Native.Services;
 using OpenBullet2.Native.ViewModels;
 using OpenBullet2.Native.ViewModels.Base;
-using OpenBullet2.Native.Views.Dialogs;
+using OpenBullet2.Native.Views.Dialogs.Job;
 using System;
 using System.Windows;
 using System.Windows.Controls;

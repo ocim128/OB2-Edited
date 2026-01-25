@@ -1,5 +1,5 @@
 using OpenBullet2.Core.Extensions;
-using OpenBullet2.Native.Views.Dialogs;
+using OpenBullet2.Native.Views.Dialogs.Common;
 using OpenBullet2.Native.Services;
 using System;
 using System.Windows;

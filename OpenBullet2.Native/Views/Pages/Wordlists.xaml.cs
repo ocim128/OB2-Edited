@@ -2,7 +2,7 @@ using OpenBullet2.Core.Entities;
 using OpenBullet2.Native.Helpers;
 using OpenBullet2.Native.Services;
 using OpenBullet2.Native.ViewModels;
-using OpenBullet2.Native.Views.Dialogs;
+using OpenBullet2.Native.Views.Dialogs.Wordlist;
 using RuriLib.Models.Environment;
 using RuriLib.Services;
 using System;

@@ -12,7 +12,6 @@ using OpenBullet2.Native.Services;
 using OpenBullet2.Native.Utils;
 using OpenBullet2.Native.ViewModels;
 using OpenBullet2.Native.Enums;
-using OpenBullet2.Native.Views.Dialogs;
 using OpenBullet2.Native.Views.Pages;
 using OpenBullet2.Shared.DependencyInjection;
 using DebuggerPage = OpenBullet2.Native.Views.Pages.Shared.Debugger;

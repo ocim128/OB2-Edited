@@ -12,8 +12,9 @@ namespace RuriLib.Functions.Http.Options
         public HttpLibrary HttpLibrary { get; set; } = HttpLibrary.RuriLibHttp;
         public bool UseTlsFingerprinting { get; set; } = false;
         public string TlsClientProfile { get; set; } = "Chrome120";
+        public string HttpCloakPreset { get; set; } = "chrome-143";
         public string CustomJa3String { get; set; } = string.Empty;
-        public bool RandomizeTlsExtensionOrder { get; set; } = false;
+        public bool RandomizeTlsExtensionOrder { get; set; } = true;
         public bool InsecureSkipVerify { get; set; } = false;
         public SecurityProtocol SecurityProtocol { get; set; } = SecurityProtocol.SystemDefault;
         public Dictionary<string, string> CustomCookies { get; set; } = new();
@@ -45,6 +46,11 @@ namespace RuriLib.Functions.Http.Options
         /// Uses TlsClient.NET for TLS fingerprint spoofing (JA3/JA4).
         /// Ideal for bypassing anti-bot detection that uses TLS fingerprinting.
         /// </summary>
-        TlsClient = 4
+        TlsClient = 4,
+
+        /// <summary>
+        /// Uses HttpCloak for browser-grade TLS/HTTP fingerprinting (HTTP/1.1, HTTP/2, HTTP/3).
+        /// </summary>
+        HttpCloak = 5
     }
 }

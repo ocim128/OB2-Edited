@@ -308,25 +308,12 @@ namespace RuriLib.Functions.Http
                 WithDefaultCookieJar = true,              // Enable cookie jar for session persistence
                 SessionId = data.TlsClientSessionId ??= Guid.NewGuid(),
                 TransportOptions = _defaultTransportOptions, // Connection pooling settings
-                Headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase),
-                HeaderOrder = null
+                Headers = new Dictionary<string, string>()
             };
 
             if (options.HttpLibrary == HttpLibrary.RuriLibHttp)
             {
                 request.ForceHttp1 = true;
-            }
-            else if (!string.IsNullOrWhiteSpace(options.HttpVersion))
-            {
-                var version = options.HttpVersion.Trim();
-                if (version.StartsWith("1", StringComparison.OrdinalIgnoreCase))
-                {
-                    request.ForceHttp1 = true;
-                }
-                else if (version.StartsWith("2", StringComparison.OrdinalIgnoreCase))
-                {
-                    request.ForceHttp1 = false;
-                }
             }
 
             if (!string.IsNullOrWhiteSpace(options.CustomJa3String))
@@ -343,7 +330,10 @@ namespace RuriLib.Functions.Http
                 request.Headers[header.Key] = header.Value;
             }
 
-            // Let the TLS profile control header order unless explicitly needed.
+            if (options.CustomHeaders.Count > 0)
+            {
+                request.HeaderOrder = options.CustomHeaders.Keys.ToList();
+            }
 
             // Set cookies using RequestCookies (the proper way in TlsClient)
             // Note: Using Cookie header doesn't work reliably in TlsClient
@@ -403,10 +393,9 @@ namespace RuriLib.Functions.Http
             var requestNumber = Interlocked.Increment(ref _requestCount);
 
             var startTime = DateTime.UtcNow;
-            var logEnabled = data.Logger?.Enabled == true;
             
             // Log request body before execution (so we can see what's being sent)
-            if (logEnabled && !string.IsNullOrEmpty(request.RequestBody))
+            if (data.Logger?.Enabled == true && !string.IsNullOrEmpty(request.RequestBody))
             {
                 data.Logger.Log("[TLS Client] Request Body (PostData):", LogColors.Gold);
                 // For byte requests, show that it's base64 encoded
@@ -464,6 +453,8 @@ namespace RuriLib.Functions.Http
                 }
 
                 var elapsed = DateTime.UtcNow - startTime;
+                var logEnabled = data.Logger?.Enabled == true;
+
                 // Log response info with request tracking
                 if (logEnabled)
                 {
@@ -472,10 +463,6 @@ namespace RuriLib.Functions.Http
 
                 // Set response code
                 data.RESPONSECODE = (int)response.Status;
-                if (logEnabled)
-                {
-                    data.Logger.Log($"Response code: {data.RESPONSECODE}", LogColors.Citrine);
-                }
 
                 // Set address
                 data.ADDRESS = options.Url;

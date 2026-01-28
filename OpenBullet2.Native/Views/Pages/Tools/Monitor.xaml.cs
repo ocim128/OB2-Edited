@@ -846,16 +846,23 @@ namespace OpenBullet2.Native.Views.Pages.Tools
             var sourceBytes = GetFileLengthSafe(sourcePath);
             var totalBytes = Math.Max(1, comparisonBytes + sourceBytes);
 
-            var signatures = new HashSet<LineFingerprint>();
+            var signatures = new HashSet<LineFingerprint>(EstimateLineReducerCapacity(comparisonBytes));
             long indexedLines = 0;
             long comparisonBytesCompleted = 0;
+
+            using var fingerprintFactory = new LineFingerprintFactory();
 
             foreach (var comparison in comparisonFiles)
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                await using var stream = new FileStream(comparison, FileMode.Open, FileAccess.Read, FileShare.Read,
-                    bufferSize: 1 << 20, useAsync: true);
+                await using var stream = new FileStream(
+                    comparison,
+                    FileMode.Open,
+                    FileAccess.Read,
+                    FileShare.Read,
+                    bufferSize: 1 << 20,
+                    options: FileOptions.Asynchronous | FileOptions.SequentialScan);
                 using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true,
                     bufferSize: 1 << 20);
 
@@ -869,7 +876,7 @@ namespace OpenBullet2.Native.Views.Pages.Tools
 
                     cancellationToken.ThrowIfCancellationRequested();
 
-                    var fingerprint = LineFingerprint.Create(line, options.TrimWhitespace, options.IgnoreCase);
+                    var fingerprint = fingerprintFactory.Create(line, options.TrimWhitespace, options.IgnoreCase);
                     signatures.Add(fingerprint);
                     indexedLines++;
 
@@ -903,15 +910,25 @@ namespace OpenBullet2.Native.Views.Pages.Tools
             long removedLines = 0;
             long writtenLines = 0;
 
-            await using var sourceStream = new FileStream(sourcePath, FileMode.Open, FileAccess.Read, FileShare.Read,
-                bufferSize: 1 << 20, useAsync: true);
+            await using var sourceStream = new FileStream(
+                sourcePath,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.Read,
+                bufferSize: 1 << 20,
+                options: FileOptions.Asynchronous | FileOptions.SequentialScan);
             using var sourceReader = new StreamReader(sourceStream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true,
                 bufferSize: 1 << 20);
             _ = sourceReader.Peek();
             var writerEncoding = DetermineOutputEncoding(sourceReader);
 
-            await using var outputStream = new FileStream(outputPath, FileMode.Create, FileAccess.Write, FileShare.None,
-                bufferSize: 1 << 20, useAsync: true);
+            await using var outputStream = new FileStream(
+                outputPath,
+                FileMode.Create,
+                FileAccess.Write,
+                FileShare.None,
+                bufferSize: 1 << 20,
+                options: FileOptions.Asynchronous | FileOptions.SequentialScan);
             using var writer = new StreamWriter(outputStream, writerEncoding, bufferSize: 1 << 20, leaveOpen: false);
             writer.NewLine = newline;
 
@@ -927,7 +944,7 @@ namespace OpenBullet2.Native.Views.Pages.Tools
 
                 processedLines++;
 
-                var fingerprint = LineFingerprint.Create(line, options.TrimWhitespace, options.IgnoreCase);
+                var fingerprint = fingerprintFactory.Create(line, options.TrimWhitespace, options.IgnoreCase);
                 if (signatures.Contains(fingerprint))
                 {
                     removedLines++;
@@ -970,6 +987,30 @@ namespace OpenBullet2.Native.Views.Pages.Tools
                 SourceBytes: sourceBytes,
                 ComparisonBytes: comparisonBytes,
                 Elapsed: stopwatch.Elapsed);
+        }
+
+        private static int EstimateLineReducerCapacity(long comparisonBytes)
+        {
+            const int minCapacity = 1024;
+            const int maxCapacity = 2_000_000;
+
+            if (comparisonBytes <= 0)
+            {
+                return minCapacity;
+            }
+
+            var estimated = comparisonBytes / 64;
+            if (estimated < minCapacity)
+            {
+                return minCapacity;
+            }
+
+            if (estimated > maxCapacity)
+            {
+                return maxCapacity;
+            }
+
+            return (int)estimated;
         }
 
         private static long GetFileLengthSafe(string path)
@@ -2393,6 +2434,137 @@ namespace OpenBullet2.Native.Views.Pages.Tools
             long IndexedLines);
 
         private readonly record struct LineReducerOptions(bool TrimWhitespace, bool IgnoreCase);
+
+        private sealed class LineFingerprintFactory : IDisposable
+        {
+            private const int MaxReusableChars = 1 << 20;
+            private const int MaxReusableBytes = 1 << 20;
+
+            private char[]? charBuffer;
+            private byte[]? byteBuffer;
+
+            public LineFingerprint Create(string? line, bool trimWhitespace, bool ignoreCase)
+            {
+                ReadOnlySpan<char> span = line is null
+                    ? ReadOnlySpan<char>.Empty
+                    : line.AsSpan();
+
+                if (trimWhitespace)
+                {
+                    span = span.Trim();
+                }
+
+                if (span.Length == 0)
+                {
+                    return default;
+                }
+
+                ReadOnlySpan<char> normalized = span;
+                char[]? rentedChars = null;
+
+                if (ignoreCase)
+                {
+                    if (span.Length <= MaxReusableChars)
+                    {
+                        EnsureCharBuffer(span.Length);
+                        for (var i = 0; i < span.Length; i++)
+                        {
+                            charBuffer![i] = char.ToUpperInvariant(span[i]);
+                        }
+
+                        normalized = charBuffer.AsSpan(0, span.Length);
+                    }
+                    else
+                    {
+                        rentedChars = ArrayPool<char>.Shared.Rent(span.Length);
+                        for (var i = 0; i < span.Length; i++)
+                        {
+                            rentedChars[i] = char.ToUpperInvariant(span[i]);
+                        }
+
+                        normalized = rentedChars.AsSpan(0, span.Length);
+                    }
+                }
+
+                var maxByteCount = Utf8NoBomEncoding.GetMaxByteCount(normalized.Length);
+                Span<byte> buffer;
+                byte[]? rentedBytes = null;
+
+                if (maxByteCount <= MaxReusableBytes)
+                {
+                    EnsureByteBuffer(maxByteCount);
+                    buffer = byteBuffer.AsSpan(0, maxByteCount);
+                }
+                else
+                {
+                    rentedBytes = ArrayPool<byte>.Shared.Rent(maxByteCount);
+                    buffer = rentedBytes.AsSpan(0, maxByteCount);
+                }
+
+                var bytesWritten = Utf8NoBomEncoding.GetBytes(normalized, buffer);
+                var hashedSpan = buffer.Slice(0, bytesWritten);
+
+                var fingerprint = new LineFingerprint(
+                    XxHash3.HashToUInt64(hashedSpan),
+                    XxHash64.HashToUInt64(hashedSpan),
+                    bytesWritten);
+
+                if (rentedBytes is not null)
+                {
+                    ArrayPool<byte>.Shared.Return(rentedBytes);
+                }
+
+                if (rentedChars is not null)
+                {
+                    ArrayPool<char>.Shared.Return(rentedChars);
+                }
+
+                return fingerprint;
+            }
+
+            private void EnsureCharBuffer(int length)
+            {
+                if (charBuffer is not null && charBuffer.Length >= length)
+                {
+                    return;
+                }
+
+                if (charBuffer is not null)
+                {
+                    ArrayPool<char>.Shared.Return(charBuffer);
+                }
+
+                charBuffer = ArrayPool<char>.Shared.Rent(length);
+            }
+
+            private void EnsureByteBuffer(int length)
+            {
+                if (byteBuffer is not null && byteBuffer.Length >= length)
+                {
+                    return;
+                }
+
+                if (byteBuffer is not null)
+                {
+                    ArrayPool<byte>.Shared.Return(byteBuffer);
+                }
+
+                byteBuffer = ArrayPool<byte>.Shared.Rent(length);
+            }
+
+            public void Dispose()
+            {
+                if (charBuffer is not null)
+                {
+                    ArrayPool<char>.Shared.Return(charBuffer);
+                }
+
+                if (byteBuffer is not null)
+                {
+                    ArrayPool<byte>.Shared.Return(byteBuffer);
+                }
+            }
+        }
 
         private readonly struct LineFingerprint : IEquatable<LineFingerprint>
         {

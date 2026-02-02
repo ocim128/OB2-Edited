@@ -74,6 +74,7 @@ public partial class MultiRunJobViewer : Page
                 try
                 {
                     vm.NewMessage -= OnResultMessage;
+                    vm.SparklineDataUpdated -= UpdateSparklines;
                 }
                 catch
                 {
@@ -83,10 +84,28 @@ public partial class MultiRunJobViewer : Page
 
             vm = new MultiRunJobViewerViewModel(jobVM);
             vm.NewMessage += OnResultMessage;
+            vm.SparklineDataUpdated += UpdateSparklines;
             DataContext = vm;
 
             // Set the initial active tab to Hits
             SetActiveTab("Hits");
+            
+            // Clear sparklines when binding to a new job
+            CpmSparkline?.Clear();
+        }
+        
+        /// <summary>
+        /// Updates the sparkline charts with the latest data from the ViewModel.
+        /// </summary>
+        private void UpdateSparklines()
+        {
+            Dispatcher.Invoke(() =>
+            {
+                if (vm != null && CpmSparkline != null)
+                {
+                    CpmSparkline.SetDataPoints(vm.CpmHistory);
+                }
+            });
         }
 
         private async void Start(object sender, RoutedEventArgs e)
@@ -130,6 +149,46 @@ public partial class MultiRunJobViewer : Page
                     vm.ResetSkip();
                 }
             }, "resetting skip count");
+        }
+
+        // Quick bot adjustment handlers
+        private async void IncreaseBots1(object sender, RoutedEventArgs e)
+            => await Alert.SafeExecuteAsync(() => vm.IncreaseBotsByAsync(1), "increasing bots by 1");
+
+        private async void IncreaseBots10(object sender, RoutedEventArgs e)
+            => await Alert.SafeExecuteAsync(() => vm.IncreaseBotsByAsync(10), "increasing bots by 10");
+
+        private async void DecreaseBots1(object sender, RoutedEventArgs e)
+            => await Alert.SafeExecuteAsync(() => vm.DecreaseBotsByAsync(1), "decreasing bots by 1");
+
+        private async void DecreaseBots10(object sender, RoutedEventArgs e)
+            => await Alert.SafeExecuteAsync(() => vm.DecreaseBotsByAsync(10), "decreasing bots by 10");
+
+        // Copy all hits handlers
+        private void CopyAllHits(object sender, RoutedEventArgs e)
+        {
+            var hitsText = vm.GetAllHitsForClipboard();
+            if (string.IsNullOrWhiteSpace(hitsText))
+            {
+                Alert.Warning("No Hits", "There are no hits to copy.");
+                return;
+            }
+            Clipboard.SetText(hitsText);
+            var count = hitsText.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries).Length;
+            Alert.Success("Clipboard", $"Copied {count} hits to clipboard.");
+        }
+
+        private void CopyAllHitsWithCapture(object sender, RoutedEventArgs e)
+        {
+            var hitsText = vm.GetAllHitsWithCaptureForClipboard();
+            if (string.IsNullOrWhiteSpace(hitsText))
+            {
+                Alert.Warning("No Hits", "There are no hits to copy.");
+                return;
+            }
+            Clipboard.SetText(hitsText);
+            var count = hitsText.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries).Length;
+            Alert.Success("Clipboard", $"Copied {count} hits with capture to clipboard.");
         }
 
         private async void CopySelectedHits(object sender, RoutedEventArgs e)

@@ -419,12 +419,50 @@ public class JobViewModel(Job job) : ViewModelBase
             ? "0 day(s) 00:00:00"
             : $"{(int)Job.Remaining.TotalDays} day(s) {Job.Remaining:hh\\:mm\\:ss}";
 
+    /// <summary>
+    /// Human-readable elapsed time (e.g., "2h 15m" instead of "0 day(s) 02:15:34")
+    /// </summary>
+    public string ElapsedStringHuman => FormatTimeSpanHuman(Job.Elapsed);
+
+    /// <summary>
+    /// Human-readable remaining time (e.g., "5h 30m" instead of "0 day(s) 05:30:00")
+    /// </summary>
+    public string RemainingStringHuman =>
+        Status == JobStatus.Idle || Status == JobStatus.Stopping || Progress >= 1.0f || TestedCount >= TotalCount
+            ? "--"
+            : FormatTimeSpanHuman(Job.Remaining);
+
+    /// <summary>
+    /// Formats a TimeSpan into a human-readable string like "2d 5h", "3h 15m", or "45s"
+    /// </summary>
+    protected static string FormatTimeSpanHuman(TimeSpan span)
+    {
+        if (span.TotalDays >= 1)
+        {
+            return $"{(int)span.TotalDays}d {span.Hours}h";
+        }
+        else if (span.TotalHours >= 1)
+        {
+            return $"{(int)span.TotalHours}h {span.Minutes}m";
+        }
+        else if (span.TotalMinutes >= 1)
+        {
+            return $"{(int)span.TotalMinutes}m {span.Seconds}s";
+        }
+        else
+        {
+            return $"{span.Seconds}s";
+        }
+    }
+
     public virtual string ProgressString => $"{TestedCount} / {TotalCount} ({(Progress < 0 ? 0 : Progress * 100):0.00}%)";
 
     public virtual void PeriodicUpdate()
     {
         OnPropertyChanged(nameof(ElapsedString));
         OnPropertyChanged(nameof(RemainingString));
+        OnPropertyChanged(nameof(ElapsedStringHuman));
+        OnPropertyChanged(nameof(RemainingStringHuman));
         OnPropertyChanged(nameof(CPM));
     }
 

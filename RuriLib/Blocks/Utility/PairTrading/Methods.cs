@@ -58,7 +58,9 @@ namespace RuriLib.Blocks.Utility.PairTrading
 
             var returnsPrimary = StatisticalAnalysis.CalculateReturns(alignedPrimary);
             var returnsSecondary = StatisticalAnalysis.CalculateReturns(alignedSecondary);
+            data.Logger.Log($"Returns: primary={returnsPrimary.Count}, secondary={returnsSecondary.Count}", LogColors.DeepChampagne);
             var correlation = StatisticalAnalysis.PearsonCorrelation(returnsPrimary, returnsSecondary);
+            data.Logger.Log($"Correlation calculated: {correlation:F6}", LogColors.DeepChampagne);
 
             var spread = StatisticalAnalysis.CalculateSpread(alignedPrimary, alignedSecondary);
             var ratioSeries = StatisticalAnalysis.CalculateRatio(alignedPrimary, alignedSecondary);

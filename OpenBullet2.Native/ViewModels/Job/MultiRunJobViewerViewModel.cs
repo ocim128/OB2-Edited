@@ -38,6 +38,7 @@ public class MultiRunJobViewerViewModel : ViewModelBase, IDisposable
     private readonly Timer botsInfoTimer;
     private readonly Timer secondsTicker;
     private readonly SoundPlayer soundPlayer;
+    private readonly SemaphoreSlim botChangeLock = new(1, 1); // Prevent race conditions on rapid bot changes
     private CancellationTokenSource startCTS;
 
     public event Action<object, string, Color> NewMessage;
@@ -139,6 +140,103 @@ public class MultiRunJobViewerViewModel : ViewModelBase, IDisposable
     #region Properties that need to be updated when a new result comes in
     public double Progress => Math.Clamp(MultiRunJob.Progress * 100, 0, 100);
     #endregion Properties that need to be updated when a new result comes in
+
+    #region Badge Counts for Tab Buttons
+    public int HitsCount => MultiRunJob.DataHits;
+    public int CustomCount => MultiRunJob.DataCustom;
+    public int ToCheckCount => MultiRunJob.DataToCheck;
+
+    public string HitsTabLabel => HitsCount > 0 ? $"Hits ({HitsCount})" : "Hits";
+    public string CustomTabLabel => CustomCount > 0 ? $"Custom ({CustomCount})" : "Custom";
+    public string ToCheckTabLabel => ToCheckCount > 0 ? $"ToCheck ({ToCheckCount})" : "ToCheck";
+    #endregion Badge Counts for Tab Buttons
+
+    #region Real-time Statistics Visualization
+    private const int MaxHistoryPoints = 30;
+    
+    // CPM History for sparkline
+    private readonly List<double> cpmHistory = new();
+    public IReadOnlyList<double> CpmHistory => cpmHistory;
+    
+    // Hits per minute history
+    private readonly List<double> hitsPerMinuteHistory = new();
+    public IReadOnlyList<double> HitsPerMinuteHistory => hitsPerMinuteHistory;
+    
+    private int lastRecordedHits = 0;
+    private DateTime lastHitsRecordTime = DateTime.Now;
+    
+    /// <summary>
+    /// Animated counter values for smooth transitions
+    /// </summary>
+    public double AnimatedCpm => Job?.CPM ?? 0;
+    public double AnimatedHits => Job?.Job is MultiRunJob mrj ? mrj.DataHits : 0;
+    public double AnimatedCustom => Job?.Job is MultiRunJob mrj ? mrj.DataCustom : 0;
+    public double AnimatedToCheck => Job?.Job is MultiRunJob mrj ? mrj.DataToCheck : 0;
+    public double AnimatedBanned => Job?.Job is MultiRunJob mrj ? mrj.DataBanned : 0;
+    public double AnimatedFails => Job?.Job is MultiRunJob mrj ? mrj.DataFails : 0;
+    public double AnimatedRetried => Job?.Job is MultiRunJob mrj ? mrj.DataRetried : 0;
+    public double AnimatedErrors => Job?.Job is MultiRunJob mrj ? mrj.DataErrors : 0;
+    
+    /// <summary>
+    /// Event fired when sparkline data is updated
+    /// </summary>
+    public event Action SparklineDataUpdated;
+    
+    /// <summary>
+    /// Records current stats for sparkline history. Called every second.
+    /// </summary>
+    private void RecordSparklineData()
+    {
+        if (MultiRunJob == null) return;
+        
+        // Record CPM
+        cpmHistory.Add(MultiRunJob.CPM);
+        while (cpmHistory.Count > MaxHistoryPoints)
+            cpmHistory.RemoveAt(0);
+        
+        // Calculate and record hits per minute
+        var now = DateTime.Now;
+        var elapsed = (now - lastHitsRecordTime).TotalMinutes;
+        if (elapsed > 0)
+        {
+            var currentHits = MultiRunJob.DataHits;
+            var hitsDelta = currentHits - lastRecordedHits;
+            var hitsPerMinute = hitsDelta / elapsed;
+            
+            hitsPerMinuteHistory.Add(Math.Max(0, hitsPerMinute));
+            while (hitsPerMinuteHistory.Count > MaxHistoryPoints)
+                hitsPerMinuteHistory.RemoveAt(0);
+            
+            lastRecordedHits = currentHits;
+            lastHitsRecordTime = now;
+        }
+        
+        // Notify UI to update sparklines
+        SparklineDataUpdated?.Invoke();
+        
+        // Update animated counter bindings
+        OnPropertyChanged(nameof(AnimatedCpm));
+        OnPropertyChanged(nameof(AnimatedHits));
+        OnPropertyChanged(nameof(AnimatedCustom));
+        OnPropertyChanged(nameof(AnimatedToCheck));
+        OnPropertyChanged(nameof(AnimatedBanned));
+        OnPropertyChanged(nameof(AnimatedFails));
+        OnPropertyChanged(nameof(AnimatedRetried));
+        OnPropertyChanged(nameof(AnimatedErrors));
+    }
+    
+    /// <summary>
+    /// Clears all sparkline history data. Call when starting a new job.
+    /// </summary>
+    public void ClearSparklineData()
+    {
+        cpmHistory.Clear();
+        hitsPerMinuteHistory.Clear();
+        lastRecordedHits = 0;
+        lastHitsRecordTime = DateTime.Now;
+        SparklineDataUpdated?.Invoke();
+    }
+    #endregion Real-time Statistics Visualization
 
     #region Collections
     private ObservableCollection<BotViewModel> botsCollection = new();
@@ -322,6 +420,12 @@ public class MultiRunJobViewerViewModel : ViewModelBase, IDisposable
         {
             UpdateBots();
         }
+        
+        // Record stats for sparkline visualization when running
+        if (MultiRunJob.Status is JobStatus.Running)
+        {
+            RecordSparklineData();
+        }
     }
 
     /// <summary>
@@ -335,6 +439,15 @@ public class MultiRunJobViewerViewModel : ViewModelBase, IDisposable
     private void UpdateViewModel(object? sender, ResultDetails<MultiRunInput, CheckResult> details)
     {
         OnPropertyChanged(nameof(Progress));
+        
+        // Update badge counts for tabs
+        OnPropertyChanged(nameof(HitsCount));
+        OnPropertyChanged(nameof(CustomCount));
+        OnPropertyChanged(nameof(ToCheckCount));
+        OnPropertyChanged(nameof(HitsTabLabel));
+        OnPropertyChanged(nameof(CustomTabLabel));
+        OnPropertyChanged(nameof(ToCheckTabLabel));
+        
         Job.UpdateStats();
     }
 
@@ -538,10 +651,71 @@ public class MultiRunJobViewerViewModel : ViewModelBase, IDisposable
     public async Task ChangeBotsAsync(int newValue)
     {
         // TODO: Also edit the job options! So the number of bots is persisted
+        if (MultiRunJob == null) return;
 
         await MultiRunJob.ChangeBots(newValue);
         MultiRunJob.Bots = newValue;
-        Job.UpdateBots();
+        Job?.UpdateBots();
+    }
+
+    /// <summary>
+    /// Quick bot adjustment: increase bots by specified amount
+    /// Uses a lock to prevent race conditions when clicking rapidly
+    /// </summary>
+    public async Task IncreaseBotsByAsync(int amount)
+    {
+        if (!await botChangeLock.WaitAsync(0)) return; // Skip if another change is in progress
+        try
+        {
+            if (MultiRunJob == null) return;
+            var newValue = Math.Max(1, MultiRunJob.Bots + amount);
+            await ChangeBotsAsync(newValue);
+        }
+        finally
+        {
+            botChangeLock.Release();
+        }
+    }
+
+    /// <summary>
+    /// Quick bot adjustment: decrease bots by specified amount
+    /// Uses a lock to prevent race conditions when clicking rapidly
+    /// </summary>
+    public async Task DecreaseBotsByAsync(int amount)
+    {
+        if (!await botChangeLock.WaitAsync(0)) return; // Skip if another change is in progress
+        try
+        {
+            if (MultiRunJob == null) return;
+            var newValue = Math.Max(1, MultiRunJob.Bots - amount);
+            await ChangeBotsAsync(newValue);
+        }
+        finally
+        {
+            botChangeLock.Release();
+        }
+    }
+
+    /// <summary>
+    /// Returns all current hits as a newline-separated string for clipboard copy
+    /// </summary>
+    public string GetAllHitsForClipboard()
+    {
+        var hits = MultiRunJob.Hits
+            .Where(h => h != null && h.Type == "SUCCESS")
+            .Select(h => h.Data?.Data ?? "");
+        return string.Join(Environment.NewLine, hits);
+    }
+
+    /// <summary>
+    /// Returns all current hits with capture as a newline-separated string
+    /// </summary>
+    public string GetAllHitsWithCaptureForClipboard()
+    {
+        var hits = MultiRunJob.Hits
+            .Where(h => h != null && h.Type == "SUCCESS")
+            .Select(h => $"{h.Data?.Data} | {h.CapturedDataString}");
+        return string.Join(Environment.NewLine, hits);
     }
 
     public void ResetSkip()
@@ -626,6 +800,7 @@ public class MultiRunJobViewerViewModel : ViewModelBase, IDisposable
             botsInfoTimer?.Dispose();
             secondsTicker?.Dispose();
             soundPlayer?.Dispose();
+            botChangeLock?.Dispose();
 
             MultiRunJob.OnCompleted -= UpdateOnCompleted;
             MultiRunJob.OnResult -= UpdateViewModel;

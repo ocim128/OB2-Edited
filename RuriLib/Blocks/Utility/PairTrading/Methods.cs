@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Text.Json;
 
@@ -17,7 +18,15 @@ namespace RuriLib.Blocks.Utility.PairTrading
         private const float DefaultTailThreshold = 0.95f;
         private const int DefaultMaxBars = 12000;
         private const int MaxBinanceLimit = 1000;
-        private static readonly HttpClient HttpClient = new();
+        private const int DefaultHttpTimeoutMs = 15000;
+        private const int MinCopulaSamples = 5;
+        private const int MinTransferEntropySamples = 6;
+        private const double CopulaTypeThreshold = 0.08;
+        private const int CancellationCheckInterval = 1000;
+        private static readonly HttpClient HttpClient = new()
+        {
+            Timeout = Timeout.InfiniteTimeSpan
+        };
 
         [Block("Analyzes two price series for pair-trading opportunities", name = "Pair Trading Analysis")]
         public static Dictionary<string, string> AnalyzePairTrading(
@@ -37,8 +46,8 @@ namespace RuriLib.Blocks.Utility.PairTrading
         {
             data.Logger.LogHeader();
 
-            var primaryValues = ParseSeries(primaryCloses, out var primaryInvalid);
-            var secondaryValues = ParseSeries(secondaryCloses, out var secondaryInvalid);
+            var primaryValues = ParseSeries(data, primaryCloses, out var primaryInvalid);
+            var secondaryValues = ParseSeries(data, secondaryCloses, out var secondaryInvalid);
 
             var aligned = AlignSeries(primaryValues, secondaryValues, out var droppedCount);
             var alignedPrimary = aligned.Primary;
@@ -88,7 +97,7 @@ namespace RuriLib.Blocks.Utility.PairTrading
 
             if (computeTransferEntropy)
             {
-                entropy = CalculateTransferEntropy(returnsPrimary, returnsSecondary, transferEntropyHistory, transferEntropyBins);
+                entropy = CalculateTransferEntropy(returnsPrimary, returnsSecondary, transferEntropyHistory, transferEntropyBins, data.CancellationToken);
             }
 
             var methodScores = new List<double>();
@@ -187,6 +196,7 @@ namespace RuriLib.Blocks.Utility.PairTrading
             int batchSize = MaxBinanceLimit,
             string endTimeMs = "",
             int delayMs = 0,
+            int timeoutMs = DefaultHttpTimeoutMs,
             string baseUrl = "https://api.binance.com")
         {
             data.Logger.LogHeader();
@@ -226,11 +236,22 @@ namespace RuriLib.Blocks.Utility.PairTrading
                 string responseText;
                 try
                 {
+                    using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(data.CancellationToken);
+                    if (timeoutMs > 0)
+                    {
+                        timeoutCts.CancelAfter(timeoutMs);
+                    }
+
                     using var request = new HttpRequestMessage(HttpMethod.Get, url);
                     request.Headers.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64)");
-                    var response = await HttpClient.SendAsync(request, data.CancellationToken).ConfigureAwait(false);
+                    var response = await HttpClient.SendAsync(request, timeoutCts.Token).ConfigureAwait(false);
                     response.EnsureSuccessStatusCode();
                     responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                }
+                catch (TaskCanceledException ex) when (!data.CancellationToken.IsCancellationRequested)
+                {
+                    data.Logger.LogError($"Timed out after {timeoutMs} ms fetching klines.", ex);
+                    break;
                 }
                 catch (Exception ex)
                 {
@@ -333,7 +354,7 @@ namespace RuriLib.Blocks.Utility.PairTrading
             return result;
         }
 
-        private static List<double> ParseSeries(List<string> values, out int invalidCount)
+        private static List<double> ParseSeries(BotData data, List<string> values, out int invalidCount)
         {
             invalidCount = 0;
             if (values == null)
@@ -347,7 +368,7 @@ namespace RuriLib.Blocks.Utility.PairTrading
                 var trimmed = single.Trim();
                 if (trimmed.StartsWith("[", StringComparison.Ordinal))
                 {
-                    if (TryParseJsonSeries(trimmed, out var jsonSeries, out var jsonInvalid))
+                    if (TryParseJsonSeries(data, trimmed, out var jsonSeries, out var jsonInvalid))
                     {
                         invalidCount = jsonInvalid;
                         return jsonSeries;
@@ -390,7 +411,7 @@ namespace RuriLib.Blocks.Utility.PairTrading
             return result;
         }
 
-        private static bool TryParseJsonSeries(string json, out List<double> series, out int invalidCount)
+        private static bool TryParseJsonSeries(BotData data, string json, out List<double> series, out int invalidCount)
         {
             series = new List<double>();
             invalidCount = 0;
@@ -448,8 +469,9 @@ namespace RuriLib.Blocks.Utility.PairTrading
             {
                 return false;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                data.Logger.LogError($"Unexpected error parsing JSON series: {ex.Message}", ex);
                 return false;
             }
 
@@ -727,7 +749,7 @@ namespace RuriLib.Blocks.Utility.PairTrading
                 clean2.Add(b);
             }
 
-            if (clean1.Count < 5)
+            if (clean1.Count < MinCopulaSamples)
             {
                 return new CopulaResult(0, 0, 0, "gaussian", 0);
             }
@@ -771,11 +793,11 @@ namespace RuriLib.Blocks.Utility.PairTrading
                 : 0;
 
             var copulaType = "gaussian";
-            if (upper - lower > 0.08)
+            if (upper - lower > CopulaTypeThreshold)
             {
                 copulaType = "gumbel";
             }
-            else if (lower - upper > 0.08)
+            else if (lower - upper > CopulaTypeThreshold)
             {
                 copulaType = "clayton";
             }
@@ -849,16 +871,17 @@ namespace RuriLib.Blocks.Utility.PairTrading
                 return new WaveletResult(0, 0, 0);
             }
 
-            var originalLength = clean.Count;
+            var cleanArray = clean.ToArray();
+            var originalLength = cleanArray.Length;
             var levels = new List<WaveletLevel>();
-            var current = new List<double>(clean);
+            var current = cleanArray;
             var totalEnergy = Math.Max(1e-12, SumSquares(current));
             var depth = Math.Max(1, maxLevels);
             var filters = GetWaveletFilters(waveletType);
 
             for (var level = 0; level < depth; level++)
             {
-                if (current.Count < 2) break;
+                if (current.Length < 2) break;
 
                 var approximation = Dwt(current, filters.LoD, filters.HiD, out var detail);
                 var detailEnergy = SumSquares(detail);
@@ -871,20 +894,24 @@ namespace RuriLib.Blocks.Utility.PairTrading
                     Energy = detailEnergy / totalEnergy
                 });
 
-                current = new List<double>(approximation);
+                current = approximation;
             }
 
             var reconstruction = levels.Count > 0
-                ? new List<double>(levels[levels.Count - 1].Approximation)
-                : new List<double>(clean);
+                ? levels[levels.Count - 1].Approximation
+                : cleanArray;
             for (var i = levels.Count - 1; i >= 0; i--)
             {
-                var zeros = new double[reconstruction.Count];
-                var reconstructed = Idwt(reconstruction.ToArray(), zeros, filters.LoR, filters.HiR);
-                reconstruction = new List<double>(reconstructed);
+                var zeros = new double[reconstruction.Length];
+                reconstruction = Idwt(reconstruction, zeros, filters.LoR, filters.HiR);
             }
 
-            var smoothed = reconstruction.GetRange(0, Math.Min(originalLength, reconstruction.Count));
+            var smoothedLength = Math.Min(originalLength, reconstruction.Length);
+            var smoothed = new double[smoothedLength];
+            if (smoothedLength > 0)
+            {
+                Array.Copy(reconstruction, smoothed, smoothedLength);
+            }
 
             var dominantCycle = 0;
             var dominantEnergy = 0.0;
@@ -907,7 +934,9 @@ namespace RuriLib.Blocks.Utility.PairTrading
 
             var avg = Mean(smoothed);
             var deviation = Std(smoothed, avg);
-            var spreadZ = deviation > 0 ? (smoothed[smoothed.Count - 1] - avg) / deviation : 0;
+            var spreadZ = deviation > 0 && smoothed.Length > 0
+                ? (smoothed[smoothed.Length - 1] - avg) / deviation
+                : 0;
 
             return new WaveletResult(dominantCycle, noiseRatio, spreadZ);
         }
@@ -1067,7 +1096,8 @@ namespace RuriLib.Blocks.Utility.PairTrading
             IReadOnlyList<double> returns1,
             IReadOnlyList<double> returns2,
             int historyLength,
-            int bins)
+            int bins,
+            System.Threading.CancellationToken token)
         {
             var clean1 = new List<double>();
             var clean2 = new List<double>();
@@ -1081,7 +1111,7 @@ namespace RuriLib.Blocks.Utility.PairTrading
                 clean2.Add(b);
             }
 
-            if (clean1.Count < 6)
+            if (clean1.Count < MinTransferEntropySamples)
             {
                 return new TransferEntropyResult(0, 0, 0, "neutral", 0, 0);
             }
@@ -1094,8 +1124,8 @@ namespace RuriLib.Blocks.Utility.PairTrading
             var bins1 = Discretize(clean1, thresholds1);
             var bins2 = Discretize(clean2, thresholds2);
 
-            var te1to2 = ComputeTransferEntropyK(bins1, bins2, effectiveBins, effectiveHistory);
-            var te2to1 = ComputeTransferEntropyK(bins2, bins1, effectiveBins, effectiveHistory);
+            var te1to2 = ComputeTransferEntropyK(bins1, bins2, effectiveBins, effectiveHistory, token);
+            var te2to1 = ComputeTransferEntropyK(bins2, bins1, effectiveBins, effectiveHistory, token);
 
             var denom = te1to2 + te2to1 + 1e-9;
             var netFlow = Clamp((te1to2 - te2to1) / denom, -1, 1);
@@ -1106,7 +1136,7 @@ namespace RuriLib.Blocks.Utility.PairTrading
                 leadingAsset = netFlow > 0 ? "primary" : "secondary";
             }
 
-            var lagInfo = EstimateLag(clean1, clean2, 10);
+            var lagInfo = EstimateLag(clean1, clean2, 10, token);
             var significance = Clamp((te1to2 + te2to1) / 0.5, 0, 1);
 
             return new TransferEntropyResult(te1to2, te2to1, netFlow, leadingAsset, lagInfo.Lag, significance);
@@ -1142,7 +1172,7 @@ namespace RuriLib.Blocks.Utility.PairTrading
             return result;
         }
 
-        private static double ComputeTransferEntropyK(int[] xBins, int[] yBins, int bins, int k)
+        private static double ComputeTransferEntropyK(int[] xBins, int[] yBins, int bins, int k, System.Threading.CancellationToken token)
         {
             var n = Math.Min(xBins.Length, yBins.Length);
             if (n < k + 2) return 0;
@@ -1156,7 +1186,7 @@ namespace RuriLib.Blocks.Utility.PairTrading
 
             if (effectiveK == 1)
             {
-                return ComputeTransferEntropy(xBins, yBins, bins);
+                return ComputeTransferEntropy(xBins, yBins, bins, token);
             }
 
             var stateCount = (int)Math.Pow(bins, effectiveK);
@@ -1168,6 +1198,11 @@ namespace RuriLib.Blocks.Utility.PairTrading
 
             for (var t = effectiveK; t < n; t++)
             {
+                if (t % CancellationCheckInterval == 0)
+                {
+                    token.ThrowIfCancellationRequested();
+                }
+
                 var yState = 0;
                 var xState = 0;
                 for (var i = 0; i < effectiveK; i++)
@@ -1177,9 +1212,22 @@ namespace RuriLib.Blocks.Utility.PairTrading
                 }
 
                 var yt = yBins[t];
-                var key3 = ((long)yt * stateCount + yState) * stateCount + xState;
-                var keyYX = (long)yState * stateCount + xState;
-                var keyYtY = (long)yt * stateCount + yState;
+                long key3;
+                long keyYX;
+                long keyYtY;
+                try
+                {
+                    checked
+                    {
+                        key3 = ((long)yt * stateCount + yState) * stateCount + xState;
+                        keyYX = (long)yState * stateCount + xState;
+                        keyYtY = (long)yt * stateCount + yState;
+                    }
+                }
+                catch (OverflowException)
+                {
+                    return 0;
+                }
 
                 count3[key3] = (count3.TryGetValue(key3, out var v3) ? v3 : 0) + 1;
                 countYX[keyYX] = (countYX.TryGetValue(keyYX, out var vyx) ? vyx : 0) + 1;
@@ -1189,8 +1237,15 @@ namespace RuriLib.Blocks.Utility.PairTrading
 
             var alpha = 1e-6;
             var te = 0.0;
+            var index = 0;
             foreach (var kvp in count3)
             {
+                if (index % CancellationCheckInterval == 0)
+                {
+                    token.ThrowIfCancellationRequested();
+                }
+                index++;
+
                 var key3 = kvp.Key;
                 var c3 = kvp.Value;
 
@@ -1217,7 +1272,7 @@ namespace RuriLib.Blocks.Utility.PairTrading
             return Math.Max(0, te);
         }
 
-        private static double ComputeTransferEntropy(int[] xBins, int[] yBins, int bins)
+        private static double ComputeTransferEntropy(int[] xBins, int[] yBins, int bins, System.Threading.CancellationToken token)
         {
             var n = Math.Min(xBins.Length, yBins.Length);
             if (n < 3) return 0;
@@ -1230,6 +1285,11 @@ namespace RuriLib.Blocks.Utility.PairTrading
 
             for (var t = 1; t < n; t++)
             {
+                if (t % CancellationCheckInterval == 0)
+                {
+                    token.ThrowIfCancellationRequested();
+                }
+
                 var yt = yBins[t];
                 var y1 = yBins[t - 1];
                 var x1 = xBins[t - 1];
@@ -1266,7 +1326,7 @@ namespace RuriLib.Blocks.Utility.PairTrading
             return Math.Max(0, te);
         }
 
-        private static (int Lag, double Correlation) EstimateLag(List<double> returns1, List<double> returns2, int maxLag)
+        private static (int Lag, double Correlation) EstimateLag(List<double> returns1, List<double> returns2, int maxLag, System.Threading.CancellationToken token)
         {
             var n = Math.Min(returns1.Count, returns2.Count);
             if (n < 5) return (0, 0);
@@ -1276,6 +1336,11 @@ namespace RuriLib.Blocks.Utility.PairTrading
 
             for (var lag = -maxLag; lag <= maxLag; lag++)
             {
+                if ((lag + maxLag) % CancellationCheckInterval == 0)
+                {
+                    token.ThrowIfCancellationRequested();
+                }
+
                 if (lag == 0) continue;
                 var xs = new List<double>();
                 var ys = new List<double>();

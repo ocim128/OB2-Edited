@@ -212,6 +212,15 @@
           "AngleSharp": "[1.0.0, 2.0.0)"
         }
       },
+      "Appium.WebDriver": {
+        "type": "Transitive",
+        "resolved": "8.0.1",
+        "contentHash": "vFEZA0Gfe2lPvIXZ9Ar1GfND8nPnwaxA5RreopO5ebklZ4OOPQXQy9L8i9VyNvntwM0R2BP0FypOlPwcvlHXIA==",
+        "dependencies": {
+          "Selenium.WebDriver": "4.35.0",
+          "System.Drawing.Common": "8.0.10"
+        }
+      },
       "BCrypt.Net-Core": {
         "type": "Transitive",
         "resolved": "1.6.0",
@@ -652,8 +661,8 @@
       },
       "Microsoft.NETCore.Platforms": {
         "type": "Transitive",
-        "resolved": "5.0.0",
-        "contentHash": "VyPlqzH2wavqquTcYpkIIAQ6WdenuKoFN0BdYBbCWsclXacSOHNQn66Gt4z5NBqEYW0FAPm5rlvki9ZiCij5xQ=="
+        "resolved": "3.1.0",
+        "contentHash": "z7aeg8oHln2CuNulfhiLYxCVMPEwBl3rzicjvIX+4sUuCwvXw5oXQEtbiU2c0z4qYL5L3Kmx0mMA/+t/SbY67w=="
       },
       "Microsoft.NETCore.Targets": {
         "type": "Transitive",
@@ -671,11 +680,8 @@
       },
       "Microsoft.Win32.SystemEvents": {
         "type": "Transitive",
-        "resolved": "5.0.0",
-        "contentHash": "Bh6blKG8VAKvXiLe2L+sEsn62nc1Ij34MrNxepD2OCrS5cpCwQa9MeLyhVQPQ/R4Wlzwuy6wMK8hLb11QPDRsQ==",
-        "dependencies": {
-          "Microsoft.NETCore.Platforms": "5.0.0"
-        }
+        "resolved": "8.0.0",
+        "contentHash": "9opKRyOKMCi2xJ7Bj7kxtZ1r9vbzosMvRrdEhVhDz8j8MoBGgB+WmC94yH839NPH+BclAjtQ/pyagvi/8gDLkw=="
       },
       "Microsoft.Xaml.Behaviors.Wpf": {
         "type": "Transitive",
@@ -802,19 +808,16 @@
       },
       "Selenium.Support": {
         "type": "Transitive",
-        "resolved": "4.21.0",
-        "contentHash": "MiDIsB/5Ki1AWua/b9v/eGARtI6bxseAt4EOl2fgl7WsoXlV7Zzq5/gGJ7Zs9PLvJUQMbS6WSNWuMdeSr1SXdA==",
+        "resolved": "4.35.0",
+        "contentHash": "K6DiLdDQNDSWI/zh14bk9vRjW8vEX2mhMI2Cq8bD72FM5rOnLhQwZABJHrWCZ3U1wb7KFFd7iQeUhvpyHVt2AA==",
         "dependencies": {
-          "Selenium.WebDriver": "4.21.0"
+          "Selenium.WebDriver": "4.35.0"
         }
       },
       "Selenium.WebDriver": {
         "type": "Transitive",
-        "resolved": "4.21.0",
-        "contentHash": "3xIx4CJunIoLEOROfDKILIzf76WfphTpQJYE98stG1GBVBKhFO5E6wXNfCqdiWt34iNlckcDr3z+qCD+RPfuUQ==",
-        "dependencies": {
-          "Newtonsoft.Json": "13.0.1"
-        }
+        "resolved": "4.35.0",
+        "contentHash": "C9OrObS2KLyUQDJNRY883JAc4n5q58pBYmY954hf+lGMQQcsz4Ias2mk91lHkLXFX+2qMttya4df9lGP1SLiGQ=="
       },
       "SQLitePCLRaw.bundle_e_sqlite3": {
         "type": "Transitive",
@@ -925,10 +928,10 @@
       },
       "System.Drawing.Common": {
         "type": "Transitive",
-        "resolved": "5.0.3",
-        "contentHash": "rEQZuslijqdsO0pkJn7LtGBaMc//YVA8de0meGihkg9oLPaN+w+/Pb5d71lgp0YjPoKgBKNMvdq0IPnoW4PEng==",
+        "resolved": "8.0.10",
+        "contentHash": "MdajRp3P+FOlThgY6FBjAqnmLiVl5t2yWEC/2AsDMqx1zYbJG3G5TnscFBQ4obqcaGqvN5UnhQHSFaJFG2HftQ==",
         "dependencies": {
-          "Microsoft.Win32.SystemEvents": "5.0.0"
+          "Microsoft.Win32.SystemEvents": "8.0.0"
         }
       },
       "System.Formats.Asn1": {
@@ -1226,6 +1229,7 @@
         "type": "Project",
         "dependencies": {
           "AngleSharp": "[1.1.2, )",
+          "Appium.WebDriver": "[8.0.1, )",
           "BCrypt.Net-Core": "[1.6.0, )",
           "CaptchaSharp": "[2.1.0, )",
           "DeviceId": "[5.2.0, )",
@@ -1250,8 +1254,8 @@
           "RuriLib.Proxies": "[1.0.2, )",
           "SSH.NET": "[2024.0.0, )",
           "Scrypt.NET": "[1.3.0, )",
-          "Selenium.Support": "[4.21.0, )",
-          "Selenium.WebDriver": "[4.21.0, )",
+          "Selenium.Support": "[4.35.0, )",
+          "Selenium.WebDriver": "[4.35.0, )",
           "Svg": "[3.4.7, )",
           "System.CodeDom": "[8.0.0, )",
           "System.Speech": "[8.0.0, )",
@@ -1298,11 +1302,8 @@
       },
       "Microsoft.Win32.SystemEvents": {
         "type": "Transitive",
-        "resolved": "5.0.0",
-        "contentHash": "Bh6blKG8VAKvXiLe2L+sEsn62nc1Ij34MrNxepD2OCrS5cpCwQa9MeLyhVQPQ/R4Wlzwuy6wMK8hLb11QPDRsQ==",
-        "dependencies": {
-          "Microsoft.NETCore.Platforms": "5.0.0"
-        }
+        "resolved": "8.0.0",
+        "contentHash": "9opKRyOKMCi2xJ7Bj7kxtZ1r9vbzosMvRrdEhVhDz8j8MoBGgB+WmC94yH839NPH+BclAjtQ/pyagvi/8gDLkw=="
       },
       "Mono.Unix": {
         "type": "Transitive",
@@ -1367,18 +1368,15 @@
         "resolved": "4.3.0",
         "contentHash": "OhBAVBQG5kFj1S+hCEQ3TUHBAEtZ3fbEMgZMRNdN8A0Pj4x+5nTELEqL59DU0TjKVE6II3dqKw4Dklb3szT65w=="
       },
+      "Selenium.WebDriver": {
+        "type": "Transitive",
+        "resolved": "4.35.0",
+        "contentHash": "C9OrObS2KLyUQDJNRY883JAc4n5q58pBYmY954hf+lGMQQcsz4Ias2mk91lHkLXFX+2qMttya4df9lGP1SLiGQ=="
+      },
       "SQLitePCLRaw.lib.e_sqlite3": {
         "type": "Transitive",
         "resolved": "2.1.6",
         "contentHash": "2ObJJLkIUIxRpOUlZNGuD4rICpBnrBR5anjyfUFQep4hMOIeqW+XGQYzrNmHSVz5xSWZ3klSbh7sFR6UyDj68Q=="
-      },
-      "System.Drawing.Common": {
-        "type": "Transitive",
-        "resolved": "5.0.3",
-        "contentHash": "rEQZuslijqdsO0pkJn7LtGBaMc//YVA8de0meGihkg9oLPaN+w+/Pb5d71lgp0YjPoKgBKNMvdq0IPnoW4PEng==",
-        "dependencies": {
-          "Microsoft.Win32.SystemEvents": "5.0.0"
-        }
       },
       "System.Globalization": {
         "type": "Transitive",

@@ -47,8 +47,17 @@ namespace RuriLib.Helpers
         {
             var n = Math.Min(a.Count, b.Count);
             if (n < 2) return 0;
-            var avgA = Mean(a);
-            var avgB = Mean(b);
+            
+            // Calculate means using only the first n elements to match the iteration range
+            double sumA = 0, sumB = 0;
+            for (var i = 0; i < n; i++)
+            {
+                sumA += a[i];
+                sumB += b[i];
+            }
+            var avgA = sumA / n;
+            var avgB = sumB / n;
+            
             double num = 0;
             double denA = 0;
             double denB = 0;

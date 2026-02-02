@@ -1,7 +1,4 @@
-using Newtonsoft.Json;
-using System.Collections.Generic;
-using System.Net.Http;
-using System.Text;
+using RuriLib.Helpers;
 using System.Threading.Tasks;
 
 namespace RuriLib.Models.Hits.HitOutputs
@@ -26,18 +23,7 @@ namespace RuriLib.Models.Hits.HitOutputs
                 return;
             }
 
-            using var client = new HttpClient();
-
-            var webhook = $"https://api.telegram.org/bot{Token}/sendMessage";
-
-            var obj = new Dictionary<string, object>()
-            {
-                { "chat_id", ChatId },
-                { "text", hit.ToString() }
-            };
-
-            await client.PostAsync(webhook,
-                new StringContent(JsonConvert.SerializeObject(obj), Encoding.UTF8, "application/json"));
+            await SimpleHttpClient.SendTelegramMessageAsync(Token, ChatId, hit.ToString());
         }
     }
 }

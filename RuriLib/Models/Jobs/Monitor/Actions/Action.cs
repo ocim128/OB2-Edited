@@ -1,11 +1,8 @@
-﻿using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+﻿using RuriLib.Helpers;
 using RuriLib.Models.Jobs.StartConditions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net.Http;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace RuriLib.Models.Jobs.Monitor.Actions
@@ -84,15 +81,7 @@ namespace RuriLib.Models.Jobs.Monitor.Actions
 
         public override async Task Execute(int currentJob, IEnumerable<Job> jobs)
         {
-            using var client = new HttpClient();
-
-            var obj = new JObject
-            {
-                { "content", JToken.FromObject(Message) }
-            };
-
-            await client.PostAsync(Webhook,
-                new StringContent(JsonConvert.SerializeObject(obj), Encoding.UTF8, "application/json"));
+            await SimpleHttpClient.PostToDiscordAsync(Webhook, Message);
         }
     }
     
@@ -105,18 +94,7 @@ namespace RuriLib.Models.Jobs.Monitor.Actions
 
         public async override Task Execute(int currentJob, IEnumerable<Job> jobs)
         {
-            using var client = new HttpClient();
-
-            var webhook = $"https://api.telegram.org/bot{Token}/sendMessage";
-
-            var obj = new Dictionary<string, object>()
-            {
-                { "chat_id", ChatId },
-                { "text", Message }
-            };
-
-            await client.PostAsync(webhook, 
-                new StringContent(JsonConvert.SerializeObject(obj), Encoding.UTF8, "application/json"));
+            await SimpleHttpClient.SendTelegramMessageAsync(Token, ChatId, Message);
         }
     }
 }

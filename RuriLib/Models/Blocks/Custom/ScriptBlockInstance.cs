@@ -147,7 +147,7 @@ public partial class ScriptBlockInstance(ScriptBlockDescriptor descriptor) : Blo
 
                 if (!definedVariables.Contains(input) && input is not ("input" or "globals" or "data"))
                 {
-                    writer.WriteLine($"dynamic {input} = RuriLib.Helpers.NullDynamic.Instance;");
+                    writer.WriteLine($"dynamic {input} = RuriLib.Models.NullDynamic.Instance;");
                     definedVariables.Add(input);
                 }
             }

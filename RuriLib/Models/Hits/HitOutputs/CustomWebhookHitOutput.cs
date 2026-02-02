@@ -1,7 +1,5 @@
-﻿using Newtonsoft.Json;
-using RuriLib.Functions.Time;
-using System.Net.Http;
-using System.Text;
+﻿using RuriLib.Functions.Time;
+using RuriLib.Helpers;
 using System.Threading.Tasks;
 
 namespace RuriLib.Models.Hits.HitOutputs;
@@ -30,8 +28,6 @@ public class CustomWebhookHitOutput(string url, string user, bool onlyHits = tru
             User = User
         };
 
-        using var httpClient = new HttpClient();
-        await httpClient.PostAsync(Url,
-            new StringContent(JsonConvert.SerializeObject(data), Encoding.UTF8, "application/json"));
+        await SimpleHttpClient.PostJsonAsync(Url, data);
     }
 }

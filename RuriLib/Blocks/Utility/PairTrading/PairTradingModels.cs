@@ -100,4 +100,77 @@ namespace RuriLib.Blocks.Utility.PairTrading
         public double[] LoR { get; }
         public double[] HiR { get; }
     }
+
+    /// <summary>
+    /// Result of correlation velocity analysis.
+    /// </summary>
+    internal readonly struct CorrelationVelocityResult
+    {
+        public CorrelationVelocityResult(double currentCorrelation, double previousCorrelation, double velocity, double acceleration, string regime)
+        {
+            CurrentCorrelation = currentCorrelation;
+            PreviousCorrelation = previousCorrelation;
+            Velocity = velocity;
+            Acceleration = acceleration;
+            Regime = regime;
+        }
+
+        /// <summary>Current rolling correlation value.</summary>
+        public double CurrentCorrelation { get; }
+        
+        /// <summary>Correlation value from velocityLookback periods ago.</summary>
+        public double PreviousCorrelation { get; }
+        
+        /// <summary>Rate of change in correlation per period. Positive = strengthening, Negative = weakening.</summary>
+        public double Velocity { get; }
+        
+        /// <summary>Rate of change of velocity. Positive = accelerating, Negative = decelerating.</summary>
+        public double Acceleration { get; }
+        
+        /// <summary>
+        /// Current correlation regime: stable_strong, stable_weak, stable, 
+        /// strengthening, recovering, weakening, breaking_down
+        /// </summary>
+        public string Regime { get; }
+    }
+
+    /// <summary>
+    /// Result of volatility-adjusted spread analysis.
+    /// </summary>
+    internal readonly struct VolatilityAdjustedSpreadResult
+    {
+        public VolatilityAdjustedSpreadResult(
+            double rawZScore, double adjustedZScore, double combinedVolatility,
+            double primaryVolatility, double secondaryVolatility, double signalStrength, string signalQuality)
+        {
+            RawZScore = rawZScore;
+            AdjustedZScore = adjustedZScore;
+            CombinedVolatility = combinedVolatility;
+            PrimaryVolatility = primaryVolatility;
+            SecondaryVolatility = secondaryVolatility;
+            SignalStrength = signalStrength;
+            SignalQuality = signalQuality;
+        }
+
+        /// <summary>Standard spread Z-score without volatility adjustment.</summary>
+        public double RawZScore { get; }
+        
+        /// <summary>Z-score amplified when volatility is low (stronger signal).</summary>
+        public double AdjustedZScore { get; }
+        
+        /// <summary>Combined volatility of both assets (RMS of individual volatilities).</summary>
+        public double CombinedVolatility { get; }
+        
+        /// <summary>Primary asset volatility (std dev of returns).</summary>
+        public double PrimaryVolatility { get; }
+        
+        /// <summary>Secondary asset volatility (std dev of returns).</summary>
+        public double SecondaryVolatility { get; }
+        
+        /// <summary>Signal strength score 0-100 based on adjusted Z-score.</summary>
+        public double SignalStrength { get; }
+        
+        /// <summary>Signal quality: premium, strong, moderate, weak, noisy, insufficient_data.</summary>
+        public string SignalQuality { get; }
+    }
 }

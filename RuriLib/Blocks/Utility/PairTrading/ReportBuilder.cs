@@ -49,7 +49,8 @@ namespace RuriLib.Blocks.Utility.PairTrading
             int primaryCount, int secondaryCount, int primaryInvalid, int secondaryInvalid,
             int alignedCount, int droppedCount, double correlation, double spreadMean, double spreadStd,
             double spreadZ, double ratio, double overallOpportunity, double spreadOpportunity, double methodAverage,
-            CopulaResult? copula, WaveletResult? wavelet, TransferEntropyResult? entropy)
+            CopulaResult? copula, WaveletResult? wavelet, TransferEntropyResult? entropy,
+            CorrelationVelocityResult? correlationVelocity = null, VolatilityAdjustedSpreadResult? volatilitySpread = null)
         {
             var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
             {
@@ -112,7 +113,29 @@ namespace RuriLib.Blocks.Utility.PairTrading
                 result["entropy.score"] = FormatDouble(TransferEntropyAnalysis.ScoreTransferEntropy(e));
             }
 
-            var notes = BuildNotes(spreadZ, correlation, entropy);
+            if (correlationVelocity.HasValue)
+            {
+                var cv = correlationVelocity.Value;
+                result["correlationVelocity.current"] = FormatDouble(cv.CurrentCorrelation);
+                result["correlationVelocity.previous"] = FormatDouble(cv.PreviousCorrelation);
+                result["correlationVelocity.velocity"] = FormatDouble(cv.Velocity);
+                result["correlationVelocity.acceleration"] = FormatDouble(cv.Acceleration);
+                result["correlationVelocity.regime"] = cv.Regime;
+            }
+
+            if (volatilitySpread.HasValue)
+            {
+                var vs = volatilitySpread.Value;
+                result["volatilitySpread.rawZScore"] = FormatDouble(vs.RawZScore);
+                result["volatilitySpread.adjustedZScore"] = FormatDouble(vs.AdjustedZScore);
+                result["volatilitySpread.combinedVolatility"] = FormatDouble(vs.CombinedVolatility);
+                result["volatilitySpread.primaryVolatility"] = FormatDouble(vs.PrimaryVolatility);
+                result["volatilitySpread.secondaryVolatility"] = FormatDouble(vs.SecondaryVolatility);
+                result["volatilitySpread.signalStrength"] = FormatDouble(vs.SignalStrength);
+                result["volatilitySpread.signalQuality"] = vs.SignalQuality;
+            }
+
+            var notes = BuildNotes(spreadZ, correlation, entropy, correlationVelocity, volatilitySpread);
             if (notes.Count > 0)
             {
                 result["notes.count"] = notes.Count.ToString(CultureInfo.InvariantCulture);
@@ -128,7 +151,8 @@ namespace RuriLib.Blocks.Utility.PairTrading
             return result;
         }
 
-        private static List<string> BuildNotes(double spreadZ, double correlation, TransferEntropyResult? entropy)
+        private static List<string> BuildNotes(double spreadZ, double correlation, TransferEntropyResult? entropy,
+            CorrelationVelocityResult? correlationVelocity = null, VolatilityAdjustedSpreadResult? volatilitySpread = null)
         {
             var notes = new List<string>();
             var z = spreadZ;
@@ -162,6 +186,75 @@ namespace RuriLib.Blocks.Utility.PairTrading
             {
                 var leader = entropy.Value.LeadingAsset == "primary" ? "Primary" : "Secondary";
                 notes.Add($"{leader} leads by ~{entropy.Value.LagBars} bars: monitor for follow-through.");
+            }
+
+            // Correlation Velocity notes
+            if (correlationVelocity.HasValue)
+            {
+                var cv = correlationVelocity.Value;
+                switch (cv.Regime)
+                {
+                    case "breaking_down":
+                        notes.Add($"⚠️ REGIME CHANGE: Correlation breaking down ({ParseHelper.FormatSigned(cv.Velocity, 4)}/bar). Avoid new positions.");
+                        break;
+                    case "weakening":
+                        notes.Add($"⚡ Correlation weakening ({ParseHelper.FormatSigned(cv.Velocity, 4)}/bar). Monitor for regime change.");
+                        break;
+                    case "recovering":
+                        notes.Add($"📈 Correlation recovering ({ParseHelper.FormatSigned(cv.Velocity, 4)}/bar). Potential opportunity emerging.");
+                        break;
+                    case "strengthening":
+                        notes.Add($"🔥 Correlation strengthening ({ParseHelper.FormatSigned(cv.Velocity, 4)}/bar). Favorable conditions.");
+                        break;
+                    case "stable_strong":
+                        notes.Add("✅ Correlation stable and strong. Good for pair trading.");
+                        break;
+                    case "stable_weak":
+                        notes.Add("⚠️ Correlation stable but weak. Not ideal for pair trading.");
+                        break;
+                }
+
+                // Add acceleration note if significant
+                if (Math.Abs(cv.Acceleration) > 0.001)
+                {
+                    var accelDir = cv.Acceleration > 0 ? "accelerating" : "decelerating";
+                    notes.Add($"Correlation velocity is {accelDir} ({ParseHelper.FormatSigned(cv.Acceleration, 5)}).");
+                }
+            }
+
+            // Volatility-Adjusted Spread notes
+            if (volatilitySpread.HasValue)
+            {
+                var vs = volatilitySpread.Value;
+                switch (vs.SignalQuality)
+                {
+                    case "premium":
+                        notes.Add($"💎 PREMIUM SIGNAL: High spread ({ParseHelper.FormatSigned(vs.AdjustedZScore, 2)}) with low volatility. Best opportunity.");
+                        break;
+                    case "strong":
+                        notes.Add($"💪 Strong signal quality (adj. Z: {ParseHelper.FormatSigned(vs.AdjustedZScore, 2)}). Good opportunity.");
+                        break;
+                    case "moderate":
+                        notes.Add($"📊 Moderate signal quality (adj. Z: {ParseHelper.FormatSigned(vs.AdjustedZScore, 2)}). Proceed with caution.");
+                        break;
+                    case "noisy":
+                        notes.Add($"🔊 High volatility ({vs.CombinedVolatility:P1}) makes signal noisy. Wait for calmer conditions.");
+                        break;
+                    case "weak":
+                        notes.Add("📉 Weak signal. No clear opportunity at this time.");
+                        break;
+                }
+
+                // Volatility imbalance note
+                if (vs.PrimaryVolatility > 0 && vs.SecondaryVolatility > 0)
+                {
+                    var volRatio = vs.PrimaryVolatility / vs.SecondaryVolatility;
+                    if (volRatio > 2.0 || volRatio < 0.5)
+                    {
+                        var higher = volRatio > 1 ? "Primary" : "Secondary";
+                        notes.Add($"⚖️ Volatility imbalance: {higher} is {Math.Max(volRatio, 1/volRatio):F1}x more volatile.");
+                    }
+                }
             }
 
             return notes;
@@ -210,6 +303,30 @@ namespace RuriLib.Blocks.Utility.PairTrading
                 lines.Add($"Leader {GetValue(values, "entropy.leadingAsset")}");
                 lines.Add($"Lag {FormatRounded(GetDouble(values, "entropy.lagBars"), 0)} bars");
                 lines.Add($"Confidence {ParseHelper.FormatPercent(GetDouble(values, "entropy.significance") * 100)}");
+            }
+
+            if (values.ContainsKey("correlationVelocity.velocity"))
+            {
+                lines.Add(string.Empty);
+                lines.Add("Correlation Velocity");
+                lines.Add($"Current {ParseHelper.FormatSigned(GetDouble(values, "correlationVelocity.current"), 3)}");
+                lines.Add($"Previous {ParseHelper.FormatSigned(GetDouble(values, "correlationVelocity.previous"), 3)}");
+                lines.Add($"Velocity {ParseHelper.FormatSigned(GetDouble(values, "correlationVelocity.velocity"), 5)}/bar");
+                lines.Add($"Acceleration {ParseHelper.FormatSigned(GetDouble(values, "correlationVelocity.acceleration"), 6)}");
+                lines.Add($"Regime {GetValue(values, "correlationVelocity.regime")}");
+            }
+
+            if (values.ContainsKey("volatilitySpread.adjustedZScore"))
+            {
+                lines.Add(string.Empty);
+                lines.Add("Volatility-Adjusted Spread");
+                lines.Add($"Raw Z {ParseHelper.FormatSigned(GetDouble(values, "volatilitySpread.rawZScore"), 2)}");
+                lines.Add($"Adjusted Z {ParseHelper.FormatSigned(GetDouble(values, "volatilitySpread.adjustedZScore"), 2)}");
+                lines.Add($"Combined Vol {ParseHelper.FormatPercent(GetDouble(values, "volatilitySpread.combinedVolatility") * 100)}");
+                lines.Add($"Primary Vol {ParseHelper.FormatPercent(GetDouble(values, "volatilitySpread.primaryVolatility") * 100)}");
+                lines.Add($"Secondary Vol {ParseHelper.FormatPercent(GetDouble(values, "volatilitySpread.secondaryVolatility") * 100)}");
+                lines.Add($"Signal Strength {FormatPercentValue(GetDouble(values, "volatilitySpread.signalStrength"), 0)}");
+                lines.Add($"Signal Quality {GetValue(values, "volatilitySpread.signalQuality")}");
             }
 
             if (notes.Count > 0)

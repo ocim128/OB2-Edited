@@ -26,13 +26,18 @@ namespace RuriLib.Blocks.Utility.PairTrading
             bool computeCopula = true,
             bool computeWavelet = true,
             bool computeTransferEntropy = true,
+            bool computeCorrelationVelocity = true,
+            bool computeVolatilityAdjustedSpread = true,
             int maxBars = DefaultMaxBars,
             WaveletType waveletType = WaveletType.Db4,
             int waveletLevels = 4,
             int copulaWindow = 0,
             float copulaTailThreshold = DefaultTailThreshold,
             int transferEntropyHistory = 2,
-            int transferEntropyBins = 8)
+            int transferEntropyBins = 8,
+            int correlationVelocityWindow = 50,
+            int correlationVelocityLookback = 10,
+            int volatilityLookbackPeriod = 20)
         {
             data.Logger.LogHeader();
 
@@ -76,6 +81,8 @@ namespace RuriLib.Blocks.Utility.PairTrading
             CopulaResult? copula = null;
             WaveletResult? wavelet = null;
             TransferEntropyResult? entropy = null;
+            CorrelationVelocityResult? correlationVelocity = null;
+            VolatilityAdjustedSpreadResult? volatilitySpread = null;
 
             if (computeCopula)
             {
@@ -92,20 +99,37 @@ namespace RuriLib.Blocks.Utility.PairTrading
                 entropy = TransferEntropyAnalysis.CalculateTransferEntropy(returnsPrimary, returnsSecondary, transferEntropyHistory, transferEntropyBins, data.CancellationToken);
             }
 
+            if (computeCorrelationVelocity)
+            {
+                correlationVelocity = StatisticalAnalysis.CalculateCorrelationVelocity(
+                    returnsPrimary, returnsSecondary, correlationVelocityWindow, correlationVelocityLookback);
+                data.Logger.Log($"Correlation velocity: {correlationVelocity.Value.Velocity:F6}, regime: {correlationVelocity.Value.Regime}", LogColors.DeepChampagne);
+            }
+
+            if (computeVolatilityAdjustedSpread)
+            {
+                volatilitySpread = StatisticalAnalysis.CalculateVolatilityAdjustedSpread(
+                    alignedPrimary, alignedSecondary, volatilityLookbackPeriod);
+                data.Logger.Log($"Vol-adjusted Z: {volatilitySpread.Value.AdjustedZScore:F4}, quality: {volatilitySpread.Value.SignalQuality}", LogColors.DeepChampagne);
+            }
+
             var methodScores = new List<double>();
             if (copula.HasValue) methodScores.Add(copula.Value.OpportunityScore);
             if (wavelet.HasValue) methodScores.Add(WaveletAnalysis.ScoreWavelet(wavelet.Value));
             if (entropy.HasValue) methodScores.Add(TransferEntropyAnalysis.ScoreTransferEntropy(entropy.Value));
 
             var methodAverage = methodScores.Count > 0 ? StatisticalAnalysis.Mean(methodScores) : 0;
-            var spreadOpportunity = StatisticalAnalysis.Clamp((Math.Min(3, Math.Abs(spreadZ)) / 3.0) * 100.0, 0, 100);
+            
+            // Use volatility-adjusted spread for opportunity if available, otherwise raw spread Z
+            var effectiveSpreadZ = volatilitySpread.HasValue ? volatilitySpread.Value.AdjustedZScore : spreadZ;
+            var spreadOpportunity = StatisticalAnalysis.Clamp((Math.Min(3, Math.Abs(effectiveSpreadZ)) / 3.0) * 100.0, 0, 100);
             var overallOpportunity = StatisticalAnalysis.Clamp(Math.Round(spreadOpportunity * 0.6 + methodAverage * 0.4, MidpointRounding.AwayFromZero), 0, 100);
 
             var result = ReportBuilder.BuildResult(
                 primaryValues.Count, secondaryValues.Count, primaryInvalid, secondaryInvalid,
                 alignedPrimary.Count, droppedCount, correlation, spreadMean, spreadStd, spreadZ,
                 ratio, overallOpportunity, spreadOpportunity, methodAverage,
-                copula, wavelet, entropy);
+                copula, wavelet, entropy, correlationVelocity, volatilitySpread);
 
             data.Logger.Log($"Pair analysis completed. Opportunity {ReportBuilder.FormatDouble(overallOpportunity)}% with {alignedPrimary.Count} bars.", LogColors.DeepChampagne);
             return result;

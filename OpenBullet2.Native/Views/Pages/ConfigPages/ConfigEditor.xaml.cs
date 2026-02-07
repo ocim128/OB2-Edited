@@ -24,6 +24,9 @@ namespace OpenBullet2.Native.Views.Pages.Configs
     /// </summary>
     public partial class ConfigEditor : Page
     {
+        private const double MinEditorRatio = 0.2;
+        private const double MaxEditorRatio = 0.8;
+
         private readonly MainWindow mainWindow;
         private readonly ConfigEditorViewModel vm;
         private readonly Debugger debugger;
@@ -74,6 +77,7 @@ namespace OpenBullet2.Native.Views.Pages.Configs
 
             // Set up GridSplitter event handlers for better performance
             SetupGridSplitterEvents();
+            Loaded += OnConfigEditorLoaded;
 
             // Lazy load other pages on demand
             stackerPage = null;
@@ -85,6 +89,12 @@ namespace OpenBullet2.Native.Views.Pages.Configs
             autoSaveTimer.Interval = TimeSpan.FromSeconds(Math.Max(5, obSettingsService.Settings.GeneralSettings.AutoSaveInterval));
             autoSaveTimer.Tick += async (_, _) => await AutoSave();
             autoSaveTimer.Start();
+        }
+
+        private void OnConfigEditorLoaded(object sender, RoutedEventArgs e)
+        {
+            ApplySavedSplitterRatio();
+            Loaded -= OnConfigEditorLoaded;
         }
 
         // Public method to update UI when config is loaded
@@ -219,6 +229,55 @@ namespace OpenBullet2.Native.Views.Pages.Configs
                 // Notify debugger that resizing has completed
                 debugger.SetResizing(false);
             }
+
+            SaveCurrentSplitterRatio();
+        }
+
+        private void ApplySavedSplitterRatio()
+        {
+            var ratio = NormalizeRatio(obSettingsService.Settings.GeneralSettings.ConfigEditorSplitterRatio);
+            EditorColumn.Width = new GridLength(ratio, GridUnitType.Star);
+            DebuggerColumn.Width = new GridLength(1 - ratio, GridUnitType.Star);
+        }
+
+        private void SaveCurrentSplitterRatio()
+        {
+            var totalWidth = editorFrame.ActualWidth + debuggerFrame.ActualWidth;
+            if (totalWidth <= 0)
+            {
+                return;
+            }
+
+            var ratio = NormalizeRatio(editorFrame.ActualWidth / totalWidth);
+            if (Math.Abs(obSettingsService.Settings.GeneralSettings.ConfigEditorSplitterRatio - ratio) < 0.001)
+            {
+                return;
+            }
+
+            obSettingsService.Settings.GeneralSettings.ConfigEditorSplitterRatio = ratio;
+            _ = PersistEditorLayoutAsync();
+        }
+
+        private async Task PersistEditorLayoutAsync()
+        {
+            try
+            {
+                await obSettingsService.SaveAsync();
+            }
+            catch
+            {
+                // Ignore errors and keep runtime layout state.
+            }
+        }
+
+        private static double NormalizeRatio(double ratio)
+        {
+            if (double.IsNaN(ratio) || double.IsInfinity(ratio))
+            {
+                return 0.5;
+            }
+
+            return Math.Min(MaxEditorRatio, Math.Max(MinEditorRatio, ratio));
         }
 
         /// <summary>

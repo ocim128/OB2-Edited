@@ -59,9 +59,9 @@
     
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*" />
+            <ColumnDefinition x:Name="EditorColumn" Width="*" />
             <ColumnDefinition Width="auto" />
-            <ColumnDefinition Width="*" />
+            <ColumnDefinition x:Name="DebuggerColumn" Width="*" />
         </Grid.ColumnDefinitions>
 
         <Grid Grid.Column="0">

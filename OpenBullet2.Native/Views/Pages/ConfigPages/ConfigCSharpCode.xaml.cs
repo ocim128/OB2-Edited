@@ -48,8 +48,16 @@ namespace OpenBullet2.Native.Views.Pages.Configs
         {
             try
             {
+                if (Config == null)
+                {
+                    editor.Text = string.Empty;
+                    startupEditor.Text = string.Empty;
+                    startupEditorContainer.Visibility = Visibility.Collapsed;
+                    return;
+                }
+
                 // Transpile if not in CSharp mode
-                if (Config != null && Config.Mode != ConfigMode.CSharp)
+                if (Config.Mode != ConfigMode.CSharp)
                 {
                     Config.CSharpScript = Config.Mode == ConfigMode.Stack
                             ? Stack2CSharpTranspiler.Transpile(Config.Stack, Config.Settings)
@@ -57,16 +65,15 @@ namespace OpenBullet2.Native.Views.Pages.Configs
 
                     Config.StartupCSharpScript = Loli2CSharpTranspiler.Transpile(
                         Config.StartupLoliCodeScript, Config.Settings);
-
-                    editor.Text = Config.CSharpScript;
-                    startupEditor.Text = Config.StartupCSharpScript;
-
-                    if (configService.SelectedConfig.StartupCSharpScript is not null &&
-                        configService.SelectedConfig.StartupCSharpScript.Length > 0)
-                    {
-                        startupEditorContainer.Visibility = Visibility.Visible;
-                    }
                 }
+
+                // Always refresh the UI text from current config values.
+                editor.Text = Config.CSharpScript ?? string.Empty;
+                startupEditor.Text = Config.StartupCSharpScript ?? string.Empty;
+                startupEditorContainer.Visibility =
+                    string.IsNullOrWhiteSpace(Config.StartupCSharpScript)
+                        ? Visibility.Collapsed
+                        : Visibility.Visible;
             }
             catch (Exception ex)
             {

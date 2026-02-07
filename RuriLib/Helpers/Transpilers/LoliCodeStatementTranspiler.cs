@@ -76,7 +76,7 @@ namespace RuriLib.Helpers.Transpilers
             // REPEAT 10 => for (int xyz = 0; xyz < 10; xyz++) {
             if ((match = MyRegex5().Match(input)).Success)
             {
-                var i = VariableNames.RandomName();
+                var i = GetRepeatLoopVariableName(definedVariables);
                 return $"for (var {i} = 0; {i} < ({match.Groups[1].Value}).AsInt(); {i}++){System.Environment.NewLine}{{";
             }
 
@@ -263,5 +263,24 @@ namespace RuriLib.Helpers.Transpilers
         private static partial Regex MyRegex14();
         [GeneratedRegex("^LOCK (.+)$")]
         private static partial Regex MyRegex15();
+
+        private static string GetRepeatLoopVariableName(List<string> definedVariables)
+        {
+            const string prefix = "__ob2_repeat_i";
+            var index = 0;
+
+            while (true)
+            {
+                var candidate = $"{prefix}{index++}";
+                if (definedVariables.Contains(candidate))
+                {
+                    continue;
+                }
+
+                // Reserve to keep deterministic uniqueness across the generated script.
+                definedVariables.Add(candidate);
+                return candidate;
+            }
+        }
     }
 }

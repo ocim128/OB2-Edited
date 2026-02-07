@@ -151,6 +151,11 @@ public class GeneralSettings
     public bool GroupCapturesInDebugger { get; set; } = false;
 
     /// <summary>
+    /// The width ratio of the config editor pane inside the editor/debugger split view.
+    /// </summary>
+    public double ConfigEditorSplitterRatio { get; set; } = 0.5;
+
+    /// <summary>
     /// The localization culture for the UI.
     /// </summary>
     public string Culture { get; set; } = "en";

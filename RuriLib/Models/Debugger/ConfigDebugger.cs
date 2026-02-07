@@ -2,6 +2,7 @@ using IronPython.Compiler;
 using IronPython.Hosting;
 using IronPython.Runtime;
 using Microsoft.CodeAnalysis.Scripting;
+using Newtonsoft.Json;
 using PuppeteerSharp;
 using RuriLib.Exceptions;
 using RuriLib.Helpers;
@@ -21,11 +22,13 @@ using RuriLib.Providers.RandomNumbers;
 using RuriLib.Providers.UserAgents;
 using RuriLib.Services;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Dynamic;
 using System.Linq;
 using System.Net.Http;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -43,6 +46,16 @@ public enum ConfigDebuggerStatus
 
 public partial class ConfigDebugger : IDisposable
 {
+    private sealed class CachedTranspilation
+    {
+        public string MainScript { get; init; } = string.Empty;
+        public string StartupScript { get; init; } = string.Empty;
+        public DateTime LastAccessedUtc { get; set; } = DateTime.UtcNow;
+    }
+
+    private static readonly ConcurrentDictionary<string, CachedTranspilation> _transpilationCache = new();
+    private const int MaxTranspilationCacheSize = 40;
+
     public IRandomUAProvider RandomUAProvider { get; set; }
     public IRNGProvider RNGProvider { get; set; }
     public RuriLibSettingsService RuriLibSettings { get; set; }
@@ -79,32 +92,31 @@ public partial class ConfigDebugger : IDisposable
         Logger.NewEntry += OnNewEntry;
     }
 
+    public static Task PrewarmAsync(Config config, PluginRepository pluginRepo, bool stepByStep = false, CancellationToken cancellationToken = default)
+    {
+        if (config is null)
+        {
+            return Task.CompletedTask;
+        }
+
+        return Task.Run(() =>
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            _ = PrepareScripts(config, stepByStep, pluginRepo);
+        }, cancellationToken);
+    }
+
     public async Task Run()
     {
         // Offload CPU-intensive transpilation and compilation to a background thread
         // This prevents the UI thread from hanging during initialization
-        var (script, startupScript) = await Task.Run(() =>
-        {
-            // Build scripts
-            if (Config.Mode is ConfigMode.Stack or ConfigMode.LoliCode)
-            {
-                Config.CSharpScript = Config.Mode == ConfigMode.Stack
-                    ? Stack2CSharpTranspiler.Transpile(Config.Stack, Config.Settings, Options.StepByStep)
-                    : Loli2CSharpTranspiler.Transpile(Config.LoliCodeScript, Config.Settings, Options.StepByStep);
+        var prepareSw = Stopwatch.StartNew();
+        var (script, startupScript, transpiledScript, transpiledStartupScript) = await Task.Run(
+            () => PrepareScripts(Config, Options.StepByStep, PluginRepo)).ConfigureAwait(false);
+        prepareSw.Stop();
 
-                Config.StartupCSharpScript = Loli2CSharpTranspiler.Transpile(Config.StartupLoliCodeScript, Config.Settings, Options.StepByStep);
-            }
-
-            var scriptBuilder = new ScriptBuilder();
-            var compiledScript = scriptBuilder.Build(Config.CSharpScript, Config.Settings.ScriptSettings, PluginRepo);
-            IScript compiledStartupScript = null;
-            if (!string.IsNullOrWhiteSpace(Config.StartupCSharpScript))
-            {
-                compiledStartupScript = scriptBuilder.Build(Config.StartupCSharpScript, Config.Settings.ScriptSettings, PluginRepo);
-            }
-            
-            return (compiledScript, compiledStartupScript);
-        }).ConfigureAwait(false);
+        Config.CSharpScript = transpiledScript;
+        Config.StartupCSharpScript = transpiledStartupScript;
 
         if (Options.UseProxy && !Options.TestProxy.Contains(':'))
         {
@@ -114,6 +126,11 @@ public partial class ConfigDebugger : IDisposable
         if (!Options.PersistLog)
         {
             Logger.Clear();
+        }
+
+        if (prepareSw.ElapsedMilliseconds > 0)
+        {
+            Logger.Log($"SCRIPT PREPARED IN {prepareSw.ElapsedMilliseconds} ms", LogColors.Gray);
         }
 
 
@@ -231,7 +248,7 @@ public partial class ConfigDebugger : IDisposable
 
 
             // If the startup script is not empty, execute it
-            if (!string.IsNullOrWhiteSpace(Config.StartupCSharpScript))
+            if (!string.IsNullOrWhiteSpace(Config.StartupCSharpScript) && startupScript is not null)
             {
                 // This data is temporary and will not be persisted to the bots, it is
                 // only used in this context to be able to use variables e.g. data.SOURCE
@@ -353,6 +370,92 @@ public partial class ConfigDebugger : IDisposable
         // or by the logic at the start of a new debug session.
 
         // GC.SuppressFinalize(this);
+    }
+
+    private static (IScript script, IScript? startupScript, string transpiledScript, string transpiledStartupScript) PrepareScripts(
+        Config config, bool stepByStep, PluginRepository pluginRepo)
+    {
+        var (transpiledScript, transpiledStartupScript) = GetTranspiledScripts(config, stepByStep);
+
+        var scriptBuilder = new ScriptBuilder();
+        var compiledScript = scriptBuilder.Build(transpiledScript, config.Settings.ScriptSettings, pluginRepo);
+
+        IScript compiledStartupScript = null;
+        if (!string.IsNullOrWhiteSpace(transpiledStartupScript))
+        {
+            compiledStartupScript = scriptBuilder.Build(transpiledStartupScript, config.Settings.ScriptSettings, pluginRepo);
+        }
+
+        return (compiledScript, compiledStartupScript, transpiledScript, transpiledStartupScript);
+    }
+
+    private static (string mainScript, string startupScript) GetTranspiledScripts(Config config, bool stepByStep)
+    {
+        if (config.Mode is not (ConfigMode.Stack or ConfigMode.LoliCode))
+        {
+            return (config.CSharpScript ?? string.Empty, config.StartupCSharpScript ?? string.Empty);
+        }
+
+        var cacheKey = BuildTranspilationCacheKey(config, stepByStep);
+        if (_transpilationCache.TryGetValue(cacheKey, out var cached))
+        {
+            cached.LastAccessedUtc = DateTime.UtcNow;
+            return (cached.MainScript, cached.StartupScript);
+        }
+
+        var mainScript = config.Mode == ConfigMode.Stack
+            ? Stack2CSharpTranspiler.Transpile(config.Stack, config.Settings, stepByStep)
+            : Loli2CSharpTranspiler.Transpile(config.LoliCodeScript, config.Settings, stepByStep);
+
+        var startupScript = Loli2CSharpTranspiler.Transpile(config.StartupLoliCodeScript, config.Settings, stepByStep);
+
+        _transpilationCache[cacheKey] = new CachedTranspilation
+        {
+            MainScript = mainScript,
+            StartupScript = startupScript,
+            LastAccessedUtc = DateTime.UtcNow
+        };
+
+        EvictTranspilationCacheIfNeeded();
+        return (mainScript, startupScript);
+    }
+
+    private static string BuildTranspilationCacheKey(Config config, bool stepByStep)
+    {
+        var settingsHash = ComputeHash(JsonConvert.SerializeObject(config.Settings));
+        var startupHash = ComputeHash(config.StartupLoliCodeScript ?? string.Empty);
+
+        return config.Mode switch
+        {
+            ConfigMode.LoliCode => $"L|{(stepByStep ? 1 : 0)}|{settingsHash}|{ComputeHash(config.LoliCodeScript ?? string.Empty)}|{startupHash}",
+            ConfigMode.Stack => $"S|{(stepByStep ? 1 : 0)}|{settingsHash}|{ComputeHash(JsonConvert.SerializeObject(config.Stack))}|{startupHash}",
+            _ => $"C|{(stepByStep ? 1 : 0)}|{settingsHash}|{ComputeHash(config.CSharpScript ?? string.Empty)}|{ComputeHash(config.StartupCSharpScript ?? string.Empty)}"
+        };
+    }
+
+    private static string ComputeHash(string input)
+    {
+        using var sha = SHA256.Create();
+        var bytes = Encoding.UTF8.GetBytes(input ?? string.Empty);
+        return Convert.ToHexString(sha.ComputeHash(bytes));
+    }
+
+    private static void EvictTranspilationCacheIfNeeded()
+    {
+        var overflow = _transpilationCache.Count - MaxTranspilationCacheSize;
+        if (overflow <= 0)
+        {
+            return;
+        }
+
+        foreach (var key in _transpilationCache
+                     .OrderBy(kvp => kvp.Value.LastAccessedUtc)
+                     .Take(overflow)
+                     .Select(kvp => kvp.Key)
+                     .ToList())
+        {
+            _transpilationCache.TryRemove(key, out _);
+        }
     }
 
 

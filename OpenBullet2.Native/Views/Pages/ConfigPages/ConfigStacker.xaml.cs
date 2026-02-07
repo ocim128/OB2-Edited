@@ -236,17 +236,13 @@ public partial class ConfigStacker : Page
             var block = (BlockViewModel)(sender as FrameworkElement).Tag;
             
             vm.SelectBlock(block, ctrl, shift);
-            
-            // Clear search filter to show all blocks if needed
+
+            // If we're selecting from a filtered search result, restore full stack context
+            // so the user can edit neighboring blocks around the selected match.
             if (!string.IsNullOrEmpty(SearchTextBox.Text))
             {
-                // This triggers the TextChanged event which starts the debounce timer
                 SearchTextBox.Text = string.Empty;
-                
-                // We stop the timer immediately because we want to apply the empty filter NOW
                 _searchDebounceTimer.Stop();
-                
-                // Apply filter immediately to restore full stack synchronously
                 vm.ApplySearchFilter(string.Empty);
             }
 

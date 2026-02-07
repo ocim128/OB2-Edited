@@ -25,6 +25,7 @@ namespace RuriLib.Helpers.CSharp
     {
         private static readonly Assembly _ruriLibAssembly = Assembly.GetAssembly(typeof(ScriptBuilder));
         private static readonly HashSet<string> _ruriLibReferenceNames = new(_ruriLibAssembly.GetReferencedAssemblies().Select(a => a.FullName));
+        private static readonly ConcurrentDictionary<string, HashSet<string>> _pluginReferenceNamesCache = new();
         
         // Cache the standard usings to avoid recreating the list on every build
         private static readonly List<string> _standardUsings;
@@ -251,35 +252,7 @@ namespace RuriLib.Helpers.CSharp
                 .WithImports(GetImports(settings));
 
             // Add transient references (system assemblies) required by RuriLib
-            // Optimization: Filter current domain assemblies using the pre-hashed set
-            var domainAssemblies = AppDomain.CurrentDomain.GetAssemblies();
-            var requiredAssemblies = new List<Assembly>();
-
-            foreach (var asm in domainAssemblies)
-            {
-                // Verify if this assembly is referenced by RuriLib
-                if (_ruriLibReferenceNames.Contains(asm.FullName))
-                {
-                    requiredAssemblies.Add(asm);
-                    continue;
-                }
-
-                // Check if referenced by any plugin
-                // We do this loop here to avoid LINQ overhead for the filtered set
-                if (plugins.Length > 0)
-                {
-                    foreach (var plugin in plugins)
-                    {
-                        if (plugin.GetReferencedAssemblies().Any(r => r.FullName == asm.FullName))
-                        {
-                            requiredAssemblies.Add(asm);
-                            break;
-                        }
-                    }
-                }
-            }
-            
-            options = options.AddReferences(requiredAssemblies);
+            options = options.AddReferences(GetRequiredAssemblies(plugins));
 
             var script = CSharpScript.Create(
                 code: cSharpScript,
@@ -352,31 +325,7 @@ namespace RuriLib.Helpers.CSharp
                 .WithImports(GetImports(settings));
 
             // Add transient references (system assemblies) required by RuriLib
-            var domainAssemblies = AppDomain.CurrentDomain.GetAssemblies();
-            var requiredAssemblies = new List<Assembly>();
-
-            foreach (var asm in domainAssemblies)
-            {
-                if (_ruriLibReferenceNames.Contains(asm.FullName))
-                {
-                    requiredAssemblies.Add(asm);
-                    continue;
-                }
-
-                if (plugins.Length > 0)
-                {
-                    foreach (var plugin in plugins)
-                    {
-                        if (plugin.GetReferencedAssemblies().Any(r => r.FullName == asm.FullName))
-                        {
-                            requiredAssemblies.Add(asm);
-                            break;
-                        }
-                    }
-                }
-            }
-            
-            options = options.AddReferences(requiredAssemblies);
+            options = options.AddReferences(GetRequiredAssemblies(plugins));
 
             var script = CSharpScript.Create(
                 code: cSharpScript,
@@ -421,6 +370,65 @@ namespace RuriLib.Helpers.CSharp
             }
 
             return trimmed;
+        }
+
+        private static IEnumerable<Assembly> GetRequiredAssemblies(Assembly[] plugins)
+        {
+            var pluginReferenceNames = GetPluginReferenceNames(plugins);
+            var domainAssemblies = AppDomain.CurrentDomain.GetAssemblies();
+            var requiredAssemblies = new List<Assembly>();
+
+            foreach (var asm in domainAssemblies)
+            {
+                var fullName = asm.FullName;
+                if (string.IsNullOrWhiteSpace(fullName))
+                {
+                    continue;
+                }
+
+                if (_ruriLibReferenceNames.Contains(fullName) || pluginReferenceNames.Contains(fullName))
+                {
+                    requiredAssemblies.Add(asm);
+                }
+            }
+
+            return requiredAssemblies;
+        }
+
+        private static HashSet<string> GetPluginReferenceNames(Assembly[] plugins)
+        {
+            if (plugins.Length == 0)
+            {
+                return new HashSet<string>();
+            }
+
+            var key = string.Join("|", plugins
+                .Select(p => p.FullName)
+                .Where(n => !string.IsNullOrWhiteSpace(n))
+                .OrderBy(n => n, StringComparer.Ordinal));
+
+            return _pluginReferenceNamesCache.GetOrAdd(key, _ =>
+            {
+                var names = new HashSet<string>(StringComparer.Ordinal);
+
+                foreach (var plugin in plugins)
+                {
+                    if (!string.IsNullOrWhiteSpace(plugin.FullName))
+                    {
+                        names.Add(plugin.FullName);
+                    }
+
+                    foreach (var referenced in plugin.GetReferencedAssemblies())
+                    {
+                        if (!string.IsNullOrWhiteSpace(referenced.FullName))
+                        {
+                            names.Add(referenced.FullName);
+                        }
+                    }
+                }
+
+                return names;
+            });
         }
     }
 }

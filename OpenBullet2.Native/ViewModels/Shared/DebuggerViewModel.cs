@@ -9,6 +9,7 @@ using RuriLib.Services;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using OpenBullet2.Native.ViewModels.Base;
 
@@ -27,6 +28,9 @@ public class DebuggerViewModel : ViewModelBase
     private DebuggerOptions? options;
     private BotLogger? logger;
     private ConfigDebugger? debugger;
+    private CancellationTokenSource? prewarmCts;
+    private Task? prewarmTask;
+    private RuriLib.Models.Configs.Config? prewarmConfig;
 
     public event EventHandler<BotLoggerEntry>? NewLogEntry;
     public event EventHandler? LogCleared;
@@ -190,11 +194,11 @@ public class DebuggerViewModel : ViewModelBase
         set
         {
             indices = value;
-            CurrentMatchIndex = 0;
+            CurrentMatchIndex = indices.Length > 0 ? 0 : -1;
         }
     }
 
-    private int currentMatchIndex;
+    private int currentMatchIndex = -1;
     public int CurrentMatchIndex
     {
         get => currentMatchIndex;
@@ -206,7 +210,9 @@ public class DebuggerViewModel : ViewModelBase
         }
     }
 
-    public string MatchInfo => $"{CurrentMatchIndex + 1} of {Indices.Length}";
+    public string MatchInfo => Indices.Length == 0
+        ? "0 of 0"
+        : $"{CurrentMatchIndex + 1} of {Indices.Length}";
 
     private int logLineCount;
     public int LogLineCount
@@ -258,6 +264,8 @@ public class DebuggerViewModel : ViewModelBase
 
         WordlistType = WordlistTypes.First();
         wordlistType = WordlistType; // Initialize backing field to avoid warning
+
+        this.configService.OnConfigSelected += (_, config) => QueuePrewarm(config);
     }
 
     public async Task RunAsync()
@@ -267,6 +275,32 @@ public class DebuggerViewModel : ViewModelBase
         
         // Yield to the UI thread to allow the status change to render before heavy work begins
         await Task.Yield();
+
+        var selectedConfig = configService.SelectedConfig;
+        if (!StepByStep && selectedConfig is not null && ReferenceEquals(selectedConfig, prewarmConfig) && prewarmTask is not null)
+        {
+            try
+            {
+                // Reuse in-flight prewarm work instead of recompiling from scratch.
+                await prewarmTask;
+            }
+            catch (OperationCanceledException)
+            {
+            }
+            catch
+            {
+                // Ignore prewarm errors, regular debugger run will compile on demand.
+            }
+        }
+        else
+        {
+            prewarmCts?.Cancel();
+        }
+
+        prewarmCts?.Dispose();
+        prewarmCts = null;
+        prewarmTask = null;
+        prewarmConfig = null;
         
         if (logger == null || !PersistLog)
         {
@@ -334,6 +368,21 @@ public class DebuggerViewModel : ViewModelBase
         }
         
         NewLogEntry?.Invoke(this, e);
+    }
+
+    private void QueuePrewarm(RuriLib.Models.Configs.Config? config)
+    {
+        if (config is null)
+        {
+            return;
+        }
+
+        prewarmCts?.Cancel();
+        prewarmCts?.Dispose();
+        prewarmCts = new CancellationTokenSource();
+        prewarmConfig = config;
+        var token = prewarmCts.Token;
+        prewarmTask = ConfigDebugger.PrewarmAsync(config, pluginRepo, stepByStep: false, cancellationToken: token);
     }
 }
 

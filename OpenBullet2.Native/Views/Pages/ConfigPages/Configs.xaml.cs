@@ -198,7 +198,7 @@ namespace OpenBullet2.Native.Views.Pages.Configs
                 (ConfigSection.Stacker, ConfigMode.CSharp) => MainWindowPage.ConfigCSharpCode,
                 (ConfigSection.LoliCode, ConfigMode.LoliCode or ConfigMode.Stack) => MainWindowPage.ConfigLoliCode,
                 (ConfigSection.LoliCode, ConfigMode.CSharp) => MainWindowPage.ConfigCSharpCode,
-                (ConfigSection.CSharpCode, ConfigMode.LoliCode or ConfigMode.Stack or ConfigMode.CSharp) => MainWindowPage.ConfigLoliCode,
+                (ConfigSection.CSharpCode, ConfigMode.LoliCode or ConfigMode.Stack or ConfigMode.CSharp) => MainWindowPage.ConfigCSharpCode,
                 _ => MainWindowPage.ConfigMetadata
             };
         }

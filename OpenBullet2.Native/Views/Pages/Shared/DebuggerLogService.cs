@@ -145,8 +145,10 @@ namespace OpenBullet2.Native.Views.Pages.Shared
             _blockStartIndices.Clear();
             _currentMatchIndex = -1;
             _currentBlockIndex = -1;
+            _lastSearchText = string.Empty;
             
             _pendingLogs.Clear(); // Clear pending buffer too
+            _viewModel.Indices = [];
             
             // Force redraw of highlighting
             _logRTB.TextArea.TextView.Redraw();
@@ -197,7 +199,7 @@ namespace OpenBullet2.Native.Views.Pages.Shared
             }
             else
             {
-                _viewModel.CurrentMatchIndex = 0;
+                _viewModel.CurrentMatchIndex = -1;
             }
         }
 
@@ -234,7 +236,7 @@ namespace OpenBullet2.Native.Views.Pages.Shared
                 var line = _logRTB.Document.GetLineByOffset(start);
                 _logRTB.ScrollToLine(line.LineNumber);
                 
-                _viewModel.CurrentMatchIndex = _currentMatchIndex + 1;
+                _viewModel.CurrentMatchIndex = _currentMatchIndex;
             }
         }
 
@@ -244,6 +246,8 @@ namespace OpenBullet2.Native.Views.Pages.Shared
             _searchMatches.Clear();
             _currentMatchIndex = -1;
             _lastSearchText = string.Empty;
+            _viewModel.Indices = [];
+            _viewModel.CurrentMatchIndex = -1;
             
             // Deselect but don't reset position necessarily, just clear selection
             _logRTB.Select(0, 0); 

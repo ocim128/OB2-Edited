@@ -1,0 +1,22 @@
+using Flux.Core.Services;
+using RuriLib.Models.Hits;
+using System.Threading.Tasks;
+
+namespace Flux.Core.Models.Hits;
+
+/// <summary>
+/// A hit output that stores hits to a database.
+/// </summary>
+public class DatabaseHitOutput : IHitOutput
+{
+    private readonly HitStorageService hitStorage;
+
+    public DatabaseHitOutput(HitStorageService hitStorage)
+    {
+        this.hitStorage = hitStorage;
+    }
+
+    /// <inheritdoc/>
+    public Task Store(Hit hit)
+        => hitStorage.StoreAsync(hit);
+}

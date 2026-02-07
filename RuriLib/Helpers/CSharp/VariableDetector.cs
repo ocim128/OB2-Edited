@@ -33,7 +33,7 @@ namespace RuriLib.Helpers.CSharp
             // Common framework identifiers
             "System","Console","Math","String","DateTime","TimeSpan","Exception","List","Dictionary","Enumerable","Regex","Uri",
             "Convert","Activator",
-            // OpenBullet specific reserved words
+            // Flux specific reserved words
             "data","globals","input","await","var","dynamic","nameof","Task",
             // LoliCode keywords and operators
             "BOOLKEY","STRINGKEY","INTKEY","FLOATKEY","LISTKEY","DICTKEY","Contains","DoesNotContain","EqualTo","NotEqualTo",

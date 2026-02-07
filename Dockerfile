@@ -1,4 +1,4 @@
-# This Dockerfile is meant to be run locally to build the OpenBullet2 project
+# This Dockerfile is meant to be run locally to build the Flux project
 # for normal usage via docker.
 
 # -------
@@ -9,7 +9,7 @@ FROM mcr.microsoft.com/dotnet/sdk:8.0-bookworm-slim AS backend
 WORKDIR /code
 
 COPY . .
-RUN dotnet publish OpenBullet2.Web -c Release -o /build/web
+RUN dotnet publish Flux.Web -c Release -o /build/web
 
 WORKDIR /build/web
 
@@ -20,7 +20,7 @@ RUN find . -name "*.xml" -type f -delete
 
 # Manually copy over the dbip-country-lite.mmdb file from /code to /build
 # since for some reason it doesn't get copied over by the dotnet publish command
-RUN cp /code/OpenBullet2.Web/dbip-country-lite.mmdb /build
+RUN cp /code/Flux.Web/dbip-country-lite.mmdb /build
 
 # --------
 # FRONTEND
@@ -29,11 +29,11 @@ FROM node:20.9.0 AS frontend
 
 WORKDIR /code
 
-COPY openbullet2-web-client/package.json .
-COPY openbullet2-web-client/package-lock.json .
+COPY flux-web-client/package.json .
+COPY flux-web-client/package-lock.json .
 RUN npm install
 
-COPY openbullet2-web-client .
+COPY flux-web-client .
 RUN npm run build
 RUN mkdir /build && mv dist/* /build
 
@@ -48,7 +48,7 @@ WORKDIR /app
 
 COPY --from=backend /build/web .
 COPY --from=frontend /build ./wwwroot
-COPY OpenBullet2.Web/dbip-country-lite.mmdb .
+COPY Flux.Web/dbip-country-lite.mmdb .
 
 # Install dependencies
 RUN apt-get update -yq && apt-get install -y --no-install-recommends apt-utils
@@ -66,4 +66,4 @@ RUN webdrivermanager firefox chrome --linkpath /usr/local/bin || true
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 
 EXPOSE 5000
-CMD ["dotnet", "./OpenBullet2.Web.dll", "--urls=http://*:5000"]
+CMD ["dotnet", "./Flux.Web.dll", "--urls=http://*:5000"]

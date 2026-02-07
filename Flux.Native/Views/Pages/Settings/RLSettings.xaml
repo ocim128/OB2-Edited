@@ -1,0 +1,677 @@
+<Page x:Class="Flux.Native.Views.Pages.Settings.RLSettings"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+      xmlns:local="clr-namespace:Flux.Native.Views.Pages"
+      xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
+      xmlns:mah="http://metro.mahapps.com/winfx/xaml/controls"
+      mc:Ignorable="d" 
+      d:DesignHeight="1450" d:DesignWidth="800"
+      Title="RLSettings">
+
+    <Page.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+        
+        <!-- Premium Settings Card Style -->
+        <Style x:Key="SettingsCardStyle" TargetType="Border">
+            <Setter Property="Background" Value="{StaticResource Modern.BackgroundSecondary}"/>
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Padding" Value="24"/>
+            <Setter Property="Margin" Value="0,0,0,24"/>
+            <Setter Property="BorderBrush" Value="{StaticResource Modern.BorderSecondary}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="UseLayoutRounding" Value="True"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+        </Style>
+
+        <!-- Section Header Style -->
+        <Style x:Key="SettingsSectionHeaderStyle" TargetType="TextBlock" BasedOn="{StaticResource ModernHeading3}">
+            <Setter Property="Margin" Value="0,0,0,0"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="18"/>
+            <Setter Property="Foreground" Value="{StaticResource Modern.ThemeMain}"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        
+        <!-- Setting Label Style -->
+        <Style x:Key="SettingLabelStyle" TargetType="TextBlock" BasedOn="{StaticResource ModernBodyText}">
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="0,8,16,8"/>
+        </Style>
+        
+        <!-- Setting Description/Subtitle Style -->
+        <Style x:Key="SettingSubtitleStyle" TargetType="TextBlock" BasedOn="{StaticResource ModernCaptionText}">
+             <Setter Property="Foreground" Value="{StaticResource Modern.ThemeMain}"/>
+             <Setter Property="FontWeight" Value="SemiBold"/>
+             <Setter Property="Margin" Value="0,16,0,8"/>
+        </Style>
+    </Page.Resources>
+    
+    <!-- Modern RuriLib Settings Layout -->
+    <Grid Margin="24,16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <ScrollViewer Grid.Row="0" 
+                      VerticalScrollBarVisibility="Auto" 
+                      HorizontalScrollBarVisibility="Disabled"
+                      CanContentScroll="False"
+                      PanningMode="VerticalOnly"
+                      ScrollViewer.IsDeferredScrollingEnabled="False">
+            <StackPanel Margin="0,0,0,20">
+                
+                <!-- General Settings Section -->
+                <Border Style="{StaticResource SettingsCardStyle}">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
+                            <Border Width="32" Height="32" CornerRadius="8" Background="#1E3A5F" Margin="0,0,12,0">
+                                <iconPacks:PackIconMaterial Kind="Cog" Width="16" Height="16" Foreground="{StaticResource Modern.ThemeMain}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <TextBlock Text="General Settings" Style="{StaticResource SettingsSectionHeaderStyle}"/>
+                        </StackPanel>
+                        
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="250"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- Parallelizer Type -->
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Parallelizer Type:" Style="{StaticResource SettingLabelStyle}"/>
+                            <ComboBox Grid.Row="0" Grid.Column="1" ItemsSource="{Binding ParallelizerTypes}" SelectedValue="{Binding Path=ParallelizerType}" Width="250" HorizontalAlignment="Left" Margin="0,8" Style="{StaticResource CleanComboBox}"/>
+
+                            <!-- Checkboxes -->
+                            <StackPanel Grid.Row="1" Grid.ColumnSpan="2" Margin="0,4">
+                                <CheckBox Content="Log job activity to a file" IsChecked="{Binding LogJobActivityToFile}" Name="LogJobActivityToFile" Margin="0,4"/>
+                            </StackPanel>
+                            
+                            <StackPanel Grid.Row="2" Grid.ColumnSpan="2" Margin="16,4,0,4" Visibility="{Binding ElementName=LogJobActivityToFile, Path=IsChecked, Converter={StaticResource BoolToVis}}">
+                                <CheckBox Content="Log all results to the job log file (WARN: High disk usage)" IsChecked="{Binding LogAllResults}" Margin="0,4"/>
+                            </StackPanel>
+                            
+                            <StackPanel Grid.Row="3" Grid.ColumnSpan="2" Margin="0,4">
+                                <CheckBox Content="Enable logging for bots in MultiRunJob (Debugging only - High RAM usage)" IsChecked="{Binding EnableBotLogging}" Margin="0,4"/>
+                            </StackPanel>
+                            
+                            <StackPanel Grid.Row="4" Grid.ColumnSpan="2" Margin="0,4">
+                                <CheckBox Content="Enable verbose mode (More output and error insights)" IsChecked="{Binding VerboseMode}" Margin="0,4"/>
+                            </StackPanel>
+                            
+                            <StackPanel Grid.Row="5" Grid.ColumnSpan="2" Margin="0,4">
+                                <CheckBox Content="Restrict blocks to current working directory" IsChecked="{Binding RestrictBlocksToCWD}" Margin="0,4"/>
+                            </StackPanel>
+                            
+                            <StackPanel Grid.Row="6" Grid.ColumnSpan="2" Margin="0,4">
+                                <CheckBox Content="Use custom user agents list (instead of default provider)" IsChecked="{Binding UseCustomUserAgentsList}" Margin="0,4"/>
+                            </StackPanel>
+                        </Grid>
+                        
+                        <!-- Custom User Agents TextBox -->
+                        <TextBlock Text="Custom User Agents (one per line):" Style="{StaticResource SettingSubtitleStyle}"/>
+                        <TextBox x:Name="customUserAgentsListTextBox" 
+                                 Style="{StaticResource MatchingTextBox}"
+                                 FontFamily="Consolas" 
+                                 Height="100"
+                                 AcceptsReturn="True"
+                                 TextChanged="CustomUserAgentsChanged"
+                                 VerticalContentAlignment="Top"
+                                 VerticalScrollBarVisibility="Auto"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Proxy Settings Section -->
+                <Border Style="{StaticResource SettingsCardStyle}">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
+                            <Border Width="32" Height="32" CornerRadius="8" Background="#064E3B" Margin="0,0,12,0">
+                                <iconPacks:PackIconMaterial Kind="ServerNetwork" Width="16" Height="16" Foreground="{StaticResource Modern.Success}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <TextBlock Text="Proxy Settings" Style="{StaticResource SettingsSectionHeaderStyle}"/>
+                        </StackPanel>
+                        
+                        <!-- Proxy Timeout Settings -->
+                        <Grid Margin="0,0,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <TextBlock Grid.Column="0" Text="Timeout for proxy connections:" Style="{StaticResource SettingLabelStyle}" Margin="0,0,8,0"/>
+                            <mah:NumericUpDown Grid.Column="1" Minimum="0" Maximum="100000000" Interval="1000" Value="{Binding ProxyConnectTimeoutMilliseconds}" Width="120" Margin="0,0,24,0"/>
+                            <TextBlock Grid.Column="2" Text="and read/write:" Style="{StaticResource SettingLabelStyle}" Margin="0,0,8,0"/>
+                            <mah:NumericUpDown Grid.Column="3" Minimum="0" Maximum="100000000" Interval="1000" Value="{Binding ProxyReadWriteTimeoutMilliseconds}" Width="120" Margin="0,0,8,0"/>
+                            <TextBlock Grid.Column="4" Text="(ms)" Style="{StaticResource SettingLabelStyle}" Opacity="0.6"/>
+                        </Grid>
+
+                        <!-- Global Keys Section -->
+                        <TextBlock Text="Global BAN keys (one per line):" Style="{StaticResource SettingSubtitleStyle}"/>
+                        <TextBox x:Name="globalBanKeysTextBox" 
+                                 Style="{StaticResource MatchingTextBox}"
+                                 FontFamily="Consolas"
+                                 Height="100"
+                                 AcceptsReturn="True"
+                                 TextChanged="GlobalBanKeysChanged"
+                                 VerticalContentAlignment="Top"
+                                 VerticalScrollBarVisibility="Auto"
+                                 Margin="0,0,0,16"/>
+
+                        <TextBlock Text="Global RETRY keys (one per line):" Style="{StaticResource SettingSubtitleStyle}"/>
+                        <TextBox x:Name="globalRetryKeysTextBox" 
+                                 Style="{StaticResource MatchingTextBox}"
+                                 FontFamily="Consolas" 
+                                 Height="100"
+                                 AcceptsReturn="True"
+                                 TextChanged="GlobalRetryKeysChanged"
+                                 VerticalContentAlignment="Top"
+                                 VerticalScrollBarVisibility="Auto"/>
+                    </StackPanel>
+                </Border>
+                
+                <!-- Captcha Settings Section -->
+                <Border Style="{StaticResource SettingsCardStyle}">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
+                            <Border Width="32" Height="32" CornerRadius="8" Background="#78350F" Margin="0,0,12,0">
+                                <iconPacks:PackIconMaterial Kind="Robot" Width="16" Height="16" Foreground="{StaticResource Modern.Warning}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <TextBlock Text="Captcha Settings" Style="{StaticResource SettingsSectionHeaderStyle}"/>
+                        </StackPanel>
+                        
+                        <!-- Timeout Settings Grid -->
+                        <Grid Margin="0,0,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <TextBlock Grid.Column="0" Text="Timeout for captcha solutions:" Style="{StaticResource SettingLabelStyle}" Margin="0,0,8,0"/>
+                            <mah:NumericUpDown Grid.Column="1" Minimum="1" Maximum="1000000" Interval="10" Value="{Binding CaptchaTimeoutSeconds}" Width="120" Margin="0,0,8,0"/>
+                            <TextBlock Grid.Column="2" Text="(s) with polling interval:" Style="{StaticResource SettingLabelStyle}" Margin="8,0,8,0"/>
+                            <mah:NumericUpDown Grid.Column="3" Minimum="20" Maximum="100000000" Interval="1000" Value="{Binding CaptchaPollingIntervalMilliseconds}" Width="120" Margin="0,0,8,0"/>
+                            <TextBlock Grid.Column="4" Text="(ms)" Style="{StaticResource SettingLabelStyle}" Opacity="0.6"/>
+                        </Grid>
+                        
+                        <CheckBox Content="Check the captcha balance before solving" 
+                                  IsChecked="{Binding UseCustomUserAgentsList}" 
+                                  Margin="0,8"/>
+                        
+                        <!-- Service Selection Grid -->
+                        <Grid Margin="0,8,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <TextBlock Grid.Column="0" Text="Captcha Service:" Style="{StaticResource SettingLabelStyle}" Margin="0,0,16,0"/>
+                            <ComboBox Grid.Column="1" ItemsSource="{Binding CaptchaServiceTypes}"
+                                      SelectedValue="{Binding Path=CurrentCaptchaService}"
+                                      Width="250"
+                                      HorizontalAlignment="Left"
+                                      Style="{StaticResource CleanComboBox}"/>
+                        </Grid>
+
+                        <TabControl x:Name="captchaServiceTabControl" Background="Transparent" BorderThickness="0" Margin="0,16,0,0">
+                            <TabControl.ItemContainerStyle>
+                                <Style TargetType="{x:Type TabItem}">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </Style>
+                            </TabControl.ItemContainerStyle>
+
+                            <!-- TwoCaptcha -->
+                            <TabItem>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="100"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="Api Key:" Style="{StaticResource SettingLabelStyle}"/>
+                                    <TextBox Grid.Column="1" Text="{Binding TwoCaptchaApiKey}" Style="{StaticResource MatchingTextBox}" Width="400" HorizontalAlignment="Left"/>
+                                </Grid>
+                            </TabItem>
+                            
+                            <!-- AntiCaptcha -->
+                            <TabItem>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="100"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="Api Key:" Style="{StaticResource SettingLabelStyle}"/>
+                                    <TextBox Grid.Column="1" Text="{Binding AntiCaptchaApiKey}" Style="{StaticResource MatchingTextBox}" Width="400" HorizontalAlignment="Left"/>
+                                </Grid>
+                            </TabItem>
+
+                            <!-- CustomTwoCaptcha -->
+                            <TabItem>
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                        <TextBlock Text="Api Key" Width="100" Style="{StaticResource SettingLabelStyle}"/>
+                                        <TextBox Text="{Binding CustomTwoCaptchaApiKey}" Width="400" Style="{StaticResource MatchingTextBox}"/>
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                        <TextBlock Text="Domain" Width="100" Style="{StaticResource SettingLabelStyle}"/>
+                                        <TextBox Text="{Binding CustomTwoCaptchaDomain}" Width="400" Style="{StaticResource MatchingTextBox}"/>
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                        <TextBlock Text="Port" Width="100" Style="{StaticResource SettingLabelStyle}"/>
+                                        <mah:NumericUpDown Minimum="1" Maximum="65535" Interval="1" Value="{Binding CustomTwoCaptchaPort}" Width="150"/>
+                                    </StackPanel>
+                                    <CheckBox Content="Override the Host header with 2captcha.com" 
+                                          IsChecked="{Binding CustomTwoCaptchaOverrideHostHeader}" 
+                                          Margin="100,0,0,0"/>
+                                </StackPanel>
+                            </TabItem>
+                            
+                            <!-- DeathByCaptcha -->
+                            <TabItem>
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                        <TextBlock Text="Username" Width="100" Style="{StaticResource SettingLabelStyle}"/>
+                                        <TextBox Text="{Binding DeathByCaptchaUsername}" Width="400" Style="{StaticResource MatchingTextBox}"/>
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                        <TextBlock Text="Password" Width="100" Style="{StaticResource SettingLabelStyle}"/>
+                                        <TextBox Text="{Binding DeathByCaptchaPassword}" Width="400" Style="{StaticResource MatchingTextBox}"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </TabItem>
+
+                            <!-- CaptchaCoder -->
+                            <TabItem>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                        <TextBlock Text="Api Key" Width="100" Style="{StaticResource SettingLabelStyle}"/>
+                                        <TextBox Text="{Binding CaptchaCoderApiKey}" Width="400" Style="{StaticResource MatchingTextBox}"/>
+                                </StackPanel>
+                            </TabItem>
+                            
+                            <!-- ImageTyperz -->
+                            <TabItem>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                        <TextBlock Text="Api Key" Width="100" Style="{StaticResource SettingLabelStyle}"/>
+                                        <TextBox Text="{Binding ImageTyperzApiKey}" Width="400" Style="{StaticResource MatchingTextBox}"/>
+                                </StackPanel>
+                            </TabItem>
+                            
+                             <!-- CapMonster -->
+                            <TabItem>
+                                <StackPanel>
+                                    <TextBlock Text="This is only for the old CapMonster application" Foreground="{StaticResource Modern.Warning}" Margin="0,0,0,4"/>
+                                    <TextBlock Text="For CapMonster cloud, use the CustomTwoCaptcha service and disable the override for the Host header option" Foreground="{StaticResource Modern.ForegroundSecondary}" Margin="0,0,0,8"/>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                        <TextBlock Text="Host" Width="100" Style="{StaticResource SettingLabelStyle}"/>
+                                        <TextBox Text="{Binding CapMonsterHost}" Width="400" Style="{StaticResource MatchingTextBox}"/>
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                        <TextBlock Text="Port" Width="100" Style="{StaticResource SettingLabelStyle}"/>
+                                        <mah:NumericUpDown Minimum="1" Maximum="65535" Interval="1" Value="{Binding CapMonsterPort}" Width="150"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </TabItem>
+                            
+                            <!-- Generic Service Template (Others) -->
+                            <!-- AzCaptcha -->
+                            <TabItem>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                        <TextBlock Text="Api Key" Width="100" Style="{StaticResource SettingLabelStyle}"/>
+                                        <TextBox Text="{Binding AzCaptchaApiKey}" Width="400" Style="{StaticResource MatchingTextBox}"/>
+                                </StackPanel>
+                            </TabItem>
+                            <!-- Captchas.io -->
+                            <TabItem>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                        <TextBlock Text="Api Key" Width="100" Style="{StaticResource SettingLabelStyle}"/>
+                                        <TextBox Text="{Binding CaptchasDotIoApiKey}" Width="400" Style="{StaticResource MatchingTextBox}"/>
+                                </StackPanel>
+                            </TabItem>
+                            <!-- RuCaptcha -->
+                            <TabItem>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                        <TextBlock Text="Api Key" Width="100" Style="{StaticResource SettingLabelStyle}"/>
+                                        <TextBox Text="{Binding RuCaptchaApiKey}" Width="400" Style="{StaticResource MatchingTextBox}"/>
+                                </StackPanel>
+                            </TabItem>
+                            <!-- SolveCaptcha -->
+                            <TabItem>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                        <TextBlock Text="Api Key" Width="100" Style="{StaticResource SettingLabelStyle}"/>
+                                        <TextBox Text="{Binding SolveCaptchaApiKey}" Width="400" Style="{StaticResource MatchingTextBox}"/>
+                                </StackPanel>
+                            </TabItem>
+                            <!-- TrueCaptcha -->
+                            <TabItem>
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                        <TextBlock Text="Api Key" Width="100" Style="{StaticResource SettingLabelStyle}"/>
+                                        <TextBox Text="{Binding TrueCaptchaApiKey}" Width="400" Style="{StaticResource MatchingTextBox}"/>
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                        <TextBlock Text="Username" Width="100" Style="{StaticResource SettingLabelStyle}"/>
+                                        <TextBox Text="{Binding TrueCaptchaUsername}" Width="400" Style="{StaticResource MatchingTextBox}"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </TabItem>
+                             <!-- 9kw -->
+                            <TabItem>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                        <TextBlock Text="Api Key" Width="100" Style="{StaticResource SettingLabelStyle}"/>
+                                        <TextBox Text="{Binding NineKwApiKey}" Width="400" Style="{StaticResource MatchingTextBox}"/>
+                                </StackPanel>
+                            </TabItem>
+                            <!-- CustomAntiCaptcha -->
+                            <TabItem>
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                        <TextBlock Text="Api Key" Width="100" Style="{StaticResource SettingLabelStyle}"/>
+                                        <TextBox Text="{Binding CustomAntiCaptchaApiKey}" Width="400" Style="{StaticResource MatchingTextBox}"/>
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                        <TextBlock Text="Domain" Width="100" Style="{StaticResource SettingLabelStyle}"/>
+                                        <TextBox Text="{Binding CustomAntiCaptchaDomain}" Width="400" Style="{StaticResource MatchingTextBox}"/>
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                        <TextBlock Text="Port" Width="100" Style="{StaticResource SettingLabelStyle}"/>
+                                        <mah:NumericUpDown Minimum="1" Maximum="65535" Interval="1" Value="{Binding CustomAntiCaptchaPort}" Width="150"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </TabItem>
+                            <!-- CapSolver -->
+                            <TabItem>
+                                <TextBlock Text="CapSolver explicitly asked to be removed from the software. Please choose another service." Foreground="{StaticResource Modern.Error}" />
+                            </TabItem>
+                            <!-- CapMonster Cloud -->
+                            <TabItem>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                        <TextBlock Text="Api Key" Width="100" Style="{StaticResource SettingLabelStyle}"/>
+                                        <TextBox Text="{Binding CapMonsterCloudApiKey}" Width="400" Style="{StaticResource MatchingTextBox}"/>
+                                </StackPanel>
+                            </TabItem>
+                            <!-- HumanCoder -->
+                            <TabItem>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                        <TextBlock Text="Api Key" Width="100" Style="{StaticResource SettingLabelStyle}"/>
+                                        <TextBox Text="{Binding HumanCoderApiKey}" Width="400" Style="{StaticResource MatchingTextBox}"/>
+                                </StackPanel>
+                            </TabItem>
+                            <!-- Nopecha -->
+                            <TabItem>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                        <TextBlock Text="Api Key" Width="100" Style="{StaticResource SettingLabelStyle}"/>
+                                        <TextBox Text="{Binding NopechaApiKey}" Width="400" Style="{StaticResource MatchingTextBox}"/>
+                                </StackPanel>
+                            </TabItem>
+                            <!-- NoCaptcha AI -->
+                            <TabItem>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                        <TextBlock Text="Api Key" Width="100" Style="{StaticResource SettingLabelStyle}"/>
+                                        <TextBox Text="{Binding NoCaptchaAiApiKey}" Width="400" Style="{StaticResource MatchingTextBox}"/>
+                                </StackPanel>
+                            </TabItem>
+                            <!-- MetaBypass.Tech -->
+                             <TabItem>
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                        <TextBlock Text="Client ID" Width="100" Style="{StaticResource SettingLabelStyle}"/>
+                                        <TextBox Text="{Binding MetaBypassTechClientId}" Width="400" Style="{StaticResource MatchingTextBox}"/>
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                        <TextBlock Text="Client Secret" Width="100" Style="{StaticResource SettingLabelStyle}"/>
+                                        <TextBox Text="{Binding MetaBypassTechClientSecret}" Width="400" Style="{StaticResource MatchingTextBox}"/>
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                        <TextBlock Text="Username" Width="100" Style="{StaticResource SettingLabelStyle}"/>
+                                        <TextBox Text="{Binding MetaBypassTechUsername}" Width="400" Style="{StaticResource MatchingTextBox}"/>
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                        <TextBlock Text="Password" Width="100" Style="{StaticResource SettingLabelStyle}"/>
+                                        <TextBox Text="{Binding MetaBypassTechPassword}" Width="400" Style="{StaticResource MatchingTextBox}"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </TabItem>
+                            <!-- CaptchaAI -->
+                            <TabItem>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                        <TextBlock Text="Api Key" Width="100" Style="{StaticResource SettingLabelStyle}"/>
+                                        <TextBox Text="{Binding CaptchaAiApiKey}" Width="400" Style="{StaticResource MatchingTextBox}"/>
+                                </StackPanel>
+                            </TabItem>
+                            <!-- NextCaptcha -->
+                            <TabItem>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                        <TextBlock Text="Api Key" Width="100" Style="{StaticResource SettingLabelStyle}"/>
+                                        <TextBox Text="{Binding NextCaptchaApiKey}" Width="400" Style="{StaticResource MatchingTextBox}"/>
+                                </StackPanel>
+                            </TabItem>
+                            <!-- EzCaptcha -->
+                            <TabItem>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                        <TextBlock Text="Api Key" Width="100" Style="{StaticResource SettingLabelStyle}"/>
+                                        <TextBox Text="{Binding EzCaptchaApiKey}" Width="400" Style="{StaticResource MatchingTextBox}"/>
+                                </StackPanel>
+                            </TabItem>
+                             <!-- EndCaptcha -->
+                            <TabItem>
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                        <TextBlock Text="Username" Width="100" Style="{StaticResource SettingLabelStyle}"/>
+                                        <TextBox Text="{Binding EndCaptchaUsername}" Width="400" Style="{StaticResource MatchingTextBox}"/>
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                        <TextBlock Text="Password" Width="100" Style="{StaticResource SettingLabelStyle}"/>
+                                        <TextBox Text="{Binding EndCaptchaPassword}" Width="400" Style="{StaticResource MatchingTextBox}"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </TabItem>
+                            <!-- BestCaptchaSolver -->
+                             <TabItem>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                        <TextBlock Text="Api Key" Width="100" Style="{StaticResource SettingLabelStyle}"/>
+                                        <TextBox Text="{Binding BestCaptchaSolverApiKey}" Width="400" Style="{StaticResource MatchingTextBox}"/>
+                                </StackPanel>
+                            </TabItem>
+                             <!-- CapGuru -->
+                             <TabItem>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                        <TextBlock Text="Api Key" Width="100" Style="{StaticResource SettingLabelStyle}"/>
+                                        <TextBox Text="{Binding CapGuruApiKey}" Width="400" Style="{StaticResource MatchingTextBox}"/>
+                                </StackPanel>
+                            </TabItem>
+                             <!-- AYCD -->
+                             <TabItem>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                        <TextBlock Text="Api Key" Width="100" Style="{StaticResource SettingLabelStyle}"/>
+                                        <TextBox Text="{Binding AycdApiKey}" Width="400" Style="{StaticResource MatchingTextBox}"/>
+                                </StackPanel>
+                            </TabItem>
+                        </TabControl>
+
+                        <!-- Check Balance Button -->
+                        <Button x:Name="checkBalanceButton" 
+                                Click="CheckCaptchaBalance" 
+                                Margin="0,24,0,0"
+                                Width="200"
+                                HorizontalAlignment="Left"
+                                Style="{StaticResource ModernPrimaryButton}">
+                            <StackPanel Orientation="Horizontal">
+                                <iconPacks:PackIconMaterial Kind="CurrencyUsd" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="Check Balance" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Border>
+                
+                <!-- Puppeteer Settings Section -->
+                <Border Style="{StaticResource SettingsCardStyle}">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
+                            <Border Width="32" Height="32" CornerRadius="8" Background="#7F1D1D" Margin="0,0,12,0">
+                                <iconPacks:PackIconMaterial Kind="GoogleChrome" Width="16" Height="16" Foreground="#F87171" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <TextBlock Text="Puppeteer Settings" Style="{StaticResource SettingsSectionHeaderStyle}"/>
+                        </StackPanel>
+                        
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <TextBlock Grid.Column="0" Text="Chrome Binary Path:" Style="{StaticResource SettingLabelStyle}" Margin="0,0,16,0"/>
+                            <TextBox Grid.Column="1" Text="{Binding PuppeteerChromeBinaryLocation}" Style="{StaticResource MatchingTextBox}" Width="500" HorizontalAlignment="Left"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+                
+                <!-- Playwright Settings Section -->
+                <Border Style="{StaticResource SettingsCardStyle}">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
+                            <Border Width="32" Height="32" CornerRadius="8" Background="#7F1D1D" Margin="0,0,12,0">
+                                <iconPacks:PackIconMaterial Kind="Theater" Width="16" Height="16" Foreground="#F87171" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <TextBlock Text="Playwright Settings" Style="{StaticResource SettingsSectionHeaderStyle}"/>
+                        </StackPanel>
+                        
+                        <!-- Chromium Binary Path -->
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="250"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <TextBlock Grid.Column="0" Text="Chromium Binary Path:" Style="{StaticResource SettingLabelStyle}"/>
+                            <TextBox Grid.Column="1" Text="{Binding PlaywrightChromiumBinaryLocation}" Style="{StaticResource MatchingTextBox}" Width="500" HorizontalAlignment="Left" Margin="0,8"/>
+                        </Grid>
+                        
+                        <!-- Firefox Binary Path -->
+                         <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="250"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <TextBlock Grid.Column="0" Text="Firefox Binary Path:" Style="{StaticResource SettingLabelStyle}"/>
+                            <TextBox Grid.Column="1" Text="{Binding PlaywrightFirefoxBinaryLocation}" Style="{StaticResource MatchingTextBox}" Width="500" HorizontalAlignment="Left" Margin="0,8"/>
+                        </Grid>
+                        
+                        <!-- Webkit Binary Path -->
+                         <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="250"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <TextBlock Grid.Column="0" Text="Webkit Binary Path:" Style="{StaticResource SettingLabelStyle}"/>
+                            <TextBox Grid.Column="1" Text="{Binding PlaywrightWebkitBinaryLocation}" Style="{StaticResource MatchingTextBox}" Width="500" HorizontalAlignment="Left" Margin="0,8"/>
+                        </Grid>
+                        
+                        <!-- Draw Mouse Movement -->
+                         <Grid Margin="0,0,0,8">
+                             <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="250"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <TextBlock Grid.Column="0" Text="Draw Mouse Movement:" Style="{StaticResource SettingLabelStyle}"/>
+                            <CheckBox Grid.Column="1" IsChecked="{Binding PlaywrightDrawMouseMovement}" VerticalAlignment="Center" Margin="0,8"/>
+                        </Grid>
+
+                        <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
+                            <Button x:Name="installBrowsersButton" Content="Install Browsers" Click="InstallPlaywrightBrowsers" Style="{StaticResource ModernPrimaryButton}" Width="150" Margin="0,0,16,0"/>
+                            <mah:ProgressRing x:Name="playwrightInstallProgressRing" IsActive="True" Visibility="Collapsed" Width="20" Height="20" Margin="0,0,12,0" Foreground="{StaticResource Modern.ThemeMain}"/>
+                            <TextBlock x:Name="playwrightInstallStatus" VerticalAlignment="Center" Foreground="{StaticResource Modern.ThemeMain}" TextWrapping="Wrap" MaxWidth="400"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+                
+                <!-- Selenium Settings Section -->
+                 <Border Style="{StaticResource SettingsCardStyle}">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
+                            <Border Width="32" Height="32" CornerRadius="8" Background="#7F1D1D" Margin="0,0,12,0">
+                                <iconPacks:PackIconMaterial Kind="Web" Width="16" Height="16" Foreground="#F87171" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <TextBlock Text="Selenium Settings" Style="{StaticResource SettingsSectionHeaderStyle}"/>
+                        </StackPanel>
+                        
+                         <Grid Margin="0,0,0,8">
+                             <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="250"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <TextBlock Grid.Column="0" Text="Browser Type:" Style="{StaticResource SettingLabelStyle}"/>
+                            <ComboBox Grid.Column="1" ItemsSource="{Binding SeleniumBrowserTypes}"
+                                      SelectedValue="{Binding Path=SeleniumBrowserType}"
+                                      Width="200" HorizontalAlignment="Left" Margin="0,8"
+                                      Style="{StaticResource CleanComboBox}"/>
+                        </Grid>
+                        
+                         <Grid Margin="0,0,0,8">
+                             <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="250"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <TextBlock Grid.Column="0" Text="Chrome Binary Path:" Style="{StaticResource SettingLabelStyle}"/>
+                            <TextBox Grid.Column="1" Text="{Binding SeleniumChromeBinaryLocation}" Style="{StaticResource MatchingTextBox}" Width="500" HorizontalAlignment="Left" Margin="0,8"/>
+                        </Grid>
+                        
+                         <Grid Margin="0,0,0,8">
+                             <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="250"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <TextBlock Grid.Column="0" Text="Firefox Binary Path:" Style="{StaticResource SettingLabelStyle}"/>
+                            <TextBox Grid.Column="1" Text="{Binding SeleniumFirefoxBinaryLocation}" Style="{StaticResource MatchingTextBox}" Width="500" HorizontalAlignment="Left" Margin="0,8"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+        
+        <!-- Action Buttons Footer -->
+        <Border Grid.Row="1" 
+                Background="{StaticResource Modern.BackgroundSecondary}" 
+                BorderBrush="{StaticResource Modern.BorderSecondary}"
+                BorderThickness="1"
+                CornerRadius="12" 
+                Padding="16" 
+                Margin="0,16,0,0">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button x:Name="resetButton" Click="Reset" Style="{StaticResource ModernDangerButton}" Margin="0,0,12,0" Width="100">
+                    <StackPanel Orientation="Horizontal">
+                        <iconPacks:PackIconMaterial Kind="Refresh" Width="14" Height="14" Margin="0,0,8,0"/>
+                        <TextBlock Text="Reset" FontWeight="SemiBold"/>
+                    </StackPanel>
+                </Button>
+                
+                <Button x:Name="saveButton" Click="Save" Style="{StaticResource ModernPrimaryButton}" Width="120">
+                    <StackPanel Orientation="Horizontal">
+                        <iconPacks:PackIconMaterial Kind="ContentSave" Width="14" Height="14" Margin="0,0,8,0"/>
+                        <TextBlock Text="Save Changes" FontWeight="SemiBold"/>
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Page>
+

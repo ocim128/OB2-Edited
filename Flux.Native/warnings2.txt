@@ -1,0 +1,15 @@
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  RuriLib.Parallelization -> C:\Users\user\Documents\Repo\OB2-Edited\RuriLib.Parallelization\bin\Debug\net8.0\RuriLib.Parallelization.dll
+  RuriLib.Proxies -> C:\Users\user\Documents\Repo\OB2-Edited\RuriLib.Proxies\bin\Debug\net8.0\RuriLib.Proxies.dll
+  RuriLib.Http -> C:\Users\user\Documents\Repo\OB2-Edited\RuriLib.Http\bin\Debug\net8.0\RuriLib.Http.dll
+  RuriLib -> C:\Users\user\Documents\Repo\OB2-Edited\RuriLib\bin\Debug\net8.0\RuriLib.dll
+  Flux.Core -> C:\Users\user\Documents\Repo\OB2-Edited\Flux.Core\bin\Debug\net8.0\Flux.Core.dll
+  Flux.Shared -> C:\Users\user\Documents\Repo\OB2-Edited\Flux.Shared\bin\Debug\net8.0\Flux.Shared.dll
+  Flux.Native -> C:\Users\user\Documents\Repo\OB2-Edited\Flux.Native\bin\Debug\net8.0-windows\win-x64\Flux.Native.dll
+
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:01.54

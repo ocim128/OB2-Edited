@@ -1,0 +1,95 @@
+<UserControl x:Class="Flux.Native.Controls.ByteArraySettingViewer"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:Flux.Native.Controls"
+             xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
+             xmlns:mah="http://metro.mahapps.com/winfx/xaml/controls"
+             xmlns:converters="clr-namespace:Flux.Native.Converters"
+             mc:Ignorable="d" 
+             d:DesignHeight="30" d:DesignWidth="800">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+    </UserControl.Resources>
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="auto" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="auto" />
+        </Grid.ColumnDefinitions>
+
+        <Label 
+            Content="{Binding Name}"
+            ToolTip="{Binding Description}"
+            VerticalAlignment="Center"
+            Grid.Column="0" />
+
+        <TabControl x:Name="tabControl" Grid.Column="1">
+            <TabControl.ItemContainerStyle>
+                <Style TargetType="{x:Type TabItem}">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                </Style>
+            </TabControl.ItemContainerStyle>
+            <TabItem>
+                <ComboBox 
+                    IsEditable="True"
+                    Height="30"
+                    ItemsSource="{Binding Suggestions}"
+                    Text="{Binding VariableName, UpdateSourceTrigger=PropertyChanged}"
+                    Style="{StaticResource CleanComboBox}" />
+            </TabItem>
+            <TabItem>
+                <TextBox
+                    Background="#111"
+                    Height="30"
+                    Text="{Binding B64Value, UpdateSourceTrigger=PropertyChanged}" />
+            </TabItem>
+            <TabItem>
+                <TextBox
+                    Background="#111"
+                    Height="30"
+                    Text="{Binding HexValue, UpdateSourceTrigger=PropertyChanged}" />
+            </TabItem>
+        </TabControl>
+
+        <TabControl x:Name="buttonTabControl" Grid.Column="2">
+            <TabControl.ItemContainerStyle>
+                <Style TargetType="{x:Type TabItem}">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                </Style>
+            </TabControl.ItemContainerStyle>
+            <TabItem>
+                <!-- Variable -> Constant B64 -->
+                <Button Click="B64Mode"
+                        Style="{StaticResource ConsistentModeButton}"
+                        Background="#2563EB" 
+                        Foreground="White"
+                        ToolTip="Switch to constant mode">
+                    <TextBlock FontSize="9" Foreground="White">VAR</TextBlock>
+                </Button>
+            </TabItem>
+            <TabItem>
+                <!-- Constant B64 -> Constant Hex -->
+                <Button Click="HexMode"
+                        Style="{StaticResource ConsistentModeButton}"
+                        Background="#7C3AED" 
+                        Foreground="White"
+                        ToolTip="Switch to hex mode">
+                    <TextBlock FontSize="9" Foreground="White">B64</TextBlock>
+                </Button>
+            </TabItem>
+            <TabItem>
+                <!-- Constant Hex -> Variable -->
+                <Button Click="VariableMode"
+                        Style="{StaticResource ConsistentModeButton}"
+                        Background="#10B981" 
+                        Foreground="White"
+                        ToolTip="Switch to variable mode">
+                    <TextBlock FontSize="9" Foreground="White">HEX</TextBlock>
+                </Button>
+            </TabItem>
+        </TabControl>
+
+    </Grid>
+</UserControl>

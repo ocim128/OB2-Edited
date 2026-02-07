@@ -8,7 +8,7 @@ body:
     attributes:
       value: |
         Thanks for taking the time to fill out this feature request!
-        Please keep in mind that OpenBullet is a [free and open-source](https://github.com/openbullet/OpenBullet2) project, made up entirely and exclusively of **volunteers** who donate their free time to the project.
+        Please keep in mind that Flux is a [free and open-source](https://github.com/flux/Flux) project, made up entirely and exclusively of **volunteers** who donate their free time to the project.
   - type: checkboxes
     id: before-posting
     attributes:
@@ -17,11 +17,11 @@ body:
       options:
         - label: This is a **feature request**, not a question or a configuration issue; Please visit our forum first to troubleshoot with volunteers, before creating a report. The links can be found [here](https://discourse.openbullet.dev/).
           required: true
-        - label: This issue is **not** already reported on [GitHub](https://github.com/openbullet/OpenBullet2/issues?q=is%3Aissue+is%3Aopen+label%3Aenhancement) _(I've searched it)_.
+        - label: This issue is **not** already reported on [GitHub](https://github.com/flux/Flux/issues?q=is%3Aissue+is%3Aopen+label%3Aenhancement) _(I've searched it)_.
           required: true
-        - label: I'm using an up to date version of OpenBullet2. We generally do not support previous older versions. If possible, please update to the latest version before opening an issue.
+        - label: I'm using an up to date version of Flux. We generally do not support previous older versions. If possible, please update to the latest version before opening an issue.
           required: true
-        - label: I agree to follow OpenBullet's [Code of Conduct](https://docs.openbullet.dev/docs/community-standards).
+        - label: I agree to follow Flux's [Code of Conduct](https://docs.flux.dev/docs/community-standards).
           required: true
         - label: This report addresses only a single feature request; If you have multiple feature request, kindly create separate reports for each one.
           required: true

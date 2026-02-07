@@ -247,7 +247,7 @@ public static class PlaywrightRuntimeService
                $"\n" +
                $"Option 3: Use a custom browser executable\n" +
                $"  1. Download {browserType} browser manually\n" +
-               $"  2. In OpenBullet2 settings, go to RL Settings > Playwright\n" +
+               $"  2. In Flux settings, go to Settings > Playwright\n" +
                $"  3. Set the '{browserType} Binary Location' to your browser executable\n" +
                $"     Example paths:\n" +
                GetExampleBrowserPaths(browserType) +

@@ -1,7 +1,7 @@
 services:
-    openbullet2:
-        image: 'openbullet/openbullet2:latest'
-        container_name: openbullet2
+    flux:
+        image: 'flux/flux:latest'
+        container_name: flux
         restart: unless-stopped
         volumes:
         # Change UserData to the location of where you want UserData folder to be placed

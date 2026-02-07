@@ -41,11 +41,11 @@ RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Download and unpack the latest OpenBullet2.Web release
-RUN wget https://github.com/openbullet/openbullet2/releases/latest/download/OpenBullet2.Web.zip \
-    && unzip OpenBullet2.Web.zip \
-    && rm OpenBullet2.Web.zip
+# Download and unpack the latest Flux.Web release
+RUN wget https://github.com/flux/flux/releases/latest/download/Flux.Web.zip \
+    && unzip Flux.Web.zip \
+    && rm Flux.Web.zip
 
 EXPOSE 5000
 
-CMD ["dotnet", "./OpenBullet2.Web.dll", "--urls=http://*:5000"]
+CMD ["dotnet", "./Flux.Web.dll", "--urls=http://*:5000"]

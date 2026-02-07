@@ -8,7 +8,7 @@ body:
     attributes:
       value: |
         Thanks for taking the time to fill out this bug report!
-        Please keep in mind that OpenBullet is a [free and open-source](https://github.com/openbullet/OpenBullet2) project, made up entirely and exclusively of **volunteers** who donate their free time to the project.
+        Please keep in mind that Flux is a [free and open-source](https://github.com/flux/Flux) project, made up entirely and exclusively of **volunteers** who donate their free time to the project.
   - type: checkboxes
     id: before-posting
     attributes:
@@ -17,11 +17,11 @@ body:
       options:
         - label: This is a **bug**, not a question or a configuration issue; Please visit our forum first to troubleshoot with volunteers, before creating a report. The links can be found [here](https://discourse.openbullet.dev/).
           required: true
-        - label: This issue is **not** already reported on [GitHub](https://github.com/openbullet/OpenBullet2/issues?q=is%3Aissue+is%3Aopen+label%3Abug) *(I've searched it)*.
+        - label: This issue is **not** already reported on [GitHub](https://github.com/flux/Flux/issues?q=is%3Aissue+is%3Aopen+label%3Abug) *(I've searched it)*.
           required: true
-        - label: I'm using an up to date version of OpenBullet2. We generally do not support previous older versions. If possible, please update to the latest version before opening an issue.
+        - label: I'm using an up to date version of Flux. We generally do not support previous older versions. If possible, please update to the latest version before opening an issue.
           required: true
-        - label: I agree to follow OpenBullet's [Code of Conduct](https://docs.openbullet.dev/docs/community-standards).
+        - label: I agree to follow Flux's [Code of Conduct](https://docs.flux.dev/docs/community-standards).
           required: true
         - label: This report addresses only a single issue; If you encounter multiple issues, kindly create separate reports for each one.
           required: true
@@ -45,7 +45,7 @@ body:
       label: Description of the bug
       description: Please provide a detailed description on the bug you encountered, in a readable and comprehensible way.
       placeholder: |
-        After upgrading to version x.y.z of OpenBullet 2, my wordlists aren't being displayed anymore. After testing with both the admin and a guest user, none of them could see any wordlists. I have tried downloading OpenBullet 2 to a clean folder with no `UserData` and I can reliably reproduce the issue. By checking the SQLite database I can see that there are rows pointing to existing files, but they are not being correctly retrieved by the back-end.
+        After upgrading to version x.y.z of Flux 2, my wordlists aren't being displayed anymore. After testing with both the admin and a guest user, none of them could see any wordlists. I have tried downloading Flux 2 to a clean folder with no `UserData` and I can reliably reproduce the issue. By checking the SQLite database I can see that there are rows pointing to existing files, but they are not being correctly retrieved by the back-end.
     validations:
       required: true
   - type: textarea
@@ -54,7 +54,7 @@ body:
       label: Reproduction steps
       description: Reproduction steps should be complete and self-contained. Anyone can reproduce this issue by following these steps. Furthermore, the steps should be clear and easy to follow.
       placeholder: |
-        1. Start OpenBullet 2 web client
+        1. Start Flux 2 web client
         2. Log in as the admin user
         3. Navigate to the Wordlists page
         4. Add a new wordlist
@@ -84,7 +84,7 @@ body:
     id: client-version
     attributes:
       label: Version of the client
-      description: What version of OpenBullet2 are you using?
+      description: What version of Flux are you using?
       placeholder: |
         Version: [e.g. 0.3.x] 
     validations:
@@ -93,7 +93,7 @@ body:
     id: client-type
     attributes:
       label: Type of client
-      description: Which type of OpenBullet2 client are you using?
+      description: Which type of Flux client are you using?
       options:
         - Web client
         - Native client
@@ -129,9 +129,9 @@ body:
           - **DO NOT** forget to censor out personal information such as public IP addresses.
         4. Please do not include logs as screenshots, with the only exception being client logs in browsers.
   - type: textarea
-    id: openbullet-logs
+    id: flux-logs
     attributes:
-      label: OpenBullet2 logs
+      label: Flux logs
       description: Please copy and paste any relevant log output. The web client log files can be found in the `UserData/Logs` folder in a .txt format. The native client has a crash.log file in the main folder only when a crash happens.
       render: shell
   - type: textarea

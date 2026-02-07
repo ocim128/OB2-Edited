@@ -5,7 +5,7 @@ using System.Collections.Generic;
 namespace RuriLib.Models.Debugger
 {
     /// <summary>
-    /// Options for the OpenBullet 2 config debugger.
+    /// Options for the Flux config debugger.
     /// </summary>
     public class DebuggerOptions
     {

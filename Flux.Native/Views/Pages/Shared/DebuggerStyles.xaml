@@ -12,7 +12,7 @@
 
     <!-- Square CheckBox Style -->
     <Style x:Key="SquareCheckBox" TargetType="CheckBox">
-        <Setter Property="Foreground" Value="#E2E8F0" />
+        <Setter Property="Foreground" Value="{DynamicResource Modern.ForegroundMain}" />
         <Setter Property="FontFamily" Value="Segoe UI" />
         <Setter Property="FontSize" Value="12" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
@@ -23,8 +23,8 @@
                         <Border x:Name="CheckBoxBorder"
                                 Width="16"
                                 Height="16"
-                                Background="#2D3748"
-                                BorderBrush="#4A5568"
+                                Background="{DynamicResource Modern.BackgroundInput}"
+                                BorderBrush="{DynamicResource Modern.BorderInput}"
                                 BorderThickness="1"
                                 CornerRadius="2"
                                 Margin="0,0,8,0">
@@ -32,7 +32,7 @@
                                   Width="10"
                                   Height="8"
                                   Stretch="Fill"
-                                  Fill="#10B981"
+                                  Fill="{DynamicResource Modern.Success}"
                                   Data="M 0,4 L 3,7 L 8,0"
                                   Visibility="Collapsed" />
                         </Border>
@@ -41,8 +41,8 @@
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsChecked" Value="True">
                             <Setter TargetName="CheckMark" Property="Visibility" Value="Visible" />
-                            <Setter TargetName="CheckBoxBorder" Property="Background" Value="#064E3B" />
-                            <Setter TargetName="CheckBoxBorder" Property="BorderBrush" Value="#10B981" />
+                            <Setter TargetName="CheckBoxBorder" Property="Background" Value="{DynamicResource Modern.BackgroundHover}" />
+                            <Setter TargetName="CheckBoxBorder" Property="BorderBrush" Value="{DynamicResource Modern.Success}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>

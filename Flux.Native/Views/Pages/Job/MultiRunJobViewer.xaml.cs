@@ -290,30 +290,44 @@ public partial class MultiRunJobViewer : Page
 
         private void SetActiveTab(string activeTab)
         {
+            var inactiveBackground = GetThemeBrush("Modern.BackgroundElevated", Color.FromRgb(0xE2, 0xE8, 0xF0));
+            var inactiveForeground = GetThemeBrush("Modern.ForegroundSecondary", Color.FromRgb(0x33, 0x41, 0x55));
+            var accentForeground = GetThemeBrush("Modern.TextOnAccent", Colors.White);
+
             // Reset all tabs to inactive state
-            HitsTabButton.Background = new SolidColorBrush(Color.FromRgb(0x40, 0x40, 0x40));
-            HitsTabButton.Foreground = new SolidColorBrush(Color.FromRgb(0xCC, 0xCC, 0xCC));
-            CustomTabButton.Background = new SolidColorBrush(Color.FromRgb(0x40, 0x40, 0x40));
-            CustomTabButton.Foreground = new SolidColorBrush(Color.FromRgb(0xCC, 0xCC, 0xCC));
-            ToCheckTabButton.Background = new SolidColorBrush(Color.FromRgb(0x40, 0x40, 0x40));
-            ToCheckTabButton.Foreground = new SolidColorBrush(Color.FromRgb(0xCC, 0xCC, 0xCC));
+            HitsTabButton.Background = inactiveBackground;
+            HitsTabButton.Foreground = inactiveForeground;
+            CustomTabButton.Background = inactiveBackground;
+            CustomTabButton.Foreground = inactiveForeground;
+            ToCheckTabButton.Background = inactiveBackground;
+            ToCheckTabButton.Foreground = inactiveForeground;
 
             // Set the active tab
             switch (activeTab)
             {
                 case "Hits":
-                    HitsTabButton.Background = new SolidColorBrush(Color.FromRgb(0x28, 0xA7, 0x45));
-                    HitsTabButton.Foreground = Brushes.White;
+                    HitsTabButton.Background = GetThemeBrush("Modern.Success", Color.FromRgb(0x10, 0xB9, 0x81));
+                    HitsTabButton.Foreground = accentForeground;
                     break;
                 case "Custom":
-                    CustomTabButton.Background = new SolidColorBrush(Color.FromRgb(0x6F, 0x42, 0xC1));
-                    CustomTabButton.Foreground = Brushes.White;
+                    CustomTabButton.Background = GetThemeBrush("Modern.ThemeAccent", Color.FromRgb(0x8B, 0x5C, 0xF6));
+                    CustomTabButton.Foreground = accentForeground;
                     break;
                 case "ToCheck":
-                    ToCheckTabButton.Background = new SolidColorBrush(Color.FromRgb(0xFF, 0xC1, 0x07));
-                    ToCheckTabButton.Foreground = Brushes.White;
+                    ToCheckTabButton.Background = GetThemeBrush("Modern.Warning", Color.FromRgb(0xF5, 0x9E, 0x0B));
+                    ToCheckTabButton.Foreground = accentForeground;
                     break;
             }
+        }
+
+        private static SolidColorBrush GetThemeBrush(string key, Color fallback)
+        {
+            if (Application.Current?.Resources[key] is SolidColorBrush brush)
+            {
+                return brush;
+            }
+
+            return new SolidColorBrush(fallback);
         }
 
         private static void SelectListViewItemUnderMouse(ListView listView, MouseButtonEventArgs e)

@@ -16,7 +16,7 @@
     </Page.Resources>
 
     <!-- Modern Dark Container -->
-    <Border Background="#FF1E1E1E" CornerRadius="12" Padding="20">
+    <Border Background="{DynamicResource Modern.BackgroundMain}" CornerRadius="12" Padding="20">
         <Grid MinHeight="520" Width="720" MaxHeight="700">
             <Grid.RowDefinitions>
                 <RowDefinition Height="auto" />
@@ -31,7 +31,7 @@
                        Text="Add Block" 
                        FontSize="24" 
                        FontWeight="Bold" 
-                       Foreground="#FFFFFF"
+                       Foreground="{DynamicResource Modern.ForegroundMain}"
                        HorizontalAlignment="Center"
                        Margin="0,0,0,20"/>
 
@@ -93,9 +93,9 @@
 
                 <!-- Modern Search Box -->
                 <Border Grid.Column="1" 
-                        Background="#FF2A2A2A" 
+                        Background="{DynamicResource Modern.BackgroundSecondary}" 
                         CornerRadius="8" 
-                        BorderBrush="#FF404040" 
+                        BorderBrush="{DynamicResource Modern.BorderMain}" 
                         BorderThickness="1">
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -114,7 +114,7 @@
                                  TextChanged="FilterTextChanged"
                                  Background="Transparent"
                                  BorderThickness="0"
-                                 Foreground="#FFFFFF"
+                                 Foreground="{DynamicResource Modern.ForegroundMain}"
                                  FontSize="14"
                                  Padding="0,12"
                                  Margin="0,0,12,0"
@@ -172,7 +172,7 @@
 
             <!-- Blocks Container with Modern Styling -->
             <Border Grid.Row="2" 
-                    Background="#FF252525" 
+                    Background="{DynamicResource Modern.BackgroundSecondary}" 
                     CornerRadius="8" 
                     Padding="20"
                     Margin="0,20,0,0">
@@ -317,19 +317,19 @@
             <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,20,0,10">
                 <ContentControl Content="{StaticResource Icon.History}" 
                                Width="20" Height="20" 
-                               Foreground="#FF1E90FF" 
+                               Foreground="{DynamicResource Modern.ThemeMain}" 
                                VerticalAlignment="Center"/>
                 <TextBlock Text="Recently Used Blocks" 
                            FontSize="16" 
                            FontWeight="SemiBold" 
-                           Foreground="#FFFFFF"
+                           Foreground="{DynamicResource Modern.ForegroundMain}"
                            Margin="10,0,0,0"
                            VerticalAlignment="Center"/>
             </StackPanel>
 
             <!-- Recently Used Blocks Container -->
             <Border Grid.Row="4" 
-                    Background="#FF252525" 
+                    Background="{DynamicResource Modern.BackgroundSecondary}" 
                     CornerRadius="8" 
                     Padding="15"
                     MaxHeight="120">

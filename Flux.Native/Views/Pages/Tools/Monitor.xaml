@@ -23,7 +23,7 @@
                       SizeChanged="ToolsScrollViewer_SizeChanged">
             <DockPanel LastChildFill="True">
                 <Border Style="{StaticResource ModernCardLite}"
-                        Background="#B0282828"
+                        Background="{DynamicResource Modern.BackgroundSecondary}"
                         Margin="0,0,0,20"
                         Padding="20"
                         DockPanel.Dock="Top">
@@ -33,7 +33,7 @@
                                    Margin="0,0,0,4"/>
                         <TextBlock Text="Search, filter, and jump straight to your favorite automation helpers."
                                    Style="{StaticResource CaptionTextStyle}"
-                                   Foreground="#94A3B8"/>
+                                   Foreground="{DynamicResource Modern.ForegroundMuted}"/>
 
                         <Grid Margin="0,20,0,0">
                             <Grid.ColumnDefinitions>
@@ -100,14 +100,14 @@
                         <TextBlock x:Name="ToolFilterStatusTextBlock"
                                    Margin="0,10,0,0"
                                    Style="{StaticResource CaptionTextStyle}"
-                                   Foreground="#94A3B8"
+                                   Foreground="{DynamicResource Modern.ForegroundMuted}"
                                    Visibility="Collapsed"/>
                     </StackPanel>
                 </Border>
 
                 <Border x:Name="AutomationBannerCard"
                         Style="{StaticResource ModernCardLite}"
-                        Background="#C0353535"
+                        Background="{DynamicResource Modern.BackgroundTertiary}"
                         Margin="0,0,0,20"
                         Padding="16"
                         DockPanel.Dock="Top">
@@ -128,7 +128,7 @@
                                        Margin="0,0,0,2"/>
                             <TextBlock Text="Quick automation suite for power users"
                                        Style="{StaticResource CaptionTextStyle}"
-                                       Foreground="#94A3B8"/>
+                                       Foreground="{DynamicResource Modern.ForegroundMuted}"/>
                         </StackPanel>
                     </Grid>
                 </Border>
@@ -139,7 +139,7 @@
                            Orientation="Horizontal">
                     <Border x:Name="OtpToolCard"
                             Style="{StaticResource ModernCardLite}"
-                            Background="#B0282828"
+                            Background="{DynamicResource Modern.BackgroundSecondary}"
                             Padding="20"
                             Margin="0,0,16,16"
                             MinWidth="300"
@@ -153,14 +153,14 @@
                                                            Height="20" 
                                                            VerticalAlignment="Center"
                                                            Margin="0,0,8,0"
-                                                           Foreground="#34D399"/>
+                                                           Foreground="{DynamicResource Modern.Success}"/>
                                 <TextBlock Text="OTP Toolkit"
                                            Style="{StaticResource H3TextStyle}"
                                            VerticalAlignment="Center"/>
                             </StackPanel>
                             <TextBlock Text="Drop in a Base32 secret and stay synced with rolling 30-second codes."
                                        Style="{StaticResource CaptionTextStyle}"
-                                       Foreground="#94A3B8"
+                                       Foreground="{DynamicResource Modern.ForegroundMuted}"
                                        TextWrapping="Wrap"
                                        Margin="0,0,0,16"/>
 
@@ -201,20 +201,20 @@
                             </Grid>
 
                             <Border x:Name="SecretErrorBorder"
-                                    Background="#7F1D1D"
+                                    Background="{DynamicResource Modern.Error}"
                                     CornerRadius="6"
                                     Padding="10"
                                     Margin="0,0,0,10"
                                     Visibility="{Binding HasError, Converter={StaticResource BoolToVis}}">
                                 <TextBlock x:Name="SecretErrorTextBlock"
                                            Style="{StaticResource CaptionTextStyle}"
-                                           Foreground="#FCA5A5"
+                                           Foreground="{DynamicResource Modern.TextOnAccent}"
                                            Text="{Binding ErrorMessage}"
                                            TextWrapping="Wrap"/>
                             </Border>
 
-                            <Border Background="#1A1A1A"
-                                    BorderBrush="#333333"
+                            <Border Background="{DynamicResource Modern.BackgroundTertiary}"
+                                    BorderBrush="{DynamicResource Modern.BorderSecondary}"
                                     BorderThickness="1"
                                     CornerRadius="8"
                                     Padding="16">
@@ -268,7 +268,7 @@
 
                     <Border x:Name="BookmarkletToolCard"
                             Style="{StaticResource ModernCardLite}"
-                            Background="#B0282828"
+                            Background="{DynamicResource Modern.BackgroundSecondary}"
                             Padding="20"
                             Margin="0,0,16,16"
                             MinWidth="300"
@@ -282,14 +282,14 @@
                                                            Height="20" 
                                                            VerticalAlignment="Center"
                                                            Margin="0,0,8,0"
-                                                           Foreground="#F59E0B"/>
+                                                           Foreground="{DynamicResource Modern.Warning}"/>
                                 <TextBlock Text="Bookmarklet Parser"
                                            Style="{StaticResource H3TextStyle}"
                                            VerticalAlignment="Center"/>
                             </StackPanel>
                             <TextBlock Text="Paste bookmarklet dumps; we strip comments and surface the useful payload."
                                        Style="{StaticResource CaptionTextStyle}"
-                                       Foreground="#94A3B8"
+                                       Foreground="{DynamicResource Modern.ForegroundMuted}"
                                        TextWrapping="Wrap"
                                        Margin="0,0,0,16"/>
 
@@ -333,14 +333,14 @@
                             </Grid>
 
                             <Border x:Name="BookmarkletStatusBorder"
-                                    Background="#065F46"
+                                    Background="{DynamicResource Modern.Success}"
                                     CornerRadius="6"
                                     Padding="10"
                                     Margin="0,10,0,10"
                                     Visibility="Collapsed">
                                 <TextBlock x:Name="BookmarkletStatusTextBlock"
                                            Style="{StaticResource CaptionTextStyle}"
-                                           Foreground="#A7F3D0"
+                                           Foreground="{DynamicResource Modern.TextOnAccent}"
                                            TextWrapping="Wrap"/>
                             </Border>
 
@@ -358,7 +358,7 @@
 
                     <Border x:Name="TextCleanerToolCard"
                             Style="{StaticResource ModernCardLite}"
-                            Background="#B0282828"
+                            Background="{DynamicResource Modern.BackgroundSecondary}"
                             Padding="20"
                             Margin="0,0,16,16"
                             MinWidth="300"
@@ -372,14 +372,14 @@
                                                            Height="20" 
                                                            VerticalAlignment="Center"
                                                            Margin="0,0,8,0"
-                                                           Foreground="#A78BFA"/>
+                                                           Foreground="{DynamicResource Modern.ThemeAccent}"/>
                                 <TextBlock Text="Text Cleaner"
                                            Style="{StaticResource H3TextStyle}"
                                            VerticalAlignment="Center"/>
                             </StackPanel>
                             <TextBlock Text="Normalize chaotic dumps, compress whitespace, and rank by 'T' markers instantly."
                                        Style="{StaticResource CaptionTextStyle}"
-                                       Foreground="#94A3B8"
+                                       Foreground="{DynamicResource Modern.ForegroundMuted}"
                                        TextWrapping="Wrap"
                                        Margin="0,0,0,16"/>
 
@@ -423,14 +423,14 @@
                             </Grid>
 
                             <Border x:Name="TextCleanerStatusBorder"
-                                    Background="#065F46"
+                                    Background="{DynamicResource Modern.Success}"
                                     CornerRadius="6"
                                     Padding="10"
                                     Margin="0,10,0,10"
                                     Visibility="Collapsed">
                                 <TextBlock x:Name="TextCleanerStatusTextBlock"
                                            Style="{StaticResource CaptionTextStyle}"
-                                           Foreground="#A7F3D0"
+                                           Foreground="{DynamicResource Modern.TextOnAccent}"
                                            TextWrapping="Wrap"/>
                             </Border>
 
@@ -447,7 +447,7 @@
                     </Border>
                     <Border x:Name="FirefoxToolCard"
                             Style="{StaticResource ModernCardLite}"
-                            Background="#B0282828"
+                            Background="{DynamicResource Modern.BackgroundSecondary}"
                             Padding="20"
                             Margin="0,0,16,16"
                             MinWidth="300"
@@ -461,14 +461,14 @@
                                                            Height="20" 
                                                            VerticalAlignment="Center"
                                                            Margin="0,0,8,0"
-                                                           Foreground="#FB923C"/>
+                                                           Foreground="{DynamicResource Modern.Warning}"/>
                                 <TextBlock Text="Firefox Switcher"
                                            Style="{StaticResource H3TextStyle}"
                                            VerticalAlignment="Center"/>
                             </StackPanel>
                             <TextBlock Text="Quickly switch between Firefox profiles or launch new instances with different configurations."
                                        Style="{StaticResource CaptionTextStyle}"
-                                       Foreground="#94A3B8"
+                                       Foreground="{DynamicResource Modern.ForegroundMuted}"
                                        TextWrapping="Wrap"
                                        Margin="0,0,0,16"/>
 
@@ -494,8 +494,8 @@
                                         AutomationProperties.Name="Load zip archive"/>
                             </Grid>
 
-                            <Border Background="#1A1A1A"
-                                    BorderBrush="#333333"
+                            <Border Background="{DynamicResource Modern.BackgroundTertiary}"
+                                    BorderBrush="{DynamicResource Modern.BorderSecondary}"
                                     BorderThickness="1"
                                     CornerRadius="6"
                                     Padding="12"
@@ -503,35 +503,35 @@
                                 <StackPanel>
                                     <TextBlock Text="Selected Archive"
                                                Style="{StaticResource CaptionTextStyle}"
-                                               Foreground="#94A3B8"
+                                               Foreground="{DynamicResource Modern.ForegroundMuted}"
                                                Margin="0,0,0,4"/>
                                     <TextBlock x:Name="ZipOptionFileTextBlock"
                                                Text="No file loaded"
                                                Style="{StaticResource BodyTextStyle}"
-                                               Foreground="#E2E8F0"/>
+                                               Foreground="{DynamicResource Modern.ForegroundMain}"/>
                                 </StackPanel>
                             </Border>
 
                             <Border x:Name="ZipOptionStatusBorder"
-                                    Background="#1E3A8A"
+                                    Background="{DynamicResource Modern.ThemeMain}"
                                     CornerRadius="6"
                                     Padding="10"
                                     Margin="0,0,0,10"
                                     Visibility="Collapsed">
                                 <TextBlock x:Name="ZipOptionStatusTextBlock"
                                            Style="{StaticResource CaptionTextStyle}"
-                                           Foreground="#BFDBFE"
+                                           Foreground="{DynamicResource Modern.TextOnAccent}"
                                            TextWrapping="Wrap"/>
                             </Border>
 
-                            <Border Background="#1A1A1A"
-                                    BorderBrush="#333333"
+                            <Border Background="{DynamicResource Modern.BackgroundTertiary}"
+                                    BorderBrush="{DynamicResource Modern.BorderSecondary}"
                                     BorderThickness="1"
                                     CornerRadius="8"
                                     Padding="8"
                                     MinHeight="160">
                                 <ListBox x:Name="ZipOptionListBox"
-                                         Foreground="#F5F5F5"
+                                         Foreground="{DynamicResource Modern.ForegroundMain}"
                                          BorderThickness="0"
                                          Background="Transparent"
                                          HorizontalContentAlignment="Stretch">
@@ -544,15 +544,15 @@
                                                     <ColumnDefinition Width="Auto"/>
                                                 </Grid.ColumnDefinitions>
                                                 <Border Grid.Column="0"
-                                                        Background="#2A2A2A"
-                                                        BorderBrush="#404040"
+                                                        Background="{DynamicResource Modern.BackgroundElevated}"
+                                                        BorderBrush="{DynamicResource Modern.BorderMain}"
                                                         BorderThickness="1"
                                                         CornerRadius="6"
                                                         Padding="12,8"
                                                         Margin="0,0,8,0">
                                                     <TextBlock Text="{Binding Name}"
                                                                Style="{StaticResource BodyTextStyle}"
-                                                               Foreground="#E2E8F0"
+                                                               Foreground="{DynamicResource Modern.ForegroundMain}"
                                                                VerticalAlignment="Center"/>
                                                 </Border>
                                                 <Button Grid.Column="1"
@@ -586,7 +586,7 @@
 
                     <Border x:Name="LineReducerToolCard"
                             Style="{StaticResource ModernCardLite}"
-                            Background="#B0282828"
+                            Background="{DynamicResource Modern.BackgroundSecondary}"
                             Padding="20"
                             Margin="0,0,16,16"
                             MinWidth="300"
@@ -600,14 +600,14 @@
                                                            Height="20"
                                                            VerticalAlignment="Center"
                                                            Margin="0,0,8,0"
-                                                           Foreground="#34D399"/>
+                                                           Foreground="{DynamicResource Modern.Success}"/>
                                 <TextBlock Text="Line Reducer"
                                            Style="{StaticResource H3TextStyle}"
                                            VerticalAlignment="Center"/>
                             </StackPanel>
                             <TextBlock Text="Remove every line from a source file that appears in one or more comparison files using streaming-safe fingerprints."
                                        Style="{StaticResource CaptionTextStyle}"
-                                       Foreground="#94A3B8"
+                                       Foreground="{DynamicResource Modern.ForegroundMuted}"
                                        TextWrapping="Wrap"
                                        Margin="0,0,0,16"/>
 
@@ -663,8 +663,8 @@
                                             Click="ClearLineReducerCompareFiles"
                                             AutomationProperties.Name="Clear comparison files"/>
                                 </Grid>
-                                <Border Background="#1A1A1A"
-                                        BorderBrush="#333333"
+                                <Border Background="{DynamicResource Modern.BackgroundTertiary}"
+                                        BorderBrush="{DynamicResource Modern.BorderSecondary}"
                                         BorderThickness="1"
                                         CornerRadius="8"
                                         Padding="8"
@@ -673,7 +673,7 @@
                                     <ListBox x:Name="LineReducerCompareFilesListBox"
                                              BorderThickness="0"
                                              Background="Transparent"
-                                             Foreground="#F5F5F5"
+                                             Foreground="{DynamicResource Modern.ForegroundMain}"
                                              ScrollViewer.VerticalScrollBarVisibility="Auto"
                                              HorizontalContentAlignment="Stretch">
                                         <ListBox.ItemTemplate>
@@ -686,11 +686,11 @@
                                                     <StackPanel>
                                                         <TextBlock Text="{Binding DisplayName}"
                                                                    Style="{StaticResource BodyTextStyle}"
-                                                                   Foreground="#E2E8F0"
+                                                                   Foreground="{DynamicResource Modern.ForegroundMain}"
                                                                    TextTrimming="CharacterEllipsis"/>
                                                         <TextBlock Text="{Binding Details}"
                                                                    Style="{StaticResource CaptionTextStyle}"
-                                                                   Foreground="#94A3B8"
+                                                                   Foreground="{DynamicResource Modern.ForegroundMuted}"
                                                                    TextTrimming="CharacterEllipsis"/>
                                                     </StackPanel>
                                                     <Button Grid.Column="1"
@@ -708,7 +708,7 @@
                                 </Border>
                                 <TextBlock x:Name="LineReducerCompareSummaryTextBlock"
                                            Style="{StaticResource CaptionTextStyle}"
-                                           Foreground="#94A3B8"
+                                           Foreground="{DynamicResource Modern.ForegroundMuted}"
                                            Text="No comparison files selected."
                                            TextWrapping="Wrap"/>
                             </StackPanel>
@@ -749,7 +749,7 @@
                                 </StackPanel>
                                 <TextBlock Text="Comparison is performed via 128-bit fingerprints, keeping memory usage predictable even for huge files."
                                            Style="{StaticResource CaptionTextStyle}"
-                                           Foreground="#94A3B8"
+                                           Foreground="{DynamicResource Modern.ForegroundMuted}"
                                            TextWrapping="Wrap"
                                            Margin="0,6,0,0"/>
                             </StackPanel>
@@ -785,31 +785,31 @@
                                          Visibility="Collapsed"/>
                             <TextBlock x:Name="LineReducerProgressTextBlock"
                                        Style="{StaticResource CaptionTextStyle}"
-                                       Foreground="#94A3B8"
+                                       Foreground="{DynamicResource Modern.ForegroundMuted}"
                                        Text="Idle."
                                        TextWrapping="Wrap"
                                        Margin="0,0,0,10"/>
 
                             <Border x:Name="LineReducerStatusBorder"
-                                    Background="#0F172A"
+                                    Background="{DynamicResource Modern.BackgroundElevated}"
                                     CornerRadius="6"
                                     Padding="10"
                                     Margin="0,0,0,10"
                                     Visibility="Collapsed">
                                 <TextBlock x:Name="LineReducerStatusTextBlock"
                                            Style="{StaticResource CaptionTextStyle}"
-                                           Foreground="#E2E8F0"
+                                           Foreground="{DynamicResource Modern.ForegroundMain}"
                                            TextWrapping="Wrap"/>
                             </Border>
 
-                            <Border Background="#1A1A1A"
-                                    BorderBrush="#333333"
+                            <Border Background="{DynamicResource Modern.BackgroundTertiary}"
+                                    BorderBrush="{DynamicResource Modern.BorderSecondary}"
                                     BorderThickness="1"
                                     CornerRadius="8"
                                     Padding="12">
                                 <TextBlock x:Name="LineReducerStatsTextBlock"
                                            Style="{StaticResource BodyTextStyle}"
-                                           Foreground="#E2E8F0"
+                                           Foreground="{DynamicResource Modern.ForegroundMain}"
                                            TextWrapping="Wrap"
                                            Text="Awaiting first run."/>
                             </Border>
@@ -818,7 +818,7 @@
 
                     <Border x:Name="BenchmarkToolCard"
                             Style="{StaticResource ModernCardLite}"
-                            Background="#B0282828"
+                            Background="{DynamicResource Modern.BackgroundSecondary}"
                             Padding="20"
                             Margin="0,0,16,16"
                             MinWidth="300"
@@ -832,14 +832,14 @@
                                                            Height="20" 
                                                            VerticalAlignment="Center"
                                                            Margin="0,0,8,0"
-                                                           Foreground="#EC4899"/>
+                                                           Foreground="{DynamicResource Modern.ThemeAccent}"/>
                                 <TextBlock Text="Performance Benchmark"
                                            Style="{StaticResource H3TextStyle}"
                                            VerticalAlignment="Center"/>
                             </StackPanel>
                             <TextBlock Text="Test application performance and monitor system resources in real-time."
                                        Style="{StaticResource CaptionTextStyle}"
-                                       Foreground="#94A3B8"
+                                       Foreground="{DynamicResource Modern.ForegroundMuted}"
                                        TextWrapping="Wrap"
                                        Margin="0,0,0,16"/>
 
@@ -862,13 +862,13 @@
                                            Grid.Row="0"
                                            Grid.Column="1"
                                            Style="{StaticResource CaptionTextStyle}"
-                                           Foreground="#60A5FA"
+                                           Foreground="{DynamicResource Modern.ThemeMain}"
                                            HorizontalAlignment="Right"/>
                                 <TextBlock x:Name="MemoryUsageValue"
                                            Grid.Row="0"
                                            Grid.Column="1"
                                            Style="{StaticResource BodyTextStyle}"
-                                           Foreground="#E2E8F0"
+                                           Foreground="{DynamicResource Modern.ForegroundMain}"
                                            HorizontalAlignment="Right"
                                            Margin="0,0,0,4"/>
                                 
@@ -880,13 +880,13 @@
                                            Grid.Row="1"
                                            Grid.Column="1"
                                            Style="{StaticResource CaptionTextStyle}"
-                                           Foreground="#34D399"
+                                           Foreground="{DynamicResource Modern.Success}"
                                            HorizontalAlignment="Right"/>
                                 <TextBlock x:Name="CpuUsageValue"
                                            Grid.Row="1"
                                            Grid.Column="1"
                                            Style="{StaticResource BodyTextStyle}"
-                                           Foreground="#E2E8F0"
+                                           Foreground="{DynamicResource Modern.ForegroundMain}"
                                            HorizontalAlignment="Right"
                                            Margin="0,0,0,4"/>
                                 
@@ -898,13 +898,13 @@
                                            Grid.Row="2"
                                            Grid.Column="1"
                                            Style="{StaticResource CaptionTextStyle}"
-                                           Foreground="#34D399"
+                                           Foreground="{DynamicResource Modern.Success}"
                                            HorizontalAlignment="Right"/>
                                 <TextBlock x:Name="SystemStatusValue"
                                            Grid.Row="2"
                                            Grid.Column="1"
                                            Style="{StaticResource BodyTextStyle}"
-                                           Foreground="#E2E8F0"
+                                           Foreground="{DynamicResource Modern.ForegroundMain}"
                                            HorizontalAlignment="Right"
                                            Margin="0,0,0,4"/>
                             </Grid>
@@ -932,19 +932,19 @@
                             </Grid>
 
                             <Border x:Name="BenchmarkStatusBorder"
-                                    Background="#065F46"
+                                    Background="{DynamicResource Modern.Success}"
                                     CornerRadius="6"
                                     Padding="10"
                                     Margin="0,0,0,10"
                                     Visibility="Collapsed">
                                 <TextBlock x:Name="BenchmarkStatusTextBlock"
                                            Style="{StaticResource CaptionTextStyle}"
-                                           Foreground="#A7F3D0"
+                                           Foreground="{DynamicResource Modern.TextOnAccent}"
                                            TextWrapping="Wrap"/>
                             </Border>
 
-                            <Border Background="#1A1A1A"
-                                    BorderBrush="#333333"
+                            <Border Background="{DynamicResource Modern.BackgroundTertiary}"
+                                    BorderBrush="{DynamicResource Modern.BorderSecondary}"
                                     BorderThickness="1"
                                     CornerRadius="8"
                                     Padding="12"
@@ -964,7 +964,7 @@
                     </Border>
                     <TextBlock x:Name="NoToolMatchesTextBlock"
                                Style="{StaticResource CaptionTextStyle}"
-                               Foreground="#F87171"
+                               Foreground="{DynamicResource Modern.Error}"
                                TextWrapping="Wrap"
                                Margin="0,20,0,0"
                                Visibility="Collapsed"
@@ -974,5 +974,6 @@
         </ScrollViewer>
     </Grid>
 </Page>
+
 
 

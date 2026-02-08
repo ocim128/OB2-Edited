@@ -4,42 +4,43 @@
              xmlns:local="clr-namespace:Flux.Native"
              xmlns:mah="http://metro.mahapps.com/winfx/xaml/controls"
              xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
-             xmlns:converters="clr-namespace:Flux.Native.Converters">
+             xmlns:converters="clr-namespace:Flux.Native.Converters"
+             xmlns:po="http://schemas.microsoft.com/winfx/2006/xaml/presentation/options">
     <Application.Resources>
         <ResourceDictionary>
             <!-- FLUENT DESIGN SYSTEM COLORS - Performance Optimized -->
-            <SolidColorBrush x:Key="ThemeMain" Color="#0078D4" />
-            <SolidColorBrush x:Key="BackgroundMain" Color="#0C0C0C" />
-            <SolidColorBrush x:Key="BackgroundSecondary" Color="#1A1A1A" />
-            <SolidColorBrush x:Key="BackgroundInput" Color="#202020" />
-            <SolidColorBrush x:Key="ForegroundMain" Color="#FFFFFF" />
-            <SolidColorBrush x:Key="ForegroundInput" Color="#FFFFFF" />
-            <SolidColorBrush x:Key="ForegroundGood" Color="#00CC6A"/>
-            <SolidColorBrush x:Key="ForegroundBad" Color="#FF4444"/>
-            <SolidColorBrush x:Key="ForegroundCustom" Color="#FF8C00"/>
-            <SolidColorBrush x:Key="ForegroundRetry" Color="#FFFF00"/>
-            <SolidColorBrush x:Key="ForegroundBanned" Color="#8B5CF6"/>
-            <SolidColorBrush x:Key="ForegroundToCheck" Color="#40E0D0"/>
-            <SolidColorBrush x:Key="ForegroundMenuSelected" Color="#0078D4"/>
-            <SolidColorBrush x:Key="Headers" Color="#FFFFFF" />
+            <SolidColorBrush x:Key="ThemeMain" Color="#2563EB" po:Freeze="False" />
+            <SolidColorBrush x:Key="BackgroundMain" Color="#F8FAFC" po:Freeze="False" />
+            <SolidColorBrush x:Key="BackgroundSecondary" Color="#EEF2F7" po:Freeze="False" />
+            <SolidColorBrush x:Key="BackgroundInput" Color="#FFFFFF" po:Freeze="False" />
+            <SolidColorBrush x:Key="ForegroundMain" Color="#0F172A" po:Freeze="False" />
+            <SolidColorBrush x:Key="ForegroundInput" Color="#0F172A" po:Freeze="False" />
+            <SolidColorBrush x:Key="ForegroundGood" Color="#10B981" po:Freeze="False"/>
+            <SolidColorBrush x:Key="ForegroundBad" Color="#EF4444" po:Freeze="False"/>
+            <SolidColorBrush x:Key="ForegroundCustom" Color="#F97316" po:Freeze="False"/>
+            <SolidColorBrush x:Key="ForegroundRetry" Color="#EAB308" po:Freeze="False"/>
+            <SolidColorBrush x:Key="ForegroundBanned" Color="#8B5CF6" po:Freeze="False"/>
+            <SolidColorBrush x:Key="ForegroundToCheck" Color="#14B8A6" po:Freeze="False"/>
+            <SolidColorBrush x:Key="ForegroundMenuSelected" Color="#2563EB" po:Freeze="False"/>
+            <SolidColorBrush x:Key="Headers" Color="#0F172A" po:Freeze="False" />
 
             <!-- BoolToTextWrappingConverter -->
             <converters:BoolToTextWrappingConverter x:Key="BoolToWrap" />
 
             <!-- PERFORMANCE-OPTIMIZED BUTTON COLORS -->
-            <SolidColorBrush x:Key="SuccessButton" Color="#00CC6A"/>
-            <SolidColorBrush x:Key="PrimaryButton" Color="#0078D4"/>
-            <SolidColorBrush x:Key="WarningButton" Color="#FF8C00"/>
-            <SolidColorBrush x:Key="DangerButton" Color="#FF4444"/>
-            <SolidColorBrush x:Key="ForegroundButton" Color="#FFFFFF"/>
-            <SolidColorBrush x:Key="BackgroundButton" Color="#333333"/>
+            <SolidColorBrush x:Key="SuccessButton" Color="#10B981" po:Freeze="False"/>
+            <SolidColorBrush x:Key="PrimaryButton" Color="#2563EB" po:Freeze="False"/>
+            <SolidColorBrush x:Key="WarningButton" Color="#F59E0B" po:Freeze="False"/>
+            <SolidColorBrush x:Key="DangerButton" Color="#EF4444" po:Freeze="False"/>
+            <SolidColorBrush x:Key="ForegroundButton" Color="#0F172A" po:Freeze="False"/>
+            <SolidColorBrush x:Key="BackgroundButton" Color="#E2E8F0" po:Freeze="False"/>
 
             <!-- Shadow effects removed for modern flat design -->
 
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="pack://application:,,,/MahApps.Metro;component/Styles/Controls.xaml" />
                 <ResourceDictionary Source="pack://application:,,,/MahApps.Metro;component/Styles/Fonts.xaml" />
-                <ResourceDictionary Source="pack://application:,,,/MahApps.Metro;component/Styles/Themes/Dark.Blue.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/MahApps.Metro;component/Styles/Themes/Light.Blue.xaml" />
                 <ResourceDictionary Source="/Styles/ModernTheme.xaml" />
                 <ResourceDictionary Source="/Views/Pages/Shared/DebuggerStyles.xaml" />
 

@@ -33,11 +33,11 @@
         <!-- Compact Plugin Features Section -->
         <StackPanel Grid.Row="1" Margin="0,0,0,20">
             <TextBlock Text="Plugin Features" FontSize="18" FontWeight="SemiBold" 
-                      Foreground="{StaticResource ForegroundMain}" Margin="0,0,0,12"/>
+                      Foreground="{DynamicResource Modern.ForegroundMain}" Margin="0,0,0,12"/>
             
             <!-- OTP File Writer - Compact Card -->
-            <Border Background="{StaticResource BackgroundSecondary}" 
-                   BorderBrush="#10B981" BorderThickness="2"
+            <Border Background="{DynamicResource Modern.BackgroundSecondary}" 
+                   BorderBrush="{DynamicResource Modern.Success}" BorderThickness="2"
                    CornerRadius="8" Padding="16" Margin="0,0,0,8">
                 <Grid>
                     <Grid.ColumnDefinitions>
@@ -48,26 +48,26 @@
                     </Grid.ColumnDefinitions>
                     
                     <!-- Icon -->
-                    <Border Grid.Column="0" Background="#10B981" 
+                    <Border Grid.Column="0" Background="{DynamicResource Modern.Success}" 
                            CornerRadius="6" Padding="8" Margin="0,0,12,0">
                         <iconPacks:PackIconMaterial Kind="FileDocumentOutline" Width="20" Height="20" 
-                                                   Foreground="White"/>
+                                                   Foreground="{DynamicResource Modern.TextOnAccent}"/>
                     </Border>
                     
                     <!-- Main Content -->
                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
                         <TextBlock Text="OTP File Writer" FontSize="15" FontWeight="SemiBold" 
-                                  Foreground="{StaticResource ForegroundMain}" Margin="0,0,0,2"/>
+                                  Foreground="{DynamicResource Modern.ForegroundMain}" Margin="0,0,0,2"/>
                         <TextBlock Text="Hotkey: Ctrl+Alt+Q - Saves clipboard to otp.txt (if contains 'disavow' or 6-digit number)" 
-                                  FontSize="12" Foreground="#CBD5E1" TextWrapping="Wrap"/>
+                                  FontSize="12" Foreground="{DynamicResource Modern.ForegroundSecondary}" TextWrapping="Wrap"/>
                     </StackPanel>
                     
                     <!-- Status Indicator -->
-                    <Border Grid.Column="2" Background="#10B981" CornerRadius="12" 
+                    <Border Grid.Column="2" Background="{DynamicResource Modern.Success}" CornerRadius="12" 
                            Padding="8,4" Margin="8,0"
                            Visibility="{Binding HotkeysEnabled, Converter={StaticResource BoolToVis}}">
                         <TextBlock Text="ACTIVE" FontSize="10" FontWeight="Bold" 
-                                  Foreground="White"/>
+                                  Foreground="{DynamicResource Modern.TextOnAccent}"/>
                     </Border>
                     
                     <!-- Toggle Switch -->
@@ -78,8 +78,8 @@
             </Border>
 
             <!-- Modem IP Quick Refresh - Compact Card -->
-            <Border Background="{StaticResource BackgroundSecondary}" 
-                   BorderBrush="#10B981" BorderThickness="2"
+            <Border Background="{DynamicResource Modern.BackgroundSecondary}" 
+                   BorderBrush="{DynamicResource Modern.Success}" BorderThickness="2"
                    CornerRadius="8" Padding="16" Margin="0,0,0,8">
                 <Grid>
                     <Grid.ColumnDefinitions>
@@ -90,28 +90,28 @@
                     </Grid.ColumnDefinitions>
                     
                     <!-- Icon -->
-                    <Border Grid.Column="0" Background="#10B981" 
+                    <Border Grid.Column="0" Background="{DynamicResource Modern.Success}" 
                            CornerRadius="6" Padding="8" Margin="0,0,12,0">
                         <iconPacks:PackIconMaterial Kind="RouterWireless" Width="20" Height="20" 
-                                                   Foreground="White"/>
+                                                   Foreground="{DynamicResource Modern.TextOnAccent}"/>
                     </Border>
                     
                     <!-- Main Content -->
                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
                         <TextBlock Text="Modem IP Quick Refresh" FontSize="15" FontWeight="SemiBold" 
-                                  Foreground="{StaticResource ForegroundMain}" Margin="0,0,0,2"/>
+                                  Foreground="{DynamicResource Modern.ForegroundMain}" Margin="0,0,0,2"/>
                         <TextBlock Text="Hotkey: Ctrl+Shift+Alt+Y - Runs the modem automation flow with your saved router address, username, and an admin password."
-                                  FontSize="12" Foreground="#CBD5E1" TextWrapping="Wrap" Margin="0,0,0,4"/>
+                                  FontSize="12" Foreground="{DynamicResource Modern.ForegroundSecondary}" TextWrapping="Wrap" Margin="0,0,0,4"/>
                         <TextBlock Text="Shares the same toggle above and surfaces the hidden notification shown by the Ctrl+Alt+Q plugin."
-                                  FontSize="11" Foreground="#94A3B8" TextWrapping="Wrap"/>
+                                  FontSize="11" Foreground="{DynamicResource Modern.ForegroundMuted}" TextWrapping="Wrap"/>
                     </StackPanel>
                     
                     <!-- Status Indicator -->
-                    <Border Grid.Column="2" Background="#10B981" CornerRadius="12" 
+                    <Border Grid.Column="2" Background="{DynamicResource Modern.Success}" CornerRadius="12" 
                            Padding="8,4" Margin="8,0"
                            Visibility="{Binding HotkeysEnabled, Converter={StaticResource BoolToVis}}">
                         <TextBlock Text="ACTIVE" FontSize="10" FontWeight="Bold" 
-                                  Foreground="White"/>
+                                  Foreground="{DynamicResource Modern.TextOnAccent}"/>
                     </Border>
                     
                     <!-- Toggle Switch -->
@@ -121,8 +121,8 @@
             </Border>
             
             <!-- Placeholder for Future Features -->
-            <Border Background="{StaticResource BackgroundInput}" 
-                   BorderBrush="#475569" BorderThickness="1"
+            <Border Background="{DynamicResource Modern.BackgroundInput}" 
+                   BorderBrush="{DynamicResource Modern.BorderMain}" BorderThickness="1"
                    CornerRadius="8" Padding="16" Margin="0,0,0,8">
                 <Grid>
                     <Grid.ColumnDefinitions>
@@ -131,17 +131,17 @@
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     
-                    <Border Grid.Column="0" Background="#475569" 
+                    <Border Grid.Column="0" Background="{DynamicResource Modern.BorderMain}" 
                            CornerRadius="6" Padding="8" Margin="0,0,12,0">
                         <iconPacks:PackIconMaterial Kind="Plus" Width="20" Height="20" 
-                                                   Foreground="#CBD5E1"/>
+                                                   Foreground="{DynamicResource Modern.ForegroundSecondary}"/>
                     </Border>
                     
                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
                         <TextBlock Text="Add New Feature" FontSize="15" FontWeight="SemiBold" 
-                                  Foreground="#64748B" Margin="0,0,0,2"/>
+                                  Foreground="{DynamicResource Modern.ForegroundMuted}" Margin="0,0,0,2"/>
                         <TextBlock Text="Future plugin features will appear here as compact toggle cards" 
-                                  FontSize="12" Foreground="#475569"/>
+                                  FontSize="12" Foreground="{DynamicResource Modern.ForegroundSecondary}"/>
                     </StackPanel>
                     
                     <CheckBox Grid.Column="2" IsEnabled="False" VerticalAlignment="Center"/>
@@ -162,7 +162,7 @@
                        Text="Installed Plugins"
                        FontSize="16"
                        FontWeight="SemiBold"
-                       Foreground="{StaticResource ForegroundMain}"
+                       Foreground="{DynamicResource Modern.ForegroundMain}"
                        Margin="0,0,0,8"
                        Visibility="{Binding PluginsCollection.Count, Converter={StaticResource BoolToVis}}"/>
 
@@ -185,8 +185,8 @@
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Border Background="{StaticResource BackgroundSecondary}"
-                                    BorderThickness="1" BorderBrush="#475569"
+                            <Border Background="{DynamicResource Modern.BackgroundSecondary}"
+                                    BorderThickness="1" BorderBrush="{DynamicResource Modern.BorderMain}"
                                     CornerRadius="6" Padding="12" Margin="0,0,0,6">
                                 <Grid>
                                     <Grid.ColumnDefinitions>
@@ -196,7 +196,7 @@
                                     
                                     <TextBlock Grid.Column="0" VerticalAlignment="Center"
                                                Text="{Binding Name}" FontSize="14"
-                                               Foreground="{StaticResource ForegroundMain}"/>
+                                               Foreground="{DynamicResource Modern.ForegroundMain}"/>
 
                                     <Button x:Name="removePluginButton" Tag="{Binding}"
                                             Grid.Column="1" Click="RemovePlugin"

@@ -22,94 +22,99 @@ public class CustomizationSettings
     public bool WordWrap { get; set; } = false;
 
     /// <summary>
+    /// The native desktop UI mode. Supported values: Light, Dark.
+    /// </summary>
+    public string NativeThemeMode { get; set; } = "Light";
+
+    /// <summary>
     /// The main background color. Native UI only.
     /// </summary>
-    public string BackgroundMain { get; set; } = "#222";
+    public string BackgroundMain { get; set; } = "#F8FAFC";
 
     /// <summary>
     /// The background color for inputs. Native UI only.
     /// </summary>
-    public string BackgroundInput { get; set; } = "#282828";
+    public string BackgroundInput { get; set; } = "#FFFFFF";
 
     /// <summary>
     /// The secondary background color. Native UI only.
     /// </summary>
-    public string BackgroundSecondary { get; set; } = "#111";
+    public string BackgroundSecondary { get; set; } = "#EEF2F7";
 
     /// <summary>
     /// The main foreground color. Native UI only.
     /// </summary>
-    public string ForegroundMain { get; set; } = "#DCDCDC";
+    public string ForegroundMain { get; set; } = "#0F172A";
 
     /// <summary>
     /// The foreground color for inputs. Native UI only.
     /// </summary>
-    public string ForegroundInput { get; set; } = "#DCDCDC";
+    public string ForegroundInput { get; set; } = "#0F172A";
 
     /// <summary>
     /// The foreground color for hits. Native UI only.
     /// </summary>
-    public string ForegroundGood { get; set; } = "#ADFF2F";
+    public string ForegroundGood { get; set; } = "#10B981";
 
     /// <summary>
     /// The foreground color for fails. Native UI only.
     /// </summary>
-    public string ForegroundBad { get; set; } = "#FF6347";
+    public string ForegroundBad { get; set; } = "#EF4444";
 
     /// <summary>
     /// The foreground color for custom hits. Native UI only.
     /// </summary>
-    public string ForegroundCustom { get; set; } = "#FF8C00";
+    public string ForegroundCustom { get; set; } = "#F97316";
 
     /// <summary>
     /// The foreground color for retries. Native UI only.
     /// </summary>
-    public string ForegroundRetry { get; set; } = "#FFFF00";
+    public string ForegroundRetry { get; set; } = "#EAB308";
 
     /// <summary>
     /// The foreground color for bans. Native UI only.
     /// </summary>
-    public string ForegroundBanned { get; set; } = "#DDA0DD";
+    public string ForegroundBanned { get; set; } = "#8B5CF6";
 
     /// <summary>
     /// The foreground color for hits to check. Native UI only.
     /// </summary>
-    public string ForegroundToCheck { get; set; } = "#7FFFD4";
+    public string ForegroundToCheck { get; set; } = "#14B8A6";
 
     /// <summary>
     /// The foreground color for selected menu items. Native UI only.
     /// </summary>
-    public string ForegroundMenuSelected { get; set; } = "#1E90FF";
+    public string ForegroundMenuSelected { get; set; } = "#2563EB";
 
     /// <summary>
     /// The color of success buttons. Native UI only.
     /// </summary>
-    public string SuccessButton { get; set; } = "#2f5738";
+    public string SuccessButton { get; set; } = "#10B981";
 
     /// <summary>
     /// The color of primary buttons. Native UI only.
     /// </summary>
-    public string PrimaryButton { get; set; } = "#3b3a63";
+    public string PrimaryButton { get; set; } = "#2563EB";
 
     /// <summary>
     /// The color of warning buttons. Native UI only.
     /// </summary>
-    public string WarningButton { get; set; } = "#7a552a";
+    public string WarningButton { get; set; } = "#F59E0B";
 
     /// <summary>
     /// The color of danger buttons. Native UI only.
     /// </summary>
-    public string DangerButton { get; set; } = "#693838";
+    public string DangerButton { get; set; } = "#EF4444";
 
     /// <summary>
     /// The foreground color of buttons. Native UI only.
     /// </summary>
-    public string ForegroundButton { get; set; } = "#DCDCDC";
+    public string ForegroundButton { get; set; } = "#0F172A";
 
     /// <summary>
     /// The background color of buttons. Native UI only.
     /// </summary>
-    public string BackgroundButton { get; set; } = "#282828";
+    public string BackgroundButton { get; set; } = "#E2E8F0";
 
     /// <summary>
     /// The path to the background image. Native UI only.

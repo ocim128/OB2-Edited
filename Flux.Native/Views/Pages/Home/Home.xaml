@@ -245,7 +245,7 @@
         <Style x:Key="PremiumProgressBar" TargetType="ProgressBar">
             <Setter Property="Height" Value="6"/>
             <Setter Property="Maximum" Value="100"/>
-            <Setter Property="Background" Value="#1E293B"/>
+            <Setter Property="Background" Value="{StaticResource Modern.BackgroundTertiary}"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="UseLayoutRounding" Value="True"/>
             <Setter Property="Template">
@@ -407,7 +407,7 @@
                             Click="ConfigsShortcut_Click"
                             Style="{StaticResource QuickActionButtonStyle}">
                         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                            <Border Width="44" Height="44" CornerRadius="10" Background="#1E3A5F" Margin="0,0,0,10">
+                            <Border Width="44" Height="44" CornerRadius="10" Background="{StaticResource Modern.BackgroundTertiary}" Margin="0,0,0,10">
                                 <iconPacks:PackIconMaterial Kind="Cog" 
                                                             Width="22" Height="22" 
                                                             Foreground="{StaticResource Modern.ThemeMain}"
@@ -427,7 +427,7 @@
                             Click="JobsShortcut_Click"
                             Style="{StaticResource QuickActionButtonStyle}">
                         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                            <Border Width="44" Height="44" CornerRadius="10" Background="#312E81" Margin="0,0,0,10">
+                            <Border Width="44" Height="44" CornerRadius="10" Background="{StaticResource Modern.BackgroundTertiary}" Margin="0,0,0,10">
                                 <iconPacks:PackIconMaterial Kind="Briefcase" 
                                                             Width="22" Height="22" 
                                                             Foreground="{StaticResource Modern.ThemeAccent}"
@@ -447,7 +447,7 @@
                             Click="WordlistsShortcut_Click"
                             Style="{StaticResource QuickActionButtonStyle}">
                         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                            <Border Width="44" Height="44" CornerRadius="10" Background="#064E3B" Margin="0,0,0,10">
+                            <Border Width="44" Height="44" CornerRadius="10" Background="{StaticResource Modern.BackgroundTertiary}" Margin="0,0,0,10">
                                 <iconPacks:PackIconMaterial Kind="FormatListBulleted" 
                                                             Width="22" Height="22" 
                                                             Foreground="{StaticResource Modern.Success}"
@@ -467,7 +467,7 @@
                             Click="HitsShortcut_Click"
                             Style="{StaticResource QuickActionButtonStyle}">
                         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                            <Border Width="44" Height="44" CornerRadius="10" Background="#7F1D1D" Margin="0,0,0,10">
+                            <Border Width="44" Height="44" CornerRadius="10" Background="{StaticResource Modern.BackgroundTertiary}" Margin="0,0,0,10">
                                 <iconPacks:PackIconMaterial Kind="Target" 
                                                             Width="22" Height="22" 
                                                             Foreground="{StaticResource Modern.Error}"

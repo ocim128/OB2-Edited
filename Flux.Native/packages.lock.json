@@ -1193,7 +1193,7 @@
         "resolved": "1.1.1",
         "contentHash": "0qwzxU6QnacItxCHDkCjP1o9VW7UowX5yLPr3xySpq90zved/QAsymTeNrVNsqbS/NO4UJu1mmhXmFiV2gwTMg=="
       },
-      "Flux.core": {
+      "flux.core": {
         "type": "Project",
         "dependencies": {
           "BCrypt.Net-Core": "[1.6.0, )",
@@ -1209,16 +1209,16 @@
           "SixLabors.ImageSharp": "[3.1.11, )"
         }
       },
-      "Flux.shared": {
+      "flux.shared": {
         "type": "Project",
         "dependencies": {
+          "Flux.Core": "[1.0.0, )",
           "Microsoft.AspNetCore.Cryptography.KeyDerivation": "[8.0.8, )",
           "Microsoft.Extensions.Configuration.Abstractions": "[8.0.0, )",
           "Microsoft.Extensions.DependencyInjection.Abstractions": "[8.0.0, )",
           "Microsoft.Extensions.Logging.Abstractions": "[8.0.0, )",
           "Microsoft.Extensions.Options": "[8.0.0, )",
           "Newtonsoft.Json": "[13.0.3, )",
-          "Flux.Core": "[1.0.0, )",
           "RuriLib": "[1.0.0, )",
           "RuriLib.Http": "[1.0.1, )",
           "RuriLib.Parallelization": "[1.0.6, )",

@@ -190,6 +190,24 @@ namespace Flux.Native.ViewModels.Settings
             }
         }
 
+        public bool UseDarkMode
+        {
+            get => string.Equals(Customization.NativeThemeMode, "Dark", StringComparison.OrdinalIgnoreCase);
+            set
+            {
+                var selectedTheme = value ? "Dark" : "Light";
+                if (string.Equals(Customization.NativeThemeMode, selectedTheme, StringComparison.OrdinalIgnoreCase))
+                {
+                    return;
+                }
+
+                Customization.NativeThemeMode = selectedTheme;
+                ApplyThemePreset(selectedTheme);
+                UpdateViewModel();
+                RefreshTheme();
+            }
+        }
+
         public string BackgroundMain
         {
             get => Customization.BackgroundMain;
@@ -465,6 +483,51 @@ namespace Flux.Native.ViewModels.Settings
 
         public void AddRemoteConfigsEndpoint() => RemoteConfigsEndpointsCollection.Add(new RemoteConfigsEndpoint());
         public void RemoveRemoteConfigsEndpoint(RemoteConfigsEndpoint endpoint) => RemoteConfigsEndpointsCollection.Remove(endpoint);
+
+        private void ApplyThemePreset(string themeMode)
+        {
+            if (string.Equals(themeMode, "Dark", StringComparison.OrdinalIgnoreCase))
+            {
+                Customization.BackgroundMain = "#0F172A";
+                Customization.BackgroundInput = "#1E293B";
+                Customization.BackgroundSecondary = "#1E293B";
+                Customization.ForegroundMain = "#F8FAFC";
+                Customization.ForegroundInput = "#F8FAFC";
+                Customization.ForegroundGood = "#10B981";
+                Customization.ForegroundBad = "#EF4444";
+                Customization.ForegroundCustom = "#F97316";
+                Customization.ForegroundRetry = "#EAB308";
+                Customization.ForegroundBanned = "#8B5CF6";
+                Customization.ForegroundToCheck = "#14B8A6";
+                Customization.ForegroundMenuSelected = "#3B82F6";
+                Customization.SuccessButton = "#10B981";
+                Customization.PrimaryButton = "#3B82F6";
+                Customization.WarningButton = "#F59E0B";
+                Customization.DangerButton = "#EF4444";
+                Customization.ForegroundButton = "#F8FAFC";
+                Customization.BackgroundButton = "#374151";
+                return;
+            }
+
+            Customization.BackgroundMain = "#F8FAFC";
+            Customization.BackgroundInput = "#FFFFFF";
+            Customization.BackgroundSecondary = "#EEF2F7";
+            Customization.ForegroundMain = "#0F172A";
+            Customization.ForegroundInput = "#0F172A";
+            Customization.ForegroundGood = "#10B981";
+            Customization.ForegroundBad = "#EF4444";
+            Customization.ForegroundCustom = "#F97316";
+            Customization.ForegroundRetry = "#EAB308";
+            Customization.ForegroundBanned = "#8B5CF6";
+            Customization.ForegroundToCheck = "#14B8A6";
+            Customization.ForegroundMenuSelected = "#2563EB";
+            Customization.SuccessButton = "#10B981";
+            Customization.PrimaryButton = "#2563EB";
+            Customization.WarningButton = "#F59E0B";
+            Customization.DangerButton = "#EF4444";
+            Customization.ForegroundButton = "#0F172A";
+            Customization.BackgroundButton = "#E2E8F0";
+        }
 
         private void CreateCollections()
         {

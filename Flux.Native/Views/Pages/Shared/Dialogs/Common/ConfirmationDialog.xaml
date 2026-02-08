@@ -3,9 +3,9 @@
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks">
     
-    <Border Background="#FF2A2A2A" 
+    <Border Background="{DynamicResource Modern.BackgroundSecondary}" 
             CornerRadius="8" 
-            BorderBrush="#FF404040" 
+            BorderBrush="{DynamicResource Modern.BorderMain}" 
             BorderThickness="1"
             MinWidth="500"
             MaxWidth="700"
@@ -23,7 +23,7 @@
                        Text="{Binding Title}"
                        FontSize="16" 
                        FontWeight="SemiBold" 
-                       Foreground="White" 
+                       Foreground="{DynamicResource Modern.ForegroundMain}" 
                        Margin="0,0,0,15"
                        HorizontalAlignment="Center"/>
 
@@ -32,7 +32,7 @@
                                         Kind="HelpCircle"
                                         Width="48"
                                         Height="48"
-                                        Foreground="#FF1E90FF"
+                                        Foreground="{DynamicResource Modern.ThemeMain}"
                                         HorizontalAlignment="Center"
                                         Margin="0,0,0,20"/>
 
@@ -40,7 +40,7 @@
             <TextBlock Grid.Row="2" 
                        Text="{Binding Message}"
                        FontSize="13" 
-                       Foreground="#FFCCCCCC" 
+                       Foreground="{DynamicResource Modern.ForegroundSecondary}" 
                        TextWrapping="Wrap"
                        TextAlignment="Center"
                        Margin="0,0,0,25"

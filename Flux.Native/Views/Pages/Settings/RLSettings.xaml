@@ -67,8 +67,8 @@
                 <Border Style="{StaticResource SettingsCardStyle}">
                     <StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
-                            <Border Width="32" Height="32" CornerRadius="8" Background="#1E3A5F" Margin="0,0,12,0">
-                                <iconPacks:PackIconMaterial Kind="Cog" Width="16" Height="16" Foreground="{StaticResource Modern.ThemeMain}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            <Border Width="32" Height="32" CornerRadius="8" Background="{StaticResource Modern.ThemeMain}" Margin="0,0,12,0">
+                                <iconPacks:PackIconMaterial Kind="Cog" Width="16" Height="16" Foreground="{StaticResource Modern.TextOnAccent}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Border>
                             <TextBlock Text="General Settings" Style="{StaticResource SettingsSectionHeaderStyle}"/>
                         </StackPanel>
@@ -135,8 +135,8 @@
                 <Border Style="{StaticResource SettingsCardStyle}">
                     <StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
-                            <Border Width="32" Height="32" CornerRadius="8" Background="#064E3B" Margin="0,0,12,0">
-                                <iconPacks:PackIconMaterial Kind="ServerNetwork" Width="16" Height="16" Foreground="{StaticResource Modern.Success}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            <Border Width="32" Height="32" CornerRadius="8" Background="{StaticResource Modern.Success}" Margin="0,0,12,0">
+                                <iconPacks:PackIconMaterial Kind="ServerNetwork" Width="16" Height="16" Foreground="{StaticResource Modern.TextOnAccent}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Border>
                             <TextBlock Text="Proxy Settings" Style="{StaticResource SettingsSectionHeaderStyle}"/>
                         </StackPanel>
@@ -186,8 +186,8 @@
                 <Border Style="{StaticResource SettingsCardStyle}">
                     <StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
-                            <Border Width="32" Height="32" CornerRadius="8" Background="#78350F" Margin="0,0,12,0">
-                                <iconPacks:PackIconMaterial Kind="Robot" Width="16" Height="16" Foreground="{StaticResource Modern.Warning}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            <Border Width="32" Height="32" CornerRadius="8" Background="{StaticResource Modern.Warning}" Margin="0,0,12,0">
+                                <iconPacks:PackIconMaterial Kind="Robot" Width="16" Height="16" Foreground="{StaticResource Modern.TextOnAccent}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Border>
                             <TextBlock Text="Captcha Settings" Style="{StaticResource SettingsSectionHeaderStyle}"/>
                         </StackPanel>
@@ -521,8 +521,8 @@
                 <Border Style="{StaticResource SettingsCardStyle}">
                     <StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
-                            <Border Width="32" Height="32" CornerRadius="8" Background="#7F1D1D" Margin="0,0,12,0">
-                                <iconPacks:PackIconMaterial Kind="GoogleChrome" Width="16" Height="16" Foreground="#F87171" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            <Border Width="32" Height="32" CornerRadius="8" Background="{StaticResource Modern.Error}" Margin="0,0,12,0">
+                                <iconPacks:PackIconMaterial Kind="GoogleChrome" Width="16" Height="16" Foreground="{StaticResource Modern.TextOnAccent}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Border>
                             <TextBlock Text="Puppeteer Settings" Style="{StaticResource SettingsSectionHeaderStyle}"/>
                         </StackPanel>
@@ -543,8 +543,8 @@
                 <Border Style="{StaticResource SettingsCardStyle}">
                     <StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
-                            <Border Width="32" Height="32" CornerRadius="8" Background="#7F1D1D" Margin="0,0,12,0">
-                                <iconPacks:PackIconMaterial Kind="Theater" Width="16" Height="16" Foreground="#F87171" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            <Border Width="32" Height="32" CornerRadius="8" Background="{StaticResource Modern.Error}" Margin="0,0,12,0">
+                                <iconPacks:PackIconMaterial Kind="Theater" Width="16" Height="16" Foreground="{StaticResource Modern.TextOnAccent}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Border>
                             <TextBlock Text="Playwright Settings" Style="{StaticResource SettingsSectionHeaderStyle}"/>
                         </StackPanel>
@@ -605,8 +605,8 @@
                  <Border Style="{StaticResource SettingsCardStyle}">
                     <StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
-                            <Border Width="32" Height="32" CornerRadius="8" Background="#7F1D1D" Margin="0,0,12,0">
-                                <iconPacks:PackIconMaterial Kind="Web" Width="16" Height="16" Foreground="#F87171" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            <Border Width="32" Height="32" CornerRadius="8" Background="{StaticResource Modern.Error}" Margin="0,0,12,0">
+                                <iconPacks:PackIconMaterial Kind="Web" Width="16" Height="16" Foreground="{StaticResource Modern.TextOnAccent}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Border>
                             <TextBlock Text="Selenium Settings" Style="{StaticResource SettingsSectionHeaderStyle}"/>
                         </StackPanel>

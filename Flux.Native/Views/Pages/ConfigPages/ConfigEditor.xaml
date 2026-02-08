@@ -78,39 +78,39 @@
                     x:Name="stackerButton"
                     HorizontalAlignment="Stretch"
                     Style="{StaticResource ConsistentButton}"
-                    Background="#2563EB" Foreground="White"
+                    Background="{DynamicResource Modern.ThemeMain}" Foreground="{DynamicResource Modern.TextOnAccent}"
                     Content="Stacker" Padding="12,6">
                     <Button.Tag>
-                        <iconPacks:PackIconFontAwesome Kind="LayerGroupSolid" Width="14" Height="14" Foreground="White"/>
+                        <iconPacks:PackIconFontAwesome Kind="LayerGroupSolid" Width="14" Height="14" Foreground="{DynamicResource Modern.TextOnAccent}"/>
                     </Button.Tag>
                 </Button>
                 <Button Click="OpenLoliCode"
                     x:Name="loliCodeButton"
                     HorizontalAlignment="Stretch"
                     Style="{StaticResource ConsistentButton}"
-                    Background="#10B981" Foreground="White"
+                    Background="{DynamicResource Modern.Success}" Foreground="{DynamicResource Modern.TextOnAccent}"
                     Content="LoliCode" Padding="12,6">
                     <Button.Tag>
-                        <iconPacks:PackIconEntypo Kind="Code" Width="14" Height="14" Foreground="White"/>
+                        <iconPacks:PackIconEntypo Kind="Code" Width="14" Height="14" Foreground="{DynamicResource Modern.TextOnAccent}"/>
                     </Button.Tag>
                 </Button>
                 <Button Click="OpenCSharpCode"
                     x:Name="cSharpButton"
                     HorizontalAlignment="Stretch"
                     Style="{StaticResource ConsistentButton}"
-                    Background="#7C3AED" Foreground="White"
+                    Background="{DynamicResource Modern.ThemeAccent}" Foreground="{DynamicResource Modern.TextOnAccent}"
                     Content="C#" Padding="12,6">
                     <Button.Tag>
-                        <iconPacks:PackIconEntypo Kind="Code" Width="14" Height="14" Foreground="White"/>
+                        <iconPacks:PackIconEntypo Kind="Code" Width="14" Height="14" Foreground="{DynamicResource Modern.TextOnAccent}"/>
                     </Button.Tag>
                 </Button>
                 <Button Click="Save" 
                     HorizontalAlignment="Stretch"
                     Style="{StaticResource ConsistentButton}"
-                    Background="#DC2626" Foreground="White"
+                    Background="{DynamicResource Modern.Error}" Foreground="{DynamicResource Modern.TextOnAccent}"
                     Content="Save" Padding="12,6">
                     <Button.Tag>
-                        <iconPacks:PackIconRemixIcon Kind="Save3Fill" Width="14" Height="14" Foreground="White"/>
+                        <iconPacks:PackIconRemixIcon Kind="Save3Fill" Width="14" Height="14" Foreground="{DynamicResource Modern.TextOnAccent}"/>
                     </Button.Tag>
                 </Button>
             </DockPanel>
@@ -122,11 +122,11 @@
             Grid.Column="1"
             Width="4"
             VerticalAlignment="Stretch"
-            Background="#FF4A5568"
+            Background="{DynamicResource Modern.BorderMain}"
             Margin="1,8">
             <GridSplitter.Template>
                 <ControlTemplate TargetType="GridSplitter">
-                    <Border Background="#FF374151"
+                    <Border Background="{DynamicResource Modern.BorderSecondary}"
                             CornerRadius="2">
                         <Rectangle Fill="Transparent" />
                     </Border>

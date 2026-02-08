@@ -36,6 +36,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Threading;
 using Newtonsoft.Json;
 using Media = System.Windows.Media;
 
@@ -124,6 +125,7 @@ public partial class MainWindow : MetroWindow
         [
             menuOptionAbout,
             menuOptionCheckUpdate,
+            menuOptionThemeToggle,
             menuOptionConfigs,
             menuOptionConfigSettings,
             menuOptionCSharpCode,
@@ -156,7 +158,8 @@ public partial class MainWindow : MetroWindow
             menuOptionSettings,
             menuOptionRLSettings,
             menuOptionCheckUpdate,
-            menuOptionAbout
+            menuOptionAbout,
+            menuOptionThemeToggle
         ];
 
         // Lazy initialization - pages created only when needed
@@ -166,6 +169,7 @@ public partial class MainWindow : MetroWindow
 
         var customization = this.fluxSettingsService.Settings.CustomizationSettings;
         this.themeService.SetTheme(customization);
+        UpdateThemeToggleUi();
         ApplyAccessibilitySettings();
     }
 
@@ -176,6 +180,16 @@ public partial class MainWindow : MetroWindow
         // Initialize layout service
         windowLayoutService.Initialize(this, Root);
         windowLayoutService.RestoreWindowState();
+        
+        // Re-apply theme after window chrome/state is finalized so caption buttons
+        // pick the correct light/dark visuals on first render.
+        var customization = fluxSettingsService.Settings.CustomizationSettings;
+        themeService.SetTheme(customization);
+        UpdateThemeToggleUi();
+
+        Dispatcher.BeginInvoke(
+            DispatcherPriority.ContextIdle,
+            new Action(() => themeService.SetTheme(customization)));
 
         // Initialize button map dynamically
         InitializePageButtonMap();
@@ -195,7 +209,8 @@ public partial class MainWindow : MetroWindow
             menuOptionHomeText, menuOptionJobsText, menuOptionHitsText,
             menuOptionConfigsText, menuOptionWordlistsText, menuOptionProxiesText,
             menuOptionToolsText, menuOptionPluginsText, menuOptionSettingsText,
-            menuOptionRLSettingsText, menuOptionCheckUpdateText, menuOptionAboutText
+            menuOptionRLSettingsText, menuOptionCheckUpdateText, menuOptionAboutText,
+            menuOptionThemeToggleText
         };
 
         var sectionHeaders = new FrameworkElement[]
@@ -322,6 +337,41 @@ public partial class MainWindow : MetroWindow
     private void ToggleSidebar_Click(object sender, RoutedEventArgs e)
     {
         sidebarHandler.Toggle();
+    }
+
+    private async void ToggleThemeMode_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var customization = fluxSettingsService.Settings.CustomizationSettings;
+            var isDark = string.Equals(customization.NativeThemeMode, "Dark", StringComparison.OrdinalIgnoreCase);
+            customization.NativeThemeMode = isDark ? "Light" : "Dark";
+
+            themeService.SetTheme(customization);
+            UpdateThemeToggleUi();
+
+            await fluxSettingsService.SaveAsync();
+        }
+        catch (Exception ex)
+        {
+            Alert.Exception(ex);
+        }
+    }
+
+    private void UpdateThemeToggleUi()
+    {
+        if (menuOptionThemeToggleText is null || menuOptionThemeToggle is null)
+        {
+            return;
+        }
+
+        var isDark = string.Equals(
+            fluxSettingsService.Settings.CustomizationSettings.NativeThemeMode,
+            "Dark",
+            StringComparison.OrdinalIgnoreCase);
+
+        menuOptionThemeToggleText.Text = isDark ? "Theme: Dark" : "Theme: Light";
+        menuOptionThemeToggle.ToolTip = isDark ? "Switch to Light Mode" : "Switch to Dark Mode";
     }
 
     public void ToggleSidebar()

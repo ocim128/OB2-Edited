@@ -17,7 +17,7 @@
 
         <StackPanel Orientation="Horizontal" Grid.Row="0">
             <Label Content="Import from:" />
-            <Label x:Name="fileMode" Content="File" FontWeight="Bold" Foreground="{DynamicResource ForegroundMenuSelected}" MouseDown="SelectFileMode" />
+            <Label x:Name="fileMode" Content="File" FontWeight="Bold" Foreground="{DynamicResource Modern.ThemeMain}" MouseDown="SelectFileMode" />
             <Label x:Name="pasteMode" Content="Paste" FontWeight="Bold" MouseDown="SelectPasteMode" />
             <Label x:Name="remoteMode" Content="Remote" FontWeight="Bold" MouseDown="SelectRemoteMode" />
         </StackPanel>
@@ -39,7 +39,7 @@
 
                         <Label Grid.Column="0" Content="Location:" VerticalAlignment="Center"/>
                         <TextBox x:Name="locationTextbox" Grid.Column="1" VerticalContentAlignment="Center" Margin="5" IsReadOnly="True" Style="{StaticResource MatchingTextBox}"/>
-                        <ContentControl Grid.Column="2" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Content="{StaticResource Icon.FolderFill}" Foreground="White" MouseDown="SearchInFolder" />
+                        <ContentControl Grid.Column="2" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Content="{StaticResource Icon.FolderFill}" Foreground="{DynamicResource Modern.ForegroundMain}" MouseDown="SearchInFolder" />
                     </Grid>
                 </StackPanel>
             </TabItem>
@@ -88,11 +88,11 @@
             </Grid.RowDefinitions>
 
             <TextBlock x:Name="advancedWarning" Grid.Row="0" Grid.ColumnSpan="2" FontFamily="Consolas" Margin="5">
-                <Span Foreground="{DynamicResource ForegroundMain}" FontWeight="Bold">Advanced Syntax:</Span>
+                <Span Foreground="{DynamicResource Modern.ForegroundMain}" FontWeight="Bold">Advanced Syntax:</Span>
                 <LineBreak/>
-                <Span Foreground="{DynamicResource ForegroundMain}">Type: (Http)1.1.1.1:80</Span>
+                <Span Foreground="{DynamicResource Modern.ForegroundMain}">Type: (Http)1.1.1.1:80</Span>
                 <LineBreak/>
-                <Span Foreground="{DynamicResource ForegroundMain}">Auth: 1.1.1.1:80:username:password</Span>
+                <Span Foreground="{DynamicResource Modern.ForegroundMain}">Auth: 1.1.1.1:80:username:password</Span>
             </TextBlock>
 
             <Label Grid.Row="1" Grid.ColumnSpan="2" Content="Defaults (when not specified):" />

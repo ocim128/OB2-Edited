@@ -99,42 +99,36 @@
     <Style x:Key="H2TextStyle" TargetType="TextBlock" BasedOn="{StaticResource BaseTextStyle}">
         <Setter Property="FontSize" Value="20"/>
         <Setter Property="FontWeight" Value="SemiBold"/>
-        <Setter Property="Foreground" Value="#F1F5F9"/>
+        <Setter Property="Foreground" Value="{DynamicResource Modern.ForegroundMain}"/>
         <Setter Property="Margin" Value="0,24,0,12"/>
     </Style>
     
     <Style x:Key="H3TextStyle" TargetType="TextBlock" BasedOn="{StaticResource BaseTextStyle}">
         <Setter Property="FontSize" Value="16"/>
         <Setter Property="FontWeight" Value="Medium"/>
-        <Setter Property="Foreground" Value="#F1F5F9"/>
+        <Setter Property="Foreground" Value="{DynamicResource Modern.ForegroundMain}"/>
         <Setter Property="Margin" Value="0,16,0,8"/>
     </Style>
     
     <Style x:Key="BodyTextStyle" TargetType="TextBlock" BasedOn="{StaticResource BaseTextStyle}">
         <Setter Property="FontSize" Value="14"/>
         <Setter Property="FontWeight" Value="Normal"/>
-        <Setter Property="Foreground" Value="#E2E8F0"/>
+        <Setter Property="Foreground" Value="{DynamicResource Modern.ForegroundMain}"/>
         <Setter Property="LineHeight" Value="20"/>
     </Style>
     
     <Style x:Key="CaptionTextStyle" TargetType="TextBlock" BasedOn="{StaticResource BaseTextStyle}">
         <Setter Property="FontSize" Value="12"/>
         <Setter Property="FontWeight" Value="Normal"/>
-        <Setter Property="Foreground" Value="#94A3B8"/>
+        <Setter Property="Foreground" Value="{DynamicResource Modern.ForegroundMuted}"/>
     </Style>
     
     <Style x:Key="LabelTextStyle" TargetType="TextBlock" BasedOn="{StaticResource BaseTextStyle}">
         <Setter Property="FontSize" Value="13"/>
         <Setter Property="FontWeight" Value="Medium"/>
-        <Setter Property="Foreground" Value="#CBD5E1"/>
+        <Setter Property="Foreground" Value="{DynamicResource Modern.ForegroundSecondary}"/>
     </Style>
-    
 
-    
-
-    
-
-    
     <!-- CONSISTENT CARD STYLES -->
     <Style x:Key="StandardCardStyle" TargetType="Border">
         <Setter Property="Background" Value="{DynamicResource BackgroundSecondary}"/>
@@ -178,9 +172,9 @@
 
     <!-- Consolidated rounded multiline TextBox variant -->
     <Style x:Key="MatchingTextBox" TargetType="TextBox" BasedOn="{StaticResource BaseTextBox}">
-        <Setter Property="Background" Value="#2D3748" />
-        <Setter Property="Foreground" Value="#E2E8F0" />
-        <Setter Property="BorderBrush" Value="#4A5568" />
+        <Setter Property="Background" Value="{DynamicResource Modern.BackgroundInput}" />
+        <Setter Property="Foreground" Value="{DynamicResource Modern.ForegroundInput}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Modern.BorderInput}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="Padding" Value="8,4" />
         <Setter Property="FontSize" Value="12" />
@@ -191,8 +185,8 @@
         <Setter Property="TextWrapping" Value="Wrap" />
         <Setter Property="AcceptsReturn" Value="True" />
         <Setter Property="VerticalContentAlignment" Value="Top" />
-        <Setter Property="SelectionBrush" Value="#3B82F6" />
-        <Setter Property="CaretBrush" Value="#E2E8F0" />
+        <Setter Property="SelectionBrush" Value="{DynamicResource Modern.ThemeMain}" />
+        <Setter Property="CaretBrush" Value="{DynamicResource Modern.ForegroundInput}" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="TextBox">
@@ -213,12 +207,12 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="border" Property="BorderBrush" Value="#60A5FA"/>
-                            <Setter TargetName="border" Property="Background" Value="#374151"/>
+                            <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource Modern.BorderHover}"/>
+                            <Setter TargetName="border" Property="Background" Value="{DynamicResource Modern.BackgroundHover}"/>
                         </Trigger>
                         <Trigger Property="IsFocused" Value="True">
-                            <Setter TargetName="border" Property="BorderBrush" Value="#3B82F6"/>
-                            <Setter TargetName="border" Property="Background" Value="#374151"/>
+                            <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource Modern.BorderFocus}"/>
+                            <Setter TargetName="border" Property="Background" Value="{DynamicResource Modern.BackgroundHover}"/>
                             <Setter TargetName="border" Property="BorderThickness" Value="2"/>
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
@@ -232,8 +226,13 @@
     <!-- Consolidated base controls -->
     <Style x:Key="BaseCheckBox" TargetType="{x:Type CheckBox}" BasedOn="{StaticResource MahApps.Styles.CheckBox}">
         <Setter Property="Background" Value="{DynamicResource BackgroundInput}"/>
+        <Setter Property="Foreground" Value="{DynamicResource Modern.ForegroundMain}"/>
     </Style>
     <Style TargetType="{x:Type CheckBox}" BasedOn="{StaticResource BaseCheckBox}"/>
+
+    <Style TargetType="{x:Type Label}" BasedOn="{StaticResource {x:Type Label}}">
+        <Setter Property="Foreground" Value="{DynamicResource Modern.ForegroundMain}" />
+    </Style>
 
     <Style x:Key="BaseComboBoxItem" TargetType="{x:Type ComboBoxItem}" BasedOn="{StaticResource MahApps.Styles.ComboBoxItem}">
         <Setter Property="Foreground" Value="{DynamicResource ForegroundInput}"/>
@@ -596,9 +595,9 @@
 
     <!-- Clean ComboBox variant (kept custom template) -->
     <Style x:Key="CleanComboBox" TargetType="ComboBox" BasedOn="{StaticResource BaseComboBox}">
-        <Setter Property="Background" Value="#0F172A" />
-        <Setter Property="Foreground" Value="#E2E8F0" />
-        <Setter Property="BorderBrush" Value="#4A5568" />
+        <Setter Property="Background" Value="{DynamicResource Modern.BackgroundInput}" />
+        <Setter Property="Foreground" Value="{DynamicResource Modern.ForegroundInput}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Modern.BorderInput}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="FontSize" Value="12" />
         <Setter Property="MinHeight" Value="34" />
@@ -624,7 +623,7 @@
                                 <ControlTemplate TargetType="ToggleButton">
                                     <Grid Background="Transparent">
                                         <Path x:Name="Arrow"
-                                              Fill="#9CA3AF"
+                                              Fill="{DynamicResource Modern.ForegroundMuted}"
                                               HorizontalAlignment="Right"
                                               VerticalAlignment="Center"
                                               Margin="0,0,8,0"
@@ -662,9 +661,9 @@
                                   MinWidth="{TemplateBinding ActualWidth}"
                                   MaxHeight="200">
                                 <Border x:Name="DropDownBorder"
-                                        Background="#0F172A"
+                                        Background="{DynamicResource Modern.BackgroundInput}"
                                         BorderThickness="1"
-                                        BorderBrush="#4A5568"
+                                        BorderBrush="{DynamicResource Modern.BorderInput}"
                                         CornerRadius="6" />
                                 <ScrollViewer Margin="4">
                                     <StackPanel IsItemsHost="True" />
@@ -674,7 +673,7 @@
                     </Grid>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsKeyboardFocused" Value="true">
-                            <Setter TargetName="Border" Property="BorderBrush" Value="#3B82F6" />
+                            <Setter TargetName="Border" Property="BorderBrush" Value="{DynamicResource Modern.BorderFocus}" />
                         </Trigger>
                         <Trigger Property="IsEditable" Value="true">
                             <Setter TargetName="PART_EditableTextBox" Property="Visibility" Value="Visible" />
@@ -687,12 +686,12 @@
         <Setter Property="ItemContainerStyle">
             <Setter.Value>
                 <Style TargetType="ComboBoxItem">
-                    <Setter Property="Foreground" Value="#E2E8F0" />
+                    <Setter Property="Foreground" Value="{DynamicResource Modern.ForegroundInput}" />
                     <Setter Property="Padding" Value="10,6" />
                     <Setter Property="Background" Value="Transparent" />
                     <Style.Triggers>
                         <Trigger Property="IsHighlighted" Value="True">
-                            <Setter Property="Background" Value="#1E293B" />
+                            <Setter Property="Background" Value="{DynamicResource Modern.BackgroundHover}" />
                         </Trigger>
                     </Style.Triggers>
                 </Style>
@@ -702,9 +701,9 @@
 
     <!-- Global ContextMenu Style for Consistency -->
     <Style TargetType="ContextMenu">
-        <Setter Property="Background" Value="#FF1A1A1A"/>
-        <Setter Property="Foreground" Value="White"/>
-        <Setter Property="BorderBrush" Value="#FF1A1A1A"/>
+        <Setter Property="Background" Value="{DynamicResource Modern.BackgroundSecondary}"/>
+        <Setter Property="Foreground" Value="{DynamicResource Modern.ForegroundMain}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource Modern.BorderMain}"/>
         <Setter Property="BorderThickness" Value="0"/>
         <Setter Property="Padding" Value="0"/>
         <Setter Property="Margin" Value="0"/>
@@ -714,8 +713,8 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ContextMenu">
-                    <Border Background="#FF1A1A1A" 
-                            BorderBrush="#FF1A1A1A" 
+                    <Border Background="{DynamicResource Modern.BackgroundSecondary}" 
+                            BorderBrush="{DynamicResource Modern.BorderMain}" 
                             BorderThickness="0"
                             CornerRadius="8"
                             Padding="4">
@@ -728,26 +727,26 @@
     
     <!-- Global MenuItem Style for Consistency -->
     <Style TargetType="MenuItem">
-        <Setter Property="Background" Value="#FF1A1A1A"/>
-        <Setter Property="Foreground" Value="#E2E8F0"/>
+        <Setter Property="Background" Value="{DynamicResource Modern.BackgroundSecondary}"/>
+        <Setter Property="Foreground" Value="{DynamicResource Modern.ForegroundMain}"/>
         <Setter Property="FontFamily" Value="Segoe UI"/>
         <Setter Property="FontSize" Value="13"/>
         <Setter Property="FontWeight" Value="Medium"/>
         <Setter Property="Padding" Value="12,8"/>
         <Setter Property="Margin" Value="0"/>
         <Setter Property="BorderThickness" Value="0"/>
-        <Setter Property="BorderBrush" Value="#FF1A1A1A"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource Modern.BorderMain}"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="MenuItem">
                     <Border x:Name="Border" 
-                            Background="#FF1A1A1A"
+                            Background="{TemplateBinding Background}"
                             BorderThickness="0"
-                            BorderBrush="#FF1A1A1A"
+                            BorderBrush="{TemplateBinding BorderBrush}"
                             CornerRadius="6"
                             Padding="{TemplateBinding Padding}"
                             Margin="0">
-                        <Grid Background="#FF1A1A1A">
+                        <Grid Background="{TemplateBinding Background}">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="24"/>
                                 <ColumnDefinition Width="*"/>
@@ -765,22 +764,22 @@
                             <TextBlock Grid.Column="2"
                                        Text="{TemplateBinding InputGestureText}"
                                        FontSize="11"
-                                       Foreground="#94A3B8"
+                                       Foreground="{DynamicResource Modern.ForegroundMuted}"
                                        VerticalAlignment="Center"
                                        Margin="12,0,0,0"/>
                         </Grid>
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsHighlighted" Value="True">
-                            <Setter TargetName="Border" Property="Background" Value="#FF2563EB"/>
-                            <Setter Property="Foreground" Value="#FFFFFF"/>
+                            <Setter TargetName="Border" Property="Background" Value="{DynamicResource Modern.ThemeMain}"/>
+                            <Setter Property="Foreground" Value="{DynamicResource Modern.TextOnAccent}"/>
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
-                            <Setter Property="Foreground" Value="#64748B"/>
+                            <Setter Property="Foreground" Value="{DynamicResource Modern.ForegroundMuted}"/>
                         </Trigger>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Border" Property="Background" Value="#FF2563EB"/>
-                            <Setter Property="Foreground" Value="#FFFFFF"/>
+                            <Setter TargetName="Border" Property="Background" Value="{DynamicResource Modern.ThemeMain}"/>
+                            <Setter Property="Foreground" Value="{DynamicResource Modern.TextOnAccent}"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -888,4 +887,5 @@
         </Setter>
     </Style>
 
+    <!-- ToolTip style is defined in ModernTheme.xaml for consistency -->
 </ResourceDictionary>

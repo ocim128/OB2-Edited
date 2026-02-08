@@ -15,11 +15,11 @@
         
         <!-- Premium Settings Card Style -->
         <Style x:Key="SettingsCardStyle" TargetType="Border">
-            <Setter Property="Background" Value="{StaticResource Modern.BackgroundSecondary}"/>
+            <Setter Property="Background" Value="{DynamicResource Modern.BackgroundSecondary}"/>
             <Setter Property="CornerRadius" Value="12"/>
             <Setter Property="Padding" Value="24"/>
             <Setter Property="Margin" Value="0,0,0,24"/>
-            <Setter Property="BorderBrush" Value="{StaticResource Modern.BorderSecondary}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource Modern.BorderSecondary}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="UseLayoutRounding" Value="True"/>
             <Setter Property="SnapsToDevicePixels" Value="True"/>
@@ -30,7 +30,7 @@
             <Setter Property="Margin" Value="0,0,0,0"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="FontSize" Value="18"/>
-            <Setter Property="Foreground" Value="{StaticResource Modern.ThemeMain}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Modern.ThemeMain}"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
         </Style>
         
@@ -41,7 +41,7 @@
         </Style>
 
         <Style x:Key="SettingDescriptionStyle" TargetType="TextBlock" BasedOn="{StaticResource ModernCaptionText}">
-             <Setter Property="Foreground" Value="{StaticResource Modern.ForegroundSecondary}"/>
+             <Setter Property="Foreground" Value="{DynamicResource Modern.ForegroundSecondary}"/>
              <Setter Property="Margin" Value="0,0,0,12"/>
         </Style>
     </Page.Resources>
@@ -65,8 +65,8 @@
                 <Border Style="{StaticResource SettingsCardStyle}">
                     <StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
-                            <Border Width="32" Height="32" CornerRadius="8" Background="#1E3A5F" Margin="0,0,12,0">
-                                <iconPacks:PackIconMaterial Kind="Cog" Width="16" Height="16" Foreground="{StaticResource Modern.ThemeMain}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            <Border Width="32" Height="32" CornerRadius="8" Background="{DynamicResource Modern.ThemeMain}" Margin="0,0,12,0">
+                                <iconPacks:PackIconMaterial Kind="Cog" Width="16" Height="16" Foreground="{DynamicResource Modern.TextOnAccent}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Border>
                             <TextBlock Text="General Settings" Style="{StaticResource SettingsSectionHeaderStyle}"/>
                         </StackPanel>
@@ -137,8 +137,8 @@
                 <Border Style="{StaticResource SettingsCardStyle}">
                     <StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
-                            <Border Width="32" Height="32" CornerRadius="8" Background="#064E3B" Margin="0,0,12,0">
-                                <iconPacks:PackIconMaterial Kind="Target" Width="16" Height="16" Foreground="{StaticResource Modern.Success}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            <Border Width="32" Height="32" CornerRadius="8" Background="{DynamicResource Modern.Success}" Margin="0,0,12,0">
+                                <iconPacks:PackIconMaterial Kind="Target" Width="16" Height="16" Foreground="{DynamicResource Modern.TextOnAccent}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Border>
                             <TextBlock Text="Proxy Check Targets" Style="{StaticResource SettingsSectionHeaderStyle}"/>
                         </StackPanel>
@@ -163,7 +163,7 @@
                             </ItemsControl.ItemsPanel>
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <Border Background="{StaticResource Modern.BackgroundTertiary}" CornerRadius="6" Padding="12" Margin="0,0,0,8">
+                                    <Border Background="{DynamicResource Modern.BackgroundTertiary}" CornerRadius="6" Padding="12" Margin="0,0,0,8">
                                         <Grid>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="Auto" />
@@ -172,10 +172,10 @@
                                                 <ColumnDefinition Width="*" />
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Grid.Column="0" VerticalAlignment="Center" Text="Url" Margin="0,0,8,0" Foreground="{StaticResource Modern.ForegroundSecondary}"/>
+                                            <TextBlock Grid.Column="0" VerticalAlignment="Center" Text="Url" Margin="0,0,8,0" Foreground="{DynamicResource Modern.ForegroundSecondary}"/>
                                             <TextBox Grid.Column="1" Text="{Binding Url}" Margin="0,0,16,0" Style="{StaticResource MatchingTextBox}" />
                                             
-                                            <TextBlock Grid.Column="2" VerticalAlignment="Center" Text="Success Key" Margin="0,0,8,0" Foreground="{StaticResource Modern.ForegroundSecondary}"/>
+                                            <TextBlock Grid.Column="2" VerticalAlignment="Center" Text="Success Key" Margin="0,0,8,0" Foreground="{DynamicResource Modern.ForegroundSecondary}"/>
                                             <TextBox Grid.Column="3" Text="{Binding SuccessKey}" Margin="0,0,16,0" Style="{StaticResource MatchingTextBox}" />
                                             
                                             <Button x:Name="removeProxyCheckTargetButton" Tag="{Binding}" Grid.Column="4" 
@@ -188,9 +188,9 @@
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
 
-                        <Separator Background="{StaticResource Modern.BorderSecondary}" Margin="0,24"/>
+                        <Separator Background="{DynamicResource Modern.BorderSecondary}" Margin="0,24"/>
 
-                        <TextBlock Text="Custom Editor Snippets" FontSize="16" FontWeight="SemiBold" Foreground="{StaticResource Modern.ForegroundMain}" Margin="0,0,0,4"/>
+                        <TextBlock Text="Custom Editor Snippets" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource Modern.ForegroundMain}" Margin="0,0,0,4"/>
                         <TextBlock Text="(requires restart)" Style="{StaticResource SettingDescriptionStyle}"/>
                         
                         <Button Click="AddCustomSnippet" 
@@ -211,7 +211,7 @@
                             </ItemsControl.ItemsPanel>
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <Border Background="{StaticResource Modern.BackgroundTertiary}" CornerRadius="6" Padding="12" Margin="0,0,0,12">
+                                    <Border Background="{DynamicResource Modern.BackgroundTertiary}" CornerRadius="6" Padding="12" Margin="0,0,0,12">
                                         <Grid>
                                             <Grid.RowDefinitions>
                                                 <RowDefinition Height="Auto" />
@@ -224,7 +224,7 @@
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
                                             
-                                            <TextBlock Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Text="Name" Margin="0,0,8,0" Foreground="{StaticResource Modern.ForegroundSecondary}"/>
+                                            <TextBlock Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Text="Name" Margin="0,0,8,0" Foreground="{DynamicResource Modern.ForegroundSecondary}"/>
                                             <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding Name}" Margin="0,0,16,8" Style="{StaticResource MatchingTextBox}" />
                                             
                                             <Button Tag="{Binding}" Grid.Row="0" Grid.Column="2" 
@@ -232,7 +232,7 @@
                                                 <iconPacks:PackIconMaterial Kind="Close" Width="14" Height="14"/>
                                             </Button>
                                             
-                                            <TextBlock Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" Text="Desc" Margin="0,0,8,0" Foreground="{StaticResource Modern.ForegroundSecondary}"/>
+                                            <TextBlock Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" Text="Desc" Margin="0,0,8,0" Foreground="{DynamicResource Modern.ForegroundSecondary}"/>
                                             <TextBox Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Text="{Binding Description}" Margin="0,0,0,8" Style="{StaticResource MatchingTextBox}" />
                                             
                                             <TextBox Grid.Row="2" Grid.ColumnSpan="3" VerticalContentAlignment="Top" AcceptsReturn="True" Text="{Binding Body}" Style="{StaticResource MatchingTextBox}" 
@@ -249,8 +249,8 @@
                 <Border Style="{StaticResource SettingsCardStyle}">
                     <StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
-                            <Border Width="32" Height="32" CornerRadius="8" Background="#78350F" Margin="0,0,12,0">
-                                <iconPacks:PackIconMaterial Kind="CloudDownload" Width="16" Height="16" Foreground="{StaticResource Modern.Warning}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            <Border Width="32" Height="32" CornerRadius="8" Background="{DynamicResource Modern.Warning}" Margin="0,0,12,0">
+                                <iconPacks:PackIconMaterial Kind="CloudDownload" Width="16" Height="16" Foreground="{DynamicResource Modern.TextOnAccent}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Border>
                             <TextBlock Text="Remote Configuration" Style="{StaticResource SettingsSectionHeaderStyle}"/>
                         </StackPanel>
@@ -276,7 +276,7 @@
                             </ItemsControl.ItemsPanel>
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <Border Background="{StaticResource Modern.BackgroundTertiary}" CornerRadius="6" Padding="12" Margin="0,0,0,8">
+                                    <Border Background="{DynamicResource Modern.BackgroundTertiary}" CornerRadius="6" Padding="12" Margin="0,0,0,8">
                                         <Grid>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="Auto" />
@@ -286,10 +286,10 @@
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
                                             
-                                            <TextBlock Grid.Column="0" VerticalAlignment="Center" Text="Url" Margin="0,0,8,0" Foreground="{StaticResource Modern.ForegroundSecondary}"/>
+                                            <TextBlock Grid.Column="0" VerticalAlignment="Center" Text="Url" Margin="0,0,8,0" Foreground="{DynamicResource Modern.ForegroundSecondary}"/>
                                             <TextBox Grid.Column="1" Text="{Binding Url}" Margin="0,0,16,0" Style="{StaticResource MatchingTextBox}" />
                                             
-                                            <TextBlock Grid.Column="2" VerticalAlignment="Center" Text="Key" Margin="0,0,8,0" Foreground="{StaticResource Modern.ForegroundSecondary}"/>
+                                            <TextBlock Grid.Column="2" VerticalAlignment="Center" Text="Key" Margin="0,0,8,0" Foreground="{DynamicResource Modern.ForegroundSecondary}"/>
                                             <TextBox Grid.Column="3" Text="{Binding ApiKey}" Margin="0,0,16,0" Style="{StaticResource MatchingTextBox}" />
                                             
                                             <Button x:Name="removeRemoteConfigsEndpointButton" Tag="{Binding}" Grid.Column="4" 
@@ -308,13 +308,20 @@
                 <Border Style="{StaticResource SettingsCardStyle}">
                     <StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
-                            <Border Width="32" Height="32" CornerRadius="8" Background="#7F1D1D" Margin="0,0,12,0">
-                                <iconPacks:PackIconMaterial Kind="Palette" Width="16" Height="16" Foreground="#F87171" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            <Border Width="32" Height="32" CornerRadius="8" Background="{DynamicResource Modern.Error}" Margin="0,0,12,0">
+                                <iconPacks:PackIconMaterial Kind="Palette" Width="16" Height="16" Foreground="{DynamicResource Modern.TextOnAccent}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Border>
                             <TextBlock Text="UI Customization" Style="{StaticResource SettingsSectionHeaderStyle}"/>
                         </StackPanel>
                         
                         <!-- Customization Options -->
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,12">
+                            <TextBlock Text="Theme mode" Style="{StaticResource SettingLabelStyle}" Margin="0,0,12,0"/>
+                            <mah:ToggleSwitch IsOn="{Binding UseDarkMode}"
+                                              OnContent="Dark"
+                                              OffContent="Light"
+                                              VerticalAlignment="Center"/>
+                        </StackPanel>
                         <CheckBox Content="Play a sound when a hit is found" IsChecked="{Binding PlaySoundOnHit}" Margin="0,8"/>
                         <CheckBox Content="Enable Word Wrap in text editor" IsChecked="{Binding WordWrap}" Margin="0,8,0,24"/>
 
@@ -431,7 +438,7 @@
                             </StackPanel>
                         </Grid>
                         
-                        <Separator Background="{StaticResource Modern.BorderSecondary}" Margin="0,24"/>
+                        <Separator Background="{DynamicResource Modern.BorderSecondary}" Margin="0,24"/>
 
                         <Grid>
                             <Grid.ColumnDefinitions>
@@ -465,7 +472,7 @@
                                 Margin="0,24,0,0">
                             <StackPanel Orientation="Horizontal">
                                 <iconPacks:PackIconMaterial Kind="Refresh" Width="14" Height="14" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                                <TextBlock Text="Reset Customization" VerticalAlignment="Center" Foreground="#1F2937"/>
+                                <TextBlock Text="Reset Customization" VerticalAlignment="Center" Foreground="{DynamicResource Modern.TextOnAccent}"/>
                             </StackPanel>
                         </Button>
                     </StackPanel>
@@ -475,8 +482,8 @@
 
         <!-- Action Buttons Footer -->
         <Border Grid.Row="1" 
-                Background="{StaticResource Modern.BackgroundSecondary}" 
-                BorderBrush="{StaticResource Modern.BorderSecondary}"
+                Background="{DynamicResource Modern.BackgroundSecondary}" 
+                BorderBrush="{DynamicResource Modern.BorderSecondary}"
                 BorderThickness="1"
                 CornerRadius="12" 
                 Padding="16" 

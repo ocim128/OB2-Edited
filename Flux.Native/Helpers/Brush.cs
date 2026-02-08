@@ -33,6 +33,16 @@ namespace Flux.Native.Helpers
             => new((Color)ColorConverter.ConvertFromString(hex));
 
         public static void SetAppColor(string resourceName, string color)
-            => Application.Current.Resources[resourceName] = new SolidColorBrush((Color)ColorConverter.ConvertFromString(color));
+        {
+            var targetColor = (Color)ColorConverter.ConvertFromString(color);
+
+            if (Application.Current.Resources[resourceName] is SolidColorBrush existingBrush && !existingBrush.IsFrozen)
+            {
+                existingBrush.Color = targetColor;
+                return;
+            }
+
+            Application.Current.Resources[resourceName] = new SolidColorBrush(targetColor);
+        }
     }
 }

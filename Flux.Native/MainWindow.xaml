@@ -10,17 +10,18 @@
         mc:Ignorable="d"
         Title="Flux - 0.3.3.9 [Akunlama MOD]" 
         MinWidth="800" MinHeight="600"
-        Background="{StaticResource Modern.BackgroundMain}"
+        Background="{DynamicResource Modern.BackgroundMain}"
         BorderThickness="0"
-        GlowBrush="{StaticResource Modern.ThemeMain}"
+        GlowBrush="{DynamicResource Modern.ThemeMain}"
         ResizeMode="CanResizeWithGrip"
-        WindowTitleBrush="{StaticResource Modern.BackgroundSecondary}"
-        NonActiveWindowTitleBrush="{StaticResource Modern.BackgroundMain}"
+        WindowTitleBrush="{DynamicResource Modern.BackgroundSecondary}"
+        NonActiveWindowTitleBrush="{DynamicResource Modern.BackgroundMain}"
         WindowTransitionsEnabled="False"
         WindowStartupLocation="CenterScreen"
         WindowState="Normal"
         TitleCharacterCasing="Normal"
-        TitleForeground="{StaticResource Modern.ForegroundMain}"
+        TitleForeground="{DynamicResource Modern.ForegroundMain}"
+        OverrideDefaultWindowCommandsBrush="{DynamicResource Modern.ForegroundMain}"
         TitleAlignment="Left"
         ShowMinButton="True"
         ShowMaxRestoreButton="True"
@@ -43,7 +44,7 @@
                           FontFamily="Segoe UI" 
                           FontSize="13" 
                           FontWeight="Medium" 
-                          Foreground="{StaticResource Modern.ForegroundMain}" 
+                          Foreground="{DynamicResource Modern.ForegroundMain}" 
                           VerticalAlignment="Center"
                           TextOptions.TextFormattingMode="Display"
                           TextOptions.TextRenderingMode="ClearType"/>
@@ -67,7 +68,7 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="Control">
                         <Rectangle StrokeThickness="2"
-                                   Stroke="{StaticResource Modern.ThemeAccent}"
+                                   Stroke="{DynamicResource Modern.ThemeAccent}"
                                    StrokeDashArray="2 1"
                                    RadiusX="4"
                                    RadiusY="4"
@@ -131,7 +132,7 @@
                             Padding="0"
                             Margin="0">
                         <iconPacks:PackIconMaterial x:Name="ToggleIcon" Kind="Menu" Width="20" Height="20" 
-                                                    Foreground="{StaticResource Modern.ForegroundSecondary}"
+                                                    Foreground="{DynamicResource Modern.ForegroundSecondary}"
                                                     VerticalAlignment="Center" HorizontalAlignment="Center">
                             <iconPacks:PackIconMaterial.RenderTransform>
                                 <RotateTransform x:Name="ToggleIconRotation" Angle="0" CenterX="10" CenterY="10"/>
@@ -147,13 +148,13 @@
                         <TextBlock x:Name="AppTitle" Text="Flux" 
                                    Style="{StaticResource SidebarText}"
                                    FontSize="15" FontWeight="SemiBold"
-                                   Foreground="{StaticResource Modern.ForegroundMain}"
+                                   Foreground="{DynamicResource Modern.ForegroundMain}"
                                    Margin="10,0,0,0" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Grid>
 
                 <!-- Separator -->
-                <Border Grid.Row="0" Height="1" Background="{StaticResource Modern.BorderSecondary}" 
+                <Border Grid.Row="0" Height="1" Background="{DynamicResource Modern.BorderSecondary}" 
                         VerticalAlignment="Bottom" Margin="16,0,16,0" Opacity="0.5"/>
 
                 <!-- Navigation Items -->
@@ -162,7 +163,7 @@
                         
                         <!-- Section Header - MAIN -->
                         <TextBlock x:Name="SectionMain" Text="MAIN" Style="{StaticResource SidebarText}" 
-                                   FontSize="11" FontWeight="Bold" Foreground="{StaticResource Modern.ForegroundMuted}" 
+                                   FontSize="11" FontWeight="Bold" Foreground="{DynamicResource Modern.ForegroundMuted}" 
                                    Margin="24,12,0,8" Opacity="0.7"/>
 
                         <!-- Home -->
@@ -194,7 +195,7 @@
                                 </StackPanel>
                                 <iconPacks:PackIconMaterial x:Name="ConfigsChevron" Kind="ChevronDown" Width="10" Height="10" 
                                                             VerticalAlignment="Center" HorizontalAlignment="Right"
-                                                            Foreground="{StaticResource Modern.ForegroundMuted}">
+                                                            Foreground="{DynamicResource Modern.ForegroundMuted}">
                                     <iconPacks:PackIconMaterial.RenderTransform>
                                         <RotateTransform x:Name="ConfigsChevronRotation" Angle="0" CenterX="5" CenterY="5"/>
                                     </iconPacks:PackIconMaterial.RenderTransform>
@@ -213,7 +214,7 @@
                                     ToolTip="Metadata">
                                 <StackPanel Orientation="Horizontal">
                                     <iconPacks:PackIconMaterial Kind="TagText" Width="14" Height="14" Margin="0,0,8,0"
-                                                                 Foreground="{StaticResource Modern.ForegroundMuted}" VerticalAlignment="Center"/>
+                                                                 Foreground="{DynamicResource Modern.ForegroundMuted}" VerticalAlignment="Center"/>
                                     <TextBlock Text="Metadata" Style="{StaticResource SidebarText}"/>
                                 </StackPanel>
                             </Button>
@@ -222,7 +223,7 @@
                                     ToolTip="Readme">
                                 <StackPanel Orientation="Horizontal">
                                     <iconPacks:PackIconMaterial Kind="FileDocument" Width="14" Height="14" Margin="0,0,8,0"
-                                                                 Foreground="{StaticResource Modern.ForegroundMuted}" VerticalAlignment="Center"/>
+                                                                 Foreground="{DynamicResource Modern.ForegroundMuted}" VerticalAlignment="Center"/>
                                     <TextBlock Text="Readme" Style="{StaticResource SidebarText}"/>
                                 </StackPanel>
                             </Button>
@@ -231,7 +232,7 @@
                                     ToolTip="Stacker">
                                 <StackPanel Orientation="Horizontal">
                                     <iconPacks:PackIconMaterial Kind="LayersTriple" Width="14" Height="14" Margin="0,0,8,0"
-                                                                 Foreground="{StaticResource Modern.ForegroundMuted}" VerticalAlignment="Center"/>
+                                                                 Foreground="{DynamicResource Modern.ForegroundMuted}" VerticalAlignment="Center"/>
                                     <TextBlock Text="Stacker" Style="{StaticResource SidebarText}"/>
                                 </StackPanel>
                             </Button>
@@ -240,7 +241,7 @@
                                     ToolTip="LoliCode">
                                 <StackPanel Orientation="Horizontal">
                                     <iconPacks:PackIconMaterial Kind="CodeBraces" Width="14" Height="14" Margin="0,0,8,0"
-                                                                 Foreground="{StaticResource Modern.ForegroundMuted}" VerticalAlignment="Center"/>
+                                                                 Foreground="{DynamicResource Modern.ForegroundMuted}" VerticalAlignment="Center"/>
                                     <TextBlock Text="LoliCode" Style="{StaticResource SidebarText}"/>
                                 </StackPanel>
                             </Button>
@@ -249,7 +250,7 @@
                                     ToolTip="C# Code">
                                 <StackPanel Orientation="Horizontal">
                                     <iconPacks:PackIconMaterial Kind="LanguageCsharp" Width="14" Height="14" Margin="0,0,8,0"
-                                                                 Foreground="{StaticResource Modern.ForegroundMuted}" VerticalAlignment="Center"/>
+                                                                 Foreground="{DynamicResource Modern.ForegroundMuted}" VerticalAlignment="Center"/>
                                     <TextBlock Text="C# Code" Style="{StaticResource SidebarText}"/>
                                 </StackPanel>
                             </Button>
@@ -258,7 +259,7 @@
                                     ToolTip="Config Settings">
                                 <StackPanel Orientation="Horizontal">
                                     <iconPacks:PackIconMaterial Kind="CogOutline" Width="14" Height="14" Margin="0,0,8,0"
-                                                                 Foreground="{StaticResource Modern.ForegroundMuted}" VerticalAlignment="Center"/>
+                                                                 Foreground="{DynamicResource Modern.ForegroundMuted}" VerticalAlignment="Center"/>
                                     <TextBlock Text="Settings" Style="{StaticResource SidebarText}"/>
                                 </StackPanel>
                             </Button>
@@ -266,7 +267,7 @@
 
                         <!-- Section Header - RESOURCES -->
                         <TextBlock x:Name="SectionResources" Text="RESOURCES" Style="{StaticResource SidebarText}" 
-                                   FontSize="11" FontWeight="Bold" Foreground="{StaticResource Modern.ForegroundMuted}" 
+                                   FontSize="11" FontWeight="Bold" Foreground="{DynamicResource Modern.ForegroundMuted}" 
                                    Margin="24,16,0,8" Opacity="0.7"/>
 
                         <!-- Hits -->
@@ -298,7 +299,7 @@
 
                         <!-- Section Header - SYSTEM -->
                         <TextBlock x:Name="SectionSystem" Text="SYSTEM" Style="{StaticResource SidebarText}" 
-                                   FontSize="11" FontWeight="Bold" Foreground="{StaticResource Modern.ForegroundMuted}" 
+                                   FontSize="11" FontWeight="Bold" Foreground="{DynamicResource Modern.ForegroundMuted}" 
                                    Margin="24,16,0,8" Opacity="0.7"/>
 
                         <!-- Tools -->
@@ -343,7 +344,7 @@
                 <!-- Bottom Actions -->
                 <StackPanel Grid.Row="2" Margin="2,0,2,4">
                     <!-- Separator -->
-                    <Border x:Name="BottomSeparator" Height="1" Background="{StaticResource Modern.BorderSecondary}" 
+                    <Border x:Name="BottomSeparator" Height="1" Background="{DynamicResource Modern.BorderSecondary}" 
                             Margin="4,0,4,4" Opacity="0.5"/>
                     
                     <Button x:Name="menuOptionCheckUpdate" Style="{StaticResource SidebarNavButton}" Click="HandleNavigationClick" Tag="CheckUpdate" 
@@ -361,15 +362,23 @@
                             <TextBlock x:Name="menuOptionAboutText" Text="About" Style="{StaticResource SidebarText}" FontSize="13"/>
                         </StackPanel>
                     </Button>
+
+                    <Button x:Name="menuOptionThemeToggle" Style="{StaticResource SidebarNavButton}" Click="ToggleThemeMode_Click"
+                            ToolTip="Toggle Light/Dark Mode" Padding="8,6" Margin="2,1" MinHeight="36">
+                        <StackPanel Orientation="Horizontal">
+                            <iconPacks:PackIconMaterial Kind="Tune" Style="{StaticResource SidebarIcon}" Width="18" Height="18" Margin="0,0,10,0"/>
+                            <TextBlock x:Name="menuOptionThemeToggleText" Text="Theme: Light" Style="{StaticResource SidebarText}" FontSize="13"/>
+                        </StackPanel>
+                    </Button>
                     
-                    <TextBlock x:Name="VersionText" Text="v0.3.3.9" Foreground="{StaticResource Modern.ForegroundMuted}" 
+                    <TextBlock x:Name="VersionText" Text="v0.3.3.9" Foreground="{DynamicResource Modern.ForegroundMuted}" 
                                FontSize="11" HorizontalAlignment="Center" Margin="0,4,0,0" Opacity="0.5"/>
                 </StackPanel>
             </Grid>
         </Border>
 
         <!-- Main Content Area -->
-        <Border Grid.Column="1" Background="{StaticResource Modern.BackgroundMain}" Padding="20">
+        <Border Grid.Column="1" Background="{DynamicResource Modern.BackgroundMain}" Padding="20">
             <Grid>
                 <Frame x:Name="MainFrame" NavigationUIVisibility="Hidden" Background="Transparent" />
                 
@@ -380,9 +389,10 @@
                     HorizontalAlignment="Center"
                     VerticalAlignment="Center"
                     Width="60" Height="60"
-                    Foreground="{StaticResource Modern.ThemeMain}"/>
+                    Foreground="{DynamicResource Modern.ThemeMain}"/>
             </Grid>
         </Border>
     </Grid>
 
 </mah:MetroWindow>
+

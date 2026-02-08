@@ -23,7 +23,7 @@
         
         <!-- Compact Section Card -->
         <Style x:Key="SectionCard" TargetType="Border">
-            <Setter Property="Background" Value="#C0353535"/>
+            <Setter Property="Background" Value="{DynamicResource Modern.BackgroundSecondary}"/>
             <Setter Property="CornerRadius" Value="8"/>
             <Setter Property="Padding" Value="16"/>
             <Setter Property="Margin" Value="0,0,0,12"/>
@@ -33,14 +33,14 @@
         <Style x:Key="SectionHeaderText" TargetType="TextBlock">
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Foreground" Value="#FF1E90FF"/>
+            <Setter Property="Foreground" Value="{DynamicResource Modern.ThemeMain}"/>
             <Setter Property="Margin" Value="0,0,0,10"/>
         </Style>
 
         <!-- Compact Label -->
         <Style x:Key="CompactLabel" TargetType="TextBlock">
             <Setter Property="VerticalAlignment" Value="Center"/>
-            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Foreground" Value="{DynamicResource Modern.ForegroundMain}"/>
             <Setter Property="Margin" Value="0,0,8,0"/>
         </Style>
 
@@ -54,7 +54,7 @@
             <Setter Property="Height" Value="28"/>
         </Style>
         <Style x:Key="CompactCheckBox" TargetType="CheckBox">
-            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Foreground" Value="{DynamicResource Modern.ForegroundMain}"/>
             <Setter Property="Margin" Value="0,6,0,0"/>
         </Style>
     </Page.Resources>
@@ -68,18 +68,18 @@
         </Grid.RowDefinitions>
 
         <!-- Header -->
-        <Border Grid.Row="0" Background="#C0353535" CornerRadius="8" Padding="16" Margin="0,0,0,12">
+        <Border Grid.Row="0" Background="{DynamicResource Modern.BackgroundSecondary}" CornerRadius="8" Padding="16" Margin="0,0,0,12">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
-                <Border Background="#FF1E90FF" CornerRadius="10" Padding="10" VerticalAlignment="Center">
+                <Border Background="{DynamicResource Modern.ThemeMain}" CornerRadius="10" Padding="10" VerticalAlignment="Center">
                     <ContentControl Content="{StaticResource Icon.Cog}" Width="18" Height="18" Foreground="White"/>
                 </Border>
                 <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
-                    <TextBlock Text="Job Configuration" FontSize="16" FontWeight="SemiBold" Foreground="White"/>
-                    <TextBlock Text="Proxy Check" FontSize="12" Foreground="#FF9CA3AF"/>
+                    <TextBlock Text="Job Configuration" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource Modern.ForegroundMain}"/>
+                    <TextBlock Text="Proxy Check" FontSize="12" Foreground="{DynamicResource Modern.ForegroundSecondary}"/>
                 </StackPanel>
             </Grid>
         </Border>
@@ -88,12 +88,12 @@
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
             <StackPanel>
                 <!-- Start Condition -->
-                <Border Style="{StaticResource SectionCard}">
+                <Border Style="{DynamicResource Dialog.SectionCard}">
                     <StackPanel>
-                        <TextBlock Text="Start Condition" Style="{StaticResource SectionHeaderText}"/>
+                        <TextBlock Text="Start Condition" Style="{DynamicResource Dialog.SectionHeader}"/>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                            <RadioButton x:Name="startInButton" Content="Start in" IsChecked="{Binding StartInMode}" Foreground="White" FontSize="11" Margin="0,0,12,0"/>
-                            <RadioButton x:Name="startAtButton" Content="Start at" IsChecked="{Binding StartAtMode}" Foreground="White" FontSize="11"/>
+                            <RadioButton x:Name="startInButton" Content="Start in" IsChecked="{Binding StartInMode}" Foreground="{DynamicResource Modern.ForegroundMain}" FontSize="11" Margin="0,0,12,0"/>
+                            <RadioButton x:Name="startAtButton" Content="Start at" IsChecked="{Binding StartAtMode}" Foreground="{DynamicResource Modern.ForegroundMain}" FontSize="11"/>
                         </StackPanel>
                         <TabControl x:Name="startConditionTabControl" Background="Transparent" BorderThickness="0">
                             <TabControl.ItemContainerStyle>
@@ -114,9 +114,9 @@
                 </Border>
 
                 <!-- Settings -->
-                <Border Style="{StaticResource SectionCard}">
+                <Border Style="{DynamicResource Dialog.SectionCard}">
                     <StackPanel>
-                        <TextBlock Text="Settings" Style="{StaticResource SectionHeaderText}"/>
+                        <TextBlock Text="Settings" Style="{DynamicResource Dialog.SectionHeader}"/>
 
                         <Grid Margin="0,4,0,0">
                             <Grid.ColumnDefinitions>

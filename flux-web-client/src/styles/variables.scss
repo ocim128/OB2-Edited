@@ -9,6 +9,7 @@ $xlarge: 1200px;
 */
 
 :root {
+    /* Dark theme (default) */
     --fg-primary: #C2C4C6;
     --fg-light: #ffffff;
     --fg-inactive: #6e6e6e;
@@ -40,20 +41,77 @@ $xlarge: 1200px;
     --chart-series-3: #3376BD;
     --chart-series-4: #EDAE49;
     --chart-series-5: #E63946;
-
-    /* 
-    Other cool colors for charts:
-    --chart-series-1: #003f5c;
-    --chart-series-2: #58508d;
-    --chart-series-3: #bc5090;
-    --chart-series-4: #ff6361;
-    --chart-series-5: #ffa600;
-
-    --chart-series-1: #325af5;
-    --chart-series-2: #ee5e6e;
-    --chart-series-3: #3ab75f;
-    --chart-series-4: #f5a132;
-    --chart-series-5: #fccc5b;
-    */
-
 }
+
+/* Light theme - matches Native app's light palette */
+:root.light-theme {
+    --fg-primary: #0F172A;
+    --fg-light: #1E293B;
+    --fg-inactive: #94A3B8;
+    --fg-inactive-light: #64748B;
+    --bg-primary: #F8FAFC;
+    --bg-variable: #DBEAFE;
+    --bg-interpolated: #DCFCE7;
+    --fg-accent: #2563EB;
+    --fg-accent-light: #3B82F6;
+    --bg-secondary: #FFFFFF;
+    --bg-tertiary: #E2E8F0;
+    --bg-accent: #EFF6FF;
+    --fg-good: #10B981;
+    --fg-bad: #EF4444;
+    --fg-custom: #F97316;
+    --fg-tocheck: #14B8A6;
+    --fg-banned: #8B5CF6;
+    --fg-retry: #EAB308;
+    --fg-error: #DC2626;
+    --bg-bad: #FEE2E2;
+    --fg-gold: #F59E0B;
+    --fg-silver: #6B7280;
+    --fg-bronze: #D97706;
+    --fg-variable: #3B82F6;
+    --fg-interpolated: #10B981;
+    
+    --chart-series-1: #6366F1;
+    --chart-series-2: #0891B2;
+    --chart-series-3: #2563EB;
+    --chart-series-4: #F59E0B;
+    --chart-series-5: #EF4444;
+}
+
+/* System preference detection (auto mode) */
+@media (prefers-color-scheme: light) {
+    :root:not(.dark-theme) {
+        --fg-primary: #0F172A;
+        --fg-light: #1E293B;
+        --fg-inactive: #94A3B8;
+        --fg-inactive-light: #64748B;
+        --bg-primary: #F8FAFC;
+        --bg-variable: #DBEAFE;
+        --bg-interpolated: #DCFCE7;
+        --fg-accent: #2563EB;
+        --fg-accent-light: #3B82F6;
+        --bg-secondary: #FFFFFF;
+        --bg-tertiary: #E2E8F0;
+        --bg-accent: #EFF6FF;
+        --fg-good: #10B981;
+        --fg-bad: #EF4444;
+        --fg-custom: #F97316;
+        --fg-tocheck: #14B8A6;
+        --fg-banned: #8B5CF6;
+        --fg-retry: #EAB308;
+        --fg-error: #DC2626;
+        --bg-bad: #FEE2E2;
+        --fg-gold: #F59E0B;
+        --fg-silver: #6B7280;
+        --fg-bronze: #D97706;
+        --fg-variable: #3B82F6;
+        --fg-interpolated: #10B981;
+        
+        --chart-series-1: #6366F1;
+        --chart-series-2: #0891B2;
+        --chart-series-3: #2563EB;
+        --chart-series-4: #F59E0B;
+        --chart-series-5: #EF4444;
+    }
+}
+

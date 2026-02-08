@@ -38,12 +38,12 @@
             <Setter Property="TextWrapping" Value="NoWrap" />
             <Setter Property="AcceptsReturn" Value="False" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
-            <Setter Property="Background" Value="#0E1726" />
-            <Setter Property="Foreground" Value="#F8FAFC" />
-            <Setter Property="BorderBrush" Value="#4C72FF" />
+            <Setter Property="Background" Value="{DynamicResource Modern.BackgroundInput}" />
+            <Setter Property="Foreground" Value="{DynamicResource Modern.ForegroundMain}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Modern.BorderFocus}" />
             <Setter Property="BorderThickness" Value="1.4" />
-            <Setter Property="CaretBrush" Value="#F8FAFC" />
-            <Setter Property="SelectionBrush" Value="#81A1FF" />
+            <Setter Property="CaretBrush" Value="{DynamicResource Modern.ForegroundMain}" />
+            <Setter Property="SelectionBrush" Value="{DynamicResource Modern.ThemeMain}" />
             <Setter Property="mah:ControlsHelper.CornerRadius" Value="10" />
             <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
             <Setter Property="TextOptions.TextRenderingMode" Value="ClearType" />
@@ -145,7 +145,7 @@
                         Style="{StaticResource DebuggerCommandButton}"
                         MinWidth="140"
                         Margin="0,0,8,0"
-                        Background="#F59E0B"
+                        Background="{DynamicResource Modern.Warning}"
                         Foreground="{StaticResource Modern.TextOnAccent}"
                         ToolTip="Show only the essentials (block inspector, input &amp; log)"
                         AutomationProperties.Name="Toggle focus mode"
@@ -199,7 +199,7 @@
                     <!-- Input Data - Primary Focus - Enhanced to prevent text truncation -->
                     <StackPanel Grid.Column="0">
                         <TextBlock Text="INPUT DATA"
-                                   Foreground="#A0AEC0"
+                                   Foreground="{DynamicResource Modern.ForegroundMuted}"
                                    FontFamily="Segoe UI"
                                    FontSize="15"
                                    FontWeight="Medium"
@@ -309,7 +309,7 @@
                             <StackPanel Orientation="Horizontal"
                                         Margin="0,0,24,0">
                                 <TextBlock Text="Type"
-                                           Foreground="#6B7280"
+                                           Foreground="{DynamicResource Modern.ForegroundMuted}"
                                            FontFamily="Segoe UI"
                                            FontSize="11"
                                            VerticalAlignment="Center"
@@ -356,7 +356,7 @@
         </Border>
         <!-- Results Panel -->
         <Border Grid.Row="3"
-                Background="#C0303030"
+                Background="{DynamicResource Modern.BackgroundTertiary}"
                 CornerRadius="8"
                 Padding="0"
                 MinHeight="320">
@@ -378,9 +378,9 @@
                                 <Style TargetType="Button"
                                        BasedOn="{StaticResource DebuggerTabButton}">
                                     <Setter Property="Background"
-                                            Value="#2563EB" />
+                                            Value="{DynamicResource Modern.ThemeMain}" />
                                     <Setter Property="Foreground"
-                                            Value="#F8FAFC" />
+                                            Value="{DynamicResource Modern.TextOnAccent}" />
                                     <Style.Triggers>
                                         <!-- Hide tab buttons when window is small -->
                                         <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=Page}, Path=ActualWidth, Converter={StaticResource LessThanConverter}, ConverterParameter=600}" Value="True">
@@ -416,7 +416,7 @@
                             <avalonEdit:TextEditor x:Name="logRTB" IsReadOnly="True"
                                                    ShowLineNumbers="False"
                                                    FontFamily="Consolas" FontSize="13.5"
-                                                   Background="#0D1117" Foreground="#E6EDF3"
+                                                   Background="{DynamicResource Modern.BackgroundInput}" Foreground="{DynamicResource Modern.ForegroundMain}"
                                                    HorizontalScrollBarVisibility="Auto"
                                                    VerticalScrollBarVisibility="Visible"
                                                    WordWrap="True"
@@ -432,10 +432,10 @@
 
                         <!-- Search Controls - Reshaped UI -->
                         <Border Grid.Row="2"
-                                Background="#1C2433"
+                                Background="{DynamicResource Modern.BackgroundTertiary}"
                                 CornerRadius="10"
                                 Padding="18,16"
-                                BorderBrush="#27324A"
+                                BorderBrush="{DynamicResource Modern.BorderMain}"
                                 BorderThickness="1"
                                 x:Name="SearchControlsArea"
                                 Visibility="Collapsed">
@@ -487,10 +487,10 @@
                                 <!-- Match navigation -->
                                 <Border Grid.Row="2"
                                         Grid.Column="0"
-                                        Background="#121b29"
+                                        Background="{DynamicResource Modern.BackgroundTertiary}"
                                         CornerRadius="8"
                                         Padding="6,4"
-                                        BorderBrush="#27324A"
+                                        BorderBrush="{DynamicResource Modern.BorderMain}"
                                         BorderThickness="1"
                                         Margin="0,0,18,0">
                                     <StackPanel Orientation="Horizontal">
@@ -510,9 +510,9 @@
                                         <Border Width="84"
                                                 Height="32"
                                                 Margin="6,0"
-                                                Background="#1f2a3d"
+                                                Background="{DynamicResource Modern.BackgroundElevated}"
                                                 CornerRadius="6"
-                                                BorderBrush="#303d55"
+                                                BorderBrush="{DynamicResource Modern.BorderMain}"
                                                 BorderThickness="1">
                                             <TextBlock Text="{Binding MatchInfo}"
                                                        Foreground="{StaticResource Modern.ForegroundMain}"
@@ -550,8 +550,8 @@
                                             Width="36"
                                             Height="36"
                                             Margin="0,0,10,0"
-                                            Background="#DC2626"
-                                            Foreground="{StaticResource Modern.ForegroundMain}"
+                                            Background="{DynamicResource Modern.Error}"
+                                            Foreground="{StaticResource Modern.TextOnAccent}"
                                             ToolTip="Clear Search (Esc)"
                                             AutomationProperties.Name="Clear search"
                                             AutomationProperties.AutomationId="DbgSearchClear">
@@ -565,7 +565,7 @@
                                             Height="36"
                                             Margin="0,0,10,0"
                                             Background="{Binding IsAutoScrollEnabled, Converter={StaticResource BoolToColorConverter}, ConverterParameter='#059669|#DC2626'}"
-                                            Foreground="{StaticResource Modern.ForegroundMain}"
+                                            Foreground="{StaticResource Modern.TextOnAccent}"
                                             ToolTip="{Binding AutoScrollButtonText}"
                                             AutomationProperties.Name="Toggle auto scroll"
                                             AutomationProperties.AutomationId="DbgToggleAutoScroll">
@@ -578,8 +578,8 @@
                                             Width="36"
                                             Height="36"
                                             Margin="0,0,10,0"
-                                            Background="#0EA5E9"
-                                            Foreground="{StaticResource Modern.ForegroundMain}"
+                                            Background="{DynamicResource Modern.ThemeSecondary}"
+                                            Foreground="{StaticResource Modern.TextOnAccent}"
                                             ToolTip="Previous Block (Ctrl+Up)"
                                             AutomationProperties.Name="Previous block"
                                             AutomationProperties.AutomationId="DbgBlockPrevious">
@@ -592,8 +592,8 @@
                                             Width="36"
                                             Height="36"
                                             Margin="0,0,10,0"
-                                            Background="#0EA5E9"
-                                            Foreground="{StaticResource Modern.ForegroundMain}"
+                                            Background="{DynamicResource Modern.ThemeSecondary}"
+                                            Foreground="{StaticResource Modern.TextOnAccent}"
                                             ToolTip="Next Block (Ctrl+Down)"
                                             AutomationProperties.Name="Next block"
                                             AutomationProperties.AutomationId="DbgBlockNext">
@@ -633,9 +633,9 @@
                                 <Style TargetType="Button"
                                        BasedOn="{StaticResource DebuggerTabButton}">
                                     <Setter Property="Background"
-                                            Value="#7C3AED" />
+                                            Value="{DynamicResource Modern.ThemeAccent}" />
                                     <Setter Property="Foreground"
-                                            Value="#F8FAFC" />
+                                            Value="{DynamicResource Modern.TextOnAccent}" />
                                     <Style.Triggers>
                                         <!-- Hide tab buttons when window is small -->
                                         <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=Page}, Path=ActualWidth, Converter={StaticResource LessThanConverter}, ConverterParameter=600}"
@@ -673,14 +673,14 @@
                                     <!-- Optimized Variable Count Indicator -->
                                     <Border HorizontalAlignment="Right"
                                             VerticalAlignment="Top"
-                                            Background="#30000000"
+                                            Background="{DynamicResource Modern.BackgroundTertiary}"
                                             CornerRadius="12"
                                             Padding="8,4"
                                             Margin="0,8,8,0"
                                             Panel.ZIndex="10"
                                             RenderOptions.ClearTypeHint="Enabled">
                                         <TextBlock Text="{Binding Variables.Count, StringFormat='Variables: {0}', Mode=OneWay}"
-                                                   Foreground="#A78BFA"
+                                                   Foreground="{DynamicResource Modern.ThemeAccent}"
                                                    FontFamily="Segoe UI"
                                                    FontSize="10"
                                                    FontWeight="Medium"
@@ -689,8 +689,8 @@
                                     <!-- Remove outer ScrollViewer to avoid double scrollbars; rely on inner WinForms RichTextBox scrollbar -->
                                     <!-- AvalonEdit Variables -->
                                     <ListView ItemsSource="{Binding Variables}"
-                                              Background="#161616"
-                                              Foreground="Gainsboro"
+                                              Background="{DynamicResource Modern.BackgroundInput}"
+                                              Foreground="{DynamicResource Modern.ForegroundMain}"
                                               BorderThickness="0"
                                               ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                               ScrollViewer.VerticalScrollBarVisibility="Auto"
@@ -698,11 +698,11 @@
                                         <ListView.Resources>
                                             <Style TargetType="GridViewColumnHeader">
                                                 <Setter Property="HorizontalContentAlignment" Value="Left" />
-                                                <Setter Property="Background" Value="#1F2937" />
-                                                <Setter Property="Foreground" Value="#9CA3AF" />
+                                                <Setter Property="Background" Value="{DynamicResource Modern.BackgroundTertiary}" />
+                                                <Setter Property="Foreground" Value="{DynamicResource Modern.ForegroundMuted}" />
                                                 <Setter Property="Padding" Value="8,6" />
                                                 <Setter Property="BorderThickness" Value="0,0,1,1" />
-                                                <Setter Property="BorderBrush" Value="#374151" />
+                                                <Setter Property="BorderBrush" Value="{DynamicResource Modern.BorderMain}" />
                                             </Style>
                                             <Style TargetType="ListViewItem">
                                                 <Setter Property="HorizontalContentAlignment" Value="Left" />
@@ -710,13 +710,14 @@
                                                 <Setter Property="BorderThickness" Value="0" />
                                                 <Style.Triggers>
                                                     <Trigger Property="IsMouseOver" Value="True">
-                                                        <Setter Property="Background" Value="#2D3748" />
+                                                        <Setter Property="Background" Value="{DynamicResource Modern.BackgroundHover}" />
                                                     </Trigger>
                                                     <Trigger Property="IsSelected" Value="True">
-                                                        <Setter Property="Background" Value="#374151" />
+                                                        <Setter Property="Background" Value="{DynamicResource Modern.ThemeMain}" />
+                                                        <Setter Property="Foreground" Value="{DynamicResource Modern.TextOnAccent}" />
                                                     </Trigger>
                                                     <DataTrigger Binding="{Binding MarkedForCapture}" Value="True">
-                                                        <Setter Property="Foreground" Value="#F87171" /> 
+                                                        <Setter Property="Foreground" Value="{DynamicResource Modern.Error}" /> 
                                                     </DataTrigger>
                                                 </Style.Triggers>
                                             </Style>
@@ -753,9 +754,9 @@
                                 <Style TargetType="Button"
                                        BasedOn="{StaticResource DebuggerTabButton}">
                                     <Setter Property="Background"
-                                            Value="#DC2626" />
+                                            Value="{DynamicResource Modern.Error}" />
                                     <Setter Property="Foreground"
-                                            Value="#F8FAFC" />
+                                            Value="{DynamicResource Modern.TextOnAccent}" />
                                     <Style.Triggers>
                                         <!-- Hide tab buttons when window is small -->
                                         <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=Page}, Path=ActualWidth, Converter={StaticResource LessThanConverter}, ConverterParameter=600}"
@@ -793,14 +794,14 @@
                                     <!-- Optimized HTML Status Indicator -->
                                     <Border HorizontalAlignment="Right"
                                             VerticalAlignment="Top"
-                                            Background="#30000000"
+                                            Background="{DynamicResource Modern.BackgroundTertiary}"
                                             CornerRadius="12"
                                             Padding="8,4"
                                             Margin="0,8,8,0"
                                             Panel.ZIndex="10"
                                             RenderOptions.ClearTypeHint="Enabled">
                                         <TextBlock Text="HTML Preview"
-                                                   Foreground="#F87171"
+                                                   Foreground="{DynamicResource Modern.Error}"
                                                    FontFamily="Segoe UI"
                                                    FontSize="10"
                                                    FontWeight="Medium"
@@ -820,6 +821,7 @@
         </Border>
     </Grid>
 </Page>
+
 
 
 

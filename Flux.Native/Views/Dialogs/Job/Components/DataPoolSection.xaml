@@ -1,0 +1,170 @@
+<UserControl x:Class="Flux.Native.Views.Dialogs.Job.Components.DataPoolSection"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:Flux.Native.Views.Dialogs.Job"
+             mc:Ignorable="d" 
+             d:DesignHeight="300" d:DesignWidth="400">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+        
+        <!-- DataTemplates for each DataPool type -->
+        <DataTemplate DataType="{x:Type local:WordlistDataPoolOptionsViewModel}">
+            <StackPanel>
+                <Border Background="#FF333333" CornerRadius="4" Padding="8" Margin="0,0,0,8"
+                       Visibility="{Binding HasWordlist, Converter={StaticResource ResourceKey=BoolToVis}}">
+                    <TextBlock Text="{Binding Info}" FontSize="10" Foreground="White" TextWrapping="Wrap"/>
+                </Border>
+                <StackPanel Orientation="Horizontal">
+                    <Button Click="SelectWordlist"
+                           Margin="0,0,6,0"
+                           Padding="8,4"
+                           FontSize="10"
+                           HorizontalAlignment="Left"
+                           Style="{StaticResource StyledPrimaryButton}">
+                        <StackPanel Orientation="Horizontal">
+                            <ContentControl Content="{StaticResource Icon.FolderOpen}" Width="10" Height="10"/>
+                            <TextBlock Text="Select Wordlist" VerticalAlignment="Center" Margin="4,0,0,0"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Click="AddWordlist"
+                           Padding="8,4"
+                           FontSize="10"
+                           HorizontalAlignment="Left"
+                           Style="{StaticResource StyledSuccessButton}">
+                        <StackPanel Orientation="Horizontal">
+                            <ContentControl Content="{StaticResource Icon.Plus}" Width="10" Height="10"/>
+                            <TextBlock Text="Add Wordlist" VerticalAlignment="Center" Margin="4,0,0,0"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </StackPanel>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type local:FileDataPoolOptionsViewModel}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="auto" />
+                    <ColumnDefinition Width="auto" />
+                </Grid.ColumnDefinitions>
+                <Label VerticalAlignment="Center" Grid.Column="0" FontSize="10" Foreground="#FFB0B0B0">File name</Label>
+                <TextBox Grid.Column="1" Text="{Binding FileName, Mode=TwoWay}" Margin="5,0"/>
+                <Button Tag="{Binding}" Grid.Column="2" 
+                        Click="SelectFileForDataPool" 
+                        Margin="5,0,5,0" Style="{StaticResource StyledPrimaryButton}" Padding="4">
+                    <StackPanel Orientation="Horizontal">
+                         <ContentControl Content="{StaticResource Icon.FolderFill}" Width="12" Height="12"/>
+                    </StackPanel>
+                </Button>
+                <ComboBox Grid.Column="3"
+                          Margin="5,0,0,0"
+                          ItemsSource="{Binding DataContext.WordlistTypes, RelativeSource={RelativeSource AncestorType=ContentControl}}"
+                          SelectedValue="{Binding WordlistType}"
+                          HorizontalAlignment="Left" Style="{StaticResource CleanComboBox}"/>
+            </Grid>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type local:RangeDataPoolOptionsViewModel}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="auto" />
+                    <ColumnDefinition Width="auto" />
+                </Grid.ColumnDefinitions>
+                
+                <!-- Range inputs omitted for brevity in snippet, copying full content logic -->
+                <Label Grid.Column="0" VerticalAlignment="Center" FontSize="10" Foreground="#FFB0B0B0">Start</Label>
+                <TextBox Grid.Column="1" Text="{Binding Start}" Margin="4,0"/>
+                
+                <Label Grid.Column="2" VerticalAlignment="Center" FontSize="10" Foreground="#FFB0B0B0">Amount</Label>
+                <TextBox Grid.Column="3" Text="{Binding Amount}" Margin="4,0"/>
+                
+                <Label Grid.Column="4" VerticalAlignment="Center" FontSize="10" Foreground="#FFB0B0B0">Step</Label>
+                <TextBox Grid.Column="5" Text="{Binding Step}" Margin="4,0"/>
+                
+                <CheckBox Grid.Column="6" Content="Pad" IsChecked="{Binding Pad}" VerticalAlignment="Center" Margin="5,0"/>
+                
+                <ComboBox Grid.Column="7"
+                          ItemsSource="{Binding DataContext.WordlistTypes, RelativeSource={RelativeSource AncestorType=ContentControl}}"
+                          SelectedValue="{Binding WordlistType}"
+                          HorizontalAlignment="Left" Style="{StaticResource CleanComboBox}" Width="80"/>
+            </Grid>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type local:CombinationsDataPoolOptionsViewModel}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="auto" />
+                    <ColumnDefinition Width="auto" />
+                </Grid.ColumnDefinitions>
+                <Label Grid.Column="0" VerticalAlignment="Center" FontSize="10" Foreground="#FFB0B0B0">CharSet</Label>
+                <TextBox Grid.Column="1" Text="{Binding CharSet}" Margin="4,0"/>
+                
+                <Label Grid.Column="2" VerticalAlignment="Center" FontSize="10" Foreground="#FFB0B0B0" Margin="4,0,0,0">Length</Label>
+                <TextBox Grid.Column="3" Text="{Binding Length}" Width="40"/>
+            </Grid>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type local:InfiniteDataPoolOptionsViewModel}">
+            <StackPanel Orientation="Horizontal">
+                <Label VerticalAlignment="Center" FontSize="10" Foreground="#FFB0B0B0">Wordlist Type</Label>
+                <ComboBox Margin="5,0,0,0"
+                          ItemsSource="{Binding DataContext.WordlistTypes, RelativeSource={RelativeSource AncestorType=ContentControl}}"
+                          SelectedValue="{Binding WordlistType}"
+                          HorizontalAlignment="Left" Style="{StaticResource CleanComboBox}"/>
+            </StackPanel>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <Border Style="{StaticResource SectionCard}" Margin="8,0,0,12">
+        <StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                <ContentControl Style="{StaticResource Icon.Size16}"
+                                Content="{StaticResource Icon.Database}"
+                                Foreground="{StaticResource Icon.SecondaryBlue}"
+                                VerticalAlignment="Center"/>
+                <StackPanel Margin="8,0,0,0">
+                    <TextBlock Text="Data Pool" Style="{StaticResource SectionHeaderTextStyle}"/>
+                    <TextBlock Text="Select what data to test and configure the pool source."
+                               FontSize="10"
+                               Foreground="#CCFFFFFF"/>
+                </StackPanel>
+            </StackPanel>
+            
+            <!-- Data Pool Type Selection -->
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                <RadioButton Content="Wordlist" x:Name="wordlistDataPoolButton"
+                             IsChecked="{Binding WordlistDataPoolMode}"
+                             Foreground="White" FontSize="10" Margin="0,0,8,0"
+                             Style="{DynamicResource MahApps.Styles.RadioButton}"/>
+                <RadioButton Content="File" x:Name="fileDataPoolButton"
+                             IsChecked="{Binding FileDataPoolMode}"
+                             Foreground="White" FontSize="10" Margin="0,0,8,0"
+                             Style="{DynamicResource MahApps.Styles.RadioButton}"/>
+                <RadioButton Content="Range" x:Name="rangeDataPoolButton"
+                             IsChecked="{Binding RangeDataPoolMode}"
+                             Foreground="White" FontSize="10" Margin="0,0,8,0"
+                             Style="{DynamicResource MahApps.Styles.RadioButton}"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                <RadioButton Content="Combinations" x:Name="combinationsDataPoolButton"
+                             IsChecked="{Binding CombinationsDataPoolMode}"
+                             Foreground="White" FontSize="10" Margin="0,0,8,0"
+                             Style="{DynamicResource MahApps.Styles.RadioButton}"/>
+                <RadioButton Content="Infinite" x:Name="infiniteDataPoolButton"
+                             IsChecked="{Binding InfiniteDataPoolMode}"
+                             Foreground="White" FontSize="10"
+                             Style="{DynamicResource MahApps.Styles.RadioButton}"/>
+            </StackPanel>
+
+            <!-- Data Pool Options -->
+            <ContentControl Content="{Binding DataPoolOptions}" />
+        </StackPanel>
+    </Border>
+</UserControl>

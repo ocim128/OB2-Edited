@@ -42,6 +42,9 @@ namespace RuriLib.Models.Jobs;
 
 public class MultiRunJob(RuriLibSettingsService settings, PluginRepository pluginRepo, IJobLogger logger = null) : Job(settings, pluginRepo, logger), IDisposable
 {
+    private readonly JobInitializer _initializer = new();
+    private readonly JobLifecycleService _lifecycle = new();
+
     /// <summary>
     /// Options
     /// </summary>
@@ -158,6 +161,32 @@ public class MultiRunJob(RuriLibSettingsService settings, PluginRepository plugi
     /// </summary>
     public decimal CaptchaCredit { get; private set; } = 0;
 
+    internal Parallelizer<MultiRunInput, CheckResult> Parallelizer
+    {
+        get => _parallelizer;
+        set => _parallelizer = value;
+    }
+
+    internal ProxyPool ProxyPool => _proxyPool;
+
+    internal BotExecutionCoordinator ExecutionCoordinator => _executionCoordinator;
+
+    internal AsyncLocker RuntimeAsyncLocker => _asyncLocker;
+
+    internal CancellationTokenSource StartCancellationSource => _startCts;
+
+    internal Timer TickTimer
+    {
+        get => _tickTimer;
+        set => _tickTimer = value;
+    }
+
+    internal Timer ProxyReloadTimer
+    {
+        get => _proxyReloadTimer;
+        set => _proxyReloadTimer = value;
+    }
+
     #region Work Function
 
     #endregion Work Function
@@ -178,14 +207,13 @@ public class MultiRunJob(RuriLibSettingsService settings, PluginRepository plugi
             using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(
                 cancellationToken, _startCts.Token);
 
-            Status = JobStatus.Starting;
-            OnStatusChanged?.Invoke(this, Status);
+            UpdateStatus(JobStatus.Starting);
 
-            _asyncLocker = new();
+            ApplyInitialization(await _initializer
+                .InitializeAsync(this, settings, pluginRepo, linkedCts.Token)
+                .ConfigureAwait(false));
 
-            await ValidateJobParametersAsync(linkedCts.Token).ConfigureAwait(false);
-            await InitializeJobAsync(linkedCts.Token).ConfigureAwait(false);
-            await StartExecutionAsync(linkedCts.Token).ConfigureAwait(false);
+            await _lifecycle.StartAsync(this, settings, linkedCts.Token).ConfigureAwait(false);
         }
         catch (TaskCanceledException)
         {
@@ -200,8 +228,7 @@ public class MultiRunJob(RuriLibSettingsService settings, PluginRepository plugi
         {
             if (Status is JobStatus.Starting)
             {
-                Status = JobStatus.Idle;
-                OnStatusChanged?.Invoke(this, Status);
+                UpdateStatus(JobStatus.Idle);
             }
 
             _startCts?.Dispose();
@@ -209,222 +236,30 @@ public class MultiRunJob(RuriLibSettingsService settings, PluginRepository plugi
         }
     }
 
-    private async Task ValidateJobParametersAsync(CancellationToken cancellationToken)
+    internal Task WaitForStartConditionAsync(CancellationToken cancellationToken)
+        => base.Start(cancellationToken);
+
+    internal void UpdateStatus(JobStatus status)
     {
-        // Simplified validation with early returns
-        if (Config?.Settings?.DataSettings == null) throw new ArgumentNullException(nameof(Config));
-        if (DataPool == null) throw new ArgumentNullException(nameof(DataPool));
-        if (Skip >= DataPool.Size) throw new ArgumentException("Skip must be smaller than data pool size");
-
-        if (ShouldUseProxies(ProxyMode, Config.Settings.ProxySettings) && (ProxySources?.Count ?? 0) == 0)
-            throw new ArgumentNullException(nameof(ProxySources));
-
-        if (!Config.Settings.DataSettings.AllowedWordlistTypes.Contains(DataPool.WordlistType))
-            throw new NotSupportedException($"Config does not support wordlist type: {DataPool.WordlistType}");
-    }
-
-    private async Task InitializeJobAsync(CancellationToken cancellationToken)
-    {
-        // Reload the data pool from the source
-        DataPool.Reload();
-
-        if (ShouldUseProxies(ProxyMode, Config.Settings.ProxySettings))
-        {
-            await InitializeProxyPoolAsync(cancellationToken).ConfigureAwait(false);
-        }
-        else
-        {
-            InitializeExecutionCoordinatorWithoutProxy();
-        }
-
-        await InitializeResourcesAsync(cancellationToken).ConfigureAwait(false);
-        await InitializeScriptAsync(cancellationToken).ConfigureAwait(false);
-        await InitializeGlobalsAsync(cancellationToken).ConfigureAwait(false);
-    }
-
-    private async Task InitializeProxyPoolAsync(CancellationToken cancellationToken)
-    {
-        // HACK: This should probably not be here, but it will work for now
-        ProxySources.ForEach(p => p.UserId = OwnerId);
-
-        var proxyPoolOptions =
-            new ProxyPoolOptions { AllowedTypes = Config.Settings.ProxySettings.AllowedProxyTypes };
-        _proxyPool = new ProxyPool(ProxySources, proxyPoolOptions);
-
-        // Use AsyncLocker disposable to guarantee balanced release and reduce error-prone patterns
-        IDisposable releaser = null;
-        try
-        {
-            releaser = await _asyncLocker
-                .Acquire(typeof(ProxyPool), nameof(ProxyPool.ReloadAllAsync), cancellationToken)
-                .ConfigureAwait(false);
-
-            await _proxyPool.ReloadAllAsync(ShuffleProxies, cancellationToken).ConfigureAwait(false);
-        }
-        finally
-        {
-            releaser?.Dispose();
-        }
-
-        var executionHandler = ExecutionHandlerFactory.CreateHandler(Config.Mode);
-        _executionCoordinator = new BotExecutionCoordinator(executionHandler, new ProxyManager(this, _asyncLocker));
-
-        if (!_proxyPool.Proxies.Any())
-        {
-            throw new InvalidOperationException(
-                "No proxies that respect the allowed types are available, but the job is set to use proxies");
-        }
-    }
-
-    private void InitializeExecutionCoordinatorWithoutProxy()
-    {
-        var executionHandler = ExecutionHandlerFactory.CreateHandler(Config.Mode);
-        _executionCoordinator = new BotExecutionCoordinator(executionHandler, null);
-    }
-
-    private async Task InitializeResourcesAsync(CancellationToken cancellationToken)
-    {
-        var resources = Config.Settings.DataSettings.Resources;
-        _resources = new Dictionary<string, ConfigResource>(resources.Count);
-
-        foreach (var opt in resources)
-        {
-            _resources[opt.Name] = opt switch
-            {
-                LinesFromFileResourceOptions x => new LinesFromFileResource(x),
-                RandomLinesFromFileResourceOptions x => new RandomLinesFromFileResource(x),
-                _ => throw new NotImplementedException()
-            };
-        }
-    }
-
-    private async Task InitializeScriptAsync(CancellationToken cancellationToken)
-    {
-        if (Config.Mode is ConfigMode.LoliCode or ConfigMode.Stack)
-        {
-            Config.StartupCSharpScript =
-                Loli2CSharpTranspiler.Transpile(Config.StartupLoliCodeScript, Config.Settings);
-        }
-
-        // If not in DLL mode, build the C# script and compile it
-        if (Config.Mode == ConfigMode.DLL)
-        {
-            await using var ms = new MemoryStream(Config.DLLBytes);
-            var assembly = AssemblyLoadContext.Default.LoadFromStream(ms);
-            var type = assembly.GetType("RuriLib.CompiledConfig");
-            _dllMethod = type.GetMember("Execute")[0] as MethodInfo;
-        }
-        else
-        {
-            switch (Config.Mode)
-            {
-                case ConfigMode.Stack:
-                    Config.CSharpScript = Stack2CSharpTranspiler.Transpile(Config.Stack, Config.Settings);
-                    break;
-                case ConfigMode.LoliCode:
-                    Config.CSharpScript = Loli2CSharpTranspiler.Transpile(Config.LoliCodeScript, Config.Settings);
-                    break;
-            }
-
-            _script = new ScriptBuilder().Build(Config.CSharpScript, Config.Settings.ScriptSettings, pluginRepo, OptimizationLevel.Release);
-            var diagnostics = _script.Compile(cancellationToken);
-
-            if (diagnostics.Any(d => d.Severity == DiagnosticSeverity.Error))
-            {
-                var errors = string.Join(System.Environment.NewLine, diagnostics
-                    .Where(d => d.Severity == DiagnosticSeverity.Error)
-                    .Select(d => d.GetMessage()));
-
-                throw new CompilationErrorException("The C# script has compilation errors:" + System.Environment.NewLine + errors, diagnostics);
-            }
-        }
-    }
-
-    private async Task InitializeGlobalsAsync(CancellationToken cancellationToken)
-    {
-        Providers.Security.X509RevocationMode = Config.Mode == ConfigMode.DLL
-            ? System.Security.Cryptography.X509Certificates.X509RevocationMode.Online
-            : System.Security.Cryptography.X509Certificates.X509RevocationMode.NoCheck;
-
-        // Initialize basic globals
-        _globalVariables = new ExpandoObject();
-        _httpClient = new();
-
-        // Lazy initialization of Python engine
-        _pythonEngine = new Lazy<dynamic>(() =>
-        {
-            var runtime = Python.CreateRuntime();
-            var pyengine = runtime.GetEngine("py");
-            var pco = (PythonCompilerOptions)pyengine.GetCompilerOptions();
-            pco.Module &= ~ModuleOptions.Optimized;
-            return pyengine;
-        });
-
-        _globalVariables.Resources = _resources;
-        _globalVariables.OwnerId = OwnerId;
-        _globalVariables.JobId = Id;
-
-        if (!string.IsNullOrWhiteSpace(Config.StartupCSharpScript))
-        {
-            var wordlistType = settings.Environment.WordlistTypes.FirstOrDefault(t => t.Name == DataPool.WordlistType);
-            await ExecuteStartupScriptAsync(wordlistType, _pythonEngine.Value, cancellationToken).ConfigureAwait(false);
-        }
-    }
-
-    private async Task ExecuteStartupScriptAsync(dynamic wordlistType, dynamic pyengine, CancellationToken cancellationToken)
-    {
-        var startupScript = new ScriptBuilder().Build(Config.StartupCSharpScript,
-            Config.Settings.ScriptSettings, pluginRepo, OptimizationLevel.Release);
-
-        var diagnostics = startupScript.Compile(cancellationToken);
-        if (diagnostics.Any(d => d.Severity == DiagnosticSeverity.Error))
-        {
-            var errors = string.Join(System.Environment.NewLine, diagnostics
-                .Where(d => d.Severity == DiagnosticSeverity.Error)
-                .Select(d => d.GetMessage()));
-
-            throw new CompilationErrorException("The Startup C# script has compilation errors:" + System.Environment.NewLine + errors, diagnostics);
-        }
-        var startupBotData = new BotData(Providers, Config.Settings, new BotLogger(),
-            new DataLine(string.Empty, wordlistType), null, false)
-        {
-            CancellationToken = cancellationToken
-        };
-        var startupGlobals = new ScriptGlobals(startupBotData, _globalVariables);
-        _ = await startupScript.RunAsync(startupGlobals, cancellationToken).ConfigureAwait(false);
-    }
-
-    private async Task StartExecutionAsync(CancellationToken cancellationToken)
-    {
-        var workFunction = new Func<MultiRunInput, CancellationToken, Task<CheckResult>>(async (input, token) =>
-        {
-            return await _executionCoordinator.ExecuteAsync(input, token);
-        });
-
-        Status = JobStatus.Waiting;
+        Status = status;
         OnStatusChanged?.Invoke(this, Status);
-
-        await base.Start(cancellationToken).ConfigureAwait(false);
-
-        Status = JobStatus.Starting;
-        OnStatusChanged?.Invoke(this, Status);
-
-        var wordlistType = settings.Environment.WordlistTypes.FirstOrDefault(t => t.Name == DataPool.WordlistType);
-        var workItems = CreateWorkItems(wordlistType);
-
-        _parallelizer = ParallelizerFactory<MultiRunInput, CheckResult>
-            .Create(settings.RuriLibSettings.GeneralSettings.ParallelizerType, workItems,
-                workFunction, Bots, DataPool.Size, Skip, BotLimit);
-
-        ConfigureParallelizer();
-
-        ResetStats();
-        StartTimers();
-        logger?.LogInfo(Id, "All set, starting the execution");
-        await _parallelizer.Start().ConfigureAwait(false);
     }
 
-    private IEnumerable<MultiRunInput> CreateWorkItems(dynamic wordlistType)
+    internal void ApplyInitialization(JobInitializationResult initialization)
+    {
+        _asyncLocker = initialization.AsyncLocker;
+        _proxyPool = initialization.ProxyPool;
+        _executionCoordinator = initialization.ExecutionCoordinator;
+        _resources = initialization.Resources;
+        _httpClient = initialization.HttpClient;
+        _pythonEngine = initialization.PythonEngine;
+        _globalVariables = initialization.GlobalVariables;
+        _dllMethod = initialization.DllMethod;
+        _script = initialization.Script;
+        _disposed = false;
+    }
+
+    internal IEnumerable<MultiRunInput> CreateWorkItems(dynamic wordlistType)
     {
         // Cache frequently accessed values to reduce property lookups
         var useProxies = ShouldUseProxies(ProxyMode, Config.Settings.ProxySettings);
@@ -454,124 +289,22 @@ public class MultiRunJob(RuriLibSettingsService settings, PluginRepository plugi
         }
     }
 
-    private void ConfigureParallelizer()
-    {
-        _parallelizer.CPMLimit = Config.Settings.GeneralSettings.MaximumCPM;
-        _parallelizer.NewResult += DataProcessed;
-        _parallelizer.StatusChanged += StatusChanged;
-        _parallelizer.TaskError += PropagateTaskError;
-        _parallelizer.Error += PropagateError;
-        _parallelizer.NewResult += PropagateResult;
-        _parallelizer.Completed += HandleParallelizerCompleted;
-    }
-
     public override async Task Stop()
-    {
-        try
-        {
-            if (_parallelizer is not null)
-            {
-                await _parallelizer.Stop().ConfigureAwait(false);
-            }
-        }
-        catch (Exception ex)
-        {
-            OnError?.Invoke(this, ex);
-            throw;
-        }
-        finally
-        {
-            StopTimers();
-            logger?.LogInfo(Id, "Execution stopped");
-            DisposeGlobals();
-        }
-    }
+        => await _lifecycle.StopAsync(this).ConfigureAwait(false);
 
     public override async Task Abort()
-    {
-        try
-        {
-            if (_parallelizer is not null)
-            {
-                await _parallelizer.Abort().ConfigureAwait(false);
-            }
-
-            if (_startCts is not null)
-            {
-                await _startCts.CancelAsync();
-            }
-        }
-        catch (Exception ex)
-        {
-            OnError?.Invoke(this, ex);
-            throw;
-        }
-        finally
-        {
-            StopTimers();
-            logger?.LogInfo(Id, "Execution aborted");
-            DisposeGlobals();
-        }
-    }
+        => await _lifecycle.AbortAsync(this).ConfigureAwait(false);
 
     public override async Task Pause()
-    {
-        try
-        {
-            if (_parallelizer is not null)
-            {
-                await _parallelizer.Pause().ConfigureAwait(false);
-            }
-        }
-        catch (Exception ex)
-        {
-            OnError?.Invoke(this, ex);
-            throw;
-        }
-        finally
-        {
-            StopTimers();
-            logger?.LogInfo(Id, "Execution paused");
-        }
-    }
+        => await _lifecycle.PauseAsync(this).ConfigureAwait(false);
 
     public override async Task Resume()
-    {
-        try
-        {
-            if (_parallelizer is not null)
-            {
-                await _parallelizer.Resume().ConfigureAwait(false);
-            }
-        }
-        catch (Exception ex)
-        {
-            OnError?.Invoke(this, ex);
-            throw;
-        }
-
-        StartTimers();
-        logger?.LogInfo(Id, "Execution resumed");
-    }
+        => await _lifecycle.ResumeAsync(this).ConfigureAwait(false);
     #endregion Controls
 
     #region Public Methods
     public async Task FetchProxiesFromSources(CancellationToken cancellationToken = default)
-    {
-        IDisposable releaser = null;
-        try
-        {
-            releaser = await _asyncLocker
-                .Acquire(typeof(ProxyPool), nameof(ProxyPool.ReloadAllAsync), cancellationToken)
-                .ConfigureAwait(false);
-
-            await _proxyPool.ReloadAllAsync(ShuffleProxies, cancellationToken).ConfigureAwait(false);
-        }
-        finally
-        {
-            releaser?.Dispose();
-        }
-    }
+        => await _lifecycle.ReloadProxiesAsync(this, cancellationToken).ConfigureAwait(false);
     #endregion Public Methods
 
     #region Wrappers for Parallelizer methods
@@ -589,7 +322,7 @@ public class MultiRunJob(RuriLibSettingsService settings, PluginRepository plugi
     #endregion Wrappers for Parallelizer methods
 
     #region Propagation of Parallelizer events
-    private void PropagateTaskError(object _, ErrorDetails<MultiRunInput> details)
+    internal void HandleTaskError(object _, ErrorDetails<MultiRunInput> details)
     {
         OnTaskError?.Invoke(this, details);
         logger?.LogException(Id, details.Exception);
@@ -600,13 +333,13 @@ public class MultiRunJob(RuriLibSettingsService settings, PluginRepository plugi
         }
     }
 
-    private void PropagateError(object _, Exception ex)
+    internal void HandleParallelizerError(object _, Exception ex)
     {
         OnError?.Invoke(this, ex);
         logger?.LogException(Id, ex);
     }
 
-    private void PropagateResult(object _, ResultDetails<MultiRunInput, CheckResult> result)
+    internal void HandleParallelizerResult(object _, ResultDetails<MultiRunInput, CheckResult> result)
     {
         OnResult?.Invoke(this, result);
 
@@ -625,7 +358,7 @@ public class MultiRunJob(RuriLibSettingsService settings, PluginRepository plugi
         logger?.LogInfo(Id, "Execution completed");
     }
 
-    private void HandleParallelizerCompleted(object sender, EventArgs e)
+    internal void HandleParallelizerCompleted(object sender, EventArgs e)
     {
         try
         {
@@ -638,7 +371,10 @@ public class MultiRunJob(RuriLibSettingsService settings, PluginRepository plugi
                 logger?.LogInfo(Id, "Execution aborted due to fatal error. Data pool offset left unchanged.");
             }
 
-            StopTimers();
+            _tickTimer?.Dispose();
+            _proxyReloadTimer?.Dispose();
+            _tickTimer = null;
+            _proxyReloadTimer = null;
             PropagateCompleted(sender, e);
         }
         finally
@@ -671,52 +407,13 @@ public class MultiRunJob(RuriLibSettingsService settings, PluginRepository plugi
     #endregion Propagation of Parallelizer events
 
     #region Private Methods
-    private void StartTimers()
-    {
-        _tickTimer = new Timer(new TimerCallback(_ => OnTimerTick?.Invoke(this, EventArgs.Empty)),
-            null, (int)TickInterval.TotalMilliseconds, (int)TickInterval.TotalMilliseconds);
-
-        if (PeriodicReloadInterval > TimeSpan.Zero)
-        {
-            _proxyReloadTimer = new Timer(new TimerCallback(async _ =>
-            {
-                if (_proxyPool is not null)
-                {
-                    IDisposable releaser = null;
-                    try
-                    {
-                        releaser = await _asyncLocker
-                            .Acquire(typeof(ProxyPool), nameof(ProxyPool.ReloadAllAsync), CancellationToken.None)
-                            .ConfigureAwait(false);
-
-                        await _proxyPool.ReloadAllAsync(ShuffleProxies).ConfigureAwait(false);
-                    }
-                    catch
-                    {
-                        // ignored
-                    }
-                    finally
-                    {
-                        releaser?.Dispose();
-                    }
-                }
-            }), null, (int)PeriodicReloadInterval.TotalMilliseconds, (int)PeriodicReloadInterval.TotalMilliseconds);
-        }
-    }
-
-    private void StopTimers()
-    {
-        _tickTimer?.Dispose();
-        _proxyReloadTimer?.Dispose();
-    }
-
-    private void ResetStats()
+    internal void ResetRuntimeStats()
     {
         Statistics.Reset();
         hits.Clear();
     }
 
-    private void StatusChanged(object sender, ParallelizerStatus status)
+    internal void HandleParallelizerStatusChanged(object sender, ParallelizerStatus status)
     {
         Status = status switch
         {
@@ -730,7 +427,7 @@ public class MultiRunJob(RuriLibSettingsService settings, PluginRepository plugi
         OnStatusChanged?.Invoke(this, Status);
     }
 
-    private void DataProcessed(object sender, ResultDetails<MultiRunInput, CheckResult> details)
+    internal void HandleDataProcessed(object sender, ResultDetails<MultiRunInput, CheckResult> details)
     {
         var botData = details.Result.BotData;
 
@@ -821,7 +518,7 @@ public class MultiRunJob(RuriLibSettingsService settings, PluginRepository plugi
         return newCaptures;
     }
 
-    private static bool ShouldUseProxies(JobProxyMode mode, ProxySettings settings) => mode switch
+    internal static bool ShouldUseProxies(JobProxyMode mode, ProxySettings settings) => mode switch
     {
         JobProxyMode.Default => settings.UseProxies,
         JobProxyMode.On => true,
@@ -881,6 +578,18 @@ public class MultiRunJob(RuriLibSettingsService settings, PluginRepository plugi
             Console.WriteLine($"[{DateTime.Now}] {message}");
         }
     }
+
+    internal void LogInfo(string message)
+        => logger?.LogInfo(Id, message);
+
+    internal void RaiseTimerTick()
+        => OnTimerTick?.Invoke(this, EventArgs.Empty);
+
+    internal void RaiseError(Exception ex)
+        => OnError?.Invoke(this, ex);
+
+    internal void DisposeRuntimeResources()
+        => DisposeGlobals();
 
     private void DisposeGlobals()
     {

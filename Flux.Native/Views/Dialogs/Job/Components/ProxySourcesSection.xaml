@@ -1,0 +1,182 @@
+<UserControl x:Class="Flux.Native.Views.Dialogs.Job.Components.ProxySourcesSection"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:Flux.Native.Views.Dialogs.Job"
+             mc:Ignorable="d" 
+             d:DesignHeight="300" d:DesignWidth="400">
+    <UserControl.Resources>
+        <!-- DataTemplates for Proxy Sources -->
+        <DataTemplate DataType="{x:Type local:GroupProxySourceOptionsViewModel}">
+            <Border Padding="0,4,0,4" Margin="0,0,0,2">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="60" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="30" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" 
+                               Text="Group:" 
+                               VerticalAlignment="Center" 
+                               FontSize="10" 
+                               Foreground="#FFB0B0B0"/>
+                    <ComboBox Grid.Column="1"
+                              ItemsSource="{Binding DataContext.ProxyGroupNames, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                              SelectedValue="{Binding GroupName}" 
+                              FontSize="10"
+                              Margin="4,0,4,0" Style="{StaticResource CleanComboBox}"/>
+                    <Button Tag="{Binding}" Grid.Column="2" 
+                            Click="RemoveProxySource" 
+                            Style="{StaticResource StyledDangerButton}"
+                            Width="24" Height="20"
+                            Padding="2">
+                        <ContentControl Content="{StaticResource Icon.Close}" Width="10" Height="10"/>
+                    </Button>
+                </Grid>
+            </Border>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type local:FileProxySourceOptionsViewModel}">
+            <Border Padding="0,4,0,4" Margin="0,0,0,2">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="50" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="30" />
+                        <ColumnDefinition Width="80" />
+                        <ColumnDefinition Width="30" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" 
+                               Text="File:" 
+                               VerticalAlignment="Center" 
+                               FontSize="10" 
+                               Foreground="#FFB0B0B0"/>
+                    <TextBox Grid.Column="1"
+                             Text="{Binding FileName, Mode=TwoWay}" 
+                             FontSize="10"
+                             Margin="2,0"/>
+                    <Button Tag="{Binding}" Grid.Column="2" 
+                            Click="SelectFileForProxySource" 
+                            Width="24" Height="20"
+                            Padding="2"
+                            Style="{StaticResource StyledPrimaryButton}">
+                        <ContentControl Content="{StaticResource Icon.FolderOpen}" Width="10" Height="10"/>
+                    </Button>
+                    <ComboBox Grid.Column="3"
+                              ItemsSource="{Binding DataContext.ProxyTypes, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                              SelectedValue="{Binding DefaultType}" 
+                              FontSize="10"
+                              Margin="2,0" Style="{StaticResource CleanComboBox}"/>
+                    <Button Tag="{Binding}" Grid.Column="4" 
+                            Click="RemoveProxySource" 
+                            Style="{StaticResource StyledDangerButton}"
+                            Width="24" Height="20"
+                            Padding="2">
+                        <ContentControl Content="{StaticResource Icon.Close}" Width="10" Height="10"/>
+                    </Button>
+                </Grid>
+            </Border>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type local:RemoteProxySourceOptionsViewModel}">
+            <Border Padding="0,4,0,4" Margin="0,0,0,2">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="40" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="80" />
+                        <ColumnDefinition Width="30" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" 
+                               Text="URL:" 
+                               VerticalAlignment="Center" 
+                               FontSize="10" 
+                               Foreground="#FFB0B0B0"/>
+                    <TextBox Grid.Column="1"
+                             Text="{Binding Url}" 
+                             FontSize="10"
+                             Margin="2,0"/>
+                    <ComboBox Grid.Column="2"
+                              ItemsSource="{Binding DataContext.ProxyTypes, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                              SelectedValue="{Binding DefaultType}" 
+                              FontSize="10"
+                              Margin="2,0" Style="{StaticResource CleanComboBox}"/>
+                    <Button Tag="{Binding}" Grid.Column="3" 
+                            Click="RemoveProxySource" 
+                            Style="{StaticResource StyledDangerButton}"
+                            Width="24" Height="20"
+                            Padding="2">
+                        <ContentControl Content="{StaticResource Icon.Close}" Width="10" Height="10"/>
+                    </Button>
+                </Grid>
+            </Border>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <Border Style="{StaticResource SectionCard}">
+        <StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                <ContentControl Style="{StaticResource Icon.Size16}"
+                                Content="{StaticResource Icon.Network}"
+                                Foreground="{StaticResource Icon.SecondaryBlue}"
+                                VerticalAlignment="Center"/>
+                <StackPanel Margin="8,0,0,0">
+                    <TextBlock Text="Proxy Sources" Style="{StaticResource SectionHeaderTextStyle}"/>
+                    <TextBlock Text="Add one or more proxy feeds. Sources are processed in order."
+                               FontSize="10"
+                               Foreground="#CCFFFFFF"/>
+                </StackPanel>
+            </StackPanel>
+            <!-- Add Proxy Source Buttons -->
+            <WrapPanel Margin="0,0,0,8">
+                <Button Click="AddGroupProxySource" 
+                        Style="{StaticResource StyledPrimaryButton}"
+                        Padding="8,4" Margin="0,0,6,0">
+                    <StackPanel Orientation="Horizontal">
+                        <ContentControl Content="{StaticResource Icon.Plus}" Width="10" Height="10"/>
+                        <TextBlock Text="Group" VerticalAlignment="Center" Margin="3,0,0,0" FontSize="10"/>
+                    </StackPanel>
+                </Button>
+                <Button Click="AddFileProxySource" 
+                        Style="{StaticResource StyledPrimaryButton}"
+                        Padding="8,4" Margin="0,0,6,0">
+                    <StackPanel Orientation="Horizontal">
+                        <ContentControl Content="{StaticResource Icon.Plus}" Width="10" Height="10"/>
+                        <TextBlock Text="File" VerticalAlignment="Center" Margin="3,0,0,0" FontSize="10"/>
+                    </StackPanel>
+                </Button>
+                <Button Click="AddRemoteProxySource" 
+                        Style="{StaticResource StyledPrimaryButton}"
+                        Padding="8,4" Margin="0,0,6,0">
+                    <StackPanel Orientation="Horizontal">
+                        <ContentControl Content="{StaticResource Icon.Plus}" Width="10" Height="10"/>
+                        <TextBlock Text="Remote" VerticalAlignment="Center" Margin="3,0,0,0" FontSize="10"/>
+                    </StackPanel>
+                </Button>
+            </WrapPanel>
+            <!-- Proxy Sources List -->
+            <Border Background="#1B1E2B"
+                    CornerRadius="10"
+                    Padding="0"
+                    BorderBrush="#22FFFFFF"
+                    BorderThickness="1">
+                <ScrollViewer Height="140" 
+                              HorizontalScrollBarVisibility="Disabled"
+                              VerticalScrollBarVisibility="Auto"
+                              Padding="10"
+                              Background="Transparent"
+                              CanContentScroll="True"
+                              Focusable="False"
+                              PreviewMouseWheel="ChildScrollViewer_PreviewMouseWheel"
+                              Style="{StaticResource ModernScrollViewer}">
+                    <ItemsControl ItemsSource="{Binding ProxySourcesCollection}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Vertical"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                    </ItemsControl>
+                </ScrollViewer>
+            </Border>
+        </StackPanel>
+    </Border>
+</UserControl>

@@ -50,28 +50,12 @@ namespace Flux.Native.Views.Dialogs.Job
             vm = new MultiRunJobOptionsViewModel(options);
             DataContext = vm;
 
-            vm.StartConditionModeChanged += mode => startConditionTabControl.SelectedIndex = (int)mode;
 
             InitializeComponent();
 
-            startConditionTabControl.SelectedIndex = (int)vm.StartConditionMode;
         }
 
-        private void AddGroupProxySource(object sender, RoutedEventArgs e) => vm.AddGroupProxySource();
-        private void AddFileProxySource(object sender, RoutedEventArgs e) => vm.AddFileProxySource();
-        private void AddRemoteProxySource(object sender, RoutedEventArgs e) => vm.AddRemoteProxySource();
 
-        private void RemoveProxySource(object sender, RoutedEventArgs e)
-            => vm.RemoveProxySource((ProxySourceOptionsViewModel)(sender as Button).Tag);
-
-        private void AddDatabaseHitOutput(object sender, RoutedEventArgs e) => vm.AddDatabaseHitOutput();
-        private void AddFileSystemHitOutput(object sender, RoutedEventArgs e) => vm.AddFileSystemHitOutput();
-        private void AddDiscordWebhookHitOutput(object sender, RoutedEventArgs e) => vm.AddDiscordWebhookHitOutput();
-        private void AddTelegramBotHitOutput(object sender, RoutedEventArgs e) => vm.AddTelegramBotHitOutput();
-        private void AddCustomWebhookHitOutput(object sender, RoutedEventArgs e) => vm.AddCustomWebhookHitOutput();
-
-        private void RemoveHitOutput(object sender, RoutedEventArgs e)
-            => vm.RemoveHitOutput((HitOutputOptions)(sender as Button).Tag);
 
         public async void SelectConfig(ConfigViewModel config)
         {
@@ -85,16 +69,11 @@ namespace Flux.Native.Views.Dialogs.Job
             await vm.TrySetRecordAsync();
         }
 
-        private void AddWordlist(object sender, RoutedEventArgs e)
-            => new MainDialog(new AddWordlistDialog(this), "Add a wordlist").ShowDialog();
+
 
         public async void AddWordlist(WordlistEntity entity) => await vm.AddWordlist(entity);
 
-        private void SelectConfig(object sender, RoutedEventArgs e)
-            => new MainDialog(new ConfigDialogs.SelectConfigDialog(this), "Select a config").ShowDialog();
 
-        private void SelectWordlist(object sender, RoutedEventArgs e)
-            => new MainDialog(new SelectWordlistDialog(this), "Select a wordlist").ShowDialog();
 
         private void Accept(object sender, RoutedEventArgs e)
         {
@@ -109,73 +88,10 @@ namespace Flux.Native.Views.Dialogs.Job
             ((MainDialog)Parent).Close();
         }
 
-        private void SelectFileForProxySource(object sender, RoutedEventArgs e)
-        {
-            var ofd = new OpenFileDialog
-            {
-                Filter = "Proxy files or Shell scripts echoing proxies one by one | *.txt;*.bat;*.ps1;*.sh",
-                FilterIndex = 1
-            };
 
-            ofd.ShowDialog();
-            ((FileProxySourceOptionsViewModel)(sender as Button).Tag).FileName = ofd.FileName;
-        }
-
-        private void SelectFileForDataPool(object sender, RoutedEventArgs e)
-        {
-            var ofd = new OpenFileDialog
-            {
-                Filter = "Wordlist files | *.txt",
-                FilterIndex = 1
-            };
-
-            ofd.ShowDialog();
-            (vm.DataPoolOptions as FileDataPoolOptionsViewModel).FileName = ofd.FileName;
-        }
 
         // Forward mouse wheel from child scroll viewers (e.g., Proxy Sources, Hit Outputs)
-        private void ChildScrollViewer_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
-        {
-            if (e.Handled) return;
 
-            if (sender is not ScrollViewer child) return;
-
-            // Determine if child can scroll in the direction of the wheel
-            bool scrollingUp = e.Delta > 0;
-            bool atTop = child.VerticalOffset <= 0;
-            bool atBottom = child.VerticalOffset >= child.ScrollableHeight;
-
-            bool shouldBubble = (scrollingUp && atTop) || (!scrollingUp && atBottom) || child.ScrollableHeight == 0;
-
-            if (!shouldBubble)
-            {
-                // Let the child scroll
-                return;
-            }
-
-            // Bubble to parent ScrollViewer (main page)
-            var parentScroll = FindAncestor<ScrollViewer>(child);
-            if (parentScroll is null) return;
-
-            e.Handled = true; // prevent the child from handling it
-            var eventArg = new MouseWheelEventArgs(e.MouseDevice, e.Timestamp, e.Delta)
-            {
-                RoutedEvent = UIElement.MouseWheelEvent,
-                Source = sender
-            };
-            parentScroll.RaiseEvent(eventArg);
-        }
-
-        private static T FindAncestor<T>(DependencyObject current) where T : DependencyObject
-        {
-            if (current is null) return null;
-            var parent = VisualTreeHelper.GetParent(current);
-            while (parent is not null && parent is not T)
-            {
-                parent = VisualTreeHelper.GetParent(parent);
-            }
-            return parent as T;
-        }
     }
 
     public class MultiRunJobOptionsViewModel : ViewModelBase

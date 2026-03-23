@@ -1,9 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Windows;
 using Flux.Native.ViewModels.Base;
 using RuriLib.Helpers;
 using RuriLib.Helpers.Blocks;
@@ -16,39 +13,40 @@ namespace Flux.Native.ViewModels.Configs;
 
 public partial class ConfigStackerViewModel
 {
-    private readonly List<BlockInstance> clipboardBlocks = new();
-    private readonly List<(int index, BlockViewModel blockVm)> lastCloneOperation = new();
-    private readonly List<(int index, BlockViewModel blockVm)> lastPasteOperation = new();
-    private CancellationTokenSource? searchDebounceCts;
-    private string searchText = string.Empty;
+    private readonly ConfigStackerClipboardAdapter clipboardAdapter = new();
+    private readonly ConfigStackerSearchDebouncer searchDebouncer = new();
+    private ConfigStackerCommandSet toolCommands = null!;
 
     public event Action<BlockViewModel>? SelectionBringIntoViewRequested;
 
     public event Action<string, string>? NotificationRequested;
 
-    public RelayCommand RemoveSelectedCommand { get; private set; } = null!;
+    public RelayCommand RemoveSelectedCommand => toolCommands.RemoveSelectedCommand;
 
-    public RelayCommand MoveSelectedUpCommand { get; private set; } = null!;
+    public RelayCommand MoveSelectedUpCommand => toolCommands.MoveSelectedUpCommand;
 
-    public RelayCommand MoveSelectedDownCommand { get; private set; } = null!;
+    public RelayCommand MoveSelectedDownCommand => toolCommands.MoveSelectedDownCommand;
 
-    public RelayCommand CloneSelectedCommand { get; private set; } = null!;
+    public RelayCommand CloneSelectedCommand => toolCommands.CloneSelectedCommand;
 
-    public RelayCommand ToggleDisabledCommand { get; private set; } = null!;
+    public RelayCommand ToggleDisabledCommand => toolCommands.ToggleDisabledCommand;
 
-    public RelayCommand UndoCommand { get; private set; } = null!;
+    public RelayCommand UndoCommand => toolCommands.UndoCommand;
 
-    public RelayCommand CopyCommand { get; private set; } = null!;
+    public RelayCommand CopyCommand => toolCommands.CopyCommand;
 
-    public RelayCommand PasteCommand { get; private set; } = null!;
+    public RelayCommand PasteCommand => toolCommands.PasteCommand;
 
     public string SearchText
     {
-        get => searchText;
+        get => state.SearchText;
         set
         {
-            if (SetProperty(ref searchText, value ?? string.Empty))
+            var nextSearchText = value ?? string.Empty;
+            if (!string.Equals(state.SearchText, nextSearchText, StringComparison.Ordinal))
             {
+                state.SearchText = nextSearchText;
+                OnPropertyChanged();
                 ScheduleSearchApply();
             }
         }
@@ -56,14 +54,17 @@ public partial class ConfigStackerViewModel
 
     private void InitializeTooling()
     {
-        RemoveSelectedCommand = new RelayCommand(ExecuteRemoveSelected, HasSelectedBlocks);
-        MoveSelectedUpCommand = new RelayCommand(ExecuteMoveSelectedUp, HasSelectedBlocks);
-        MoveSelectedDownCommand = new RelayCommand(ExecuteMoveSelectedDown, HasSelectedBlocks);
-        CloneSelectedCommand = new RelayCommand(ExecuteCloneSelected, HasSelectedBlocks);
-        ToggleDisabledCommand = new RelayCommand(ExecuteToggleDisabled, HasSelectedBlocks);
-        UndoCommand = new RelayCommand(UndoLastOperation, CanUndo);
-        CopyCommand = new RelayCommand(CopySelectedBlocks, HasSelectedBlocks);
-        PasteCommand = new RelayCommand(PasteBlocks);
+        toolCommands = new ConfigStackerCommandSet(
+            ExecuteRemoveSelected,
+            ExecuteMoveSelectedUp,
+            ExecuteMoveSelectedDown,
+            ExecuteCloneSelected,
+            ExecuteToggleDisabled,
+            UndoLastOperation,
+            CopySelectedBlocks,
+            PasteBlocks,
+            HasSelectedBlocks,
+            CanUndo);
     }
 
     public void HandleBlockClick(BlockViewModel block, bool ctrl, bool shift)
@@ -86,58 +87,27 @@ public partial class ConfigStackerViewModel
     }
 
     public void RaiseToolCommandStateChanged()
-    {
-        RemoveSelectedCommand.RaiseCanExecuteChanged();
-        MoveSelectedUpCommand.RaiseCanExecuteChanged();
-        MoveSelectedDownCommand.RaiseCanExecuteChanged();
-        CloneSelectedCommand.RaiseCanExecuteChanged();
-        ToggleDisabledCommand.RaiseCanExecuteChanged();
-        UndoCommand.RaiseCanExecuteChanged();
-        CopyCommand.RaiseCanExecuteChanged();
-        PasteCommand.RaiseCanExecuteChanged();
-    }
+        => toolCommands.RaiseCanExecuteChanged();
 
     private bool HasSelectedBlocks()
         => Stack?.Any(b => b is not null && b.Selected) == true;
 
     private bool CanUndo()
-        => lastCloneOperation.Count > 0 || lastPasteOperation.Count > 0 || deletedBlocks.Count > 0;
+        => state.CanUndo;
 
     private void ScheduleSearchApply()
     {
-        searchDebounceCts?.Cancel();
-        searchDebounceCts?.Dispose();
-
-        var cts = new CancellationTokenSource();
-        searchDebounceCts = cts;
-
-        _ = Task.Run(async () =>
+        searchDebouncer.Schedule(300, () =>
         {
-            try
-            {
-                await Task.Delay(300, cts.Token);
-                if (!cts.IsCancellationRequested)
-                {
-                    Application.Current.Dispatcher.Invoke(() =>
-                    {
-                        ApplySearchFilter(searchText);
-                        RaiseToolCommandStateChanged();
-                    });
-                }
-            }
-            catch (OperationCanceledException)
-            {
-            }
-        }, cts.Token);
+            ApplySearchFilter(state.SearchText);
+            RaiseToolCommandStateChanged();
+        });
     }
 
     private void ClearSearch()
     {
-        searchDebounceCts?.Cancel();
-        searchDebounceCts?.Dispose();
-        searchDebounceCts = null;
-
-        searchText = string.Empty;
+        searchDebouncer.Cancel();
+        state.SearchText = string.Empty;
         OnPropertyChanged(nameof(SearchText));
         ApplySearchFilter(string.Empty);
     }
@@ -177,7 +147,7 @@ public partial class ConfigStackerViewModel
 
         CloneSelected();
 
-        lastCloneOperation.Clear();
+        state.LastCloneOperation.Clear();
         var newCount = Stack?.Count ?? 0;
         if (newCount > originalCount && Stack != null)
         {
@@ -186,7 +156,7 @@ public partial class ConfigStackerViewModel
                 var currentBlock = Stack[i];
                 if (currentBlock is not null && !originalBlocks.Contains(currentBlock))
                 {
-                    lastCloneOperation.Add((i, currentBlock));
+                    state.LastCloneOperation.Add((i, currentBlock));
                 }
             }
         }
@@ -207,25 +177,19 @@ public partial class ConfigStackerViewModel
         var selectedBlocks = Stack?.Where(b => b is not null && b.Selected).ToList();
         if (selectedBlocks == null || !selectedBlocks.Any())
         {
-            clipboardBlocks.Clear();
+            state.ClipboardBlocks.Clear();
             return;
         }
 
-        clipboardBlocks.Clear();
-        clipboardBlocks.AddRange(selectedBlocks
+        state.ClipboardBlocks.Clear();
+        state.ClipboardBlocks.AddRange(selectedBlocks
             .Where(block => block.Block != null)
             .Select(block => Cloner.Clone<BlockInstance>(block.Block)));
 
-        try
-        {
-            var clipboardText = string.Join(Environment.NewLine + Environment.NewLine, selectedBlocks.Select(block => CreateDetailedBlockText(block.Block)));
-            Clipboard.SetText(clipboardText);
-        }
-        catch
-        {
-        }
+        var clipboardText = string.Join(Environment.NewLine + Environment.NewLine, selectedBlocks.Select(block => CreateDetailedBlockText(block.Block)));
+        _ = clipboardAdapter.TrySetText(clipboardText);
 
-        ShowNotification("Copy", $"Copied {clipboardBlocks.Count} block(s)");
+        ShowNotification("Copy", $"Copied {state.ClipboardBlocks.Count} block(s)");
     }
 
     private static string CreateDetailedBlockText(BlockInstance block)
@@ -354,28 +318,21 @@ public partial class ConfigStackerViewModel
         var blocksToPaste = new List<BlockInstance>();
         var isFromSystemClipboard = false;
 
-        try
+        if (clipboardAdapter.TryGetText(out var clipboardText))
         {
-            if (Clipboard.ContainsText())
-            {
-                var clipboardText = Clipboard.GetText();
-                var parsedBlocks = ParseBlocksFromText(clipboardText);
+            var parsedBlocks = ParseBlocksFromText(clipboardText);
 
-                if (parsedBlocks.Any())
-                {
-                    blocksToPaste = parsedBlocks;
-                    isFromSystemClipboard = true;
-                    clipboardBlocks.Clear();
-                }
+            if (parsedBlocks.Any())
+            {
+                blocksToPaste = parsedBlocks;
+                isFromSystemClipboard = true;
+                state.ClipboardBlocks.Clear();
             }
         }
-        catch
-        {
-        }
 
-        if (!blocksToPaste.Any() && clipboardBlocks.Any())
+        if (!blocksToPaste.Any() && state.ClipboardBlocks.Any())
         {
-            blocksToPaste = clipboardBlocks.Select(block => Cloner.Clone<BlockInstance>(block)).ToList();
+            blocksToPaste = state.ClipboardBlocks.Select(block => Cloner.Clone<BlockInstance>(block)).ToList();
             isFromSystemClipboard = false;
         }
 
@@ -434,16 +391,16 @@ public partial class ConfigStackerViewModel
     private void RecordPasteForUndo(List<(int index, BlockViewModel blockVm)> pasteInfo)
     {
         ClearCloneUndo();
-        lastPasteOperation.Clear();
-        lastPasteOperation.AddRange(pasteInfo);
+        state.LastPasteOperation.Clear();
+        state.LastPasteOperation.AddRange(pasteInfo);
         RaiseToolCommandStateChanged();
     }
 
     private void UndoLastOperation()
     {
-        if (lastCloneOperation.Any())
+        if (state.LastCloneOperation.Any())
         {
-            foreach (var (index, blockVm) in lastCloneOperation.OrderByDescending(item => item.index))
+            foreach (var (index, blockVm) in state.LastCloneOperation.OrderByDescending(item => item.Index))
             {
                 if (Stack != null && index >= 0 && index < Stack.Count && Stack[index] == blockVm)
                 {
@@ -459,15 +416,15 @@ public partial class ConfigStackerViewModel
                     .ToList();
             }
 
-            lastCloneOperation.Clear();
+            state.LastCloneOperation.Clear();
             ShowNotification("Undo", "Clone operation undone");
             RaiseToolCommandStateChanged();
             return;
         }
 
-        if (lastPasteOperation.Any())
+        if (state.LastPasteOperation.Any())
         {
-            foreach (var (index, blockVm) in lastPasteOperation.OrderByDescending(item => item.index))
+            foreach (var (index, blockVm) in state.LastPasteOperation.OrderByDescending(item => item.Index))
             {
                 if (Stack != null && index >= 0 && index < Stack.Count && Stack[index] == blockVm)
                 {
@@ -483,7 +440,7 @@ public partial class ConfigStackerViewModel
                     .ToList();
             }
 
-            lastPasteOperation.Clear();
+            state.LastPasteOperation.Clear();
             ShowNotification("Undo", "Paste operation undone");
             RaiseToolCommandStateChanged();
             return;
@@ -756,19 +713,19 @@ public partial class ConfigStackerViewModel
 
     private void ClearPasteUndo()
     {
-        lastPasteOperation.Clear();
+        state.ClearPasteUndo();
         RaiseToolCommandStateChanged();
     }
 
     private void ClearCloneUndo()
     {
-        lastCloneOperation.Clear();
+        state.ClearCloneUndo();
         RaiseToolCommandStateChanged();
     }
 
     private void ClearAllUndo()
     {
-        ClearPasteUndo();
-        ClearCloneUndo();
+        state.ClearAllUndo();
+        RaiseToolCommandStateChanged();
     }
 }

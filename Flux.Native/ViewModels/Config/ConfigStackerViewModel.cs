@@ -14,17 +14,25 @@ namespace Flux.Native.ViewModels.Configs;
     public partial class ConfigStackerViewModel : ViewModelBase
 {
     private readonly ConfigService configService;
+    private readonly ConfigStackerState state = new();
 
     public event Action<IEnumerable<BlockViewModel>> SelectionChanged;
-
-    private readonly List<(BlockInstance, int)> deletedBlocks = [];
-    private BlockViewModel lastSelectedBlock = null;
-
-    private List<BlockViewModel> _originalStack;
 
     private ObservableCollection<BlockViewModel> stack;
 
     public ConfigStackerInspectorViewModel Inspector { get; }
+
+    private List<BlockViewModel> OriginalStack
+    {
+        get => state.OriginalStack;
+        set => state.OriginalStack = value ?? [];
+    }
+
+    private BlockViewModel? LastSelectedBlock
+    {
+        get => state.LastSelectedBlock;
+        set => state.LastSelectedBlock = value;
+    }
 
     public ObservableCollection<BlockViewModel> Stack
     {
@@ -52,15 +60,15 @@ namespace Flux.Native.ViewModels.Configs;
 
         Stack.Insert(insertIndex, newBlockVm);
 
-        if (_originalStack != null)
+        if (OriginalStack.Count > 0)
         {
-            if (insertIndex >= 0 && insertIndex <= _originalStack.Count)
+            if (insertIndex >= 0 && insertIndex <= OriginalStack.Count)
             {
-                _originalStack.Insert(insertIndex, newBlockVm);
+                OriginalStack.Insert(insertIndex, newBlockVm);
             }
             else
             {
-                _originalStack.Add(newBlockVm);
+                OriginalStack.Add(newBlockVm);
             }
         }
 
@@ -95,9 +103,9 @@ namespace Flux.Native.ViewModels.Configs;
 
     public void SelectBlock(BlockViewModel block, bool ctrl = false, bool shift = false)
     {
-        if (Stack != null && lastSelectedBlock != null && !Stack.Contains(lastSelectedBlock))
+        if (Stack != null && LastSelectedBlock != null && !Stack.Contains(LastSelectedBlock))
         {
-            lastSelectedBlock = null;
+            LastSelectedBlock = null;
         }
 
         if (ctrl)
@@ -121,25 +129,25 @@ namespace Flux.Native.ViewModels.Configs;
         if (block != null)
         {
             block.Selected = !block.Selected;
-            lastSelectedBlock = block.Selected ? block : null;
+            LastSelectedBlock = block.Selected ? block : null;
         }
     }
 
     private void HandleShiftSelection(BlockViewModel block)
     {
-        if (lastSelectedBlock == null || lastSelectedBlock == block)
+        if (LastSelectedBlock == null || LastSelectedBlock == block)
         {
             if (block != null)
             {
                 block.Selected = true;
             }
-            lastSelectedBlock = block;
+            LastSelectedBlock = block;
         }
         else
         {
             UnselectAllBlocks();
             SelectBlockRange(block);
-            lastSelectedBlock = block;
+            LastSelectedBlock = block;
         }
     }
 
@@ -156,9 +164,9 @@ namespace Flux.Native.ViewModels.Configs;
 
     private void SelectBlockRange(BlockViewModel block)
     {
-        if (Stack != null && lastSelectedBlock != null && block != null)
+        if (Stack != null && LastSelectedBlock != null && block != null)
         {
-            var lastSelectedBlockIndex = Stack.IndexOf(lastSelectedBlock);
+            var lastSelectedBlockIndex = Stack.IndexOf(LastSelectedBlock);
             var itemIndex = Stack.IndexOf(block);
 
             if (lastSelectedBlockIndex != -1 && itemIndex != -1)
@@ -201,7 +209,7 @@ namespace Flux.Native.ViewModels.Configs;
             block.Selected = true;
         }
 
-        lastSelectedBlock = block?.Selected == true ? block : null;
+        LastSelectedBlock = block?.Selected == true ? block : null;
     }
 
     private void InvokeSelectionChanged()
@@ -232,7 +240,7 @@ namespace Flux.Native.ViewModels.Configs;
 
                 if (block != null && selectedBlocksToRemove.Contains(block))
                 {
-                    deletedBlocks.Add((block.Block, i));
+                    state.DeletedBlocks.Add((block.Block, i));
                     Stack.RemoveAt(i);
                 }
             }
@@ -247,17 +255,17 @@ namespace Flux.Native.ViewModels.Configs;
 
     private void RemoveBlocksFromOriginalStack(List<BlockViewModel> selectedBlocksToRemove)
     {
-        if (_originalStack != null)
+        if (OriginalStack.Count > 0)
         {
-            for (var i = _originalStack.Count - 1; i >= 0; i--)
+            for (var i = OriginalStack.Count - 1; i >= 0; i--)
             {
-                if (i >= 0 && i < _originalStack.Count)
+                if (i >= 0 && i < OriginalStack.Count)
                 {
-                    var originalBlockVm = _originalStack[i];
+                    var originalBlockVm = OriginalStack[i];
 
                     if (originalBlockVm != null && selectedBlocksToRemove.Contains(originalBlockVm))
                     {
-                        _originalStack.RemoveAt(i);
+                        OriginalStack.RemoveAt(i);
                     }
                 }
             }
@@ -284,9 +292,9 @@ namespace Flux.Native.ViewModels.Configs;
             }
         }
 
-        if (_originalStack != null && Stack != null)
+        if (Stack != null)
         {
-            _originalStack = new List<BlockViewModel>(Stack.Where(static b => b != null));
+            OriginalStack = new List<BlockViewModel>(Stack.Where(static b => b != null));
         }
 
         SaveStack();
@@ -312,9 +320,9 @@ namespace Flux.Native.ViewModels.Configs;
             }
         }
 
-        if (_originalStack != null && Stack != null)
+        if (Stack != null)
         {
-            _originalStack = new List<BlockViewModel>(Stack.Where(static b => b != null));
+            OriginalStack = new List<BlockViewModel>(Stack.Where(static b => b != null));
         }
 
         SaveStack();
@@ -353,7 +361,7 @@ namespace Flux.Native.ViewModels.Configs;
             else
             {
                 Stack.Add(newBlockVm);
-                _originalStack?.Add(newBlockVm);
+                OriginalStack.Add(newBlockVm);
             }
         }
         else
@@ -364,25 +372,25 @@ namespace Flux.Native.ViewModels.Configs;
 
     private void InsertIntoOriginalStackForClone(BlockViewModel newBlockVm, BlockViewModel originalBlockVm)
     {
-        if (_originalStack != null)
+        if (OriginalStack.Count > 0)
         {
-            var originalIndex = _originalStack.FindIndex(b => b != null && b.Block == originalBlockVm.Block);
+            var originalIndex = OriginalStack.FindIndex(b => b != null && b.Block == originalBlockVm.Block);
 
             if (originalIndex != -1)
             {
                 var originalInsertIndex = originalIndex + 1;
-                if (originalInsertIndex >= 0 && originalInsertIndex <= _originalStack.Count)
+                if (originalInsertIndex >= 0 && originalInsertIndex <= OriginalStack.Count)
                 {
-                    _originalStack.Insert(originalInsertIndex, newBlockVm);
+                    OriginalStack.Insert(originalInsertIndex, newBlockVm);
                 }
                 else
                 {
-                    _originalStack.Add(newBlockVm);
+                    OriginalStack.Add(newBlockVm);
                 }
             }
             else
             {
-                _originalStack.Add(newBlockVm);
+                OriginalStack.Add(newBlockVm);
             }
         }
     }
@@ -401,9 +409,9 @@ namespace Flux.Native.ViewModels.Configs;
                 blockVm.Block.Disabled = !blockVm.Block.Disabled;
                 blockVm.Disabled = blockVm.Block.Disabled;
 
-                if (_originalStack != null)
+                if (OriginalStack.Count > 0)
                 {
-                    var originalBlockVm = _originalStack.FirstOrDefault(b => b != null && b.Block == blockVm.Block);
+                    var originalBlockVm = OriginalStack.FirstOrDefault(b => b != null && b.Block == blockVm.Block);
                     if (originalBlockVm?.Block != null)
                     {
                         originalBlockVm.Block.Disabled = blockVm.Block.Disabled;
@@ -420,20 +428,20 @@ namespace Flux.Native.ViewModels.Configs;
 
     public void Undo()
     {
-        if (deletedBlocks.Count == 0)
+        if (state.DeletedBlocks.Count == 0)
         {
             return;
         }
 
-        var toRestore = deletedBlocks[^1];
-        _ = deletedBlocks.Remove(toRestore);
+        var toRestore = state.DeletedBlocks[^1];
+        _ = state.DeletedBlocks.Remove(toRestore);
 
         if (toRestore.Item1 != null)
         {
             var restoredBlockVm = new BlockViewModel(toRestore.Item1);
 
-            InsertIntoStack(restoredBlockVm, toRestore.Item2);
-            InsertIntoOriginalStack(restoredBlockVm, toRestore.Item2);
+            InsertIntoStack(restoredBlockVm, toRestore.Index);
+            InsertIntoOriginalStack(restoredBlockVm, toRestore.Index);
         }
         else
         {
@@ -462,14 +470,13 @@ namespace Flux.Native.ViewModels.Configs;
 
     private void InsertIntoOriginalStack(BlockViewModel blockVm, int index)
     {
-        if (_originalStack != null && index >= 0 && index <= _originalStack.Count)
+        if (index >= 0 && index <= OriginalStack.Count)
         {
-            _originalStack.Insert(index, blockVm);
+            OriginalStack.Insert(index, blockVm);
         }
         else
         {
-            _originalStack ??= [];
-            _originalStack.Add(blockVm);
+            OriginalStack.Add(blockVm);
         }
     }
 
@@ -477,7 +484,7 @@ namespace Flux.Native.ViewModels.Configs;
     {
         if (configService?.SelectedConfig?.Stack == null)
         {
-            _originalStack = [];
+            OriginalStack = [];
             Stack = [];
             Inspector.SetSelectedBlock(null);
             RaiseToolCommandStateChanged();
@@ -485,12 +492,12 @@ namespace Flux.Native.ViewModels.Configs;
             return;
         }
 
-        _originalStack = configService.SelectedConfig.Stack
+        OriginalStack = configService.SelectedConfig.Stack
             .Where(static b => b != null)
             .Select(static b => new BlockViewModel(b))
             .ToList();
 
-        Stack = new ObservableCollection<BlockViewModel>(_originalStack.Where(static b => b != null));
+        Stack = new ObservableCollection<BlockViewModel>(OriginalStack.Where(static b => b != null));
 
         if (Stack.Count == 0)
         {
@@ -505,7 +512,7 @@ namespace Flux.Native.ViewModels.Configs;
     {
         if (Stack != null)
         {
-            _originalStack = new List<BlockViewModel>(Stack.Where(static b => b != null));
+            OriginalStack = new List<BlockViewModel>(Stack.Where(static b => b != null));
 
             configService.SelectedConfig.Stack = Stack
                 .Where(static b => b?.Block != null)
@@ -515,7 +522,7 @@ namespace Flux.Native.ViewModels.Configs;
         else
         {
             configService.SelectedConfig.Stack = [];
-            _originalStack = [];
+            OriginalStack = [];
         }
     }
 
@@ -523,13 +530,16 @@ namespace Flux.Native.ViewModels.Configs;
     {
         Stack ??= [];
 
-        _originalStack ??= new List<BlockViewModel>(Stack.Where(static b => b != null));
+        if (OriginalStack.Count == 0 && Stack.Count > 0)
+        {
+            OriginalStack = new List<BlockViewModel>(Stack.Where(static b => b != null));
+        }
 
         Stack.Clear();
 
         if (string.IsNullOrWhiteSpace(searchText))
         {
-            AddBlocksToStack(_originalStack);
+            AddBlocksToStack(OriginalStack);
         }
         else
         {
@@ -552,9 +562,9 @@ namespace Flux.Native.ViewModels.Configs;
     {
         var lowerSearchText = searchText.ToLowerInvariant();
 
-        if (_originalStack != null)
+        if (OriginalStack.Count > 0)
         {
-            foreach (var block in _originalStack.Where(static b => b != null))
+            foreach (var block in OriginalStack.Where(static b => b != null))
             {
                 var matchesLabel = block.Label.ToLowerInvariant().Contains(lowerSearchText);
                 var matchesType = block.Block?.Descriptor?.Name != null && block.Block.Descriptor.Name.ToLowerInvariant().Contains(lowerSearchText);

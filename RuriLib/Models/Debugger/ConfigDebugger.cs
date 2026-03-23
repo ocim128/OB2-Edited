@@ -147,20 +147,15 @@ public partial class ConfigDebugger : IDisposable
         var dataLine = new DataLine(Options.TestData, wordlistType);
         var proxy = Options.UseProxy ? RuriLib.Models.Proxies.Proxy.Parse(Options.TestProxy, Options.ProxyType) : null;
 
-        var providers = new Bots.Providers(RuriLibSettings)
-        {
-            RNG = RNGProvider
-        };
+        var providers = BotRuntimeContextBuilder.CreateDebuggerProviders(
+            RuriLibSettings,
+            RNGProvider,
+            RandomUAProvider);
 
         // Ensure the debugger respects the current VerboseMode setting coming from the global RuriLibSettingsService
         if (RuriLibSettings?.RuriLibSettings?.GeneralSettings != null)
         {
             Config.Settings.GeneralSettings.VerboseMode = RuriLibSettings.RuriLibSettings.GeneralSettings.VerboseMode;
-        }
-
-        if (RuriLibSettings?.RuriLibSettings?.GeneralSettings?.UseCustomUserAgentsList == false)
-        {
-            providers.RandomUA = RandomUAProvider;
         }
 
         // Unregister the previous event if there was an existing stepper
@@ -172,19 +167,28 @@ public partial class ConfigDebugger : IDisposable
         _stepper = new Stepper();
         _stepper.WaitingForStep += OnWaitingForStep;
 
+        var runtimeContext = BotRuntimeContextBuilder.CreateContext(
+            Config.Settings.DataSettings.Resources,
+            ownerId: 0,
+            jobId: 0,
+            includePythonEngine: false,
+            logger: Logger,
+            continueOnResourceError: true);
+
         // Build the BotData
-        _data = new BotData(providers, Config.Settings, Logger, dataLine, proxy, Options.UseProxy)
+        _data = BotRuntimeContextBuilder.CreateBotData(new BotRuntimeSessionOptions
         {
+            Providers = providers,
+            ConfigSettings = Config.Settings,
+            Logger = Logger,
+            Line = dataLine,
+            Proxy = proxy,
+            UseProxy = Options.UseProxy,
             CancellationToken = _cts.Token,
-            Stepper = _stepper
-        };
-
-        // Use single HttpClient instance with proper disposal
-        var httpClient = new HttpClient();
-        _data.SetObject("httpClient", httpClient);
-
-        _data.AsyncLocker = new();
-        dynamic globals = new ExpandoObject();
+            Stepper = _stepper,
+            AsyncLocker = runtimeContext.AsyncLocker,
+            SharedHttpClient = runtimeContext.HttpClient
+        });
 
         // Scripts are already built above
 
@@ -201,31 +205,7 @@ public partial class ConfigDebugger : IDisposable
         }
         Logger.Log(_logBuilder.ToString());
 
-        // Initialize resources with capacity hint
-        var resources = new Dictionary<string, ConfigResource>(Config.Settings.DataSettings.Resources.Count);
-
-        // Resources will need to be disposed of
-        foreach (var opt in Config.Settings.DataSettings.Resources)
-        {
-            try
-            {
-                resources[opt.Name] = opt switch
-                {
-                    LinesFromFileResourceOptions x => new LinesFromFileResource(x),
-                    RandomLinesFromFileResourceOptions x => new RandomLinesFromFileResource(x),
-                    _ => throw new NotImplementedException()
-                };
-            }
-            catch
-            {
-                Logger.Log($"Could not create resource {opt.Name}", LogColors.Tomato);
-            }
-        }
-
-        // Add resources to global variables
-        globals.Resources = resources;
-        globals.OwnerId = 0;
-        globals.JobId = 0;
+        var globals = runtimeContext.GlobalVariables;
         var scriptGlobals = new ScriptGlobals(_data, globals);
 
         // Set custom inputs efficiently
@@ -254,16 +234,22 @@ public partial class ConfigDebugger : IDisposable
                 // only used in this context to be able to use variables e.g. data.SOURCE
                 // and other things like providers, settings, logger.
                 // By default it doesn't support proxies.
-                var startupData = new BotData(providers, Config.Settings, Logger,
-                    new DataLine(string.Empty, wordlistType), null, false)
+                var startupData = BotRuntimeContextBuilder.CreateBotData(new BotRuntimeSessionOptions
                 {
+                    Providers = providers,
+                    ConfigSettings = Config.Settings,
+                    Logger = Logger,
+                    Line = new DataLine(string.Empty, wordlistType),
                     CancellationToken = _cts.Token,
-                    Stepper = _stepper
-                };
+                    Stepper = _stepper,
+                    AsyncLocker = runtimeContext.AsyncLocker,
+                    SharedHttpClient = runtimeContext.HttpClient
+                });
 
                 Logger.Log("Executing startup script...");
-                var startupGlobals = new ScriptGlobals(startupData, globals);
-                _ = await startupScript.RunAsync(startupGlobals, _cts.Token).ConfigureAwait(false);
+                _ = await BotRuntimeContextBuilder
+                    .ExecuteStartupScriptAsync(startupScript, startupData, globals, _cts.Token)
+                    .ConfigureAwait(false);
                 Logger.Log("Executing main script...");
             }
 
@@ -343,7 +329,7 @@ public partial class ConfigDebugger : IDisposable
             _data.DisposeObjectsExcept(["ironPyEngine", "puppeteer", "puppeteerPage", "puppeteerFrame", "selenium", "seleniumDriver", "playwright", "playwrightPage", "playwrightInstance"]);
 
             // Dispose resources - fixed: use ToList() to avoid modification during iteration
-            foreach (var resource in resources.Values.OfType<IDisposable>().ToList())
+            foreach (var resource in runtimeContext.Resources.Values.OfType<IDisposable>().ToList())
             {
                 try
                 {
@@ -355,7 +341,7 @@ public partial class ConfigDebugger : IDisposable
                 }
             }
 
-            _data.AsyncLocker.Dispose();
+            runtimeContext.AsyncLocker.Dispose();
 
             ChangeStatus(ConfigDebuggerStatus.Idle);
         }

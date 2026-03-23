@@ -1,6 +1,3 @@
-using IronPython.Compiler;
-using IronPython.Hosting;
-using IronPython.Runtime;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Scripting;
 using RuriLib.Helpers;
@@ -10,18 +7,13 @@ using RuriLib.Logging;
 using RuriLib.Models.Bots;
 using RuriLib.Models.Configs;
 using RuriLib.Models.Data;
-using RuriLib.Models.Data.Resources;
-using RuriLib.Models.Data.Resources.Options;
 using RuriLib.Models.Jobs.Execution;
 using RuriLib.Models.Proxies;
 using RuriLib.Models.Scripting;
 using RuriLib.Services;
 using System;
-using System.Collections.Generic;
-using System.Dynamic;
 using System.IO;
 using System.Linq;
-using System.Net.Http;
 using System.Reflection;
 using System.Runtime.Loader;
 using System.Threading;
@@ -47,13 +39,22 @@ internal sealed class JobInitializer
             ? await InitializeProxyCoordinatorAsync(job, asyncLocker, cancellationToken).ConfigureAwait(false)
             : (ProxyPool: default(ProxyPool), ExecutionCoordinator: InitializeCoordinatorWithoutProxy(job));
 
-        var resources = InitializeResources(job.Config.Settings.DataSettings.Resources);
+        job.Providers.Security.X509RevocationMode = job.Config.Mode == ConfigMode.DLL
+            ? System.Security.Cryptography.X509Certificates.X509RevocationMode.Online
+            : System.Security.Cryptography.X509Certificates.X509RevocationMode.NoCheck;
+
+        var runtimeContext = BotRuntimeContextBuilder.CreateContext(
+            job.Config.Settings.DataSettings.Resources,
+            job.OwnerId,
+            job.Id,
+            includePythonEngine: true,
+            asyncLocker: asyncLocker);
         var scriptState = await InitializeScriptAsync(job.Config, pluginRepo, cancellationToken).ConfigureAwait(false);
-        var globalsState = await InitializeGlobalsAsync(
+        await InitializeGlobalsAsync(
             job,
             settings,
             pluginRepo,
-            resources,
+            runtimeContext,
             cancellationToken).ConfigureAwait(false);
 
         return new JobInitializationResult
@@ -61,10 +62,10 @@ internal sealed class JobInitializer
             AsyncLocker = asyncLocker,
             ProxyPool = proxyState.ProxyPool,
             ExecutionCoordinator = proxyState.ExecutionCoordinator,
-            Resources = resources,
-            HttpClient = globalsState.HttpClient,
-            PythonEngine = globalsState.PythonEngine,
-            GlobalVariables = globalsState.GlobalVariables,
+            Resources = runtimeContext.Resources,
+            HttpClient = runtimeContext.HttpClient,
+            PythonEngine = runtimeContext.PythonEngine!,
+            GlobalVariables = runtimeContext.GlobalVariables,
             DllMethod = scriptState.DllMethod,
             Script = scriptState.Script
         };
@@ -141,23 +142,6 @@ internal sealed class JobInitializer
         return new BotExecutionCoordinator(executionHandler, null);
     }
 
-    private static Dictionary<string, ConfigResource> InitializeResources(IReadOnlyList<ConfigResourceOptions> resources)
-    {
-        var initializedResources = new Dictionary<string, ConfigResource>(resources.Count);
-
-        foreach (var option in resources)
-        {
-            initializedResources[option.Name] = option switch
-            {
-                LinesFromFileResourceOptions x => new LinesFromFileResource(x),
-                RandomLinesFromFileResourceOptions x => new RandomLinesFromFileResource(x),
-                _ => throw new NotImplementedException()
-            };
-        }
-
-        return initializedResources;
-    }
-
     private static async Task<(IScript? Script, MethodInfo? DllMethod)> InitializeScriptAsync(
         Config config,
         PluginRepository pluginRepo,
@@ -209,53 +193,29 @@ internal sealed class JobInitializer
         return (script, null);
     }
 
-    private static async Task<(dynamic GlobalVariables, HttpClient HttpClient, Lazy<dynamic> PythonEngine)> InitializeGlobalsAsync(
+    private static async Task InitializeGlobalsAsync(
         MultiRunJob job,
         RuriLibSettingsService settings,
         PluginRepository pluginRepo,
-        Dictionary<string, ConfigResource> resources,
+        BotRuntimeContext runtimeContext,
         CancellationToken cancellationToken)
     {
-        job.Providers.Security.X509RevocationMode = job.Config.Mode == ConfigMode.DLL
-            ? System.Security.Cryptography.X509Certificates.X509RevocationMode.Online
-            : System.Security.Cryptography.X509Certificates.X509RevocationMode.NoCheck;
-
-        dynamic globalVariables = new ExpandoObject();
-        var httpClient = new HttpClient();
-
-        var pythonEngine = new Lazy<dynamic>(() =>
-        {
-            var runtime = Python.CreateRuntime();
-            var pyengine = runtime.GetEngine("py");
-            var pco = (PythonCompilerOptions)pyengine.GetCompilerOptions();
-            pco.Module &= ~ModuleOptions.Optimized;
-            return pyengine;
-        });
-
-        globalVariables.Resources = resources;
-        globalVariables.OwnerId = job.OwnerId;
-        globalVariables.JobId = job.Id;
-
         if (!string.IsNullOrWhiteSpace(job.Config.StartupCSharpScript))
         {
             var wordlistType = settings.Environment.WordlistTypes.FirstOrDefault(t => t.Name == job.DataPool.WordlistType);
             await ExecuteStartupScriptAsync(
                 job,
                 pluginRepo,
-                globalVariables,
-                pythonEngine.Value,
+                runtimeContext,
                 wordlistType,
                 cancellationToken).ConfigureAwait(false);
         }
-
-        return (globalVariables, httpClient, pythonEngine);
     }
 
     private static async Task ExecuteStartupScriptAsync(
         MultiRunJob job,
         PluginRepository pluginRepo,
-        dynamic globalVariables,
-        dynamic pyengine,
+        BotRuntimeContext runtimeContext,
         dynamic wordlistType,
         CancellationToken cancellationToken)
     {
@@ -277,18 +237,19 @@ internal sealed class JobInitializer
                 diagnostics);
         }
 
-        var startupBotData = new BotData(
-            job.Providers,
-            job.Config.Settings,
-            new BotLogger(),
-            new DataLine(string.Empty, wordlistType),
-            null,
-            false)
+        var startupBotData = BotRuntimeContextBuilder.CreateBotData(new BotRuntimeSessionOptions
         {
-            CancellationToken = cancellationToken
-        };
+            Providers = job.Providers,
+            ConfigSettings = job.Config.Settings,
+            Logger = new BotLogger(),
+            Line = new DataLine(string.Empty, wordlistType),
+            CancellationToken = cancellationToken,
+            AsyncLocker = runtimeContext.AsyncLocker,
+            SharedHttpClient = runtimeContext.HttpClient
+        });
 
-        var startupGlobals = new ScriptGlobals(startupBotData, globalVariables);
-        _ = await startupScript.RunAsync(startupGlobals, cancellationToken).ConfigureAwait(false);
+        _ = await BotRuntimeContextBuilder
+            .ExecuteStartupScriptAsync(startupScript, startupBotData, runtimeContext.GlobalVariables, cancellationToken)
+            .ConfigureAwait(false);
     }
 }

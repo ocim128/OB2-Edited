@@ -277,8 +277,16 @@ public class MultiRunJob(RuriLibSettingsService settings, PluginRepository plugi
             {
                 Job = this,
                 ProxyPool = _proxyPool,
-                BotData = new BotData(Providers, configSettings, new BotLogger(),
-                    new DataLine(line, wordlistType), null, useProxies),
+                BotData = BotRuntimeContextBuilder.CreateBotData(new BotRuntimeSessionOptions
+                {
+                    Providers = Providers,
+                    ConfigSettings = configSettings,
+                    Logger = new BotLogger(),
+                    Line = new DataLine(line, wordlistType),
+                    UseProxy = useProxies,
+                    AsyncLocker = _asyncLocker,
+                    SharedHttpClient = _httpClient
+                }),
                 Globals = _globalVariables,
                 Script = _script,
                 IsDLL = isDll,

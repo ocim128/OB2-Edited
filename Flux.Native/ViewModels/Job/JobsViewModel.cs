@@ -1,9 +1,7 @@
-using Microsoft.EntityFrameworkCore;
-using Newtonsoft.Json;
-using Flux.Core.Entities;
 using Flux.Core.Models.Jobs;
-using Flux.Core.Repositories;
 using Flux.Core.Services;
+using Flux.Shared.Abstractions;
+using Flux.Shared.Models;
 using RuriLib.Models.Data.DataPools;
 using RuriLib.Models.Jobs;
 using System;
@@ -22,9 +20,8 @@ namespace Flux.Native.ViewModels.Jobs;
 
 public class JobsViewModel : ViewModelBase
 {
-    private readonly IJobRepository jobRepo;
     private readonly JobManagerService jobManager;
-    private readonly JobFactoryService jobFactory;
+    private readonly IJobOrchestrator jobOrchestrator;
     private readonly HotkeyService hotkeyService;
     private readonly Timer _timer;
     private readonly object cpmTriggerLock = new();
@@ -54,14 +51,12 @@ public class JobsViewModel : ViewModelBase
     }
 
     public JobsViewModel(
-        IJobRepository jobRepository,
         JobManagerService jobManagerService,
-        JobFactoryService jobFactoryService,
+        IJobOrchestrator jobOrchestrator,
         HotkeyService hotkeyService)
     {
-        jobRepo = jobRepository ?? throw new ArgumentNullException(nameof(jobRepository));
         jobManager = jobManagerService ?? throw new ArgumentNullException(nameof(jobManagerService));
-        jobFactory = jobFactoryService ?? throw new ArgumentNullException(nameof(jobFactoryService));
+        this.jobOrchestrator = jobOrchestrator ?? throw new ArgumentNullException(nameof(jobOrchestrator));
         this.hotkeyService = hotkeyService ?? throw new ArgumentNullException(nameof(hotkeyService));
 
         CreateCollection();
@@ -245,104 +240,37 @@ public class JobsViewModel : ViewModelBase
 
     public async Task<JobViewModel> CreateJobAsync(JobOptions options)
     {
-        var settings = new JsonSerializerSettings { TypeNameHandling = TypeNameHandling.Auto };
-        var wrapper = new JobOptionsWrapper { Options = options };
-
-        var entity = new JobEntity
-        {
-            CreationDate = DateTime.Now,
-            JobType = GetJobType(options),
-            JobOptions = JsonConvert.SerializeObject(wrapper, settings)
-        };
-
-        await jobRepo.AddAsync(entity);
-
-        var job = await jobFactory.FromOptionsAsync(entity.Id, 0, options);
-        var jobVM = MakeViewModel(job);
-
-        jobManager.AddJob(job);
-        JobsCollection.Add(jobVM);
-        SortCollection();
-
-        return jobVM;
+        var jobId = await jobOrchestrator.CreateJobAsync(options);
+        CreateCollection();
+        return JobsCollection.First(j => j.Id == jobId);
     }
 
-    public async Task<JobViewModel> EditJobAsync(JobEntity entity, JobOptions options)
+    public Task<JobOptionsSnapshotDto?> GetJobOptionsAsync(int jobId, bool clone = false)
+        => jobOrchestrator.GetJobOptionsAsync(jobId, clone);
+
+    public async Task<JobViewModel> EditJobAsync(int jobId, JobOptions options)
     {
-        var jsonSettings = new JsonSerializerSettings { TypeNameHandling = TypeNameHandling.Auto };
-        var wrapper = new JobOptionsWrapper { Options = options };
-        entity.JobOptions = JsonConvert.SerializeObject(wrapper, jsonSettings);
-
-        await jobRepo.UpdateAsync(entity);
-
-        var oldJob = jobManager.Jobs.First(j => j.Id == entity.Id);
-        var newJob = await jobFactory.FromOptionsAsync(entity.Id, 0, options);
-
-        jobManager.RemoveJob(oldJob);
-        jobManager.AddJob(newJob);
+        var updatedJobId = await jobOrchestrator.UpdateJobAsync(jobId, options)
+            ?? throw new InvalidOperationException($"Job {jobId} could not be updated");
 
         CreateCollection();
-
-        return JobsCollection.First(j => j.Id == newJob.Id);
+        return JobsCollection.First(j => j.Id == updatedJobId);
     }
 
-    public async Task<JobViewModel> CloneJobAsync(JobType type, JobOptions options)
+    public async Task RemoveAllAsync()
     {
-        var jsonSettings = new JsonSerializerSettings { TypeNameHandling = TypeNameHandling.Auto };
-        var wrapper = new JobOptionsWrapper { Options = options };
-        var entity = new JobEntity
-        {
-            CreationDate = DateTime.Now,
-            JobType = type,
-            JobOptions = JsonConvert.SerializeObject(wrapper, jsonSettings)
-        };
-
-        await jobRepo.AddAsync(entity);
-
-        var job = await jobFactory.FromOptionsAsync(entity.Id, 0, options);
-        jobManager.AddJob(job);
-
-        JobViewModel jobVM = type switch
-        {
-            JobType.MultiRun => new MultiRunJobViewModel(job as MultiRunJob),
-            JobType.ProxyCheck => new ProxyCheckJobViewModel(job as ProxyCheckJob),
-            JobType.Spider => throw new NotImplementedException(),
-            JobType.Ripper => throw new NotImplementedException(),
-            JobType.PuppeteerUnitTest => throw new NotImplementedException(),
-            _ => throw new NotImplementedException()
-        };
-
-        JobsCollection.Add(jobVM);
-        SortCollection();
-
-        return jobVM;
-    }
-
-    public void RemoveAll()
-    {
-        var notIdleJobs = jobManager.Jobs.Where(static j => j.Status != JobStatus.Idle);
-
-        if (notIdleJobs.Any())
-        {
-            throw new InvalidOperationException($"The job #{notIdleJobs.First().Id} is not idle, please stop/abort the job first!");
-        }
-
-        // If admin, just purge all
-        jobRepo.Purge();
-        jobManager.Clear();
+        await jobOrchestrator.DeleteAllJobsAsync();
         JobsCollection.Clear();
     }
 
     public async Task RemoveJobAsync(JobViewModel jobVM)
     {
-        if (jobVM.Job.Status != JobStatus.Idle)
+        var deleted = await jobOrchestrator.DeleteJobAsync(jobVM.Id);
+        if (!deleted)
         {
-            throw new InvalidOperationException("The job is not idle, please stop/abort the job first!");
+            throw new InvalidOperationException($"Job {jobVM.Id} could not be deleted");
         }
 
-        var entity = await jobRepo.GetAll().FirstAsync(e => e.Id == jobVM.Id);
-        await jobRepo.DeleteAsync(entity);
-        jobManager.RemoveJob(jobVM.Job);
         _ = JobsCollection.Remove(jobVM);
         SortCollection();
     }
@@ -354,12 +282,6 @@ public class JobsViewModel : ViewModelBase
         _ => throw new NotImplementedException()
     };
 
-    private static JobType GetJobType(JobOptions options) => options switch
-    {
-        MultiRunJobOptions => JobType.MultiRun,
-        ProxyCheckJobOptions => JobType.ProxyCheck,
-        _ => throw new NotImplementedException()
-    };
 }
 
 public class JobViewModel(Job job) : ViewModelBase

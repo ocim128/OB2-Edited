@@ -1,8 +1,8 @@
-﻿using RuriLib.Models.Proxies;
+using RuriLib.Models.Proxies;
 
 namespace RuriLib.Models.Configs.Settings
 {
-    public class ProxySettings
+    public class ConfigProxySettings
     {
         public bool UseProxies { get; set; } = false;
 

@@ -1,11 +1,11 @@
 using Flux.Core.Entities;
 using Flux.Core.Models.Hits;
 using Flux.Core.Models.Proxies.Sources;
-using Flux.Core.Repositories;
 using Flux.Core.Services;
 using Flux.Native.Helpers;
 
 using Flux.Native.Utils;
+using Flux.Shared.Abstractions;
 using RuriLib.Extensions;
 using RuriLib.Models.Bots;
 using RuriLib.Models.Data.DataPools;
@@ -27,19 +27,18 @@ using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Flux.Native.ViewModels.Base;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Flux.Native.ViewModels.Jobs;
 
 public class MultiRunJobViewerViewModel : ViewModelBase, IDisposable
 {
     private readonly FluxSettingsService fluxSettingsService;
-    private readonly List<ProxyGroupEntity> proxyGroups;
+    private readonly IJobCommands jobCommands;
     private readonly Timer botsInfoTimer;
     private readonly Timer secondsTicker;
     private readonly SoundPlayer soundPlayer;
     private readonly SemaphoreSlim botChangeLock = new(1, 1); // Prevent race conditions on rapid bot changes
-    private CancellationTokenSource startCTS;
+    private readonly IReadOnlyDictionary<int, string> proxyGroupNames;
 
     public event Action<object, string, Color> NewMessage;
 
@@ -294,10 +293,16 @@ public class MultiRunJobViewerViewModel : ViewModelBase, IDisposable
 
     #endregion Collections
 
-    public MultiRunJobViewerViewModel(MultiRunJobViewModel jobVM)
+    public MultiRunJobViewerViewModel(
+        MultiRunJobViewModel jobVM,
+        FluxSettingsService fluxSettingsService,
+        IJobCommands jobCommands,
+        IJobQueries jobQueries)
     {
-        fluxSettingsService = App.ServiceProvider.GetRequiredService<FluxSettingsService>();
+        this.fluxSettingsService = fluxSettingsService;
+        this.jobCommands = jobCommands;
         Job = jobVM;
+        proxyGroupNames = jobQueries.GetProxyGroupNamesAsync().GetAwaiter().GetResult();
 
         #region Setup
         if (MultiRunJob.Config is not null)
@@ -305,9 +310,6 @@ public class MultiRunJobViewerViewModel : ViewModelBase, IDisposable
             ConfigIcon = Images.Base64ToBitmapImage(MultiRunJob.Config.Metadata.Base64Image);
             ConfigNameAndAuthor = $"{MultiRunJob.Config.Metadata.Name} by {MultiRunJob.Config.Metadata.Author}";
         }
-
-        var proxyGroupRepo = App.ServiceProvider.GetRequiredService<IProxyGroupRepository>();
-        proxyGroups = [.. proxyGroupRepo.GetAll()];
 
         var sb = new StringBuilder();
         for (var i = 0; i < MultiRunJob.ProxySources.Count; i++)
@@ -618,43 +620,30 @@ public class MultiRunJobViewerViewModel : ViewModelBase, IDisposable
 
         try
         {
-            startCTS = new CancellationTokenSource();
             HitsCollection = [];
             AskCustomInputs();
             OnPropertyChanged(nameof(CustomInputsInfo));
-            await Task.Run(async () => await MultiRunJob.Start(startCTS.Token));
+            await jobCommands.StartAsync(MultiRunJob);
             UpdateBots();
         }
-        finally
+        catch (OperationCanceledException)
         {
-            startCTS?.Dispose();
         }
     }
 
-    public Task StopAsync() => MultiRunJob.Stop();
+    public Task StopAsync() => jobCommands.StopAsync(MultiRunJob);
 
-    public async Task AbortAsync()
-    {
-        if (MultiRunJob.Status is JobStatus.Starting or JobStatus.Waiting)
-        {
-            await startCTS.CancelAsync();
-            return;
-        }
-
-        await MultiRunJob.Abort();
-    }
-
-    public Task PauseAsync() => MultiRunJob.Pause();
-    public Task ResumeAsync() => MultiRunJob.Resume();
-    public void SkipWait() => MultiRunJob.SkipWait();
+    public Task AbortAsync() => jobCommands.AbortAsync(MultiRunJob);
+    public Task PauseAsync() => jobCommands.PauseAsync(MultiRunJob);
+    public Task ResumeAsync() => jobCommands.ResumeAsync(MultiRunJob);
+    public void SkipWait() => jobCommands.SkipWait(MultiRunJob);
 
     public async Task ChangeBotsAsync(int newValue)
     {
         // TODO: Also edit the job options! So the number of bots is persisted
         if (MultiRunJob == null) return;
 
-        await MultiRunJob.ChangeBots(newValue);
-        MultiRunJob.Bots = newValue;
+        await jobCommands.ChangeBotsAsync(MultiRunJob, newValue);
         Job?.UpdateBots();
     }
 
@@ -722,9 +711,7 @@ public class MultiRunJobViewerViewModel : ViewModelBase, IDisposable
     {
         if (MultiRunJob.Status is JobStatus.Idle)
         {
-            // Reset skip and reload data pool to reflect updated source file
-            MultiRunJob.Skip = 0;
-            MultiRunJob.DataPool.Reload();
+            jobCommands.ResetSkip(MultiRunJob);
             Job.UpdateSkip();
             Job.UpdateViewModel();
             OnPropertyChanged(nameof(Job.Skip));
@@ -782,14 +769,9 @@ public class MultiRunJobViewerViewModel : ViewModelBase, IDisposable
 
     private string GetProxyGroupName(int id)
     {
-        try
-        {
-            return id == -1 ? "All" : proxyGroups.First(g => g.Id == id).Name;
-        }
-        catch
-        {
-            return "Invalid";
-        }
+        return proxyGroupNames.TryGetValue(id, out var name)
+            ? name
+            : "Invalid";
     }
     #endregion Utils
 

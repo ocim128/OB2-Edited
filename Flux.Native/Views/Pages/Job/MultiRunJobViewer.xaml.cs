@@ -5,8 +5,10 @@ using Flux.Native.Services;
 using Flux.Native.ViewModels;
 using Flux.Native.ViewModels.Jobs;
 using Flux.Native.ViewModels.Data;
+using Flux.Native.ViewModels.Shared;
 using Flux.Native.Views.Dialogs.Common;
 using Flux.Native.Views.Dialogs.Job;
+using Flux.Shared.Abstractions;
 using RuriLib.Models.Configs;
 using System;
 using System.Collections.Generic;
@@ -18,7 +20,6 @@ using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Threading.Tasks;
-using Microsoft.Extensions.DependencyInjection;
 
 
 namespace Flux.Native.Views.Pages.Jobs;
@@ -29,6 +30,10 @@ namespace Flux.Native.Views.Pages.Jobs;
 public partial class MultiRunJobViewer : Page
 {
         private readonly MainWindow mainWindow;
+        private readonly FluxSettingsService fluxSettingsService;
+        private readonly IJobCommands jobCommands;
+        private readonly IJobQueries jobQueries;
+        private readonly DebuggerViewModel debuggerViewModel;
         private MultiRunJobViewerViewModel vm;
         private GridViewColumnHeader listViewSortCol;
         private SortAdorner listViewSortAdorner;
@@ -59,9 +64,18 @@ public partial class MultiRunJobViewer : Page
             }
         }
 
-        public MultiRunJobViewer()
+        public MultiRunJobViewer(
+            MainWindow mainWindow,
+            FluxSettingsService fluxSettingsService,
+            IJobCommands jobCommands,
+            IJobQueries jobQueries,
+            DebuggerViewModel debuggerViewModel)
         {
-            mainWindow = App.ServiceProvider.GetRequiredService<MainWindow>();
+            this.mainWindow = mainWindow;
+            this.fluxSettingsService = fluxSettingsService;
+            this.jobCommands = jobCommands;
+            this.jobQueries = jobQueries;
+            this.debuggerViewModel = debuggerViewModel;
             InitializeComponent();
         }
 
@@ -82,7 +96,7 @@ public partial class MultiRunJobViewer : Page
                 }
             }
 
-            vm = new MultiRunJobViewerViewModel(jobVM);
+            vm = new MultiRunJobViewerViewModel(jobVM, fluxSettingsService, jobCommands, jobQueries);
             vm.NewMessage += OnResultMessage;
             vm.SparklineDataUpdated += UpdateSparklines;
             DataContext = vm;
@@ -206,13 +220,12 @@ public partial class MultiRunJobViewer : Page
 
             if (hitVM is not null)
             {
-                var debugger = App.ServiceProvider.GetRequiredService<ViewModelsService>().Debugger;
-                debugger.TestData = hitVM.Data;
+                debuggerViewModel.TestData = hitVM.Data;
 
                 if (hitVM.Hit.Proxy is not null)
                 {
-                    debugger.TestProxy = hitVM.Hit.Proxy.ToString();
-                    debugger.ProxyType = hitVM.Hit.Proxy.Type;
+                    debuggerViewModel.TestProxy = hitVM.Hit.Proxy.ToString();
+                    debuggerViewModel.ProxyType = hitVM.Hit.Proxy.Type;
                 }
             }
         }

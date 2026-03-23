@@ -1,6 +1,6 @@
 namespace RuriLib.Models.Configs.Settings
 {
-    public class GeneralSettings
+    public class ConfigGeneralSettings
     {
         public bool VerboseMode { get; set; } = false;
         public int SuggestedBots { get; set; } = 1;

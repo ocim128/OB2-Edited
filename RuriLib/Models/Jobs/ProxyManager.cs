@@ -119,7 +119,7 @@ public class ProxyManager
     /// <summary>
     /// Determines if proxies should be used based on mode and settings
     /// </summary>
-    public static bool ShouldUseProxies(JobProxyMode mode, ProxySettings settings)
+    public static bool ShouldUseProxies(JobProxyMode mode, ConfigProxySettings settings)
     {
         return mode switch
         {

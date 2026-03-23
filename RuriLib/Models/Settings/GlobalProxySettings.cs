@@ -1,8 +1,8 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 
 namespace RuriLib.Models.Settings
 {
-    public class ProxySettings
+    public class GlobalProxySettings
     {
         public int ProxyConnectTimeoutMilliseconds { get; set; } = 5000;
         public int ProxyReadWriteTimeoutMilliseconds { get; set; } = 60000;

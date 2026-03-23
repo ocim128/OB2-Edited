@@ -2,26 +2,50 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using Flux.Core.Repositories;
 using Flux.Core.Services;
-using RuriLib.Models.Jobs;
 using Flux.Shared.Abstractions;
 using Flux.Shared.Models;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using RuriLib.Models.Jobs;
 using RuriLib.Models.Jobs.Status;
+using RuriLib.Services;
 
 namespace Flux.Shared.Services;
 
 public class DashboardService : IDashboardService
 {
     private readonly JobManagerService _jobManager;
-    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly IHitRepository _hitRepository;
+    private readonly IJobRepository _jobRepository;
+    private readonly IConfigRepository _configRepository;
+    private readonly IProxyGroupRepository _proxyGroupRepository;
+    private readonly IWordlistRepository _wordlistRepository;
+    private readonly IGuestRepository _guestRepository;
+    private readonly PluginRepository _pluginRepository;
+    private readonly IConfiguration _configuration;
 
-    public DashboardService(JobManagerService jobManager, IServiceScopeFactory scopeFactory)
+    public DashboardService(
+        JobManagerService jobManager,
+        IHitRepository hitRepository,
+        IJobRepository jobRepository,
+        IConfigRepository configRepository,
+        IProxyGroupRepository proxyGroupRepository,
+        IWordlistRepository wordlistRepository,
+        IGuestRepository guestRepository,
+        PluginRepository pluginRepository,
+        IConfiguration configuration)
     {
         _jobManager = jobManager;
-        _scopeFactory = scopeFactory;
+        _hitRepository = hitRepository;
+        _jobRepository = jobRepository;
+        _configRepository = configRepository;
+        _proxyGroupRepository = proxyGroupRepository;
+        _wordlistRepository = wordlistRepository;
+        _guestRepository = guestRepository;
+        _pluginRepository = pluginRepository;
+        _configuration = configuration;
     }
 
     public async Task<DashboardSnapshotDto> GetSnapshotAsync(CancellationToken cancellationToken = default)
@@ -40,10 +64,7 @@ public class DashboardService : IDashboardService
                 j.Status == JobStatus.Running ? System.DateTime.UtcNow : null))
             .ToList();
 
-        using var scope = _scopeFactory.CreateScope();
-        var hitRepo = scope.ServiceProvider.GetRequiredService<IHitRepository>();
-
-        var hits = await hitRepo.GetAll()
+        var hits = await _hitRepository.GetAll()
             .OrderByDescending(h => h.Date)
             .Take(20)
             .ToListAsync(cancellationToken)
@@ -53,11 +74,85 @@ public class DashboardService : IDashboardService
         {
             ["jobs.total"] = _jobManager.Jobs.Count(),
             ["jobs.running"] = activeJobs.Count,
-            ["hits.total"] = await hitRepo.CountAsync().ConfigureAwait(false)
+            ["hits.total"] = await _hitRepository.CountAsync().ConfigureAwait(false)
         };
 
         var recentHits = hits.Select(h => new JobResultDto(h.OwnerId, h.Type, h.Data, h.CapturedData, h.Proxy, h.Date)).ToList();
 
         return new DashboardSnapshotDto(activeJobs, recentHits, metrics);
     }
+
+    public DesktopDashboardRefreshOptionsDto GetDesktopRefreshOptions()
+    {
+        var performance = _configuration.GetSection("Performance");
+        var statisticsInterval = ReadInt(performance, "StatisticsUpdateInterval", 45);
+        var systemMetricsInterval = ReadInt(performance, "SystemMetricsUpdateInterval", 8);
+        var databaseQueryTimeout = ReadInt(performance, "DatabaseQueryTimeout", 10);
+        var isLowSpecMode = ReadBool(performance, "LowSpecMode", false);
+
+        if (isLowSpecMode)
+        {
+            statisticsInterval = System.Math.Max(statisticsInterval, 60);
+            systemMetricsInterval = System.Math.Max(systemMetricsInterval, 10);
+            databaseQueryTimeout = System.Math.Max(databaseQueryTimeout, 15);
+        }
+
+        return new DesktopDashboardRefreshOptionsDto(
+            System.TimeSpan.FromSeconds(statisticsInterval),
+            System.TimeSpan.FromSeconds(systemMetricsInterval),
+            databaseQueryTimeout,
+            isLowSpecMode);
+    }
+
+    public async Task<DesktopDashboardSnapshotDto> GetDesktopSnapshotAsync(CancellationToken cancellationToken = default)
+    {
+        var jobsTask = _jobRepository.GetAll().CountAsync(cancellationToken);
+        var configsTask = CountConfigsAsync();
+        var hitsTask = _hitRepository.CountAsync();
+        var guestsTask = _guestRepository.GetAll().CountAsync(cancellationToken);
+        var proxiesTask = CountProxiesAsync(cancellationToken);
+        var wordlistsTask = CountWordlistsAsync(cancellationToken);
+        var pluginsTask = Task.Run(() => _pluginRepository.GetPluginNames().Count(), cancellationToken);
+
+        await Task.WhenAll(jobsTask, configsTask, hitsTask, guestsTask, proxiesTask, wordlistsTask, pluginsTask)
+            .ConfigureAwait(false);
+
+        return new DesktopDashboardSnapshotDto(
+            jobsTask.Result,
+            configsTask.Result,
+            (int)System.Math.Min(hitsTask.Result, int.MaxValue),
+            proxiesTask.Result,
+            wordlistsTask.Result.Count,
+            wordlistsTask.Result.TotalLines,
+            guestsTask.Result,
+            pluginsTask.Result);
+    }
+
+    private async Task<int> CountConfigsAsync()
+        => (await _configRepository.GetAllAsync().ConfigureAwait(false))?.Count() ?? 0;
+
+    private async Task<int> CountProxiesAsync(CancellationToken cancellationToken)
+    {
+        var proxyGroups = await _proxyGroupRepository.GetAll()
+            .Include(group => group.Proxies)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        return proxyGroups.Sum(group => group.Proxies?.Count ?? 0);
+    }
+
+    private async Task<(int Count, long TotalLines)> CountWordlistsAsync(CancellationToken cancellationToken)
+    {
+        var wordlists = await _wordlistRepository.GetAll()
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        return (wordlists.Count, wordlists.Sum(wordlist => wordlist.Total));
+    }
+
+    private static int ReadInt(IConfigurationSection section, string key, int fallback)
+        => int.TryParse(section[key], out var parsed) ? parsed : fallback;
+
+    private static bool ReadBool(IConfigurationSection section, string key, bool fallback)
+        => bool.TryParse(section[key], out var parsed) ? parsed : fallback;
 }

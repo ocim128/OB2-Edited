@@ -518,7 +518,7 @@ public class MultiRunJob(RuriLibSettingsService settings, PluginRepository plugi
         return newCaptures;
     }
 
-    internal static bool ShouldUseProxies(JobProxyMode mode, ProxySettings settings) => mode switch
+    internal static bool ShouldUseProxies(JobProxyMode mode, ConfigProxySettings settings) => mode switch
     {
         JobProxyMode.Default => settings.UseProxies,
         JobProxyMode.On => true,

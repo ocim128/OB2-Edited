@@ -8,7 +8,7 @@ namespace RuriLib.Providers.Proxies
 {
     public class DefaultProxySettingsProvider : IProxySettingsProvider
     {
-        private readonly ProxySettings settings;
+        private readonly GlobalProxySettings settings;
 
         public DefaultProxySettingsProvider(RuriLibSettingsService settings)
         {

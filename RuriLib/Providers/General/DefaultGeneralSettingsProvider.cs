@@ -5,7 +5,7 @@ namespace RuriLib.Providers.Proxies
 {
     public class DefaultGeneralSettingsProvider : IGeneralSettingsProvider
     {
-        private readonly GeneralSettings settings;
+        private readonly GlobalGeneralSettings settings;
 
         public DefaultGeneralSettingsProvider(RuriLibSettingsService settings)
         {

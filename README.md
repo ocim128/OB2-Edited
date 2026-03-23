@@ -119,8 +119,13 @@ The codebase already contains a few important simplifications:
 
 - `MultiRunJob` no longer owns all initialization and lifecycle logic directly
 - `JobOrchestrator` no longer owns all projection and subscription logic directly
+- desktop job create/edit/clone/delete and job option loading now flow through `Flux.Shared/Services/JobOrchestrator.cs` instead of `Flux.Native`
 - HTTP transport behavior is centered around a shared request pipeline in `HttpRequestHandler`
+- Legacy `HttpCloak` HTTP block settings are normalized to `TlsClient` during load/transpile
+- Puppeteer browser blocks now mirror the Playwright browser split across `Methods.cs`, `Methods.Helpers.cs`, `Methods.Cleanup.cs`, and `Methods.Stealth.cs`
+- Runtime/global settings and config-scoped settings now use distinct model names: `GlobalGeneralSettings`/`GlobalProxySettings` and `ConfigGeneralSettings`/`ConfigProxySettings`
 - `Monitor` and `ConfigStacker` in `Flux.Native` are now shell pages with feature-specific controls/viewmodels
+- `Home` is now a thin page over `Flux.Native/ViewModels/Pages/HomeViewModel.cs`, with dashboard data coming from `Flux.Shared/Abstractions/IDashboardService.cs`
 
 If you are debugging older assumptions about these areas, verify the current extracted services first.
 
@@ -146,7 +151,7 @@ Verbose mode is useful when reading runtime behavior or debugging config executi
 
 Relevant files:
 
-- `RuriLib/Models/Settings/GeneralSettings.cs`
+- `RuriLib/Models/Settings/GlobalGeneralSettings.cs`
 - `RuriLib/Providers/General/`
 - `RuriLib/Models/Debugger/ConfigDebugger.cs`
 

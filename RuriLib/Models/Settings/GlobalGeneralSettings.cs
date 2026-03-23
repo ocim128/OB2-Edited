@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace RuriLib.Models.Settings
 {
-    public class GeneralSettings
+    public class GlobalGeneralSettings
     {
         public ParallelizerType ParallelizerType { get; set; } = ParallelizerType.TaskBased;
         public bool LogJobActivityToFile { get; set; } = false;

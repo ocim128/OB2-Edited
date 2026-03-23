@@ -2,9 +2,11 @@ using RuriLib.Exceptions;
 using RuriLib.Extensions;
 using RuriLib.Helpers.CSharp;
 using RuriLib.Helpers.LoliCode;
+using RuriLib.Functions.Http.Options;
 using RuriLib.Models.Blocks.Custom.HttpRequest;
 using RuriLib.Models.Blocks.Custom.HttpRequest.Multipart;
 using RuriLib.Models.Blocks.Parameters;
+using RuriLib.Models.Blocks.Settings;
 using RuriLib.Models.Configs;
 using System;
 using System.Collections.Generic;
@@ -16,12 +18,16 @@ namespace RuriLib.Models.Blocks.Custom;
 
 public partial class HttpRequestBlockInstance(HttpRequestBlockDescriptor descriptor) : BlockInstance(descriptor)
 {
+    private const string LegacyHttpCloakPresetSettingName = "httpCloakPreset";
+
     public RequestParams RequestParams { get; set; } = new StandardRequestParams();
 
     public bool Safe { get; set; }
 
     public override string ToLC(bool printDefaultParams = false)
     {
+        NormalizeLegacySettings();
+
         /*
          *   TYPE:STANDARD
          *   "name=hello&value=hi"
@@ -305,6 +311,12 @@ public partial class HttpRequestBlockInstance(HttpRequestBlockDescriptor descrip
             {
                 try
                 {
+                    if (IsLegacyHttpCloakPresetSetting(line))
+                    {
+                        continue;
+                    }
+
+                    line = RewriteLegacyHttpLibrarySetting(line);
                     LoliCodeParser.ParseSetting(ref line, Settings, Descriptor);
                 }
                 catch
@@ -317,6 +329,8 @@ public partial class HttpRequestBlockInstance(HttpRequestBlockDescriptor descrip
 
     public override string ToCSharp(List<string> definedVariables, ConfigSettings settings)
     {
+        NormalizeLegacySettings();
+
         using var writer = new StringWriter();
 
         // Begin safe wrapper if needed
@@ -409,6 +423,27 @@ public partial class HttpRequestBlockInstance(HttpRequestBlockDescriptor descrip
 
     private string GetSettingValue(string name)
         => CSharpWriter.FromSetting(Settings[name]);
+
+    private void NormalizeLegacySettings()
+    {
+        Settings.Remove(LegacyHttpCloakPresetSettingName);
+
+        if (Settings.TryGetValue("httpLibrary", out var setting)
+            && setting.FixedSetting is EnumSetting enumSetting
+            && string.Equals(enumSetting.Value, "HttpCloak", StringComparison.OrdinalIgnoreCase))
+        {
+            enumSetting.Value = HttpLibrary.TlsClient.ToString();
+        }
+    }
+
+    private static bool IsLegacyHttpCloakPresetSetting(string line)
+        => line.StartsWith(LegacyHttpCloakPresetSettingName, StringComparison.OrdinalIgnoreCase);
+
+    private static string RewriteLegacyHttpLibrarySetting(string line)
+        => line.StartsWith("httpLibrary", StringComparison.OrdinalIgnoreCase)
+            ? Regex.Replace(line, "\\bHttpCloak\\b", HttpLibrary.TlsClient.ToString(), RegexOptions.IgnoreCase)
+            : line;
+
     [GeneratedRegex("TYPE:([A-Z]+)")]
     private static partial Regex MyRegex();
     [GeneratedRegex("CONTENT:([A-Z]+)")]

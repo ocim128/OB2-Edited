@@ -21,6 +21,7 @@ using Flux.Native.ViewModels.Configs;
 using Flux.Native.ViewModels.Data;
 using Flux.Native.ViewModels.Settings;
 using Flux.Native.ViewModels.Tools;
+using Flux.Native.ViewModels.Pages;
 using Flux.Native.ViewModels.Shared;
 using Flux.Native.Enums;
 using Flux.Native.Views.Pages;
@@ -270,6 +271,7 @@ public partial class App : Application
         services.AddSingleton<ConfigStackerViewModel>();
         services.AddSingleton<ConfigSettingsViewModel>();
         services.AddSingleton<DebuggerViewModel>();
+        services.AddTransient<HomeViewModel>();
         
         // ViewModelsService depends on all ViewModels
         services.AddSingleton<ViewModelsService>();
@@ -313,6 +315,7 @@ public partial class App : Application
         services.AddSingleton<IRandomUAProvider>(_ => new IntoliRandomUAProvider(Path.Combine(appDirectory, "user-agents.json")));
         services.AddSingleton<IRNGProvider, DefaultRNGProvider>();
         services.AddSingleton<MemoryJobLogger>();
+        services.AddFluxShared();
         services.AddSingleton<IJobLogger>(service =>
             new FileJobLogger(service.GetService<RuriLibSettingsService>(),
             Path.Combine(userDataPath, "Logs", "Jobs")));

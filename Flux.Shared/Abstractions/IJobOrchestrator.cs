@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Flux.Core.Models.Jobs;
 using Flux.Shared.Models;
 
 namespace Flux.Shared.Abstractions;
@@ -8,6 +9,9 @@ namespace Flux.Shared.Abstractions;
 public interface IJobOrchestrator
 {
     Task<JobDetailDto> CreateMultiRunJobAsync(JobCreateRequest request, CancellationToken cancellationToken = default);
+    Task<JobOptionsSnapshotDto?> GetJobOptionsAsync(int jobId, bool clone = false, CancellationToken cancellationToken = default);
+    Task<int> CreateJobAsync(JobOptions options, CancellationToken cancellationToken = default);
+    Task<int?> UpdateJobAsync(int jobId, JobOptions options, CancellationToken cancellationToken = default);
     Task<JobDetailDto?> GetJobAsync(int jobId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<JobSummaryDto>> GetJobsAsync(CancellationToken cancellationToken = default);
     Task<JobQueueDto> GetQueueSnapshotAsync(CancellationToken cancellationToken = default);
@@ -18,5 +22,6 @@ public interface IJobOrchestrator
     Task<JobDetailDto?> StopJobAsync(int jobId, CancellationToken cancellationToken = default);
     Task<bool> AbortJobAsync(int jobId, CancellationToken cancellationToken = default);
     Task<bool> DeleteJobAsync(int jobId, CancellationToken cancellationToken = default);
+    Task<bool> DeleteAllJobsAsync(CancellationToken cancellationToken = default);
     Task<JobDetailDto?> UpdateBotsAsync(int jobId, int bots, CancellationToken cancellationToken = default);
 }

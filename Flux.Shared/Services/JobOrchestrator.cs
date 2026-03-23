@@ -99,6 +99,67 @@ public class JobOrchestrator : IJobOrchestrator
             ?? throw new InvalidOperationException($"Failed to build details for job {job.Id}");
     }
 
+    public async Task<JobOptionsSnapshotDto?> GetJobOptionsAsync(int jobId, bool clone = false, CancellationToken cancellationToken = default)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        var jobRepo = scope.ServiceProvider.GetRequiredService<IJobRepository>();
+        var entity = await jobRepo.GetAsync(jobId, cancellationToken).ConfigureAwait(false);
+        if (entity is null)
+        {
+            return null;
+        }
+
+        var wrapper = JsonConvert.DeserializeObject<JobOptionsWrapper>(entity.JobOptions, _jsonSettings)
+            ?? throw new InvalidOperationException($"Could not deserialize options for job {jobId}");
+
+        var options = clone
+            ? JobOptionsFactory.CloneExistant(wrapper.Options)
+            : wrapper.Options;
+
+        return new JobOptionsSnapshotDto(entity.Id, entity.JobType, options);
+    }
+
+    public async Task<int> CreateJobAsync(JobOptions options, CancellationToken cancellationToken = default)
+    {
+        var jobType = ResolveJobType(options);
+        var entity = await CreateJobEntityAsync(jobType, options, cancellationToken).ConfigureAwait(false);
+        var job = await MaterializeJobAsync(entity.Id, options).ConfigureAwait(false);
+
+        _jobManager.AddJob(job);
+        await SubscribeIfNeededAsync(job).ConfigureAwait(false);
+
+        _logger.LogInformation("Created job {JobId} ({JobName})", job.Id, job.Name);
+        await PublishJobNotificationAsync(job, $"Job '{job.Name}' created", "info", cancellationToken).ConfigureAwait(false);
+        return job.Id;
+    }
+
+    public async Task<int?> UpdateJobAsync(int jobId, JobOptions options, CancellationToken cancellationToken = default)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        var jobRepo = scope.ServiceProvider.GetRequiredService<IJobRepository>();
+        var entity = await jobRepo.GetAsync(jobId, cancellationToken).ConfigureAwait(false);
+        if (entity is null)
+        {
+            return null;
+        }
+
+        entity.JobType = ResolveJobType(options);
+        entity.JobOptions = SerializeOptions(options);
+        await jobRepo.UpdateAsync(entity, cancellationToken).ConfigureAwait(false);
+
+        var oldJob = FindJob(jobId) ?? throw new InvalidOperationException($"Job {jobId} is not loaded");
+        await UnsubscribeIfNeededAsync(oldJob).ConfigureAwait(false);
+
+        var newJob = await MaterializeJobAsync(jobId, options).ConfigureAwait(false);
+        _jobManager.RemoveJob(oldJob);
+        _jobManager.AddJob(newJob);
+        await SubscribeIfNeededAsync(newJob).ConfigureAwait(false);
+
+        _logger.LogInformation("Updated job {JobId} ({JobName})", newJob.Id, newJob.Name);
+        await PublishJobNotificationAsync(newJob, $"Job '{newJob.Name}' updated", "info", cancellationToken).ConfigureAwait(false);
+        return newJob.Id;
+    }
+
     public Task<JobDetailDto?> GetJobAsync(int jobId, CancellationToken cancellationToken = default)
         => _projections.BuildDetailAsync(FindJob(jobId), cancellationToken);
 
@@ -174,6 +235,11 @@ public class JobOrchestrator : IJobOrchestrator
             return false;
         }
 
+        if (job.Status != RuriLib.Models.Jobs.JobStatus.Idle)
+        {
+            throw new InvalidOperationException("The job is not idle, please stop/abort the job first!");
+        }
+
         using var scope = _scopeFactory.CreateScope();
         var jobRepo = scope.ServiceProvider.GetRequiredService<IJobRepository>();
         var entity = await jobRepo.GetAsync(jobId, cancellationToken).ConfigureAwait(false);
@@ -189,6 +255,32 @@ public class JobOrchestrator : IJobOrchestrator
 
         _jobManager.RemoveJob(job);
         await PublishJobNotificationAsync(job, $"Job '{job.Name}' deleted", "warning", cancellationToken).ConfigureAwait(false);
+        return true;
+    }
+
+    public async Task<bool> DeleteAllJobsAsync(CancellationToken cancellationToken = default)
+    {
+        var jobs = _jobManager.Jobs.ToList();
+        var nonIdleJob = jobs.FirstOrDefault(j => j.Status != RuriLib.Models.Jobs.JobStatus.Idle);
+        if (nonIdleJob is not null)
+        {
+            throw new InvalidOperationException($"The job #{nonIdleJob.Id} is not idle, please stop/abort the job first!");
+        }
+
+        using var scope = _scopeFactory.CreateScope();
+        var jobRepo = scope.ServiceProvider.GetRequiredService<IJobRepository>();
+        jobRepo.Purge();
+
+        foreach (var job in jobs)
+        {
+            await UnsubscribeIfNeededAsync(job).ConfigureAwait(false);
+        }
+
+        _jobManager.Clear();
+        await _notifications.PublishAsync(
+            new NotificationDto("jobs", "All jobs deleted", "warning", DateTime.UtcNow),
+            cancellationToken).ConfigureAwait(false);
+
         return true;
     }
 
@@ -227,6 +319,42 @@ public class JobOrchestrator : IJobOrchestrator
     private Job? FindJob(int jobId)
         => _jobManager.Jobs.FirstOrDefault(j => j.Id == jobId);
 
+    private async Task<JobEntity> CreateJobEntityAsync(JobType jobType, JobOptions options, CancellationToken cancellationToken)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        var jobRepo = scope.ServiceProvider.GetRequiredService<IJobRepository>();
+
+        var entity = new JobEntity
+        {
+            CreationDate = DateTime.UtcNow,
+            JobType = jobType,
+            JobOptions = SerializeOptions(options)
+        };
+
+        await jobRepo.AddAsync(entity, cancellationToken).ConfigureAwait(false);
+        return entity;
+    }
+
+    private async Task<Job> MaterializeJobAsync(int jobId, JobOptions options)
+        => await _jobFactory.FromOptionsAsync(jobId, ownerId: 0, options).ConfigureAwait(false)
+            ?? throw new InvalidOperationException($"Failed to create runtime job for {jobId}");
+
+    private async Task SubscribeIfNeededAsync(Job job)
+    {
+        if (job is MultiRunJob multiRunJob)
+        {
+            await _subscriptions.EnsureSubscribedAsync(multiRunJob).ConfigureAwait(false);
+        }
+    }
+
+    private async Task UnsubscribeIfNeededAsync(Job job)
+    {
+        if (job is MultiRunJob multiRunJob)
+        {
+            await _subscriptions.UnsubscribeAsync(multiRunJob).ConfigureAwait(false);
+        }
+    }
+
     private MultiRunJobOptions BuildOptions(JobCreateRequest request)
         => new()
         {
@@ -244,6 +372,16 @@ public class JobOrchestrator : IJobOrchestrator
 
     private static JobProxyMode ParseProxyMode(string value)
         => Enum.TryParse<JobProxyMode>(value, true, out var mode) ? mode : JobProxyMode.Default;
+
+    private string SerializeOptions(JobOptions options)
+        => JsonConvert.SerializeObject(new JobOptionsWrapper { Options = options }, _jsonSettings);
+
+    private static JobType ResolveJobType(JobOptions options) => options switch
+    {
+        MultiRunJobOptions => JobType.MultiRun,
+        ProxyCheckJobOptions => JobType.ProxyCheck,
+        _ => throw new NotImplementedException()
+    };
 
     private Task PublishJobNotificationAsync(Job job, string message, string severity, CancellationToken cancellationToken)
         => _notifications.PublishAsync(new NotificationDto("jobs", message, severity, DateTime.UtcNow), cancellationToken);

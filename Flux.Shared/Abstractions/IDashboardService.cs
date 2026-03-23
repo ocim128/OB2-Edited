@@ -7,4 +7,6 @@ namespace Flux.Shared.Abstractions;
 public interface IDashboardService
 {
     Task<DashboardSnapshotDto> GetSnapshotAsync(CancellationToken cancellationToken = default);
+    DesktopDashboardRefreshOptionsDto GetDesktopRefreshOptions();
+    Task<DesktopDashboardSnapshotDto> GetDesktopSnapshotAsync(CancellationToken cancellationToken = default);
 }

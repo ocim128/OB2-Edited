@@ -6,7 +6,7 @@ namespace RuriLib.Providers.UserAgents
 {
     public class DefaultRandomUAProvider : IRandomUAProvider
     {
-        private readonly GeneralSettings settings;
+        private readonly GlobalGeneralSettings settings;
         private readonly Random rand = new();
 
         public DefaultRandomUAProvider(RuriLibSettingsService settings)

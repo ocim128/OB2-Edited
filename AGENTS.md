@@ -126,11 +126,16 @@ For recently split `Flux.Native` pages, start from the shell page and then move 
 Recent runtime simplifications already in place:
 - Job initialization and lifecycle were extracted from `MultiRunJob`.
 - Job projection and event subscriptions were extracted from `JobOrchestrator`.
+- Desktop job create/edit/clone/delete and job option loading now go through `Flux.Shared/Services/JobOrchestrator.cs`; `Flux.Native` jobs UI should not persist jobs or deserialize job options directly.
 - HTTP request execution is now centered on shared pipeline logic in `HttpRequestHandler`.
+- Legacy `HttpCloak` HTTP block settings now normalize to `TlsClient` during load/transpile.
+- Puppeteer browser blocks now mirror the Playwright browser split across `RuriLib/Blocks/Puppeteer/Browser/Methods.cs`, `Methods.Helpers.cs`, `Methods.Cleanup.cs`, and `Methods.Stealth.cs`.
+- Runtime/global settings and config-scoped settings now use distinct model names: `GlobalGeneralSettings`/`GlobalProxySettings` and `ConfigGeneralSettings`/`ConfigProxySettings`.
 
 Recent desktop refactors already in place:
 - `Monitor` is now a shell page; tool-specific behavior lives in dedicated controls/viewmodels.
 - `ConfigStacker` is now a shell page; block list and inspector behavior are split into dedicated controls/viewmodels.
+- `Home` is now a thin page over `Flux.Native/ViewModels/Pages/HomeViewModel.cs`, with dashboard data pulled through `Flux.Shared/Abstractions/IDashboardService.cs`.
 
 ## Logging And Debugging
 
@@ -147,7 +152,7 @@ When debugging request failures, check for:
 ### Verbose mode
 
 Verbose mode is controlled through:
-- `RuriLib/Models/Settings/GeneralSettings.cs`
+- `RuriLib/Models/Settings/GlobalGeneralSettings.cs`
 - provider access via `RuriLib/Providers/General/`
 
 It increases diagnostic output for config debugging and runtime failures.

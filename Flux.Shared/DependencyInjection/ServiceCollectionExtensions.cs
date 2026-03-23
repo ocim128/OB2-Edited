@@ -12,6 +12,8 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<JobEventSubscriptionService>();
         services.AddSingleton<INotificationService, NotificationService>();
         services.AddSingleton<IAuthenticationService, AuthenticationService>();
+        services.AddSingleton<IJobCommands, JobCommands>();
+        services.AddSingleton<IJobQueries, JobQueries>();
         services.AddSingleton<IJobOrchestrator, JobOrchestrator>();
         services.AddSingleton<ISettingsFacade, SettingsFacade>();
         services.AddSingleton<IPluginService, PluginService>();

@@ -3,6 +3,7 @@ using Flux.Native.Services.Menu;
 using Flux.Native.ViewModels;
 using Flux.Native.ViewModels.Jobs;
 using Flux.Native.Views.Pages;
+using Microsoft.Extensions.DependencyInjection;
 using Flux.Native.Views.Pages.Jobs;
 using System;
 using System.Threading.Tasks;
@@ -18,6 +19,7 @@ public class NavigationHandler : INavigationHandler
     private readonly PageButtonMapper _buttonMapper;
     private readonly MainWindowViewModel _viewModel;
     private readonly IMenuHandler _menuHandler;
+    private readonly IServiceProvider _serviceProvider;
     private Button _currentSelectedButton;
     private System.Windows.Controls.Page _transientPage;
 
@@ -29,12 +31,14 @@ public class NavigationHandler : INavigationHandler
         INavigationService navigationService,
         PageButtonMapper buttonMapper,
         MainWindowViewModel viewModel,
-        IMenuHandler menuHandler)
+        IMenuHandler menuHandler,
+        IServiceProvider serviceProvider)
     {
         _navigationService = navigationService;
         _buttonMapper = buttonMapper;
         _viewModel = viewModel;
         _menuHandler = menuHandler;
+        _serviceProvider = serviceProvider;
 
         _navigationService.Navigated += OnNavigationServiceNavigated;
     }
@@ -51,7 +55,7 @@ public class NavigationHandler : INavigationHandler
         switch (jobVM)
         {
             case MultiRunJobViewModel mrj:
-                var mrjPage = new MultiRunJobViewer();
+                var mrjPage = ActivatorUtilities.CreateInstance<MultiRunJobViewer>(_serviceProvider);
                 mrjPage.BindViewModel(mrj);
                 ChangePage(mrjPage, null);
                 break;

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Flux.Web.Dtos.Config.Blocks;
 using Flux.Web.Dtos.Config.Blocks.HttpRequest;
 using Flux.Web.Dtos.Config.Blocks.Keycheck;
+using RuriLib.Functions.Http.Options;
 using RuriLib.Models.Blocks;
 using RuriLib.Models.Blocks.Custom;
 using RuriLib.Models.Blocks.Custom.HttpRequest;
@@ -388,7 +389,25 @@ static internal class BlockMapper
 
         foreach (var kvp in dto.Settings)
         {
-            MapSetting(kvp.Value, block.Settings[kvp.Key]);
+            if (block is HttpRequestBlockInstance && string.Equals(kvp.Key, "httpCloakPreset", System.StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            if (!block.Settings.TryGetValue(kvp.Key, out var setting))
+            {
+                continue;
+            }
+
+            MapSetting(kvp.Value, setting);
+
+            if (block is HttpRequestBlockInstance
+                && string.Equals(kvp.Key, "httpLibrary", System.StringComparison.OrdinalIgnoreCase)
+                && setting.FixedSetting is EnumSetting enumSetting
+                && string.Equals(enumSetting.Value, "HttpCloak", System.StringComparison.OrdinalIgnoreCase))
+            {
+                enumSetting.Value = HttpLibrary.TlsClient.ToString();
+            }
         }
     }
 

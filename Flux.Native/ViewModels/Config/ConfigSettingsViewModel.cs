@@ -19,15 +19,15 @@ public class ConfigSettingsViewModel : ViewModelBase
         private readonly RuriLibSettingsService rlSettingsService;
         private readonly ConfigService configService;
         private Config Config => configService.SelectedConfig;
-        private GeneralSettings General => Config.Settings.GeneralSettings;
-        private ProxySettings Proxy => Config.Settings.ProxySettings;
+        private ConfigGeneralSettings General => Config.Settings.GeneralSettings;
+        private ConfigProxySettings Proxy => Config.Settings.ProxySettings;
         private DataSettings Data => Config.Settings.DataSettings;
         private InputSettings Input => Config.Settings.InputSettings;
         private BrowserSettings Puppeteer => Config.Settings.BrowserSettings;
 
         // Direct binding to model properties - reduces wrapper overhead
-        public GeneralSettings GeneralSettings => General;
-        public ProxySettings ProxySettings => Proxy;
+        public ConfigGeneralSettings GeneralSettings => General;
+        public ConfigProxySettings ProxySettings => Proxy;
         public DataSettings DataSettings => Data;
         public InputSettings InputSettings => Input;
         public BrowserSettings BrowserSettings => Puppeteer;

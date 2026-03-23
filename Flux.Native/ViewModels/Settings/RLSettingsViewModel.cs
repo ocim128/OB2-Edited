@@ -14,8 +14,8 @@ namespace Flux.Native.ViewModels.Settings;
 public class RLSettingsViewModel : ViewModelBase
 {
     private readonly RuriLibSettingsService _service;
-    private GeneralSettings General => _service.RuriLibSettings.GeneralSettings;
-    private ProxySettings Proxy => _service.RuriLibSettings.ProxySettings;
+    private GlobalGeneralSettings General => _service.RuriLibSettings.GeneralSettings;
+    private GlobalProxySettings Proxy => _service.RuriLibSettings.ProxySettings;
     private CaptchaSettings Captcha => _service.RuriLibSettings.CaptchaSettings;
     private PuppeteerSettings Puppeteer => _service.RuriLibSettings.PuppeteerSettings;
     private PlaywrightSettings Playwright => _service.RuriLibSettings.PlaywrightSettings;

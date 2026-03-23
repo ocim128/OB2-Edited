@@ -1,294 +1,214 @@
-# Flux - Agent Guide
+# Flux Agent Guide
 
-> This file contains essential information for AI agents working on the Flux codebase.
+This file is for AI agents and code assistants working in this repository.
+It is intentionally biased toward fast codebase navigation, common execution paths, and low-friction debugging.
 
-## Project Overview
+## Scope
 
-**Flux** is a high-performance, modular automation and testing platform built with .NET 8.0. designed for web automation, penetration testing, and credential stuffing research.
+- Main solution: `Flux.sln`
+- Main backend/runtime code: `RuriLib/`, `RuriLib.Http/`, `RuriLib.Proxies/`, `Flux.Core/`, `Flux.Shared/`, `Flux.Native/`
+- Frontend: `flux-web-client/`
+- Web API: `Flux.Web/`
+- Vendored TLS library: `Libraries/TlsClient.NET/`
 
-- **Current Version**: 0.3.2
-- **License**: MIT (Copyright 2024)
-- **Primary Language**: C# (.NET 8.0)
-- **Frontend**: Angular 17 with TypeScript
+If a task only concerns runtime logic, jobs, blocks, proxies, or HTTP, start in `RuriLib/` and `Flux.Shared/`.
 
-## Architecture
+## Fast Project Map
 
-### Project Structure
+- `RuriLib/`
+  Core automation/runtime library. Contains blocks, config execution, jobs, bot state, providers, settings, and scripting integration.
+- `RuriLib.Http/`
+  Custom HTTP transport implementation used by `HttpLibrary.RuriLibHttp`.
+- `RuriLib.Proxies/`
+  TCP/proxy connection layer used by `RuriLib.Http`.
+- `Flux.Shared/`
+  Shared orchestration and DTO layer used by the application shell around `RuriLib`.
+- `Flux.Core/`
+  Persistence/domain layer for jobs, configs, hits, and repositories.
+- `Flux.Native/`
+  WPF desktop app. Many user-facing flows end here, but execution/runtime behavior usually delegates into `RuriLib` and `Flux.Shared`.
+- `Flux.Web/`
+  ASP.NET API layer. Touch only when the task is explicitly about the web API.
+- `flux-web-client/`
+  Angular frontend.
+- `Libraries/TlsClient.NET/`
+  External-but-included TLS transport. Useful when debugging `HttpLibrary.TlsClient`.
 
+## High-Signal Entry Points
+
+### HTTP request block flow
+
+1. `RuriLib/Blocks/Requests/Http/Methods.cs`
+2. `RuriLib/Functions/Http/*RequestHandler.cs`
+3. `RuriLib/Functions/Http/HttpRequestHandler.cs`
+4. `RuriLib/Functions/Http/HttpFactory.cs`
+5. `RuriLib.Http/` and `RuriLib.Proxies/` if the issue is transport-level
+
+Transport selection:
+- `SystemNet` -> `HttpClientRequestHandler`
+- `RuriLibHttp` -> `RLHttpClientRequestHandler`
+- `TlsClient` -> `TlsClientRequestHandler`
+
+### Job runtime flow
+
+1. `RuriLib/Models/Jobs/MultiRunJob.cs`
+2. `RuriLib/Models/Jobs/JobInitializer.cs`
+3. `RuriLib/Models/Jobs/JobLifecycleService.cs`
+4. `RuriLib/Models/Jobs/Execution/`
+5. `Flux.Shared/Services/JobOrchestrator.cs`
+6. `Flux.Shared/Services/JobProjectionService.cs`
+7. `Flux.Shared/Services/JobEventSubscriptionService.cs`
+
+### Config execution / debugging flow
+
+1. `RuriLib/Models/Debugger/ConfigDebugger.cs`
+2. `RuriLib/Helpers/Transpilers/`
+3. `RuriLib/Models/Blocks/`
+4. `RuriLib/Blocks/`
+
+### Bot state / providers
+
+- `RuriLib/Models/Bots/BotData.cs`
+- `RuriLib/Models/Bots/Providers.cs`
+- `RuriLib/Providers/*`
+- `RuriLib/Services/RuriLibSettingsService.cs`
+
+## Where To Start By Task
+
+### "HTTP block is broken"
+
+Read in this order:
+1. `RuriLib/Blocks/Requests/Http/Methods.cs`
+2. `RuriLib/Functions/Http/HttpRequestHandler.cs`
+3. the selected concrete handler
+4. `RuriLib/Functions/Http/HttpFactory.cs`
+5. `RuriLib.Http/` or `Libraries/TlsClient.NET/` if needed
+
+### "Job start/stop/progress is broken"
+
+Read in this order:
+1. `RuriLib/Models/Jobs/MultiRunJob.cs`
+2. `RuriLib/Models/Jobs/JobInitializer.cs`
+3. `RuriLib/Models/Jobs/JobLifecycleService.cs`
+4. `Flux.Shared/Services/JobOrchestrator.cs`
+5. `Flux.Shared/Services/JobProjectionService.cs`
+
+### "A block behavior is wrong"
+
+Read in this order:
+1. block descriptor / block instance under `RuriLib/Models/Blocks/`
+2. implementation under `RuriLib/Blocks/`
+3. transpiler glue under `RuriLib/Helpers/Transpilers/` if the block is emitted into generated C#
+
+### "Desktop UI issue"
+
+Read in this order:
+1. viewmodel under `Flux.Native/ViewModels/`
+2. view or code-behind under `Flux.Native/Views/`
+3. delegated service in `Flux.Shared/` or `RuriLib/`
+
+## Common Architecture Notes
+
+- `RuriLib` is the execution engine.
+- `Flux.Shared` is the orchestration/projection layer around running jobs.
+- `Flux.Native` is often UI glue over services from `Flux.Shared` and `RuriLib`.
+- `RuriLib.Http` and `RuriLib.Proxies` are lower-level infrastructure, not block-level APIs.
+- `TlsClient.NET` is effectively a separate transport stack.
+
+Recent runtime simplifications already in place:
+- Job initialization and lifecycle were extracted from `MultiRunJob`.
+- Job projection and event subscriptions were extracted from `JobOrchestrator`.
+- HTTP request execution is now centered on shared pipeline logic in `HttpRequestHandler`.
+
+## Logging And Debugging
+
+### HTTP
+
+The shared HTTP pipeline now logs transport-aware failure context from `RuriLib/Functions/Http/HttpRequestHandler.cs`.
+When debugging request failures, check for:
+- transport name
+- exception chain
+- request context
+- proxy/connect/read-write timeout settings
+- stack trace when verbose mode is enabled, or for framework argument/state errors
+
+### Verbose mode
+
+Verbose mode is controlled through:
+- `RuriLib/Models/Settings/GeneralSettings.cs`
+- provider access via `RuriLib/Providers/General/`
+
+It increases diagnostic output for config debugging and runtime failures.
+
+## Build And Test
+
+Run from repo root:
+
+```powershell
+dotnet build Flux.sln -c Debug
+dotnet test Flux.sln
 ```
-Flux/
-├── Flux.sln                    # Main solution file
-├── Flux.Core/                  # Core domain layer (entities, repositories, services)
-├── Flux.Web/                   # ASP.NET Core Web API application
-├── Flux.Native/                # Native/desktop-specific components
-├── Flux.Native.Updater/        # Auto-updater for native components
-├── Flux.Shared/                # Shared models and contracts
-├── Flux.Shared.Tests/          # Unit tests for shared components
-├── flux-web-client/            # Angular 17 frontend application
-├── RuriLib/                    # Core automation library (blocks, scripting, providers)
-├── RuriLib.Http/               # HTTP client abstractions
-├── RuriLib.Http.Tests/         # HTTP library tests
-├── RuriLib.Parallelization/    # Parallel execution engine
-├── RuriLib.Proxies/            # Proxy management
-└── Libraries/TlsClient.NET/    # TLS fingerprinting library
+
+Useful targeted commands:
+
+```powershell
+dotnet build RuriLib/RuriLib.csproj -c Debug --no-restore
+dotnet build Flux.Shared/Flux.Shared.csproj -c Debug --no-restore
+dotnet test RuriLib.Http.Tests/RuriLib.Http.Tests.csproj
+dotnet test Flux.Shared.Tests/Flux.Shared.Tests.csproj
 ```
 
-### Key Technologies
+For frontend:
 
-#### Backend
-- **.NET 8.0** - Target framework
-- **ASP.NET Core** - Web API with SignalR for real-time communication
-- **Entity Framework Core 8.0** - ORM with SQLite provider
-- **MediatR 12.2** - CQRS and mediator pattern
-- **AutoMapper** - Object mapping
-- **FluentValidation** - Input validation
-- **Serilog** - Structured logging
-- **JWT** - Authentication tokens
-- **Swagger/OpenAPI** - API documentation
-
-#### Frontend
-- **Angular 17** - SPA framework
-- **TypeScript 5.4** - Primary language
-- **Bootstrap 4.6** - UI framework
-- **PrimeNG 17** - Component library
-- **RxJS 7.8** - Reactive programming
-- **Monaco Editor** - Code editor (VS Code's editor)
-- **SignalR Client** - Real-time communication
-
-#### Automation & Scripting
-- **Selenium.WebDriver 4.35** - Browser automation
-- **Playwright 1.41** - Modern browser automation
-- **PuppeteerSharp 20.2** - Headless Chrome automation
-- **Appium.WebDriver 8.0** - Mobile automation
-- **Jint 4.4** - JavaScript engine for .NET
-- **IronPython 3.4** - Python scripting support
-- **Microsoft.CodeAnalysis.CSharp** - C# scripting (Roslyn)
-
-#### Additional Libraries
-- **AngleSharp** - HTML parsing
-- **HtmlAgilityPack** - HTML manipulation
-- **CaptchaSharp** - CAPTCHA solving integration
-- **MailKit** - Email functionality
-- **SSH.NET** - SSH/SFTP support
-- **FluentFTP** - FTP client
-- **SixLabors.ImageSharp** - Image processing
-- **MaxMind.GeoIP2** - GeoIP lookups
-
-## Build Configuration
-
-### Requirements
-- **.NET SDK 8.0.401** (specified in `global.json`)
-- **Node.js 20.9.0+** (for frontend)
-
-### Build Optimizations
-The project includes aggressive build optimizations in `Directory.Build.props`:
-
-- Parallel builds using all CPU cores
-- Package lock files for reproducible builds
-- Shared compilation enabled
-- Reduced debug info in Release mode
-- Size optimizations (trimming, compression)
-- Satellite resource languages limited to English
-
-### Build Commands
-
-```bash
-# Restore packages
-dotnet restore Flux.sln
-
-# Build solution
-dotnet build Flux.sln -c Release
-
-# Build web project
-dotnet publish Flux.Web -c Release -o ./publish
-
-# Frontend build (from flux-web-client/)
+```powershell
 cd flux-web-client
 npm install
 npm run build
 ```
 
-### Configurations
-- **Debug** - Development with full debugging support
-- **Release** - Optimized for production
-- **testing** - Test-specific configuration
+## Search Tips
 
-## Key Concepts
+Prefer `rg`.
 
-### LoliCode
-LoliCode is the domain-specific language (DSL) used for writing automation configs. Key aspects:
+Examples:
 
-- Transpiles to C# for execution
-- Supports blocks (reusable automation steps)
-- Variables using `[[variable]]` syntax
-- Functions for common operations
-
-### Blocks System (RuriLib.Blocks)
-Modular automation components organized by category:
-- **Requests** - HTTP/HTTPS requests
-- **Parsing** - HTML/JSON/XML parsing
-- **Selenium** - Browser automation via Selenium
-- **Playwright** - Modern browser automation
-- **Puppeteer** - Chrome DevTools Protocol automation
-- **Android** - Mobile automation via Appium
-- **Captchas** - CAPTCHA solving
-- **Conditions** - Control flow (IF/ELSE)
-- **Functions** - Reusable code blocks
-- **Interop** - External interop (Python, JS, etc.)
-
-### Job System
-The application supports multiple job types:
-- **MultiRunJob** - Execute configs against wordlists
-- **ProxyCheckJob** - Validate proxy servers
-- **ConfigDebugger** - Debug configs step-by-step
-
-### Scripting Support
-Multiple scripting languages are supported for extensibility:
-- **C# Scripts** - Full Roslyn scripting support
-- **JavaScript** - Via Jint engine
-- **Python** - Via IronPython
-- **Node.js** - Via Jering.Javascript.NodeJS
-
-## Configuration
-
-### appsettings.json
-Key configuration sections:
-
-```json
-{
-  "ConnectionStrings": {
-    "DefaultConnection": "Data Source={DataDir}/flux.db"
-  },
-  "Jwt": {
-    "Issuer": "Flux",
-    "Audience": "Flux.Client",
-    "AccessTokenExpiryMinutes": 120
-  },
-  "Frontend": {
-    "Origins": ["http://localhost:5173"]
-  }
-}
+```powershell
+rg -n "HttpLibrary" RuriLib
+rg -n "ExecutePipelineAsync" RuriLib/Functions/Http
+rg -n "MultiRunJob" RuriLib Flux.Shared Flux.Native
+rg -n "OnError" RuriLib Flux.Shared Flux.Native
+rg -n "ConfigDebugger" RuriLib
 ```
 
-### NuGet Configuration
-- Local package cache in `./packages` directory
-- Parallel downloads enabled (degree: 8)
-- Signature validation disabled for faster installs
+## Change Safety
 
-## Testing
+- Read the whole execution path before refactoring shared runtime code.
+- Changes in `HttpRequestHandler`, `HttpFactory`, `MultiRunJob`, or `JobOrchestrator` have large blast radius.
+- Prefer adding diagnostics before building one-off reproduction programs.
+- Avoid changing vendored `Libraries/TlsClient.NET/` unless the bug is clearly in that transport.
+- If a behavior differs between `SystemNet`, `RuriLibHttp`, and `TlsClient`, compare the three handlers first before going lower.
 
-### Test Projects
-- **Flux.Shared.Tests** - Unit tests for shared components
-- **Flux.Web.Api.Tests** - API integration tests
-- **RuriLib.Http.Tests** - HTTP library tests
-- **TlsClient.NET Tests** - TLS client tests
+## Files Worth Knowing
 
-### Running Tests
-```bash
-dotnet test Flux.sln
-```
+- `RuriLib/Blocks/Requests/Http/Methods.cs`
+- `RuriLib/Functions/Http/HttpRequestHandler.cs`
+- `RuriLib/Functions/Http/HttpFactory.cs`
+- `RuriLib/Models/Bots/BotData.cs`
+- `RuriLib/Models/Debugger/ConfigDebugger.cs`
+- `RuriLib/Models/Jobs/MultiRunJob.cs`
+- `RuriLib/Models/Jobs/JobInitializer.cs`
+- `RuriLib/Models/Jobs/JobLifecycleService.cs`
+- `Flux.Shared/Services/JobOrchestrator.cs`
+- `Flux.Shared/Services/JobProjectionService.cs`
+- `Flux.Shared/Services/JobEventSubscriptionService.cs`
 
-## Docker Support
+## Non-Code Directories
 
-### Dockerfiles
-- **Dockerfile** - Full production build (backend + frontend)
-- **Dockerfile.build** - Build-only environment
-- **Dockerfile.remote** - Remote/headless environment
+- `UserData/`
+  Local runtime data, configs, wordlists, and outputs. Usually not source-controlled.
+- `Changelog/`
+  Version history.
+- `packages/`
+  Local NuGet cache.
 
-### Docker Compose
-```bash
-docker-compose up -d
-```
-
-## Development Guidelines
-
-### Code Style
-- Follow existing code patterns in each project
-- Use file-scoped namespaces (C# 10+)
-- Prefer `var` when type is obvious
-- Use nullable reference types
-- Async/await pattern for I/O operations
-
-### API Design
-- RESTful API with versioning (v1.0 currently)
-- Lowercase URLs enforced
-- JWT authentication for protected endpoints
-- API Key support for admin endpoints
-- SignalR hubs for real-time updates
-
-### Adding New Blocks
-1. Create block descriptor in `RuriLib/Blocks/`
-2. Inherit from appropriate base class
-3. Implement `ExecuteAsync` method
-4. Add to block factory if needed
-5. Update TypeScript types if adding UI support
-
-### Database Migrations
-```bash
-dotnet ef migrations add MigrationName --project Flux.Core --startup-project Flux.Web
-dotnet ef database update --project Flux.Core --startup-project Flux.Web
-```
-
-## Important Notes
-
-### Performance Considerations
-- Heavy use of async/await throughout
-- Parallelization engine for multi-threaded execution
-- Persistent script caching for faster startup
-- Direct LoliCode-to-C# transpilation (no intermediate stack for non-debug mode)
-- Pool configuration for thread and connection limits
-
-### Security Considerations
-- BCrypt for password hashing
-- JWT tokens with configurable expiry
-- API key authentication for admin endpoints
-- Input validation via FluentValidation
-- GeoIP blocking/country detection support
-
-### Known Limitations
-- Cannot use `PublishSingleFile` due to CSharpScript API limitations
-- SQLite only (no other database providers currently supported)
-- Windows-focused (some features may not work cross-platform)
-
-## File Locations
-
-### Important Paths
-- **UserData/** - User configs, wordlists, hits (excluded from git)
-- **Changelog/** - Version history markdown files
-- **packages/** - Local NuGet package cache
-- **.agent/ .claude/ .roo/ .trae/** - AI assistant configuration directories
-
-### Version Info
-- Version stored in `version.txt`
-- Changelog entries in `Changelog/{version}.md`
-
-## Common Tasks
-
-### Adding a New Controller
-1. Create controller in `Flux.Web/Controllers/`
-2. Inherit from `ApiController`
-3. Add `[ApiVersion("1.0")]` attribute
-4. Implement actions with proper HTTP verbs
-5. Add XML docs for Swagger generation
-
-### Adding a New Service
-1. Define interface in `Flux.Web/Interfaces/`
-2. Implement in `Flux.Web/Services/`
-3. Register in `Program.cs` DI container
-4. Inject via constructor where needed
-
-### Adding Frontend Components
-1. Component files in `flux-web-client/src/app/`
-2. Services in `flux-web-client/src/app/services/`
-3. Models in `flux-web-client/src/app/models/`
-4. Update Angular module declarations as needed
-
-## Resources
-
-- **OpenAPI/Swagger**: Available at `/swagger` when running in Development mode
-- **API Documentation**: Auto-generated from XML comments
-- **Changelog**: See `Changelog/` directory for version history
-
----
-
-*Last updated: 2026-02-07*
+Keep this file practical. Prefer updating entry points and debugging guidance over adding broad marketing-style project descriptions.

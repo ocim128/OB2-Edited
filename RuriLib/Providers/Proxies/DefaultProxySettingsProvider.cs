@@ -2,6 +2,7 @@
 using RuriLib.Services;
 using System;
 using System.Linq;
+using System.Threading;
 
 namespace RuriLib.Providers.Proxies
 {
@@ -14,9 +15,9 @@ namespace RuriLib.Providers.Proxies
             this.settings = settings.RuriLibSettings.ProxySettings;
         }
 
-        public TimeSpan ConnectTimeout => TimeSpan.FromMilliseconds(settings.ProxyConnectTimeoutMilliseconds);
+        public TimeSpan ConnectTimeout => NormalizeTimeout(settings.ProxyConnectTimeoutMilliseconds, nameof(settings.ProxyConnectTimeoutMilliseconds));
 
-        public TimeSpan ReadWriteTimeout => TimeSpan.FromMilliseconds(settings.ProxyReadWriteTimeoutMilliseconds);
+        public TimeSpan ReadWriteTimeout => NormalizeTimeout(settings.ProxyReadWriteTimeoutMilliseconds, nameof(settings.ProxyReadWriteTimeoutMilliseconds));
 
         public bool ContainsBanKey(string text, out string matchedKey, bool caseSensitive = false)
         {
@@ -44,6 +45,21 @@ namespace RuriLib.Providers.Proxies
                 caseSensitive ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase));
 
             return matchedKey != null;
+        }
+
+        private static TimeSpan NormalizeTimeout(int milliseconds, string parameterName)
+        {
+            if (milliseconds < 0)
+            {
+                throw new ArgumentOutOfRangeException(
+                    parameterName,
+                    milliseconds,
+                    "Timeout must be zero or greater.");
+            }
+
+            return milliseconds == 0
+                ? Timeout.InfiniteTimeSpan
+                : TimeSpan.FromMilliseconds(milliseconds);
         }
     }
 }

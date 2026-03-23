@@ -1,27 +1,13 @@
-using RuriLib.Extensions;
-using RuriLib.Functions.Files;
 using RuriLib.Functions.Http.Options;
-using RuriLib.Helpers;
 using RuriLib.Http.Models;
-using RuriLib.Logging;
-using RuriLib.Models.Blocks.Custom.HttpRequest.Multipart;
 using RuriLib.Models.Bots;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
-using System.Linq;
-using System.Net;
 using System.Net.Http;
-using System.Net.Http.Headers;
-using System.Net.Sockets;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Collections.Concurrent;
-using System.Runtime.CompilerServices;
-using System.Buffers;
-using RuriLib.Functions.Conversion;
 
 namespace RuriLib.Functions.Http
 {
@@ -30,37 +16,10 @@ namespace RuriLib.Functions.Http
     /// </summary>
     internal class RLHttpClientRequestHandler : HttpRequestHandler
     {
-        private static readonly ConcurrentDictionary<string, ClientPoolEntry> _clientPool = new();
-        private static readonly Timer _cleanupTimer = new(CleanupExpiredClients, null, TimeSpan.FromMinutes(2), TimeSpan.FromMinutes(2));
+        private static readonly ConcurrentDictionary<string, ClientPoolEntry> clientPool = new();
+        private static readonly Timer cleanupTimer = new(CleanupExpiredClients, null, TimeSpan.FromMinutes(2), TimeSpan.FromMinutes(2));
         private const int MaxClientsPerKey = 8;
         private const int ClientTimeoutMinutes = 3;
-
-        // Fast-path check for common network exceptions to avoid full recursive check
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static bool IsLikelyNetworkException(Exception ex)
-        {
-            if (ex == null)
-                return false;
-
-            // Fast path for most common network exceptions (single type check)
-            // Use type comparison for better performance in hot paths
-            var exType = ex.GetType();
-            if (exType == typeof(HttpRequestException) ||
-                exType == typeof(WebException) ||
-                exType == typeof(SocketException) ||
-                exType == typeof(TimeoutException))
-                return true;
-
-            // Only do the full check for less common exceptions
-            if (exType == typeof(OperationCanceledException) || exType == typeof(IOException))
-                return NetworkExceptionHelper.IsNetworkException(ex);
-
-            return false;
-        }
-
-        // Memory optimization pools
-        private static readonly ArrayPool<byte> _bufferPool = ArrayPool<byte>.Shared;
-        private static readonly ConcurrentQueue<Dictionary<string, string>> _headerDictionaryPool = new();
 
         private sealed class ClientPoolEntry
         {
@@ -71,46 +30,137 @@ namespace RuriLib.Functions.Http
 
         private sealed class PooledClient : IDisposable
         {
-            public RLHttpClient Client { get; set; }
+            public required RLHttpClient Client { get; init; }
+            public required string Key { get; init; }
             public DateTime LastUsed { get; set; } = DateTime.UtcNow;
-            public string Key { get; set; }
 
             public bool IsValid => (DateTime.UtcNow - LastUsed).TotalMinutes < ClientTimeoutMinutes;
 
             public void Dispose()
             {
-                Client?.Dispose();
+                Client.Dispose();
             }
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static Dictionary<string, string> GetPooledHeaderDictionary()
+        public override Task HttpRequestStandard(BotData data, StandardHttpRequestOptions options)
+            => options.UseTlsFingerprinting
+                ? new TlsClientRequestHandler().HttpRequestStandard(data, options)
+                : ExecutePipelineAsync(
+                    data,
+                    CreateNormalizedRequest(data, options),
+                    "RuriLibHttp",
+                    (request, token) => SendAsync(data, options, request, token));
+
+        public override Task HttpRequestRaw(BotData data, RawHttpRequestOptions options)
+            => options.UseTlsFingerprinting
+                ? new TlsClientRequestHandler().HttpRequestRaw(data, options)
+                : ExecutePipelineAsync(
+                    data,
+                    CreateNormalizedRequest(data, options),
+                    "RuriLibHttp",
+                    (request, token) => SendAsync(data, options, request, token));
+
+        public override Task HttpRequestBasicAuth(BotData data, BasicAuthHttpRequestOptions options)
+            => options.UseTlsFingerprinting
+                ? new TlsClientRequestHandler().HttpRequestBasicAuth(data, options)
+                : ExecutePipelineAsync(
+                    data,
+                    CreateNormalizedRequest(data, options),
+                    "RuriLibHttp",
+                    (request, token) => SendAsync(data, options, request, token));
+
+        public override Task HttpRequestMultipart(BotData data, MultipartHttpRequestOptions options)
+            => options.UseTlsFingerprinting
+                ? new TlsClientRequestHandler().HttpRequestMultipart(data, options)
+                : ExecutePipelineAsync(
+                    data,
+                    CreateNormalizedRequest(data, options),
+                    "RuriLibHttp",
+                    (request, token) => SendAsync(data, options, request, token));
+
+        private static async Task<NormalizedHttpResponse> SendAsync(
+            BotData data,
+            RuriLib.Functions.Http.Options.HttpRequestOptions options,
+            NormalizedHttpRequest request,
+            CancellationToken cancellationToken)
         {
-            if (_headerDictionaryPool.TryDequeue(out var dict))
+            var clientOptions = GetClientOptions(data, options);
+            clientOptions.AutoRedirect = false;
+            clientOptions.MaxNumberOfRedirects = 0;
+
+            var pooledClient = GetOrCreateClient(data, clientOptions);
+            FileStream? fileStream = null;
+
+            try
             {
-                dict.Clear();
-                return dict;
+                using var content = CreateHttpContent(data, request, out fileStream);
+                using var rlRequest = new HttpRequest
+                {
+                    Method = request.Method,
+                    Uri = request.Uri,
+                    Version = request.Version,
+                    Headers = CopyHeaders(request),
+                    Cookies = CopyCookies(request),
+                    AbsoluteUriInFirstLine = request.AbsoluteUriInFirstLine,
+                    Content = content
+                };
+
+                using var response = await pooledClient.Client.SendAsync(rlRequest, cancellationToken).ConfigureAwait(false);
+                var statusCode = (int)response.StatusCode;
+                var body = request.ReadResponseContent && (statusCode < 300 || statusCode >= 400)
+                    ? await ReadResponseBodyAsync(response, cancellationToken).ConfigureAwait(false)
+                    : Array.Empty<byte>();
+                var headers = NormalizeHeaders(response.Headers);
+
+                if (response.Content?.Headers != null)
+                {
+                    foreach (var header in response.Content.Headers)
+                    {
+                        if (!headers.TryGetValue(header.Key, out var values))
+                        {
+                            values = new List<string>();
+                            headers[header.Key] = values;
+                        }
+
+                        values.AddRange(header.Value);
+                    }
+                }
+
+                var address = response.Request.Uri.IsAbsoluteUri
+                    ? response.Request.Uri
+                    : new Uri(request.Uri, response.Request.Uri);
+
+                return CreateResponseSnapshot(address, statusCode, headers, body);
             }
-            return new Dictionary<string, string>(16, StringComparer.OrdinalIgnoreCase);
+            finally
+            {
+                if (fileStream != null)
+                {
+                    await fileStream.DisposeAsync().ConfigureAwait(false);
+                }
+
+                ReturnClient(pooledClient);
+            }
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ReturnHeaderDictionary(Dictionary<string, string> dict)
+        private static async Task<byte[]> ReadResponseBodyAsync(HttpResponse response, CancellationToken cancellationToken)
         {
-            if (dict.Count <= 32)
+            try
             {
-                _headerDictionaryPool.Enqueue(dict);
+                return await response.Content.ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false);
+            }
+            catch (NullReferenceException)
+            {
+                return Array.Empty<byte>();
             }
         }
 
         private static PooledClient GetOrCreateClient(BotData data, HttpOptions clientOptions)
         {
             var key = GenerateClientKey(data, clientOptions);
-
-            var poolEntry = _clientPool.GetOrAdd(key, _ => new ClientPoolEntry());
+            var poolEntry = clientPool.GetOrAdd(key, _ => new ClientPoolEntry());
             poolEntry.LastAccessed = DateTime.UtcNow;
 
-            // Try to get an existing valid client
             while (poolEntry.Clients.TryDequeue(out var pooledClient))
             {
                 if (pooledClient.IsValid)
@@ -118,43 +168,37 @@ namespace RuriLib.Functions.Http
                     pooledClient.LastUsed = DateTime.UtcNow;
                     return pooledClient;
                 }
+
                 pooledClient.Dispose();
                 Interlocked.Decrement(ref poolEntry.ActiveClients);
             }
 
-            // Create new client if under limit
             if (poolEntry.ActiveClients < MaxClientsPerKey)
             {
-                var newClient = HttpFactory.GetRLHttpClient(data.UseProxy ? data.Proxy : null, clientOptions);
-                var newPooledClient = new PooledClient
-                {
-                    Client = newClient,
-                    Key = key,
-                    LastUsed = DateTime.UtcNow
-                };
                 Interlocked.Increment(ref poolEntry.ActiveClients);
-                return newPooledClient;
+                return new PooledClient
+                {
+                    Client = HttpFactory.GetRLHttpClient(data.UseProxy ? data.Proxy : null, clientOptions),
+                    Key = key
+                };
             }
 
-            // Fallback: create temporary client (not pooled)
             return new PooledClient
             {
                 Client = HttpFactory.GetRLHttpClient(data.UseProxy ? data.Proxy : null, clientOptions),
-                Key = key,
-                LastUsed = DateTime.UtcNow
+                Key = key
             };
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void ReturnClient(PooledClient pooledClient)
         {
-            if (pooledClient?.Client == null || !pooledClient.IsValid)
+            if (!pooledClient.IsValid)
             {
-                pooledClient?.Dispose();
+                pooledClient.Dispose();
                 return;
             }
 
-            if (_clientPool.TryGetValue(pooledClient.Key, out var poolEntry))
+            if (clientPool.TryGetValue(pooledClient.Key, out var poolEntry))
             {
                 poolEntry.Clients.Enqueue(pooledClient);
             }
@@ -171,754 +215,56 @@ namespace RuriLib.Functions.Http
             return $"{proxyKey}:{clientOptions.SecurityProtocol}:{clientOptions.UseCustomCipherSuites}";
         }
 
-        private static void CleanupExpiredClients(object state)
+        private static void CleanupExpiredClients(object? state)
         {
             var cutoff = DateTime.UtcNow.AddMinutes(-ClientTimeoutMinutes);
             var keysToRemove = new List<string>();
-            var validClientsBuffer = new List<PooledClient>(MaxClientsPerKey);
 
-            foreach (var kvp in _clientPool)
+            foreach (var kvp in clientPool)
             {
                 var poolEntry = kvp.Value;
-                validClientsBuffer.Clear();
+                var retainedClients = new List<PooledClient>();
+                var disposedClients = 0;
 
-                // Clean expired clients from the pool - batch process for efficiency
-                int expiredCount = 0;
                 while (poolEntry.Clients.TryDequeue(out var client))
                 {
                     if (client.IsValid)
                     {
-                        validClientsBuffer.Add(client);
+                        retainedClients.Add(client);
                     }
                     else
                     {
                         client.Dispose();
-                        expiredCount++;
+                        disposedClients++;
                     }
                 }
 
-                // Update active client count in batch
-                if (expiredCount > 0)
+                if (disposedClients > 0)
                 {
-                    Interlocked.Add(ref poolEntry.ActiveClients, -expiredCount);
+                    Interlocked.Add(ref poolEntry.ActiveClients, -disposedClients);
                 }
 
-                // Re-enqueue valid clients in batch
-                for (int i = 0; i < validClientsBuffer.Count; i++)
+                foreach (var client in retainedClients)
                 {
-                    poolEntry.Clients.Enqueue(validClientsBuffer[i]);
+                    poolEntry.Clients.Enqueue(client);
                 }
 
-                // Mark pool entry for removal if unused and empty
                 if (poolEntry.LastAccessed < cutoff && poolEntry.ActiveClients == 0)
                 {
                     keysToRemove.Add(kvp.Key);
                 }
             }
 
-            // Remove expired pool entries in batch
             foreach (var key in keysToRemove)
             {
-                if (_clientPool.TryRemove(key, out var poolEntry))
+                if (clientPool.TryRemove(key, out var poolEntry))
                 {
-                    // Dispose any remaining clients
                     while (poolEntry.Clients.TryDequeue(out var client))
                     {
                         client.Dispose();
                     }
                 }
             }
-        }
-        public async override Task HttpRequestStandard(BotData data, StandardHttpRequestOptions options)
-        {
-            if (options.UseTlsFingerprinting)
-            {
-                await new TlsClientRequestHandler().HttpRequestStandard(data, options).ConfigureAwait(false);
-                return;
-            }
-
-            var clientOptions = GetClientOptions(data, options);
-
-            var pooledClient = GetOrCreateClient(data, clientOptions);
-            var client = pooledClient.Client;
-
-            foreach (var cookie in options.CustomCookies)
-                data.COOKIES[cookie.Key] = cookie.Value;
-
-            using var request = new HttpRequest
-            {
-                Method = new System.Net.Http.HttpMethod(options.Method.ToString()),
-                Uri = new Uri(options.Url),
-                Version = Version.Parse(options.HttpVersion),
-                Headers = options.CustomHeaders,
-                Cookies = data.COOKIES,
-                AbsoluteUriInFirstLine = options.AbsoluteUriInFirstLine
-            };
-
-            if (!string.IsNullOrEmpty(options.Content) || options.AlwaysSendContent)
-            {
-                var content = options.Content;
-
-                if (options.UrlEncodeContent)
-                {
-                    content = string.Join("", content.SplitInChunks(2080)
-                        .Select(Uri.EscapeDataString))
-                        .Replace($"%26", "&").Replace($"%3D", "=");
-                }
-
-                request.Content = new StringContent(content.Unescape());
-                request.Content.Headers.ContentType = MediaTypeHeaderValue.Parse(options.ContentType);
-            }
-
-            data.Logger.LogHeader();
-
-            try
-            {
-                Activity.Current = null;
-                using var timeoutCts = new CancellationTokenSource(options.TimeoutMilliseconds);
-                using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(data.CancellationToken, timeoutCts.Token);
-                using var response = await client.SendAsync(request, linkedCts.Token).ConfigureAwait(false);
-
-                await LogHttpRequestData(data, request).ConfigureAwait(false);
-
-                // Add generic redirect handling for all 3xx codes
-                if (options.AutoRedirect && options.MaxNumberOfRedirects > 0 &&
-                    (int)response.StatusCode >= 300 && (int)response.StatusCode < 400 &&
-                    response.Headers.ContainsKey("Location"))
-                {
-                    // Log initial response to capture headers and cookies
-                    await LogHttpResponseData(data, response, request, options).ConfigureAwait(false);
-                    var locationValue = response.Headers["Location"];
-                    var newUri = Uri.TryCreate(locationValue, UriKind.Absolute, out var absUri)
-                        ? absUri
-                        : new Uri(request.Uri, locationValue);
-                    // Forward all cookies for the next request
-                    var redirectOptions = new StandardHttpRequestOptions
-                    {
-                        Url = newUri.ToString(),
-                        Method = HttpMethod.GET,
-                        AutoRedirect = true,
-                        MaxNumberOfRedirects = options.MaxNumberOfRedirects - 1,
-                        HttpLibrary = HttpLibrary.SystemNet,
-                        CustomCookies = new Dictionary<string, string>(data.COOKIES),
-                        CustomHeaders = new Dictionary<string, string>(),
-                        TimeoutMilliseconds = options.TimeoutMilliseconds,
-                        ReadResponseContent = options.ReadResponseContent,
-                        DecodeHtml = options.DecodeHtml,
-                        DisableCookieParsing = options.DisableCookieParsing,
-                        DisableHeaderParsing = options.DisableHeaderParsing,
-                        AbsoluteUriInFirstLine = options.AbsoluteUriInFirstLine
-                    };
-                    if (options.CustomHeaders.TryGetValue("User-Agent", out var ua))
-                        redirectOptions.CustomHeaders["User-Agent"] = ua;
-                    response.Dispose();
-                    await HttpRequestStandard(data, redirectOptions).ConfigureAwait(false);
-                    return;
-                }
-
-                await LogHttpResponseData(data, response, request, options).ConfigureAwait(false);
-            }
-            catch (Exception ex) when (IsLikelyNetworkException(ex))
-            {
-                await LogHttpRequestData(data, request).ConfigureAwait(false);
-                data.Logger.Log($"Network exception detected: {ex.GetType().Name} - {ex.Message}", LogColors.Orange);
-                throw; // Re-throw to be caught by the retry logic
-            }
-            finally
-            {
-                ReturnClient(pooledClient);
-            }
-        }
-
-        public async override Task HttpRequestRaw(BotData data, RawHttpRequestOptions options)
-        {
-            if (options.UseTlsFingerprinting)
-            {
-                await new TlsClientRequestHandler().HttpRequestRaw(data, options).ConfigureAwait(false);
-                return;
-            }
-
-            var clientOptions = GetClientOptions(data, options);
-            var pooledClient = GetOrCreateClient(data, clientOptions);
-            var client = pooledClient.Client;
-
-            foreach (var cookie in options.CustomCookies)
-                data.COOKIES[cookie.Key] = cookie.Value;
-
-            using var request = new HttpRequest
-            {
-                Method = new System.Net.Http.HttpMethod(options.Method.ToString()),
-                Uri = new Uri(options.Url),
-                Version = Version.Parse(options.HttpVersion),
-                Headers = options.CustomHeaders,
-                Cookies = data.COOKIES,
-                AbsoluteUriInFirstLine = options.AbsoluteUriInFirstLine,
-                Content = new ByteArrayContent(options.Content)
-            };
-
-            request.Content.Headers.ContentType = MediaTypeHeaderValue.Parse(options.ContentType);
-
-            data.Logger.LogHeader();
-
-            try
-            {
-                Activity.Current = null;
-                using var timeoutCts = new CancellationTokenSource(options.TimeoutMilliseconds);
-                using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(data.CancellationToken, timeoutCts.Token);
-                using var response = await client.SendAsync(request, linkedCts.Token).ConfigureAwait(false);
-
-                await LogHttpRequestData(data, request).ConfigureAwait(false);
-                await LogHttpResponseData(data, response, request, options).ConfigureAwait(false);
-            }
-            catch (Exception ex) when (IsLikelyNetworkException(ex))
-            {
-                await LogHttpRequestData(data, request).ConfigureAwait(false);
-                data.Logger.Log($"Network exception detected: {ex.GetType().Name} - {ex.Message}", LogColors.Orange);
-                throw; // Re-throw to be caught by the retry logic
-            }
-            finally
-            {
-                ReturnClient(pooledClient);
-            }
-        }
-
-        public async override Task HttpRequestBasicAuth(BotData data, BasicAuthHttpRequestOptions options)
-        {
-            if (options.UseTlsFingerprinting)
-            {
-                await new TlsClientRequestHandler().HttpRequestBasicAuth(data, options).ConfigureAwait(false);
-                return;
-            }
-
-            var clientOptions = GetClientOptions(data, options);
-            var pooledClient = GetOrCreateClient(data, clientOptions);
-            var client = pooledClient.Client;
-
-            foreach (var cookie in options.CustomCookies)
-                data.COOKIES[cookie.Key] = cookie.Value;
-
-            using var request = new HttpRequest
-            {
-                Method = new System.Net.Http.HttpMethod(options.Method.ToString()),
-                Uri = new Uri(options.Url),
-                Version = Version.Parse(options.HttpVersion),
-                Headers = options.CustomHeaders,
-                Cookies = data.COOKIES,
-                AbsoluteUriInFirstLine = options.AbsoluteUriInFirstLine
-            };
-
-            // Add the basic auth header
-            request.AddHeader("Authorization", "Basic " + Convert.ToBase64String(
-                Encoding.UTF8.GetBytes($"{options.Username}:{options.Password}")));
-
-            data.Logger.LogHeader();
-
-            try
-            {
-                Activity.Current = null;
-                using var timeoutCts = new CancellationTokenSource(options.TimeoutMilliseconds);
-                using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(data.CancellationToken, timeoutCts.Token);
-                using var response = await client.SendAsync(request, linkedCts.Token).ConfigureAwait(false);
-
-                await LogHttpRequestData(data, request).ConfigureAwait(false);
-                await LogHttpResponseData(data, response, request, options).ConfigureAwait(false);
-            }
-            catch (Exception ex) when (IsLikelyNetworkException(ex))
-            {
-                await LogHttpRequestData(data, request).ConfigureAwait(false);
-                data.Logger.Log($"Network exception detected: {ex.GetType().Name} - {ex.Message}", LogColors.Orange);
-                throw; // Re-throw to be caught by the retry logic
-            }
-            finally
-            {
-                ReturnClient(pooledClient);
-            }
-        }
-
-        public async override Task HttpRequestMultipart(BotData data, MultipartHttpRequestOptions options)
-        {
-            if (options.UseTlsFingerprinting)
-            {
-                await new TlsClientRequestHandler().HttpRequestMultipart(data, options).ConfigureAwait(false);
-                return;
-            }
-
-            var clientOptions = GetClientOptions(data, options);
-            var pooledClient = GetOrCreateClient(data, clientOptions);
-            var client = pooledClient.Client;
-
-            foreach (var cookie in options.CustomCookies)
-                data.COOKIES[cookie.Key] = cookie.Value;
-
-            if (string.IsNullOrWhiteSpace(options.Boundary))
-                options.Boundary = GenerateMultipartBoundary();
-
-            // Rewrite the value of the Content-Type header otherwise it will add double quotes around it like
-            // Content-Type: multipart/form-data; boundary="------WebKitFormBoundaryewozmkbxwbblilpm"
-            var multipartContent = new MultipartFormDataContent(options.Boundary);
-            multipartContent.Headers.ContentType.Parameters.First(o => o.Name == "boundary").Value = options.Boundary;
-
-            FileStream fileStream = null;
-
-            foreach (var c in options.Contents)
-            {
-                switch (c)
-                {
-                    case StringHttpContent x:
-                        multipartContent.Add(new StringContent(x.Data, Encoding.UTF8, x.ContentType), x.Name);
-                        break;
-
-                    case RawHttpContent x:
-                        var byteContent = new ByteArrayContent(x.Data);
-                        byteContent.Headers.ContentType = new MediaTypeHeaderValue(x.ContentType);
-                        multipartContent.Add(byteContent, x.Name);
-                        break;
-
-                    case FileHttpContent x:
-                        lock (FileLocker.GetHandle(x.FileName))
-                        {
-                            if (data.Providers.Security.RestrictBlocksToCWD)
-                                FileUtils.ThrowIfNotInCWD(x.FileName);
-
-                            fileStream = new FileStream(x.FileName, FileMode.Open);
-                            var fileContent = CreateFileContent(fileStream, x.Name, Path.GetFileName(x.FileName), x.ContentType);
-                            multipartContent.Add(fileContent, x.Name);
-                        }
-                        break;
-                }
-            }
-
-            using var request = new HttpRequest
-            {
-                Method = new System.Net.Http.HttpMethod(options.Method.ToString()),
-                Uri = new Uri(options.Url),
-                Version = Version.Parse(options.HttpVersion),
-                Headers = options.CustomHeaders,
-                Cookies = data.COOKIES,
-                AbsoluteUriInFirstLine = options.AbsoluteUriInFirstLine,
-                Content = multipartContent
-            };
-
-            data.Logger.LogHeader();
-
-            try
-            {
-                Activity.Current = null;
-                using var timeoutCts = new CancellationTokenSource(options.TimeoutMilliseconds);
-                using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(data.CancellationToken, timeoutCts.Token);
-                using var response = await client.SendAsync(request, linkedCts.Token).ConfigureAwait(false);
-
-                await LogHttpRequestData(data, request, options.Boundary, options.Contents).ConfigureAwait(false);
-                await LogHttpResponseData(data, response, request, options).ConfigureAwait(false);
-            }
-            catch (Exception ex) when (IsLikelyNetworkException(ex))
-            {
-                await LogHttpRequestData(data, request, options.Boundary, options.Contents).ConfigureAwait(false);
-                data.Logger.Log($"Network exception detected: {ex.GetType().Name} - {ex.Message}", LogColors.Orange);
-                throw; // Re-throw to be caught by the retry logic
-            }
-            finally
-            {
-                if (fileStream != null)
-                    await fileStream.DisposeAsync().ConfigureAwait(false);
-                ReturnClient(pooledClient);
-            }
-        }
-
-        private static async Task LogHttpRequestData(BotData data, HttpRequest request,
-            string boundary = null, List<MyHttpContent> multipartContents = null)
-        {
-            var sb = new StringBuilder();
-            sb.AppendLine($"{request.Method.Method} {request.Uri.PathAndQuery} HTTP/{request.Version.Major}.{request.Version.Minor}");
-
-            // Log the headers
-            if (!request.HeaderExists("Host", out _))
-                sb.AppendLine($"Host: {request.Uri.Host}");
-
-            foreach (var header in request.Headers)
-            {
-                sb.AppendLine($"{header.Key}: {string.Join(", ", header.Value)}");
-            }
-
-            // Log the cookie header (only if not already in headers to avoid duplication)
-            if (!request.HeaderExists("Cookie", out _))
-            {
-                var cookies = request.Cookies.Select(c => $"{c.Key}={c.Value}");
-
-                if (cookies.Any())
-                    sb.AppendLine($"Cookie: {string.Join("; ", cookies)}");
-            }
-
-            if (request.Content != null)
-            {
-                foreach (var header in request.Content.Headers)
-                {
-                    sb.AppendLine($"{header.Key}: {string.Join(", ", header.Value)}");
-                }
-
-                if (request.Content is StringContent stringContent)
-                {
-                    sb.AppendLine();
-                    var content = await stringContent.ReadAsStringAsync().ConfigureAwait(false);
-                    sb.AppendLine(content);
-                }
-                else if (request.Content is ByteArrayContent byteArrayContent)
-                {
-                    sb.AppendLine();
-                    var bytes = await byteArrayContent.ReadAsByteArrayAsync().ConfigureAwait(false);
-                    sb.AppendLine(Base64Converter.ToBase64String(bytes));
-                }
-                else if (request.Content is MultipartFormDataContent)
-                {
-                    sb.AppendLine();
-                    sb.AppendLine(SerializeMultipart(boundary, multipartContents));
-                }
-            }
-
-            data.Logger.Log(sb.ToString(), LogColors.Azure);
-        }
-
-        private static async Task LogHttpResponseData(BotData data, HttpResponse response, HttpRequest request,
-            RuriLib.Functions.Http.Options.HttpRequestOptions requestOptions)
-        {
-            // Skip reading payload on redirects and read content only if requested
-            int status = (int)response.StatusCode;
-            if (status >= 300 && status < 400)
-            {
-                data.RAWSOURCE = [];
-            }
-            else if (requestOptions.ReadResponseContent)
-            {
-                try
-                {
-                    data.RAWSOURCE = await response.Content.ReadAsByteArrayAsync(data.CancellationToken).ConfigureAwait(false);
-                }
-                catch (NullReferenceException)
-                {
-                    data.RAWSOURCE = [];
-                }
-            }
-            else
-            {
-                data.RAWSOURCE = [];
-            }
-
-            // Address
-            var uri = response.Request.Uri;
-            if (!uri.IsAbsoluteUri)
-                uri = new Uri(request.Uri, uri);
-            data.ADDRESS = response.Request.Uri.AbsoluteUri;
-            data.Logger.Log($"Address: {data.ADDRESS}", LogColors.DodgerBlue);
-
-            // Response code
-            data.RESPONSECODE = (int)response.StatusCode;
-            data.Logger.Log($"Response code: {data.RESPONSECODE}", LogColors.Citrine);
-
-            // Dictionary to store parsed cookies for logging to avoid re-parsing
-            // Name: Cookie name
-            // Value: Unquoted value for the cookie jar
-            // RawValue: Original value (potentially quoted) for logging
-            var parsedCookies = new List<(string Name, string Value, string RawValue)>();
-
-            // Pre-process Set-Cookie headers once if needed
-            if (!requestOptions.DisableHeaderParsing || !requestOptions.DisableCookieParsing)
-            {
-                if (response.Headers.ContainsKey("Set-Cookie"))
-                {
-                    var setCookieHeader = response.Headers["Set-Cookie"];
-                    var cookieHeaders = SplitSetCookieHeaders(setCookieHeader);
-                    foreach (var cookieHeader in cookieHeaders)
-                    {
-                        if (TryParseCookie(cookieHeader.Trim(), out var cookieName, out var cookieValue, out var rawCookieValue))
-                        {
-                            parsedCookies.Add((cookieName, cookieValue, rawCookieValue));
-                        }
-                    }
-                }
-
-                if (response.Headers.ContainsKey("Set-Cookie2"))
-                {
-                    var setCookieHeader = response.Headers["Set-Cookie2"];
-                    var cookieHeaders = SplitSetCookieHeaders(setCookieHeader);
-                    foreach (var cookieHeader in cookieHeaders)
-                    {
-                        if (TryParseCookie(cookieHeader.Trim(), out var cookieName, out var cookieValue, out var rawCookieValue))
-                        {
-                            parsedCookies.Add((cookieName, cookieValue, rawCookieValue));
-                        }
-                    }
-                }
-            }
-
-            // Headers (conditional parsing for speed)
-            if (!requestOptions.DisableHeaderParsing)
-            {
-                static string GetHeaderValue(KeyValuePair<string, string> header, List<(string Name, string Value, string RawValue)> parsedCookies)
-                {
-                    // For Set-Cookie headers, show only the name=value part
-                    if (header.Key.Equals("Set-Cookie", StringComparison.OrdinalIgnoreCase) ||
-                        header.Key.Equals("Set-Cookie2", StringComparison.OrdinalIgnoreCase))
-                    {
-                        if (parsedCookies.Count > 0)
-                        {
-                            return string.Join("; ", parsedCookies.Select(c => $"{c.Name}={c.RawValue}"));
-                        }
-                        else
-                        {
-                            // Fallback to original value if no valid cookies found
-                            return header.Value;
-                        }
-                    }
-                    else
-                    {
-                        return header.Value;
-                    }
-                }
-
-                var sbHeaders = new StringBuilder();
-                sbHeaders.AppendLine("Received Headers:");
-                data.HEADERS = response.Headers;
-                if (response.Content != null)
-                {
-                    foreach (var header in response.Content.Headers)
-                    {
-                        data.HEADERS[header.Key] = string.Join(", ", header.Value);
-                        sbHeaders.AppendLine($"{header.Key}: {GetHeaderValue(new KeyValuePair<string, string>(header.Key, string.Join(", ", header.Value)), parsedCookies)}");
-                    }
-                }
-
-                foreach (var header in response.Headers)
-                {
-                    sbHeaders.AppendLine($"{header.Key}: {GetHeaderValue(header, parsedCookies)}");
-                }
-
-                if (!data.HEADERS.ContainsKey("Content-Length"))
-                    data.HEADERS["Content-Length"] = data.RAWSOURCE.Length.ToString();
-
-                data.Logger.Log(sbHeaders.ToString(), LogColors.Violet);
-            }
-            else
-            {
-                data.HEADERS.Clear();
-                data.HEADERS["Content-Length"] = data.RAWSOURCE.Length.ToString();
-                data.Logger.Log("Header Parsing Skipped", LogColors.Orange);
-            }
-
-            // Cookies (conditional parsing for speed)
-            // Always merge cookies already stored by HttpResponseBuilder (these come from Set-Cookie headers)
-            foreach (var kv in response.Request.Cookies)
-            {
-                data.COOKIES[kv.Key] = kv.Value;
-            }
-
-            if (!requestOptions.DisableCookieParsing)
-            {
-                // Use the already parsed cookies
-                foreach (var (cookieName, cookieValue, _) in parsedCookies)
-                {
-                    data.COOKIES[cookieName] = cookieValue;
-                }
-
-                var sbCookies = new StringBuilder();
-                sbCookies.AppendLine("Received Cookies:");
-                foreach (var cookie in data.COOKIES)
-                {
-                    sbCookies.AppendLine($"{cookie.Key}: {cookie.Value}");
-                }
-                data.Logger.Log(sbCookies.ToString(), LogColors.Khaki);
-            }
-            else
-            {
-                // Don't clear existing cookies, just skip parsing new ones
-                data.Logger.Log("Cookie Parsing Skipped", LogColors.Orange);
-            }
-
-            static bool TryParseCookie(string cookieHeader, out string cookieName, out string cookieValue, out string rawCookieValue)
-            {
-                cookieName = null;
-                cookieValue = null;
-                rawCookieValue = null;
-
-                if (string.IsNullOrEmpty(cookieHeader))
-                {
-                    return false;
-                }
-
-                var separatorPos = cookieHeader.IndexOf('=');
-                if (separatorPos <= 0)
-                {
-                    // Invalid cookie, don't add it
-                    return false;
-                }
-
-                cookieName = cookieHeader.AsSpan(0, separatorPos).ToString().Trim();
-
-                var endCookiePos = cookieHeader.IndexOf(';', separatorPos);
-                if (endCookiePos == -1)
-                {
-                    // Cookie value extends to end of header (no attributes)
-                    rawCookieValue = cookieHeader.AsSpan(separatorPos + 1).ToString().Trim();
-                }
-                else
-                {
-                    // Cookie value ends at first semicolon (before attributes)
-                    rawCookieValue = cookieHeader.AsSpan(separatorPos + 1, endCookiePos - separatorPos - 1).ToString().Trim();
-                }
-
-                cookieValue = rawCookieValue;
-
-                // Remove surrounding quotes if present (some cookies have quoted values)
-                if (cookieValue.Length >= 2 && cookieValue.StartsWith('"') && cookieValue.EndsWith('"'))
-                {
-                    cookieValue = cookieValue.Substring(1, cookieValue.Length - 2);
-                }
-
-                // DON'T decode URL encoding - preserve % characters as requested
-
-                return true;
-            }
-
-            // Removed TryParseCookieForDisplay as it's no longer needed (we use the same logic now)
-
-            static string[] SplitSetCookieHeaders(string combinedHeader)
-            {
-                if (string.IsNullOrEmpty(combinedHeader))
-                {
-                    return [];
-                }
-
-                List<string> result = [];
-                var inQuotes = false;
-                var startIndex = 0;
-                var i = 0;
-
-                while (i < combinedHeader.Length)
-                {
-                    var c = combinedHeader[i];
-
-                    if (c == '"')
-                    {
-                        inQuotes = !inQuotes;
-                    }
-                    else if (c == ',' && !inQuotes)
-                    {
-                        // Check if this comma is part of a date (look for pattern like "expires=Thu, 01-Jan-1970")
-                        // Look ahead to see if next non-whitespace character looks like start of new cookie
-                        var nextIndex = i + 1;
-                        while (nextIndex < combinedHeader.Length && char.IsWhiteSpace(combinedHeader[nextIndex]))
-                            nextIndex++;
-
-                        if (nextIndex < combinedHeader.Length)
-                        {
-                            // Look for cookie name pattern (alphanumeric followed by =)
-                            var foundEquals = false;
-                            var tempIndex = nextIndex;
-                            while (tempIndex < combinedHeader.Length && !char.IsWhiteSpace(combinedHeader[tempIndex]) && combinedHeader[tempIndex] != '=')
-                                tempIndex++;
-
-                            if (tempIndex < combinedHeader.Length && combinedHeader[tempIndex] == '=')
-                                foundEquals = true;
-
-                            if (foundEquals)
-                            {
-                                // This comma separates cookies
-                                var segment = combinedHeader.Substring(startIndex, i - startIndex).Trim();
-                                if (segment.Length > 0)
-                                    result.Add(segment);
-
-                                startIndex = i + 1;
-                            }
-                            // else: This comma is part of a date or value, continue scanning
-                        }
-                        // else: End of string coming up, treat as part of current value
-                    }
-
-                    i++;
-                }
-
-                // Add the last segment
-                if (startIndex < combinedHeader.Length)
-                {
-                    var segment = combinedHeader.Substring(startIndex).Trim();
-                    if (segment.Length > 0)
-                        result.Add(segment);
-                }
-
-                return result.ToArray();
-            }
-
-            // Unzip the GZipped content if still gzipped (after Content-Length calculation)
-            if (data.RAWSOURCE.Length > 1 && data.RAWSOURCE[0] == 0x1F && data.RAWSOURCE[1] == 0x8B)
-            {
-                try
-                {
-                    data.RAWSOURCE = GZip.Unzip(data.RAWSOURCE);
-                }
-                catch
-                {
-                    data.Logger.Log("Tried to unzip but failed", LogColors.DarkOrange);
-                }
-            }
-
-            // Source
-            if (!string.IsNullOrWhiteSpace(requestOptions.CodePagesEncoding))
-            {
-                data.SOURCE = CodePagesEncodingProvider.Instance
-                    .GetEncoding(requestOptions.CodePagesEncoding).GetString(data.RAWSOURCE);
-            }
-            else
-            {
-                data.SOURCE = Encoding.UTF8.GetString(data.RAWSOURCE);
-            }
-
-            if (requestOptions.DecodeHtml)
-            {
-                data.SOURCE = WebUtility.HtmlDecode(data.SOURCE);
-            }
-
-            if (!(status >= 300 && status < 400))
-            {
-                data.Logger.Log("Received Payload:", LogColors.ForestGreen);
-                data.Logger.Log(data.SOURCE, LogColors.GreenYellow, true);
-            }
-        }
-
-        // Helper method to merge a raw Cookie header into the shared cookie jar and then remove the header
-        private static void MergeCookieHeader(IDictionary<string, string> headers, IDictionary<string, string> cookieJar)
-        {
-            // Find the Cookie header using case-insensitive lookup
-            var cookieHeaderKey = headers.Keys.FirstOrDefault(k => k.Equals("Cookie", StringComparison.OrdinalIgnoreCase));
-
-            if (cookieHeaderKey is null)
-                return;
-
-            var cookieHeaderValue = headers[cookieHeaderKey];
-
-            // Split on semicolons; Instagram cookies don't contain semicolons inside values
-            var cookiePairs = cookieHeaderValue.Split(';');
-
-            foreach (var pair in cookiePairs)
-            {
-                var trimmed = pair.Trim();
-                if (trimmed.Length == 0)
-                    continue;
-
-                var eqPos = trimmed.IndexOf('=');
-                if (eqPos <= 0)
-                    continue; // invalid cookie fragment
-
-                var name = trimmed[..eqPos].Trim();
-                var value = trimmed[(eqPos + 1)..].Trim();
-
-                // If the value is wrapped in quotes, unquote it
-                if (value.Length >= 2 && value[0] == '"' && value[^1] == '"')
-                    value = value[1..^1];
-
-                cookieJar[name] = value;
-            }
-
-            // Remove the Cookie header so that only the consolidated jar is sent
-            headers.Remove(cookieHeaderKey);
         }
     }
 }

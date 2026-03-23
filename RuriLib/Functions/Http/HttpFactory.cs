@@ -11,6 +11,7 @@ using System.Runtime.InteropServices;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 using System.Collections.Generic;
+using System.Threading;
 
 namespace RuriLib.Functions.Http
 {
@@ -70,7 +71,7 @@ namespace RuriLib.Functions.Http
 
             return new HttpClient(handler)
             {
-                Timeout = options.ReadWriteTimeout
+                Timeout = NormalizeHttpClientTimeout(options.ReadWriteTimeout)
             };
         }
 
@@ -182,7 +183,7 @@ namespace RuriLib.Functions.Http
 
             if (handler is HttpClientHandler httpHandler)
             {
-                httpHandler.MaxAutomaticRedirections = options.MaxNumberOfRedirects;
+                httpHandler.MaxAutomaticRedirections = NormalizeMaxAutomaticRedirections(options.MaxNumberOfRedirects);
                 httpHandler.AllowAutoRedirect = options.AutoRedirect;
                 httpHandler.SslProtocols = ToSslProtocols(options.SecurityProtocol);
                 httpHandler.CheckCertificateRevocationList = options.CertRevocationMode == X509RevocationMode.Online;
@@ -201,11 +202,11 @@ namespace RuriLib.Functions.Http
             }
             else if (handler is SocketsHttpHandler socksHandler)
             {
-                socksHandler.MaxAutomaticRedirections = options.MaxNumberOfRedirects;
+                socksHandler.MaxAutomaticRedirections = NormalizeMaxAutomaticRedirections(options.MaxNumberOfRedirects);
                 socksHandler.AllowAutoRedirect = options.AutoRedirect;
                 socksHandler.SslOptions = sslOptions;
-                socksHandler.ConnectTimeout = options.ConnectTimeout;
-                socksHandler.ResponseDrainTimeout = options.ReadWriteTimeout;
+                socksHandler.ConnectTimeout = NormalizeHandlerTimeout(options.ConnectTimeout, nameof(options.ConnectTimeout));
+                socksHandler.ResponseDrainTimeout = NormalizeHandlerTimeout(options.ReadWriteTimeout, nameof(options.ReadWriteTimeout));
                 socksHandler.UseCookies = cookieContainer != null;
                 
                 if (cookieContainer != null)
@@ -215,6 +216,30 @@ namespace RuriLib.Functions.Http
             }
 
             return handler;
+        }
+
+        private static TimeSpan NormalizeHttpClientTimeout(TimeSpan timeout)
+            => timeout == TimeSpan.Zero ? Timeout.InfiniteTimeSpan : NormalizeHandlerTimeout(timeout, nameof(timeout));
+
+        private static int NormalizeMaxAutomaticRedirections(int maxRedirects)
+            => maxRedirects <= 0 ? 1 : maxRedirects;
+
+        private static TimeSpan NormalizeHandlerTimeout(TimeSpan timeout, string parameterName)
+        {
+            if (timeout == TimeSpan.Zero || timeout == Timeout.InfiniteTimeSpan)
+            {
+                return Timeout.InfiniteTimeSpan;
+            }
+
+            if (timeout < TimeSpan.Zero)
+            {
+                throw new ArgumentOutOfRangeException(
+                    parameterName,
+                    timeout,
+                    "Timeout must be zero or greater, or Timeout.InfiniteTimeSpan to disable the timeout.");
+            }
+
+            return timeout;
         }
 
         /// <summary>

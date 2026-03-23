@@ -39,11 +39,8 @@ namespace RuriLib.Proxies
         public async Task<TcpClient> ConnectAsync(string destinationHost, int destinationPort, TcpClient tcpClient = null,
             CancellationToken cancellationToken = default)
         {
-            var client = tcpClient ?? new TcpClient()
-            {
-                ReceiveTimeout = (int)Settings.ReadWriteTimeOut.TotalMilliseconds,
-                SendTimeout = (int)Settings.ReadWriteTimeOut.TotalMilliseconds
-            };
+            var client = tcpClient ?? new TcpClient();
+            ApplySocketTimeouts(client);
 
             var host = Settings.Host;
             var port = Settings.Port;
@@ -58,9 +55,8 @@ namespace RuriLib.Proxies
             // Try to connect to the proxy (or directly to the server in the NoProxy case)
             try
             {
-                using var timeoutCts = new CancellationTokenSource(Settings.ConnectTimeout);
-                using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(timeoutCts.Token, cancellationToken);
-                await client.ConnectAsync(host, port, linkedCts.Token).ConfigureAwait(false);
+                using var connectCts = CreateConnectCancellationTokenSource(cancellationToken);
+                await client.ConnectAsync(host, port, connectCts.Token).ConfigureAwait(false);
 
                 await CreateConnectionAsync(client, destinationHost, destinationPort, cancellationToken)
                     .ConfigureAwait(false);
@@ -78,6 +74,64 @@ namespace RuriLib.Proxies
             }
 
             return client;
+        }
+
+        private void ApplySocketTimeouts(TcpClient client)
+        {
+            var timeoutMilliseconds = NormalizeSocketTimeoutMilliseconds(Settings.ReadWriteTimeOut, nameof(Settings.ReadWriteTimeOut));
+
+            if (!timeoutMilliseconds.HasValue)
+            {
+                return;
+            }
+
+            client.ReceiveTimeout = timeoutMilliseconds.Value;
+            client.SendTimeout = timeoutMilliseconds.Value;
+        }
+
+        private CancellationTokenSource CreateConnectCancellationTokenSource(CancellationToken cancellationToken)
+        {
+            var timeout = Settings.ConnectTimeout;
+            if (timeout == Timeout.InfiniteTimeSpan || timeout == TimeSpan.Zero)
+            {
+                return CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            }
+
+            if (timeout < TimeSpan.Zero)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(Settings.ConnectTimeout),
+                    timeout,
+                    "ConnectTimeout must be zero or greater, or Timeout.InfiniteTimeSpan to disable the timeout.");
+            }
+
+            var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            linkedCts.CancelAfter(timeout);
+            return linkedCts;
+        }
+
+        private static int? NormalizeSocketTimeoutMilliseconds(TimeSpan timeout, string parameterName)
+        {
+            if (timeout == Timeout.InfiniteTimeSpan || timeout == TimeSpan.Zero)
+            {
+                return null;
+            }
+
+            if (timeout < TimeSpan.Zero)
+            {
+                throw new ArgumentOutOfRangeException(
+                    parameterName,
+                    timeout,
+                    "Socket timeout must be zero or greater, or Timeout.InfiniteTimeSpan to disable the timeout.");
+            }
+
+            var timeoutMilliseconds = timeout.TotalMilliseconds;
+            if (timeoutMilliseconds > int.MaxValue)
+            {
+                return int.MaxValue;
+            }
+
+            return (int)timeoutMilliseconds;
         }
 
         /// <summary>

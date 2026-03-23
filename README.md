@@ -105,6 +105,14 @@ Read:
 - `Flux.Native/Views/`
 - then whatever service the UI delegates into
 
+For the recently split desktop pages, start from the shell page and then drill into feature controls/viewmodels:
+
+- tools dashboard shell: `Flux.Native/Views/Pages/Tools/Monitor.xaml`
+- tools dashboard state: `Flux.Native/ViewModels/Pages/ToolsPageViewModel.cs`
+- individual tools: `Flux.Native/ViewModels/Tools/` and `Flux.Native/Views/Controls/Tools/`
+- config stacker shell: `Flux.Native/Views/Pages/ConfigPages/ConfigStacker.xaml`
+- config stacker features: `Flux.Native/ViewModels/Config/` and `Flux.Native/Views/Controls/Config/`
+
 ## Recent Runtime Refactors
 
 The codebase already contains a few important simplifications:
@@ -112,6 +120,7 @@ The codebase already contains a few important simplifications:
 - `MultiRunJob` no longer owns all initialization and lifecycle logic directly
 - `JobOrchestrator` no longer owns all projection and subscription logic directly
 - HTTP transport behavior is centered around a shared request pipeline in `HttpRequestHandler`
+- `Monitor` and `ConfigStacker` in `Flux.Native` are now shell pages with feature-specific controls/viewmodels
 
 If you are debugging older assumptions about these areas, verify the current extracted services first.
 

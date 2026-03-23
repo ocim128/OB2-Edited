@@ -1,0 +1,88 @@
+<UserControl x:Class="Flux.Native.Views.Controls.Tools.TextCleanerToolControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
+             mc:Ignorable="d">
+    <Border Style="{StaticResource ModernCardLite}"
+            Background="{DynamicResource Modern.BackgroundSecondary}"
+            Padding="20"
+            Visibility="{Binding CardVisibility}">
+        <StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                <iconPacks:PackIconMaterial Kind="TextBoxRemove"
+                                            Width="20"
+                                            Height="20"
+                                            VerticalAlignment="Center"
+                                            Margin="0,0,8,0"
+                                            Foreground="{DynamicResource Modern.ThemeAccent}"/>
+                <TextBlock Text="Text Cleaner"
+                           Style="{StaticResource H3TextStyle}"
+                           VerticalAlignment="Center"/>
+            </StackPanel>
+            <TextBlock Text="Normalize chaotic dumps, compress whitespace, and rank by 'T' markers instantly."
+                       Style="{StaticResource CaptionTextStyle}"
+                       Foreground="{DynamicResource Modern.ForegroundMuted}"
+                       TextWrapping="Wrap"
+                       Margin="0,0,0,16"/>
+
+            <TextBox Style="{StaticResource MatchingTextBox}"
+                     AcceptsReturn="True"
+                     Height="150"
+                     VerticalScrollBarVisibility="Auto"
+                     TextWrapping="Wrap"
+                     AutomationProperties.Name="Text cleaner input"
+                     KeyDown="TextCleanerInputKeyDown"
+                     Text="{Binding Input, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+
+            <Grid Margin="0,10,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                    <Button Style="{StaticResource StyledWarningButton}"
+                            Content="Clear"
+                            Width="80"
+                            Command="{Binding ClearCommand}"
+                            AutomationProperties.Name="Clear text cleaner"/>
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button Style="{StaticResource StyledPrimaryButton}"
+                            Content="Clean"
+                            Width="80"
+                            Margin="0,0,8,0"
+                            Command="{Binding CleanCommand}"
+                            AutomationProperties.Name="Clean text"/>
+                    <Button Style="{StaticResource StyledSuccessButton}"
+                            Content="Copy"
+                            Width="80"
+                            Command="{Binding CopyOutputCommand}"
+                            AutomationProperties.Name="Copy text cleaner output"/>
+                </StackPanel>
+            </Grid>
+
+            <Border Background="{DynamicResource Modern.Success}"
+                    CornerRadius="6"
+                    Padding="10"
+                    Margin="0,10,0,10"
+                    Visibility="{Binding StatusVisibility}">
+                <TextBlock Style="{StaticResource CaptionTextStyle}"
+                           Foreground="{Binding StatusBrush}"
+                           Text="{Binding StatusMessage}"
+                           TextWrapping="Wrap"/>
+            </Border>
+
+            <TextBox Style="{StaticResource MatchingTextBox}"
+                     AcceptsReturn="True"
+                     IsReadOnly="True"
+                     Height="150"
+                     VerticalScrollBarVisibility="Auto"
+                     TextWrapping="Wrap"
+                     AutomationProperties.Name="Text cleaner output"
+                     Cursor="IBeam"
+                     Text="{Binding Output, Mode=OneWay}"/>
+        </StackPanel>
+    </Border>
+</UserControl>

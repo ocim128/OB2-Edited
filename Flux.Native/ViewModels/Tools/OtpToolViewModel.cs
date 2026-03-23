@@ -9,7 +9,7 @@ namespace Flux.Native.ViewModels.Tools
     /// <summary>
     /// MVVM wrapper for the OTP generator tool.
     /// </summary>
-    public sealed class OtpToolViewModel : ViewModelBase, IDisposable
+    public sealed class OtpToolViewModel : ToolCardViewModelBase, IDisposable
     {
         private readonly DispatcherTimer timer;
         private readonly RelayCommand pasteSecretCommand;
@@ -26,6 +26,7 @@ namespace Flux.Native.ViewModels.Tools
         private double progressValue;
 
         public OtpToolViewModel()
+            : base("OTP Toolkit", "Security", "two factor", "authenticator", "totp", "code", "2fa", "token")
         {
             timer = new DispatcherTimer
             {

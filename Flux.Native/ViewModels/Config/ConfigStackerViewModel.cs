@@ -11,7 +11,7 @@ using Flux.Native.ViewModels.Base;
 
 namespace Flux.Native.ViewModels.Configs;
 
-    public class ConfigStackerViewModel : ViewModelBase
+    public partial class ConfigStackerViewModel : ViewModelBase
 {
     private readonly ConfigService configService;
 
@@ -23,6 +23,9 @@ namespace Flux.Native.ViewModels.Configs;
     private List<BlockViewModel> _originalStack;
 
     private ObservableCollection<BlockViewModel> stack;
+
+    public ConfigStackerInspectorViewModel Inspector { get; }
+
     public ObservableCollection<BlockViewModel> Stack
     {
         get => stack;
@@ -36,6 +39,8 @@ namespace Flux.Native.ViewModels.Configs;
     public ConfigStackerViewModel(ConfigService configService)
     {
         this.configService = configService ?? throw new ArgumentNullException(nameof(configService));
+        Inspector = new ConfigStackerInspectorViewModel();
+        InitializeTooling();
     }
 
     public void CreateBlock(BlockDescriptor descriptor)
@@ -201,14 +206,13 @@ namespace Flux.Native.ViewModels.Configs;
 
     private void InvokeSelectionChanged()
     {
-        if (Stack != null)
-        {
-            SelectionChanged?.Invoke(Stack.Where(static s => s?.Selected == true));
-        }
-        else
-        {
-            SelectionChanged?.Invoke([]);
-        }
+        var selected = Stack != null
+            ? Stack.Where(static s => s?.Selected == true).ToArray()
+            : Array.Empty<BlockViewModel>();
+
+        Inspector.SetSelectedBlock(selected.FirstOrDefault());
+        SelectionChanged?.Invoke(selected);
+        RaiseToolCommandStateChanged();
     }
 
     public void RemoveSelected()
@@ -475,6 +479,8 @@ namespace Flux.Native.ViewModels.Configs;
         {
             _originalStack = [];
             Stack = [];
+            Inspector.SetSelectedBlock(null);
+            RaiseToolCommandStateChanged();
             base.UpdateViewModel();
             return;
         }
@@ -491,6 +497,7 @@ namespace Flux.Native.ViewModels.Configs;
             SelectBlock(null, false);
         }
 
+        RaiseToolCommandStateChanged();
         base.UpdateViewModel();
     }
 

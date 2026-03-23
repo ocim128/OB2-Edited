@@ -107,6 +107,14 @@ Read in this order:
 2. view or code-behind under `Flux.Native/Views/`
 3. delegated service in `Flux.Shared/` or `RuriLib/`
 
+For recently split `Flux.Native` pages, start from the shell page and then move into feature controls/viewmodels:
+- Tools dashboard shell: `Flux.Native/Views/Pages/Tools/Monitor.xaml` and `Monitor.xaml.cs`
+- Tools dashboard state: `Flux.Native/ViewModels/Pages/ToolsPageViewModel.cs`
+- Individual tool cards: `Flux.Native/ViewModels/Tools/` and `Flux.Native/Views/Controls/Tools/`
+- Config stacker shell: `Flux.Native/Views/Pages/ConfigPages/ConfigStacker.xaml` and `ConfigStacker.xaml.cs`
+- Config stacker block list / inspector: `Flux.Native/Views/Controls/Config/`
+- Config stacker state: `Flux.Native/ViewModels/Config/ConfigStackerViewModel.cs`, `ConfigStackerViewModel.Tooling.cs`, and `ConfigStackerInspectorViewModel.cs`
+
 ## Common Architecture Notes
 
 - `RuriLib` is the execution engine.
@@ -119,6 +127,10 @@ Recent runtime simplifications already in place:
 - Job initialization and lifecycle were extracted from `MultiRunJob`.
 - Job projection and event subscriptions were extracted from `JobOrchestrator`.
 - HTTP request execution is now centered on shared pipeline logic in `HttpRequestHandler`.
+
+Recent desktop refactors already in place:
+- `Monitor` is now a shell page; tool-specific behavior lives in dedicated controls/viewmodels.
+- `ConfigStacker` is now a shell page; block list and inspector behavior are split into dedicated controls/viewmodels.
 
 ## Logging And Debugging
 

@@ -1,0 +1,229 @@
+<UserControl x:Class="Flux.Native.Views.Controls.Tools.LineReducerToolControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
+             mc:Ignorable="d">
+    <Border Style="{StaticResource ModernCardLite}"
+            Background="{DynamicResource Modern.BackgroundSecondary}"
+            Padding="20"
+            Visibility="{Binding CardVisibility}">
+        <StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                <iconPacks:PackIconMaterial Kind="FileDocument"
+                                            Width="20"
+                                            Height="20"
+                                            VerticalAlignment="Center"
+                                            Margin="0,0,8,0"
+                                            Foreground="{DynamicResource Modern.Success}"/>
+                <TextBlock Text="Line Reducer"
+                           Style="{StaticResource H3TextStyle}"
+                           VerticalAlignment="Center"/>
+            </StackPanel>
+            <TextBlock Text="Remove every line from a source file that appears in one or more comparison files using streaming-safe fingerprints."
+                       Style="{StaticResource CaptionTextStyle}"
+                       Foreground="{DynamicResource Modern.ForegroundMuted}"
+                       TextWrapping="Wrap"
+                       Margin="0,0,0,16"/>
+
+            <StackPanel Margin="0,0,0,12">
+                <TextBlock Text="Main file (.txt)"
+                           Style="{StaticResource BodyTextStyle}"
+                           Margin="0,0,0,4"/>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBox Style="{StaticResource MatchingTextBox}"
+                             Grid.Column="0"
+                             Margin="0,0,8,0"
+                             AutomationProperties.Name="Line reducer main file"
+                             Text="{Binding SourcePath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                             IsEnabled="{Binding AreInputsEnabled}"/>
+                    <Button Style="{StaticResource StyledButton}"
+                            Grid.Column="1"
+                            Width="100"
+                            Content="Browse"
+                            Click="BrowseLineReducerSource"
+                            AutomationProperties.Name="Browse main text file"
+                            IsEnabled="{Binding AreInputsEnabled}"/>
+                </Grid>
+            </StackPanel>
+
+            <StackPanel Margin="0,0,0,12">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="Comparison file(s)"
+                               Style="{StaticResource BodyTextStyle}"
+                               Margin="0,0,0,4"
+                               VerticalAlignment="Center"/>
+                    <Button Grid.Column="1"
+                            Style="{StaticResource StyledPrimaryButton}"
+                            Content="Add file(s)"
+                            Width="110"
+                            Margin="8,0,0,0"
+                            Click="AddLineReducerCompareFiles"
+                            AutomationProperties.Name="Add comparison files"
+                            IsEnabled="{Binding AreInputsEnabled}"/>
+                    <Button Grid.Column="2"
+                            Style="{StaticResource StyledWarningButton}"
+                            Content="Clear"
+                            Width="80"
+                            Margin="8,0,0,0"
+                            Command="{Binding ClearCompareFilesCommand}"
+                            AutomationProperties.Name="Clear comparison files"/>
+                </Grid>
+                <Border Background="{DynamicResource Modern.BackgroundTertiary}"
+                        BorderBrush="{DynamicResource Modern.BorderSecondary}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="8"
+                        Margin="0,8,0,4"
+                        MinHeight="120">
+                    <ListBox BorderThickness="0"
+                             Background="Transparent"
+                             Foreground="{DynamicResource Modern.ForegroundMain}"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto"
+                             HorizontalContentAlignment="Stretch"
+                             ItemsSource="{Binding CompareFiles}"
+                             IsEnabled="{Binding AreInputsEnabled}">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Margin="0,4,0,4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding DisplayName}"
+                                                   Style="{StaticResource BodyTextStyle}"
+                                                   Foreground="{DynamicResource Modern.ForegroundMain}"
+                                                   TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Text="{Binding Details}"
+                                                   Style="{StaticResource CaptionTextStyle}"
+                                                   Foreground="{DynamicResource Modern.ForegroundMuted}"
+                                                   TextTrimming="CharacterEllipsis"/>
+                                    </StackPanel>
+                                    <Button Grid.Column="1"
+                                            Style="{StaticResource StyledWarningButton}"
+                                            Width="80"
+                                            Content="Remove"
+                                            Command="{Binding DataContext.RemoveCompareFileCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                            CommandParameter="{Binding}"
+                                            AutomationProperties.Name="Remove comparison file"
+                                            Margin="8,0,0,0"/>
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Border>
+                <TextBlock Style="{StaticResource CaptionTextStyle}"
+                           Foreground="{DynamicResource Modern.ForegroundMuted}"
+                           Text="{Binding CompareSummary}"
+                           TextWrapping="Wrap"/>
+            </StackPanel>
+
+            <StackPanel Margin="0,0,0,12">
+                <TextBlock Text="Output file"
+                           Style="{StaticResource BodyTextStyle}"
+                           Margin="0,0,0,4"/>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBox Style="{StaticResource MatchingTextBox}"
+                             Grid.Column="0"
+                             Margin="0,0,8,0"
+                             AutomationProperties.Name="Line reducer output file"
+                             Text="{Binding OutputPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                             IsEnabled="{Binding AreInputsEnabled}"/>
+                    <Button Style="{StaticResource StyledButton}"
+                            Grid.Column="1"
+                            Width="110"
+                            Content="Choose..."
+                            Click="BrowseLineReducerOutput"
+                            AutomationProperties.Name="Choose line reducer output file"
+                            IsEnabled="{Binding AreInputsEnabled}"/>
+                </Grid>
+            </StackPanel>
+
+            <StackPanel Orientation="Vertical" Margin="0,0,0,10">
+                <StackPanel Orientation="Horizontal">
+                    <CheckBox Content="Trim whitespace before comparing"
+                              Margin="0,0,16,0"
+                              IsChecked="{Binding TrimWhitespace}"
+                              IsEnabled="{Binding AreInputsEnabled}"/>
+                    <CheckBox Content="Ignore case (abc = ABC)"
+                              IsChecked="{Binding IgnoreCase}"
+                              IsEnabled="{Binding AreInputsEnabled}"/>
+                </StackPanel>
+                <TextBlock Text="Comparison is performed via 128-bit fingerprints, keeping memory usage predictable even for huge files."
+                           Style="{StaticResource CaptionTextStyle}"
+                           Foreground="{DynamicResource Modern.ForegroundMuted}"
+                           TextWrapping="Wrap"
+                           Margin="0,6,0,0"/>
+            </StackPanel>
+
+            <Grid Margin="0,0,0,12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Button Style="{StaticResource StyledPrimaryButton}"
+                        Content="Process file"
+                        Width="130"
+                        Command="{Binding RunCommand}"
+                        AutomationProperties.Name="Run line reducer"/>
+                <Button Grid.Column="1"
+                        Style="{StaticResource StyledWarningButton}"
+                        Content="Cancel"
+                        Width="100"
+                        Margin="12,0,0,0"
+                        Visibility="{Binding CancelVisibility}"
+                        Command="{Binding CancelCommand}"
+                        AutomationProperties.Name="Cancel line reducer"/>
+            </Grid>
+
+            <ProgressBar Height="6"
+                         Minimum="0"
+                         Maximum="100"
+                         Value="{Binding ProgressValue, Mode=OneWay}"
+                         Margin="0,0,0,8"
+                         Visibility="{Binding CancelVisibility}"/>
+            <TextBlock Style="{StaticResource CaptionTextStyle}"
+                       Foreground="{DynamicResource Modern.ForegroundMuted}"
+                       Text="{Binding ProgressText}"
+                       TextWrapping="Wrap"
+                       Margin="0,0,0,10"/>
+
+            <Border Background="{DynamicResource Modern.BackgroundElevated}"
+                    CornerRadius="6"
+                    Padding="10"
+                    Margin="0,0,0,10"
+                    Visibility="{Binding StatusVisibility}">
+                <TextBlock Style="{StaticResource CaptionTextStyle}"
+                           Foreground="{Binding StatusBrush}"
+                           Text="{Binding StatusMessage}"
+                           TextWrapping="Wrap"/>
+            </Border>
+
+            <Border Background="{DynamicResource Modern.BackgroundTertiary}"
+                    BorderBrush="{DynamicResource Modern.BorderSecondary}"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Padding="12">
+                <TextBlock Style="{StaticResource BodyTextStyle}"
+                           Foreground="{DynamicResource Modern.ForegroundMain}"
+                           TextWrapping="Wrap"
+                           Text="{Binding StatsText}"/>
+            </Border>
+        </StackPanel>
+    </Border>
+</UserControl>

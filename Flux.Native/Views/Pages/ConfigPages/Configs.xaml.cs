@@ -3,7 +3,6 @@ using Flux.Core.Services;
 using Flux.Native.DTOs;
 using Flux.Native.Helpers;
 using Flux.Native.Services;
-using Flux.Native.ViewModels;
 using Flux.Native.ViewModels.Configs;
 using Flux.Native.Views.Dialogs.Config;
 using RuriLib.Models.Configs;
@@ -24,7 +23,8 @@ using RuriLib.Helpers;
 
 
 using Flux.Native.Enums;
-using Microsoft.Extensions.DependencyInjection;
+using Flux.Native.Services.Navigation;
+using Flux.Native.ViewModels.Shared;
 
 namespace Flux.Native.Views.Pages.Configs
 {
@@ -37,6 +37,8 @@ namespace Flux.Native.Views.Pages.Configs
         private readonly ConfigService configService;
         private readonly ConfigsViewModel vm;
         private readonly VolatileSettingsService volatileSettings;
+        private readonly INavigationHandler navigationHandler;
+        private readonly DebuggerViewModel debuggerViewModel;
         private GridViewColumnHeader listViewSortCol;
         private SortAdorner listViewSortAdorner;
         private Point dragStartPoint;
@@ -56,13 +58,21 @@ namespace Flux.Native.Views.Pages.Configs
             set => volatileSettings.ListViewSorting["configs"].Direction = value;
         }
 
-        public Configs()
+        public Configs(
+            FluxSettingsService fluxSettingsService,
+            ConfigService configService,
+            VolatileSettingsService volatileSettings,
+            ConfigsViewModel vm,
+            INavigationHandler navigationHandler,
+            DebuggerViewModel debuggerViewModel)
         {
-            fluxSettingsService = App.ServiceProvider.GetRequiredService<FluxSettingsService>();
-            configService = App.ServiceProvider.GetRequiredService<ConfigService>();
-            volatileSettings = App.ServiceProvider.GetRequiredService<VolatileSettingsService>();
-            vm = App.ServiceProvider.GetRequiredService<ViewModelsService>().Configs;
-            DataContext = vm;
+            this.fluxSettingsService = fluxSettingsService;
+            this.configService = configService;
+            this.volatileSettings = volatileSettings;
+            this.vm = vm;
+            this.navigationHandler = navigationHandler;
+            this.debuggerViewModel = debuggerViewModel;
+            DataContext = this.vm;
 
             InitializeComponent();
             Loaded += (s, e) => configsListView.Focus();
@@ -187,7 +197,7 @@ namespace Flux.Native.Views.Pages.Configs
                 _ => GetModeSpecificPage(section, mode)
             };
 
-            App.ServiceProvider.GetRequiredService<MainWindow>().NavigateTo(page);
+            _ = navigationHandler.NavigateTo(page);
         }
 
         private MainWindowPage GetModeSpecificPage(ConfigSection section, ConfigMode mode)
@@ -235,7 +245,7 @@ namespace Flux.Native.Views.Pages.Configs
                 return;
 
             vm.SelectedConfig = HoveredItem;
-            App.ServiceProvider.GetRequiredService<ViewModelsService>().Debugger.ClearLog();
+            debuggerViewModel.ClearLog();
             NavigateToConfigSection();
         }
 

@@ -54,6 +54,7 @@ public partial class ConfigDebugger : IDisposable
     }
 
     private static readonly ConcurrentDictionary<string, CachedTranspilation> _transpilationCache = new();
+    private static readonly ScriptPreparationService _scriptPreparation = new();
     private const int MaxTranspilationCacheSize = 40;
 
     public IRandomUAProvider RandomUAProvider { get; set; }
@@ -81,6 +82,7 @@ public partial class ConfigDebugger : IDisposable
     // Performance optimization: Cache frequently used objects
     private readonly object _statusLock = new();
     private readonly StringBuilder _logBuilder = new(1024); // Reusable StringBuilder
+    private readonly BotSessionFactory _botSessionFactory = new();
 
     public List<Variable> Variables { get; } = new();
 
@@ -111,12 +113,14 @@ public partial class ConfigDebugger : IDisposable
         // Offload CPU-intensive transpilation and compilation to a background thread
         // This prevents the UI thread from hanging during initialization
         var prepareSw = Stopwatch.StartNew();
-        var (script, startupScript, transpiledScript, transpiledStartupScript) = await Task.Run(
+        var preparedScripts = await Task.Run(
             () => PrepareScripts(Config, Options.StepByStep, PluginRepo)).ConfigureAwait(false);
         prepareSw.Stop();
 
-        Config.CSharpScript = transpiledScript;
-        Config.StartupCSharpScript = transpiledStartupScript;
+        var script = preparedScripts.Script;
+        var startupScript = preparedScripts.StartupScript;
+        Config.CSharpScript = preparedScripts.TranspiledScript;
+        Config.StartupCSharpScript = preparedScripts.TranspiledStartupScript;
 
         if (Options.UseProxy && !Options.TestProxy.Contains(':'))
         {
@@ -167,7 +171,7 @@ public partial class ConfigDebugger : IDisposable
         _stepper = new Stepper();
         _stepper.WaitingForStep += OnWaitingForStep;
 
-        var runtimeContext = BotRuntimeContextBuilder.CreateContext(
+        var runtimeContext = _botSessionFactory.CreateRuntimeContext(
             Config.Settings.DataSettings.Resources,
             ownerId: 0,
             jobId: 0,
@@ -176,19 +180,17 @@ public partial class ConfigDebugger : IDisposable
             continueOnResourceError: true);
 
         // Build the BotData
-        _data = BotRuntimeContextBuilder.CreateBotData(new BotRuntimeSessionOptions
-        {
-            Providers = providers,
-            ConfigSettings = Config.Settings,
-            Logger = Logger,
-            Line = dataLine,
-            Proxy = proxy,
-            UseProxy = Options.UseProxy,
-            CancellationToken = _cts.Token,
-            Stepper = _stepper,
-            AsyncLocker = runtimeContext.AsyncLocker,
-            SharedHttpClient = runtimeContext.HttpClient
-        });
+        _data = _botSessionFactory.CreateBotData(
+            providers,
+            Config.Settings,
+            Logger,
+            dataLine,
+            proxy,
+            Options.UseProxy,
+            _cts.Token,
+            _stepper,
+            runtimeContext.AsyncLocker,
+            runtimeContext.HttpClient);
 
         // Scripts are already built above
 
@@ -234,20 +236,18 @@ public partial class ConfigDebugger : IDisposable
                 // only used in this context to be able to use variables e.g. data.SOURCE
                 // and other things like providers, settings, logger.
                 // By default it doesn't support proxies.
-                var startupData = BotRuntimeContextBuilder.CreateBotData(new BotRuntimeSessionOptions
-                {
-                    Providers = providers,
-                    ConfigSettings = Config.Settings,
-                    Logger = Logger,
-                    Line = new DataLine(string.Empty, wordlistType),
-                    CancellationToken = _cts.Token,
-                    Stepper = _stepper,
-                    AsyncLocker = runtimeContext.AsyncLocker,
-                    SharedHttpClient = runtimeContext.HttpClient
-                });
+                var startupData = _botSessionFactory.CreateStartupBotData(
+                    providers,
+                    Config.Settings,
+                    Logger,
+                    wordlistType,
+                    _cts.Token,
+                    _stepper,
+                    runtimeContext.AsyncLocker,
+                    runtimeContext.HttpClient);
 
                 Logger.Log("Executing startup script...");
-                _ = await BotRuntimeContextBuilder
+                await _scriptPreparation
                     .ExecuteStartupScriptAsync(startupScript, startupData, globals, _cts.Token)
                     .ConfigureAwait(false);
                 Logger.Log("Executing main script...");
@@ -358,21 +358,18 @@ public partial class ConfigDebugger : IDisposable
         // GC.SuppressFinalize(this);
     }
 
-    private static (IScript script, IScript? startupScript, string transpiledScript, string transpiledStartupScript) PrepareScripts(
+    private static ScriptPreparationResult PrepareScripts(
         Config config, bool stepByStep, PluginRepository pluginRepo)
     {
         var (transpiledScript, transpiledStartupScript) = GetTranspiledScripts(config, stepByStep);
-
-        var scriptBuilder = new ScriptBuilder();
-        var compiledScript = scriptBuilder.Build(transpiledScript, config.Settings.ScriptSettings, pluginRepo);
-
-        IScript compiledStartupScript = null;
-        if (!string.IsNullOrWhiteSpace(transpiledStartupScript))
-        {
-            compiledStartupScript = scriptBuilder.Build(transpiledStartupScript, config.Settings.ScriptSettings, pluginRepo);
-        }
-
-        return (compiledScript, compiledStartupScript, transpiledScript, transpiledStartupScript);
+        return _scriptPreparation
+            .PrepareAsync(
+                config,
+                pluginRepo,
+                stepByStep: stepByStep,
+                preparedSources: new PreparedScriptSources(transpiledScript, transpiledStartupScript))
+            .GetAwaiter()
+            .GetResult();
     }
 
     private static (string mainScript, string startupScript) GetTranspiledScripts(Config config, bool stepByStep)
@@ -389,11 +386,9 @@ public partial class ConfigDebugger : IDisposable
             return (cached.MainScript, cached.StartupScript);
         }
 
-        var mainScript = config.Mode == ConfigMode.Stack
-            ? Stack2CSharpTranspiler.Transpile(config.Stack, config.Settings, stepByStep)
-            : Loli2CSharpTranspiler.Transpile(config.LoliCodeScript, config.Settings, stepByStep);
-
-        var startupScript = Loli2CSharpTranspiler.Transpile(config.StartupLoliCodeScript, config.Settings, stepByStep);
+        var transpiledScripts = _scriptPreparation.TranspileSources(config, stepByStep);
+        var mainScript = transpiledScripts.MainScript;
+        var startupScript = transpiledScripts.StartupScript;
 
         _transpilationCache[cacheKey] = new CachedTranspilation
         {

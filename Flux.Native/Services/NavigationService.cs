@@ -1,4 +1,5 @@
 using Flux.Native.Enums;
+using Flux.Native.Factories;
 using Flux.Native.ViewModels;
 using Flux.Native.Views.Pages;
 using Home = Flux.Native.Views.Pages.Home.Home;
@@ -24,7 +25,6 @@ using System.Windows.Controls;
 using Flux.Core.Models.Settings;
 using Flux.Core.Services;
 using Flux.Native.Helpers;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Flux.Native.Services;
 
@@ -51,7 +51,7 @@ public class NavigationEventArgs : EventArgs
 
 public class NavigationService : INavigationService
 {
-    private readonly IServiceProvider _serviceProvider;
+    private readonly IPageFactory _pageFactory;
     private readonly Dictionary<MainWindowPage, Page> _pageCache = new();
 
     public event EventHandler<NavigationEventArgs>? Navigated;
@@ -59,9 +59,9 @@ public class NavigationService : INavigationService
     public Page? CurrentPage { get; private set; }
     public MainWindowPage CurrentPageEnum { get; private set; } = MainWindowPage.Home; // Default
 
-    public NavigationService(IServiceProvider serviceProvider)
+    public NavigationService(IPageFactory pageFactory)
     {
-        _serviceProvider = serviceProvider;
+        _pageFactory = pageFactory;
     }
 
     public void NavigateTo(MainWindowPage pageEnum)
@@ -120,22 +120,22 @@ public class NavigationService : INavigationService
     {
         return pageEnum switch
         {
-            MainWindowPage.Home => ActivatorUtilities.CreateInstance<Home>(_serviceProvider),
-            MainWindowPage.Jobs => ActivatorUtilities.CreateInstance<Jobs>(_serviceProvider),
-            MainWindowPage.Tools => ActivatorUtilities.CreateInstance<Tools>(_serviceProvider),
-            MainWindowPage.Proxies => ActivatorUtilities.CreateInstance<Proxies>(_serviceProvider),
-            MainWindowPage.Wordlists => ActivatorUtilities.CreateInstance<Wordlists>(_serviceProvider),
-            MainWindowPage.Configs => ActivatorUtilities.CreateInstance<ConfigsPage>(_serviceProvider),
-            MainWindowPage.Hits => ActivatorUtilities.CreateInstance<Hits>(_serviceProvider),
-            MainWindowPage.Plugins => ActivatorUtilities.CreateInstance<Plugins>(_serviceProvider),
-            MainWindowPage.OBSettings => ActivatorUtilities.CreateInstance<OBSettings>(_serviceProvider),
-            MainWindowPage.RLSettings => ActivatorUtilities.CreateInstance<RLSettings>(_serviceProvider),
-            MainWindowPage.About => ActivatorUtilities.CreateInstance<About>(_serviceProvider),
+            MainWindowPage.Home => _pageFactory.CreateHomePage(),
+            MainWindowPage.Jobs => _pageFactory.CreateJobsPage(),
+            MainWindowPage.Tools => _pageFactory.CreateToolsPage(),
+            MainWindowPage.Proxies => _pageFactory.CreateProxiesPage(),
+            MainWindowPage.Wordlists => _pageFactory.CreateWordlistsPage(),
+            MainWindowPage.Configs => _pageFactory.CreateConfigsPage(),
+            MainWindowPage.Hits => _pageFactory.CreateHitsPage(),
+            MainWindowPage.Plugins => _pageFactory.CreatePluginsPage(),
+            MainWindowPage.OBSettings => _pageFactory.CreateOBSettingsPage(),
+            MainWindowPage.RLSettings => _pageFactory.CreateRLSettingsPage(),
+            MainWindowPage.About => _pageFactory.CreateAboutPage(),
 
             // Config Related Pages
-            MainWindowPage.ConfigMetadata => ActivatorUtilities.CreateInstance<ConfigMetadata>(_serviceProvider),
-            MainWindowPage.ConfigReadme => ActivatorUtilities.CreateInstance<ConfigReadme>(_serviceProvider),
-            MainWindowPage.ConfigSettings => ActivatorUtilities.CreateInstance<ConfigSettings>(_serviceProvider),
+            MainWindowPage.ConfigMetadata => _pageFactory.CreateConfigMetadataPage(),
+            MainWindowPage.ConfigReadme => _pageFactory.CreateConfigReadmePage(),
+            MainWindowPage.ConfigSettings => _pageFactory.CreateConfigSettingsPage(),
 
             MainWindowPage.ConfigStacker or MainWindowPage.ConfigLoliCode or MainWindowPage.ConfigCSharpCode
                 => GetOrCreateSharedConfigEditor(),
@@ -149,7 +149,7 @@ public class NavigationService : INavigationService
     {
         if (_sharedConfigEditor == null)
         {
-            _sharedConfigEditor = ActivatorUtilities.CreateInstance<ConfigEditor>(_serviceProvider);
+            _sharedConfigEditor = _pageFactory.CreateConfigEditorPage();
         }
         return _sharedConfigEditor;
     }

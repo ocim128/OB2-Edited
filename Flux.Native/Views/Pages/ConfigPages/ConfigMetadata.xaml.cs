@@ -1,12 +1,9 @@
 using Microsoft.Win32;
 using Flux.Native.Helpers;
-using Flux.Native.Services;
-using Flux.Native.ViewModels;
 using Flux.Native.ViewModels.Configs;
 using System;
 using System.Windows;
 using System.Windows.Controls;
-using Microsoft.Extensions.DependencyInjection;
 
 
 namespace Flux.Native.Views.Pages.Configs
@@ -18,10 +15,10 @@ namespace Flux.Native.Views.Pages.Configs
     {
         private readonly ConfigMetadataViewModel vm;
 
-        public ConfigMetadata()
+        public ConfigMetadata(ConfigMetadataViewModel vm)
         {
-            vm = App.ServiceProvider.GetRequiredService<ViewModelsService>().ConfigMetadata;
-            DataContext = vm;
+            this.vm = vm;
+            DataContext = this.vm;
 
             InitializeComponent();
         }

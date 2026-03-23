@@ -7,9 +7,9 @@ using Flux.Core.Services;
 using Flux.Native.Extensions;
 using Flux.Native.Helpers;
 
-using Flux.Native.Services;
-using Flux.Native.ViewModels;
 using Flux.Native.ViewModels.Data;
+using Flux.Native.ViewModels.Jobs;
+using Flux.Native.Services.Navigation;
 using RuriLib.Extensions;
 using RuriLib.Services;
 using System;
@@ -22,7 +22,6 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Threading.Tasks;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Flux.Native.Views.Pages.Data
 {
@@ -33,7 +32,8 @@ namespace Flux.Native.Views.Pages.Data
     {
         private readonly HitsViewModel vm;
         private readonly ConfigService configService;
-        private readonly MainWindow window;
+        private readonly INavigationHandler navigationHandler;
+        private readonly JobsViewModel jobsViewModel;
         private readonly RuriLibSettingsService rlSettingsService;
         private readonly FluxSettingsService fluxSettingsService;
         private GridViewColumnHeader listViewSortCol;
@@ -51,23 +51,30 @@ namespace Flux.Native.Views.Pages.Data
             " | Date = " + hit.Date.ToLongDateString() +
             " | CapturedData = " + hit.CapturedData);
 
-        public Hits()
+        public Hits(
+            HitsViewModel vm,
+            ConfigService configService,
+            RuriLibSettingsService rlSettingsService,
+            FluxSettingsService fluxSettingsService,
+            INavigationHandler navigationHandler,
+            JobsViewModel jobsViewModel)
         {
             try
             {
                 System.Diagnostics.Debug.WriteLine("Hits: Starting page construction");
-                vm = App.ServiceProvider.GetRequiredService<ViewModelsService>().Hits;
-                DataContext = vm;
+                this.vm = vm;
+                this.configService = configService;
+                this.rlSettingsService = rlSettingsService;
+                this.fluxSettingsService = fluxSettingsService;
+                this.navigationHandler = navigationHandler;
+                this.jobsViewModel = jobsViewModel;
+                DataContext = this.vm;
                 
                 System.Diagnostics.Debug.WriteLine("Hits: Initializing ViewModel");
-                _ = vm.InitializeAsync();
+                _ = this.vm.InitializeAsync();
 
                 InitializeComponent();
-                window = App.ServiceProvider.GetRequiredService<MainWindow>();
-                configService = App.ServiceProvider.GetRequiredService<ConfigService>();
-                rlSettingsService = App.ServiceProvider.GetRequiredService<RuriLibSettingsService>();
-                fluxSettingsService = App.ServiceProvider.GetRequiredService<FluxSettingsService>();
-                var env = App.ServiceProvider.GetRequiredService<RuriLibSettingsService>().Environment;
+                var env = rlSettingsService.Environment;
 
                 // HACK: Hardcoded stuff
                 var menu = (ContextMenu)Resources["ItemContextMenu"];
@@ -253,9 +260,8 @@ namespace Flux.Native.Views.Pages.Data
                 // Create the job entity and add it to the database
                 await Application.Current.Dispatcher.InvokeAsync(async () =>
                 {
-                    var jobs = App.ServiceProvider.GetRequiredService<ViewModelsService>().Jobs;
-                    var jobVM = await jobs.CreateJobAsync(jobOptions);
-                    window.DisplayJob(jobVM);
+                    var jobVM = await jobsViewModel.CreateJobAsync(jobOptions);
+                    navigationHandler.DisplayJob(jobVM);
                 });
             }
             catch (Exception ex)

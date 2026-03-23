@@ -10,6 +10,8 @@ namespace RuriLib.Models.Jobs;
 
 internal sealed class JobLifecycleService
 {
+    private readonly WorkItemFactory _workItemFactory = new();
+
     public async Task StartAsync(MultiRunJob job, RuriLib.Services.RuriLibSettingsService settings, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(job.ExecutionCoordinator);
@@ -22,7 +24,7 @@ internal sealed class JobLifecycleService
         job.UpdateStatus(JobStatus.Starting);
 
         var wordlistType = settings.Environment.WordlistTypes.FirstOrDefault(t => t.Name == job.DataPool.WordlistType);
-        var workItems = job.CreateWorkItems(wordlistType);
+        var workItems = _workItemFactory.Create(job, wordlistType);
 
         var parallelizer = ParallelizerFactory<MultiRunInput, CheckResult>
             .Create(
@@ -35,11 +37,11 @@ internal sealed class JobLifecycleService
                 job.BotLimit);
 
         parallelizer.CPMLimit = job.Config.Settings.GeneralSettings.MaximumCPM;
-        parallelizer.NewResult += job.HandleDataProcessed;
+        parallelizer.NewResult += job.ResultProcessor.HandleDataProcessed;
         parallelizer.StatusChanged += job.HandleParallelizerStatusChanged;
         parallelizer.TaskError += job.HandleTaskError;
         parallelizer.Error += job.HandleParallelizerError;
-        parallelizer.NewResult += job.HandleParallelizerResult;
+        parallelizer.NewResult += job.ResultProcessor.HandleParallelizerResult;
         parallelizer.Completed += job.HandleParallelizerCompleted;
 
         job.Parallelizer = parallelizer;

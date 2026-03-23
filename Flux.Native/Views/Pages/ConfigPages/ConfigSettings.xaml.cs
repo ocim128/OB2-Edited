@@ -1,5 +1,4 @@
 using Flux.Native.Services;
-using Flux.Native.ViewModels;
 using Flux.Native.ViewModels.Configs;
 using Flux.Native.Views.Dialogs.Config;
 using RuriLib.Models.Configs.Settings;
@@ -9,7 +8,6 @@ using System;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
-using Microsoft.Extensions.DependencyInjection;
 
 
 namespace Flux.Native.Views.Pages.Configs
@@ -21,10 +19,10 @@ namespace Flux.Native.Views.Pages.Configs
     {
         private readonly ConfigSettingsViewModel vm;
 
-        public ConfigSettings()
+        public ConfigSettings(ConfigSettingsViewModel vm)
         {
-            vm = App.ServiceProvider.GetRequiredService<ViewModelsService>().ConfigSettings;
-            DataContext = vm;
+            this.vm = vm;
+            DataContext = this.vm;
 
             InitializeComponent();
             SetMultiLineTextBoxContents();

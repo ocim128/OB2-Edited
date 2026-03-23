@@ -1,10 +1,7 @@
 using Microsoft.Win32;
-using Flux.Native.Services;
-using Flux.Native.ViewModels;
 using Flux.Native.ViewModels.Tools;
 using System.Windows;
 using System.Windows.Controls;
-using Microsoft.Extensions.DependencyInjection;
 
 
 namespace Flux.Native.Views.Pages.Tools
@@ -16,10 +13,10 @@ namespace Flux.Native.Views.Pages.Tools
     {
         private readonly PluginsViewModel vm;
 
-        public Plugins()
+        public Plugins(PluginsViewModel vm)
         {
-            vm = App.ServiceProvider.GetRequiredService<ViewModelsService>().Plugins;
-            DataContext = vm;
+            this.vm = vm;
+            DataContext = this.vm;
 
             InitializeComponent();
         }

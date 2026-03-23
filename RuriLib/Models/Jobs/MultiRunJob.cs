@@ -40,10 +40,17 @@ using RuriLib.Models.Scripting;
 
 namespace RuriLib.Models.Jobs;
 
-public class MultiRunJob(RuriLibSettingsService settings, PluginRepository pluginRepo, IJobLogger logger = null) : Job(settings, pluginRepo, logger), IDisposable
+public class MultiRunJob : Job, IDisposable
 {
     private readonly JobInitializer _initializer = new();
     private readonly JobLifecycleService _lifecycle = new();
+    private readonly JobResultProcessor _resultProcessor;
+
+    public MultiRunJob(RuriLibSettingsService settings, PluginRepository pluginRepo, IJobLogger logger = null)
+        : base(settings, pluginRepo, logger)
+    {
+        _resultProcessor = new JobResultProcessor(this);
+    }
 
     /// <summary>
     /// Options
@@ -82,36 +89,19 @@ public class MultiRunJob(RuriLibSettingsService settings, PluginRepository plugi
     /// Private fields
     /// </summary>
     private Parallelizer<MultiRunInput, CheckResult> _parallelizer;
-    private ProxyPool _proxyPool;
-
-    private BotExecutionCoordinator _executionCoordinator;
+    private JobResourceScope _resourceScope;
     private Timer _tickTimer;
-    private dynamic _globalVariables;
-    private Dictionary<string, ConfigResource> _resources;
-    private HttpClient _httpClient;
-    private AsyncLocker _asyncLocker;
     private Timer _proxyReloadTimer;
     private CancellationTokenSource _startCts;
-    private MethodInfo _dllMethod;
-    private IScript _script;
 
     // Performance optimizations
-    private static readonly char[] _separator = ['\r', '\n'];
-    private readonly object _lockObject = new();
-    private readonly ConcurrentQueue<Hit> hits = new();
     private bool _disposed;
     private int _fatalTaskErrorFlag;
-
-    // Lazy initialization for expensive resources
-    private Lazy<dynamic> _pythonEngine;
-    private DateTime _lastProxyStatsUpdate = DateTime.MinValue;
-    private (int total, int alive, int banned, int bad) _cachedProxyStats;
-    private readonly TimeSpan _proxyStatsCacheInterval = TimeSpan.FromSeconds(2);
 
     /// <summary>
     /// Instance properties and stats
     /// </summary>
-    public IReadOnlyCollection<Hit> Hits => hits;
+    public IReadOnlyCollection<Hit> Hits => _resultProcessor.Hits;
 
     /// <summary>
     /// Events
@@ -133,7 +123,7 @@ public class MultiRunJob(RuriLibSettingsService settings, PluginRepository plugi
     /// <summary>
     /// Job statistics manager
     /// </summary>
-    public JobStatistics Statistics { get; private set; } = new();
+    public JobStatistics Statistics => _resultProcessor.Statistics;
 
     /// <summary>
     /// -- Data
@@ -151,10 +141,10 @@ public class MultiRunJob(RuriLibSettingsService settings, PluginRepository plugi
     /// <summary>
     /// -- Proxies (cached for performance)
     /// </summary>
-    public int ProxiesTotal => GetCachedProxyStats().total;
-    public int ProxiesAlive => GetCachedProxyStats().alive;
-    public int ProxiesBanned => GetCachedProxyStats().banned;
-    public int ProxiesBad => GetCachedProxyStats().bad;
+    public int ProxiesTotal => _resourceScope?.GetCachedProxyStats().total ?? 0;
+    public int ProxiesAlive => _resourceScope?.GetCachedProxyStats().alive ?? 0;
+    public int ProxiesBanned => _resourceScope?.GetCachedProxyStats().banned ?? 0;
+    public int ProxiesBad => _resourceScope?.GetCachedProxyStats().bad ?? 0;
 
     /// <summary>
     /// -- Misc
@@ -167,11 +157,21 @@ public class MultiRunJob(RuriLibSettingsService settings, PluginRepository plugi
         set => _parallelizer = value;
     }
 
-    internal ProxyPool ProxyPool => _proxyPool;
+    internal ProxyPool ProxyPool => _resourceScope?.ProxyPool;
 
-    internal BotExecutionCoordinator ExecutionCoordinator => _executionCoordinator;
+    internal BotExecutionCoordinator ExecutionCoordinator => _resourceScope?.ExecutionCoordinator;
 
-    internal AsyncLocker RuntimeAsyncLocker => _asyncLocker;
+    internal AsyncLocker RuntimeAsyncLocker => _resourceScope?.AsyncLocker;
+
+    internal JobResourceScope ResourceScope
+        => _resourceScope ?? throw new InvalidOperationException("Job resources have not been initialized");
+
+    internal JobResultProcessor ResultProcessor => _resultProcessor;
+
+    internal bool ShouldLogAllResults => settings.RuriLibSettings.GeneralSettings.LogAllResults;
+
+    internal bool ShouldPersistBotLogForHits
+        => settings.RuriLibSettings.GeneralSettings.EnableBotLogging && Config.Mode != ConfigMode.DLL;
 
     internal CancellationTokenSource StartCancellationSource => _startCts;
 
@@ -247,54 +247,9 @@ public class MultiRunJob(RuriLibSettingsService settings, PluginRepository plugi
 
     internal void ApplyInitialization(JobInitializationResult initialization)
     {
-        _asyncLocker = initialization.AsyncLocker;
-        _proxyPool = initialization.ProxyPool;
-        _executionCoordinator = initialization.ExecutionCoordinator;
-        _resources = initialization.Resources;
-        _httpClient = initialization.HttpClient;
-        _pythonEngine = initialization.PythonEngine;
-        _globalVariables = initialization.GlobalVariables;
-        _dllMethod = initialization.DllMethod;
-        _script = initialization.Script;
+        _resourceScope?.Dispose();
+        _resourceScope = new JobResourceScope(initialization, ProxySources);
         _disposed = false;
-    }
-
-    internal IEnumerable<MultiRunInput> CreateWorkItems(dynamic wordlistType)
-    {
-        // Cache frequently accessed values to reduce property lookups
-        var useProxies = ShouldUseProxies(ProxyMode, Config.Settings.ProxySettings);
-        var configMode = Config.Mode;
-        var isDll = configMode == ConfigMode.DLL;
-        var configSettings = Config.Settings;
-        var customAnswers = CustomInputsAnswers;
-
-        long index = 0;
-
-        // Use yield return to avoid large array allocation
-        foreach (var line in DataPool.DataList)
-        {
-            yield return new MultiRunInput
-            {
-                Job = this,
-                ProxyPool = _proxyPool,
-                BotData = BotRuntimeContextBuilder.CreateBotData(new BotRuntimeSessionOptions
-                {
-                    Providers = Providers,
-                    ConfigSettings = configSettings,
-                    Logger = new BotLogger(),
-                    Line = new DataLine(line, wordlistType),
-                    UseProxy = useProxies,
-                    AsyncLocker = _asyncLocker,
-                    SharedHttpClient = _httpClient
-                }),
-                Globals = _globalVariables,
-                Script = _script,
-                IsDLL = isDll,
-                DLLMethod = _dllMethod,
-                CustomInputsAnswers = customAnswers,
-                Index = index++
-            };
-        }
     }
 
     public override async Task Stop()
@@ -347,25 +302,6 @@ public class MultiRunJob(RuriLibSettingsService settings, PluginRepository plugi
         logger?.LogException(Id, ex);
     }
 
-    internal void HandleParallelizerResult(object _, ResultDetails<MultiRunInput, CheckResult> result)
-    {
-        OnResult?.Invoke(this, result);
-
-        if (!settings.RuriLibSettings.GeneralSettings.LogAllResults)
-        {
-            return;
-        }
-
-        var data = result.Result.BotData;
-        logger?.LogInfo(Id, $"[{data.STATUS}] {data.Line.Data} ({data.Proxy})");
-    }
-
-    private void PropagateCompleted(object _, EventArgs e)
-    {
-        OnCompleted?.Invoke(this, e);
-        logger?.LogInfo(Id, "Execution completed");
-    }
-
     internal void HandleParallelizerCompleted(object sender, EventArgs e)
     {
         try
@@ -383,7 +319,8 @@ public class MultiRunJob(RuriLibSettingsService settings, PluginRepository plugi
             _proxyReloadTimer?.Dispose();
             _tickTimer = null;
             _proxyReloadTimer = null;
-            PropagateCompleted(sender, e);
+            OnCompleted?.Invoke(this, e);
+            logger?.LogInfo(Id, "Execution completed");
         }
         finally
         {
@@ -416,10 +353,7 @@ public class MultiRunJob(RuriLibSettingsService settings, PluginRepository plugi
 
     #region Private Methods
     internal void ResetRuntimeStats()
-    {
-        Statistics.Reset();
-        hits.Clear();
-    }
+        => _resultProcessor.Reset();
 
     internal void HandleParallelizerStatusChanged(object sender, ParallelizerStatus status)
     {
@@ -435,97 +369,6 @@ public class MultiRunJob(RuriLibSettingsService settings, PluginRepository plugi
         OnStatusChanged?.Invoke(this, Status);
     }
 
-    internal void HandleDataProcessed(object sender, ResultDetails<MultiRunInput, CheckResult> details)
-    {
-        var botData = details.Result.BotData;
-
-        if (BotStatus.IsHitStatus(botData.STATUS))
-        {
-            _ = RegisterHit(details.Result).ConfigureAwait(false);
-        }
-
-        switch (botData.STATUS)
-        {
-            case "SUCCESS":
-                Statistics.IncrementHits();
-                break;
-            case "NONE":
-                Statistics.IncrementToCheck();
-                break;
-            case "FAIL":
-                Statistics.IncrementFails();
-                break;
-            case "INVALID":
-                Statistics.IncrementInvalid();
-                break;
-            case "ERROR":
-                Statistics.IncrementErrors();
-                break;
-            case "RETRY":
-                Statistics.IncrementRetried();
-                break;
-            case "BAN":
-                Statistics.IncrementBanned();
-                break;
-            default:
-                Statistics.IncrementCustom();
-                break;
-        }
-        Statistics.IncrementTested();
-
-        if (_parallelizer.Status == ParallelizerStatus.Stopping)
-        {
-            details.Item.BotData.ExecutionInfo = "STOPPED";
-        }
-    }
-
-    private async Task RegisterHit(CheckResult result)
-    {
-        var botData = result.BotData;
-
-        var hit = new Hit()
-        {
-            Data = botData.Line,
-            BotLogger = settings.RuriLibSettings.GeneralSettings.EnableBotLogging && Config.Mode != ConfigMode.DLL
-                ? botData.Logger
-                : null,
-            Type = botData.STATUS,
-            DataPool = DataPool,
-            Config = Config,
-            Date = DateTime.Now,
-            Proxy = botData.Proxy,
-            CapturedData = Config.Settings.GeneralSettings.SaveEmptyCaptures
-                ? result.OutputVariables : CleanEmptyCaptures(result.OutputVariables),
-            OwnerId = OwnerId
-        };
-
-        hits.Enqueue(hit);
-        OnHit?.Invoke(this, hit);
-
-        foreach (var hitOutput in HitOutputs)
-        {
-            await hitOutput.Store(hit).ConfigureAwait(false);
-        }
-    }
-
-    private static Dictionary<string, object> CleanEmptyCaptures(Dictionary<string, object> capturedData)
-    {
-        var newCaptures = new Dictionary<string, object>(capturedData.Count);
-
-        foreach (var kvp in capturedData)
-        {
-            var value = kvp.Value;
-            if (value is string s && string.IsNullOrWhiteSpace(s)) continue;
-            if (value is byte[] b && b.Length == 0) continue;
-            if (value is List<string> l && l.Count == 0) continue;
-            if (value is Dictionary<string, string> d && d.Count == 0) continue;
-
-            newCaptures[kvp.Key] = value;
-        }
-
-        return newCaptures;
-    }
-
     internal static bool ShouldUseProxies(JobProxyMode mode, ConfigProxySettings settings) => mode switch
     {
         JobProxyMode.Default => settings.UseProxies,
@@ -533,51 +376,6 @@ public class MultiRunJob(RuriLibSettingsService settings, PluginRepository plugi
         JobProxyMode.Off => false,
         _ => throw new NotImplementedException()
     };
-
-    private (int total, int alive, int banned, int bad) GetCachedProxyStats()
-    {
-        var now = DateTime.UtcNow;
-        if (now - _lastProxyStatsUpdate < _proxyStatsCacheInterval)
-        {
-            return _cachedProxyStats;
-        }
-
-        if (_proxyPool?.Proxies == null)
-        {
-            _cachedProxyStats = (0, 0, 0, 0);
-        }
-        else
-        {
-            var proxies = _proxyPool.Proxies;
-            var total = 0;
-            var alive = 0;
-            var banned = 0;
-            var bad = 0;
-
-            foreach (var proxy in proxies)
-            {
-                total++;
-                switch (proxy.ProxyStatus)
-                {
-                    case ProxyStatus.Available:
-                    case ProxyStatus.Busy:
-                        alive++;
-                        break;
-                    case ProxyStatus.Banned:
-                        banned++;
-                        break;
-                    case ProxyStatus.Bad:
-                        bad++;
-                        break;
-                }
-            }
-
-            _cachedProxyStats = (total, alive, banned, bad);
-        }
-
-        _lastProxyStatsUpdate = now;
-        return _cachedProxyStats;
-    }
 
     public void DebugLog(string message)
     {
@@ -596,52 +394,16 @@ public class MultiRunJob(RuriLibSettingsService settings, PluginRepository plugi
     internal void RaiseError(Exception ex)
         => OnError?.Invoke(this, ex);
 
+    internal void RaiseResult(ResultDetails<MultiRunInput, CheckResult> result)
+        => OnResult?.Invoke(this, result);
+
+    internal void RaiseHit(Hit hit)
+        => OnHit?.Invoke(this, hit);
+
     internal void DisposeRuntimeResources()
-        => DisposeGlobals();
-
-    private void DisposeGlobals()
     {
-        if (_disposed) return;
-
-        _httpClient?.Dispose();
-        _asyncLocker?.Dispose();
-        _proxyPool?.Dispose();
-
-        if (ProxySources is not null)
-        {
-            for (var i = 0; i < ProxySources.Count; i++)
-            {
-                try
-                {
-                    ProxySources[i]?.Dispose();
-                }
-                catch
-                {
-                    // Ignore disposal errors
-                }
-            }
-        }
-
-        if (_resources is not null)
-        {
-            foreach (var resource in _resources.Values)
-            {
-                if (resource is IDisposable disposable)
-                {
-                    try
-                    {
-                        disposable.Dispose();
-                    }
-                    catch
-                    {
-                        // Ignore disposal errors
-                    }
-                }
-            }
-        }
-
-        _executionCoordinator = null;
-        _disposed = true;
+        _resourceScope?.Dispose();
+        _resourceScope = null;
     }
 
     public new void Dispose()
@@ -654,7 +416,8 @@ public class MultiRunJob(RuriLibSettingsService settings, PluginRepository plugi
     {
         if (disposing && !_disposed)
         {
-            DisposeGlobals();
+            DisposeRuntimeResources();
+            _disposed = true;
         }
     }
     #endregion Private Methods

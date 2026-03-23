@@ -1,7 +1,6 @@
 using Flux.Core.Models.Jobs;
+using Flux.Native.Factories;
 using Flux.Native.Helpers;
-using Flux.Native.Services;
-using Flux.Native.ViewModels;
 using Flux.Native.ViewModels.Base;
 using Flux.Native.ViewModels.Jobs;
 using Flux.Native.Views.Dialogs.Job;
@@ -9,7 +8,7 @@ using System;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using System.Threading.Tasks;
+using Flux.Native.Services.Navigation;
 
 
 namespace Flux.Native.Views.Pages.Jobs;
@@ -19,24 +18,24 @@ namespace Flux.Native.Views.Pages.Jobs;
 /// </summary>
 public partial class Jobs : Page
 {
-        private readonly MainWindow mainWindow;
+        private readonly INavigationHandler navigationHandler;
+        private readonly IJobOptionsDialogFactory jobOptionsDialogFactory;
         private readonly JobsViewModel vm;
 
-        public Jobs()
+        public Jobs(
+            JobsViewModel vm,
+            INavigationHandler navigationHandler,
+            IJobOptionsDialogFactory jobOptionsDialogFactory)
         {
-            var helper = new PageHelper(this);
-            
-            // Use centralized service retrieval with proper error handling
-            mainWindow = helper.GetRequiredService<MainWindow>();
-            var viewModelsService = helper.GetRequiredService<ViewModelsService>();
-            vm = viewModelsService.Jobs ?? throw new InvalidOperationException("Jobs ViewModel is null");
-
-            DataContext = vm;
+            this.vm = vm;
+            this.navigationHandler = navigationHandler;
+            this.jobOptionsDialogFactory = jobOptionsDialogFactory;
+            DataContext = this.vm;
             InitializeComponent();
         }
 
         private void NewJob(object sender, RoutedEventArgs e)
-            => Alert.ShowDialog(new CreateJobDialog(this), "Select job type");
+            => Alert.ShowDialog(new CreateJobDialog(this, jobOptionsDialogFactory), "Select job type");
 
         private async void RemoveAll(object sender, RoutedEventArgs e)
         {
@@ -59,17 +58,17 @@ public partial class Jobs : Page
             Action<JobOptions> onAccept = async options =>
             {
                 jobVM = await vm.EditJobAsync(jobVM.Id, options);
-                mainWindow.DisplayJob(jobVM);
+                navigationHandler.DisplayJob(jobVM);
             };
 
             if (snapshot.JobType is JobType.MultiRun)
             {
-                var page = new MultiRunJobOptionsDialog(jobOptions as MultiRunJobOptions, onAccept);
+                var page = jobOptionsDialogFactory.CreateMultiRun(jobOptions as MultiRunJobOptions, onAccept);
                 Alert.ShowDialog(page, $"Edit job #{snapshot.JobId}", 1100, 800);
             }
             else if (snapshot.JobType is JobType.ProxyCheck)
             {
-                var page = new ProxyCheckJobOptionsDialog(jobOptions as ProxyCheckJobOptions, onAccept);
+                var page = jobOptionsDialogFactory.CreateProxyCheck(jobOptions as ProxyCheckJobOptions, onAccept);
                 Alert.ShowDialog(page, $"Edit job #{snapshot.JobId}", 800, 600);
             }
             else
@@ -97,17 +96,17 @@ public partial class Jobs : Page
             Action<JobOptions> onAccept = async options =>
             {
                 var cloned = await vm.CreateJobAsync(options);
-                mainWindow.DisplayJob(cloned);
+                navigationHandler.DisplayJob(cloned);
             };
 
             if (snapshot.JobType is JobType.MultiRun)
             {
-                var page = new MultiRunJobOptionsDialog(snapshot.Options as MultiRunJobOptions, onAccept);
+                var page = jobOptionsDialogFactory.CreateMultiRun(snapshot.Options as MultiRunJobOptions, onAccept);
                 Alert.ShowDialog(page, $"Clone job #{snapshot.JobId}", 1100, 800);
             }
             else if (snapshot.JobType is JobType.ProxyCheck)
             {
-                var page = new ProxyCheckJobOptionsDialog(snapshot.Options as ProxyCheckJobOptions, onAccept);
+                var page = jobOptionsDialogFactory.CreateProxyCheck(snapshot.Options as ProxyCheckJobOptions, onAccept);
                 Alert.ShowDialog(page, $"Clone job #{snapshot.JobId}", 800, 600);
             }
             else
@@ -150,7 +149,7 @@ public partial class Jobs : Page
                 var jobVM = UIHelpers.GetButtonTag<JobViewModel>(sender);
                 if (jobVM != null)
                 {
-                    mainWindow.DisplayJob(jobVM);
+                    navigationHandler.DisplayJob(jobVM);
                 }
             }, "viewing job");
         }

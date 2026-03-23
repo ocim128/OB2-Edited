@@ -4,7 +4,6 @@ using ICSharpCode.AvalonEdit.Highlighting.Xshd;
 using ICSharpCode.AvalonEdit.Search;
 using Flux.Core.Services;
 using Flux.Native.Helpers;
-using Flux.Native.ViewModels;
 using RuriLib.Helpers.Transpilers;
 using RuriLib.Models.Configs;
 using System;
@@ -16,8 +15,8 @@ using System.Xml;
 
 
 using Flux.Native.Enums;
+using Flux.Native.Services.Navigation;
 using Flux.Native.ViewModels.Base;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Flux.Native.Views.Pages.Configs
 {
@@ -28,15 +27,20 @@ namespace Flux.Native.Views.Pages.Configs
     {
         private readonly ConfigCSharpCodeViewModel vm;
         private readonly ConfigService configService;
+        private readonly INavigationHandler navigationHandler;
         private Config Config => configService.SelectedConfig;
 
-        public ConfigCSharpCode()
+        public ConfigCSharpCode(
+            ConfigCSharpCodeViewModel vm,
+            ConfigService configService,
+            INavigationHandler navigationHandler)
         {
-            vm = new ConfigCSharpCodeViewModel();
-            DataContext = vm;
+            this.vm = vm;
+            this.configService = configService;
+            this.navigationHandler = navigationHandler;
+            DataContext = this.vm;
 
             InitializeComponent();
-            configService = App.ServiceProvider.GetRequiredService<ConfigService>();
 
             HighlightSyntax(editor);
             HighlightSyntax(startupEditor);
@@ -79,7 +83,7 @@ namespace Flux.Native.Views.Pages.Configs
             {
                 // On fail, prompt it to the user and go back to the configs page
                 Alert.Exception(ex);
-                App.ServiceProvider.GetRequiredService<MainWindow>().NavigateTo(MainWindowPage.Configs);
+                _ = navigationHandler.NavigateTo(MainWindowPage.Configs);
             }
         }
 
@@ -104,10 +108,10 @@ namespace Flux.Native.Views.Pages.Configs
         private readonly FluxSettingsService fluxSettingsService;
         private Config Config => configService.SelectedConfig;
 
-        public ConfigCSharpCodeViewModel()
+        public ConfigCSharpCodeViewModel(ConfigService configService, FluxSettingsService fluxSettingsService)
         {
-            configService = App.ServiceProvider.GetRequiredService<ConfigService>();
-            fluxSettingsService = App.ServiceProvider.GetRequiredService<FluxSettingsService>();
+            this.configService = configService;
+            this.fluxSettingsService = fluxSettingsService;
         }
 
         public bool WordWrap => fluxSettingsService.Settings.CustomizationSettings.WordWrap;

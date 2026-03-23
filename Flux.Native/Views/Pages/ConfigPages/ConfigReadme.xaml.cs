@@ -1,9 +1,6 @@
 using Flux.Native.Extensions;
-using Flux.Native.Services;
-using Flux.Native.ViewModels;
 using Flux.Native.ViewModels.Configs;
 using System.Windows.Controls;
-using Microsoft.Extensions.DependencyInjection;
 
 
 namespace Flux.Native.Views.Pages.Configs
@@ -15,10 +12,10 @@ namespace Flux.Native.Views.Pages.Configs
     {
         private readonly ConfigReadmeViewModel vm;
 
-        public ConfigReadme()
+        public ConfigReadme(ConfigReadmeViewModel vm)
         {
-            vm = App.ServiceProvider.GetRequiredService<ViewModelsService>().ConfigReadme;
-            DataContext = vm;
+            this.vm = vm;
+            DataContext = this.vm;
 
             InitializeComponent();
         }

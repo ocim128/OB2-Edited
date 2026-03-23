@@ -1,14 +1,11 @@
 using Microsoft.Win32;
 using Flux.Core.Models.Settings;
 using Flux.Native.Helpers;
-using Flux.Native.Services;
-using Flux.Native.ViewModels;
 using Flux.Native.ViewModels.Settings;
 using System;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
-using Microsoft.Extensions.DependencyInjection;
 
 
 namespace Flux.Native.Views.Pages.Settings;
@@ -20,10 +17,10 @@ public partial class OBSettings : Page
 {
     private readonly OBSettingsViewModel vm;
 
-    public OBSettings()
+    public OBSettings(OBSettingsViewModel vm)
     {
-        vm = App.ServiceProvider.GetRequiredService<ViewModelsService>().OBSettings;
-        DataContext = vm;
+        this.vm = vm;
+        DataContext = this.vm;
 
         InitializeComponent();
 

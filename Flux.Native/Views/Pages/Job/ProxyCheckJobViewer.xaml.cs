@@ -1,6 +1,5 @@
 using Flux.Core.Services;
 using Flux.Native.Helpers;
-using Flux.Native.ViewModels;
 using Flux.Native.ViewModels.Jobs;
 using Flux.Native.Views.Dialogs.Job;
 using System;
@@ -8,7 +7,6 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
-using Microsoft.Extensions.DependencyInjection;
 
 
 namespace Flux.Native.Views.Pages.Jobs;
@@ -19,11 +17,13 @@ namespace Flux.Native.Views.Pages.Jobs;
 public partial class ProxyCheckJobViewer : Page
 {
         private readonly FluxSettingsService fluxSettingsService;
+        private readonly JobManagerService jobManager;
         private ProxyCheckJobViewerViewModel vm;
 
-        public ProxyCheckJobViewer()
+        public ProxyCheckJobViewer(FluxSettingsService fluxSettingsService, JobManagerService jobManager)
         {
-            fluxSettingsService = App.ServiceProvider.GetRequiredService<FluxSettingsService>();
+            this.fluxSettingsService = fluxSettingsService;
+            this.jobManager = jobManager;
             InitializeComponent();
         }
 
@@ -43,7 +43,7 @@ public partial class ProxyCheckJobViewer : Page
                 }
             }
 
-            vm = new ProxyCheckJobViewerViewModel(jobVM);
+            vm = new ProxyCheckJobViewerViewModel(jobVM, jobManager);
             vm.NewMessage += OnResultMessage;
             DataContext = vm;
         }

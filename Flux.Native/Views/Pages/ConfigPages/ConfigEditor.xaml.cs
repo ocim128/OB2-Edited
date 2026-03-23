@@ -1,7 +1,7 @@
 using Flux.Core.Repositories;
 using Flux.Core.Services;
+using Flux.Native.Factories;
 using Flux.Native.Helpers;
-using Flux.Native.ViewModels;
 using Flux.Native.Views.Pages.Shared;
 using RuriLib.Models.Configs;
 using System;
@@ -14,8 +14,8 @@ using System.Windows.Media;
 
 
 using Flux.Native.Enums;
+using Flux.Native.Services.Navigation;
 using Flux.Native.ViewModels.Base;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Flux.Native.Views.Pages.Configs
 {
@@ -27,7 +27,8 @@ namespace Flux.Native.Views.Pages.Configs
         private const double MinEditorRatio = 0.2;
         private const double MaxEditorRatio = 0.8;
 
-        private readonly MainWindow mainWindow;
+        private readonly INavigationHandler navigationHandler;
+        private readonly IPageFactory pageFactory;
         private readonly ConfigEditorViewModel vm;
         private readonly Debugger debugger;
         private ConfigStacker stackerPage;
@@ -48,7 +49,7 @@ namespace Flux.Native.Views.Pages.Configs
         {
             if (ensureCreated && stackerPage == null)
             {
-                stackerPage = new ConfigStacker();
+                stackerPage = pageFactory.CreateConfigStackerPage();
             }
 
             return stackerPage;
@@ -60,19 +61,24 @@ namespace Flux.Native.Views.Pages.Configs
             editorFrame.Visibility = isVisible ? Visibility.Visible : Visibility.Collapsed;
         }
 
-        public ConfigEditor()
+        public ConfigEditor(
+            INavigationHandler navigationHandler,
+            IPageFactory pageFactory,
+            ConfigEditorViewModel vm,
+            FluxSettingsService fluxSettingsService)
         {
-            mainWindow = App.ServiceProvider.GetRequiredService<MainWindow>();
-            vm = new ConfigEditorViewModel();
-            DataContext = vm;
-            fluxSettingsService = App.ServiceProvider.GetRequiredService<FluxSettingsService>();
+            this.navigationHandler = navigationHandler;
+            this.pageFactory = pageFactory;
+            this.vm = vm;
+            this.fluxSettingsService = fluxSettingsService;
+            DataContext = this.vm;
 
             InitializeComponent();
 
             editorFrame.Navigated += (_, _) => UpdateButtonsVisibility();
 
             // Create debugger only (essential for initial load)
-            debugger = new();
+            debugger = pageFactory.CreateDebuggerPage();
             debuggerFrame.Content = debugger;
 
             // Set up GridSplitter event handlers for better performance
@@ -108,19 +114,19 @@ namespace Flux.Native.Views.Pages.Configs
             switch (section)
             {
                 case ConfigEditorSection.Stacker:
-                    stackerPage ??= new ConfigStacker();
+                    stackerPage ??= pageFactory.CreateConfigStackerPage();
                     stackerPage.UpdateViewModel();
                     editorFrame.Content = stackerPage;
                     break;
 
                 case ConfigEditorSection.LoliCode:
-                    loliCodePage ??= new ConfigLoliCode();
+                    loliCodePage ??= pageFactory.CreateConfigLoliCodePage();
                     loliCodePage.UpdateViewModel();
                     editorFrame.Content = loliCodePage;
                     break;
 
                 case ConfigEditorSection.CSharp:
-                    cSharpPage ??= new ConfigCSharpCode();
+                    cSharpPage ??= pageFactory.CreateConfigCSharpCodePage();
                     cSharpPage.UpdateViewModel();
                     editorFrame.Content = cSharpPage;
                     break;
@@ -159,9 +165,9 @@ namespace Flux.Native.Views.Pages.Configs
             }
         }
 
-        private void OpenStacker(object sender, RoutedEventArgs e) => mainWindow.NavigateTo(MainWindowPage.ConfigStacker);
-        private void OpenLoliCode(object sender, RoutedEventArgs e) => mainWindow.NavigateTo(MainWindowPage.ConfigLoliCode);
-        private void OpenCSharpCode(object sender, RoutedEventArgs e) => mainWindow.NavigateTo(MainWindowPage.ConfigCSharpCode);
+        private void OpenStacker(object sender, RoutedEventArgs e) => _ = navigationHandler.NavigateTo(MainWindowPage.ConfigStacker);
+        private void OpenLoliCode(object sender, RoutedEventArgs e) => _ = navigationHandler.NavigateTo(MainWindowPage.ConfigLoliCode);
+        private void OpenCSharpCode(object sender, RoutedEventArgs e) => _ = navigationHandler.NavigateTo(MainWindowPage.ConfigCSharpCode);
 
 
 
@@ -312,10 +318,10 @@ namespace Flux.Native.Views.Pages.Configs
         private readonly ConfigService configService;
         public Config Config => configService.SelectedConfig;
 
-        public ConfigEditorViewModel()
+        public ConfigEditorViewModel(IConfigRepository configRepo, ConfigService configService)
         {
-            configRepo = App.ServiceProvider.GetRequiredService<IConfigRepository>();
-            configService = App.ServiceProvider.GetRequiredService<ConfigService>();
+            this.configRepo = configRepo;
+            this.configService = configService;
         }
 
         public async Task Save()

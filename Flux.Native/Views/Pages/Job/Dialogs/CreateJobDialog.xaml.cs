@@ -1,4 +1,5 @@
 using Flux.Core.Models.Jobs;
+using Flux.Native.Factories;
 using Flux.Native.Views.Pages;
 using Flux.Native.Views.Pages.Jobs;
 using Flux.Native.Helpers;
@@ -16,10 +17,12 @@ namespace Flux.Native.Views.Dialogs.Job
     public partial class CreateJobDialog : Page
     {
         private readonly object caller;
+        private readonly IJobOptionsDialogFactory jobOptionsDialogFactory;
 
-        public CreateJobDialog(object caller)
+        public CreateJobDialog(object caller, IJobOptionsDialogFactory jobOptionsDialogFactory)
         {
             this.caller = caller;
+            this.jobOptionsDialogFactory = jobOptionsDialogFactory;
 
             InitializeComponent();
         }
@@ -42,11 +45,11 @@ namespace Flux.Native.Views.Dialogs.Job
             switch (type)
             {
                 case JobType.MultiRun:
-                    Alert.ShowDialog(new MultiRunJobOptionsDialog(null, onAccept), "Create Multi-Run Job", 1100, 800);
+                    Alert.ShowDialog(jobOptionsDialogFactory.CreateMultiRun(onAccept: onAccept), "Create Multi-Run Job", 1100, 800);
                     break;
 
                 case JobType.ProxyCheck:
-                    Alert.ShowDialog(new ProxyCheckJobOptionsDialog(null, onAccept), "Create Proxy Check Job", 900, 650);
+                    Alert.ShowDialog(jobOptionsDialogFactory.CreateProxyCheck(onAccept: onAccept), "Create Proxy Check Job", 900, 650);
                     break;
             }
 

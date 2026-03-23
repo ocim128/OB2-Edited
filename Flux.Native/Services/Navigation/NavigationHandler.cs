@@ -1,9 +1,9 @@
 using Flux.Native.Enums;
+using Flux.Native.Factories;
 using Flux.Native.Services.Menu;
 using Flux.Native.ViewModels;
 using Flux.Native.ViewModels.Jobs;
 using Flux.Native.Views.Pages;
-using Microsoft.Extensions.DependencyInjection;
 using Flux.Native.Views.Pages.Jobs;
 using System;
 using System.Threading.Tasks;
@@ -19,7 +19,7 @@ public class NavigationHandler : INavigationHandler
     private readonly PageButtonMapper _buttonMapper;
     private readonly MainWindowViewModel _viewModel;
     private readonly IMenuHandler _menuHandler;
-    private readonly IServiceProvider _serviceProvider;
+    private readonly IPageFactory _pageFactory;
     private Button _currentSelectedButton;
     private System.Windows.Controls.Page _transientPage;
 
@@ -32,13 +32,13 @@ public class NavigationHandler : INavigationHandler
         PageButtonMapper buttonMapper,
         MainWindowViewModel viewModel,
         IMenuHandler menuHandler,
-        IServiceProvider serviceProvider)
+        IPageFactory pageFactory)
     {
         _navigationService = navigationService;
         _buttonMapper = buttonMapper;
         _viewModel = viewModel;
         _menuHandler = menuHandler;
-        _serviceProvider = serviceProvider;
+        _pageFactory = pageFactory;
 
         _navigationService.Navigated += OnNavigationServiceNavigated;
     }
@@ -55,13 +55,13 @@ public class NavigationHandler : INavigationHandler
         switch (jobVM)
         {
             case MultiRunJobViewModel mrj:
-                var mrjPage = ActivatorUtilities.CreateInstance<MultiRunJobViewer>(_serviceProvider);
+                var mrjPage = _pageFactory.CreateMultiRunJobViewerPage();
                 mrjPage.BindViewModel(mrj);
                 ChangePage(mrjPage, null);
                 break;
 
             case ProxyCheckJobViewModel pcj:
-                var pcjPage = new ProxyCheckJobViewer();
+                var pcjPage = _pageFactory.CreateProxyCheckJobViewerPage();
                 pcjPage.BindViewModel(pcj);
                 ChangePage(pcjPage, null);
                 break;

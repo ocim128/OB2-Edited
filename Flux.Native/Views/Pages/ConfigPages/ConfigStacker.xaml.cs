@@ -4,7 +4,7 @@ using Flux.Native.Helpers;
 using Flux.Native.Services;
 using Flux.Native.ViewModels.Configs;
 using Flux.Native.Views.Dialogs.Config;
-using Microsoft.Extensions.DependencyInjection;
+using Flux.Native.Services.Navigation;
 using System;
 using System.Linq;
 using System.Windows;
@@ -18,20 +18,25 @@ public partial class ConfigStacker : Page
 {
     private readonly ConfigService configService;
     private readonly ConfigStackerViewModel vm;
+    private readonly INavigationHandler navigationHandler;
     private GridLength? storedBlockListWidth;
     private GridLength? storedSplitterWidth;
 
     public bool IsStackerPaneVisible { get; private set; } = true;
 
-    public ConfigStacker()
+    public ConfigStacker(
+        ConfigService configService,
+        ConfigStackerViewModel vm,
+        INavigationHandler navigationHandler)
     {
-        configService = App.ServiceProvider.GetRequiredService<ConfigService>();
-        vm = App.ServiceProvider.GetRequiredService<ViewModelsService>().ConfigStacker;
+        this.configService = configService;
+        this.vm = vm;
+        this.navigationHandler = navigationHandler;
 
         InitializeComponent();
 
-        DataContext = vm;
-        BlockListControl.DataContext = vm;
+        DataContext = this.vm;
+        BlockListControl.DataContext = this.vm;
         BlockListControl.AddBlockRequested += ShowAddBlockDialog;
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
@@ -46,7 +51,7 @@ public partial class ConfigStacker : Page
         catch (Exception ex)
         {
             Alert.Exception(ex);
-            App.ServiceProvider.GetRequiredService<MainWindow>().NavigateTo(MainWindowPage.Configs);
+            _ = navigationHandler.NavigateTo(MainWindowPage.Configs);
             return;
         }
 

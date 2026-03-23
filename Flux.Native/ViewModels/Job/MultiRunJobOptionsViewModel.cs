@@ -18,7 +18,6 @@ using Flux.Native.ViewModels.Base;
 using Flux.Native.ViewModels.Configs;
 using Flux.Native.ViewModels.Settings.Metadata;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using RuriLib.Models.Jobs;
 using RuriLib.Models.Jobs.StartConditions;
 using RuriLib.Models.Proxies;
@@ -35,21 +34,28 @@ public class MultiRunJobOptionsViewModel : ViewModelBase
     private readonly JobFactoryService jobFactory;
     private readonly IProxyGroupRepository proxyGroupRepo;
 
-    public MultiRunJobOptionsViewModel(MultiRunJobOptions options)
+    public MultiRunJobOptionsViewModel(
+        MultiRunJobOptions? options,
+        IRecordRepository recordRepo,
+        IWordlistRepository wordlistRepo,
+        RuriLibSettingsService rlSettingsService,
+        ConfigService configService,
+        JobFactoryService jobFactory,
+        IProxyGroupRepository proxyGroupRepo)
     {
         Options = options ?? JobOptionsFactory.CreateNew(JobType.MultiRun) as MultiRunJobOptions;
-        recordRepo = App.ServiceProvider.GetRequiredService<IRecordRepository>();
-        wordlistRepo = App.ServiceProvider.GetRequiredService<IWordlistRepository>();
-        rlSettingsService = App.ServiceProvider.GetRequiredService<RuriLibSettingsService>();
-        configService = App.ServiceProvider.GetRequiredService<ConfigService>();
-        jobFactory = App.ServiceProvider.GetRequiredService<JobFactoryService>();
-        proxyGroupRepo = App.ServiceProvider.GetRequiredService<IProxyGroupRepository>();
+        this.recordRepo = recordRepo;
+        this.wordlistRepo = wordlistRepo;
+        this.rlSettingsService = rlSettingsService;
+        this.configService = configService;
+        this.jobFactory = jobFactory;
+        this.proxyGroupRepo = proxyGroupRepo;
 
         SetConfigData();
 
         DataPoolOptions = Options.DataPool switch
         {
-            WordlistDataPoolOptions w => new WordlistDataPoolOptionsViewModel(w),
+            WordlistDataPoolOptions w => new WordlistDataPoolOptionsViewModel(w, wordlistRepo),
             FileDataPoolOptions f => new FileDataPoolOptionsViewModel(f),
             RangeDataPoolOptions r => new RangeDataPoolOptionsViewModel(r),
             CombinationsDataPoolOptions c => new CombinationsDataPoolOptionsViewModel(c),
@@ -346,7 +352,7 @@ public class MultiRunJobOptionsViewModel : ViewModelBase
         {
             if (value)
             {
-                DataPoolOptions = new WordlistDataPoolOptionsViewModel(new WordlistDataPoolOptions());
+                DataPoolOptions = new WordlistDataPoolOptionsViewModel(new WordlistDataPoolOptions(), wordlistRepo);
             }
 
             OnPropertyChanged();
@@ -479,9 +485,9 @@ public class WordlistDataPoolOptionsViewModel : DataPoolOptionsViewModel
     private WordlistEntity wordlist;
     private WordlistDataPoolOptions WordlistOptions => Options as WordlistDataPoolOptions;
 
-    public WordlistDataPoolOptionsViewModel(WordlistDataPoolOptions options) : base(options)
+    public WordlistDataPoolOptionsViewModel(WordlistDataPoolOptions options, IWordlistRepository wordlistRepo) : base(options)
     {
-        wordlistRepo = App.ServiceProvider.GetRequiredService<IWordlistRepository>();
+        this.wordlistRepo = wordlistRepo;
 
         if (options.WordlistId != -1)
         {

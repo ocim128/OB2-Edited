@@ -7,7 +7,6 @@ using Flux.Core.Models.Jobs;
 using Flux.Core.Services;
 using Flux.Native.ViewModels.Base;
 using Flux.Shared.Models;
-using Microsoft.Extensions.DependencyInjection;
 using RuriLib.Models.Jobs;
 using RuriLib.Models.Jobs.StartConditions;
 using RuriLib.Models.Proxies;
@@ -51,10 +50,9 @@ public class ProxyCheckJobViewerViewModel : ViewModelBase, IDisposable
         public double Progress => Math.Clamp(ProxyCheckJob.Progress * 100, 0, 100);
         #endregion
 
-        public ProxyCheckJobViewerViewModel(ProxyCheckJobViewModel jobVM)
+        public ProxyCheckJobViewerViewModel(ProxyCheckJobViewModel jobVM, JobManagerService jobManager)
         {
             Job = jobVM;
-            var jobManager = App.ServiceProvider.GetRequiredService<JobManagerService>();
             proxyCheckJob = jobManager.Jobs.OfType<ProxyCheckJob>().First(job => job.Id == jobVM.Id);
             RefreshJobSnapshot();
 

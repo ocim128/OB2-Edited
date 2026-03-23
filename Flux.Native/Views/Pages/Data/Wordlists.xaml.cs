@@ -1,7 +1,5 @@
 using Flux.Core.Entities;
 using Flux.Native.Helpers;
-using Flux.Native.Services;
-using Flux.Native.ViewModels;
 using Flux.Native.ViewModels.Data;
 using Flux.Native.Views.Dialogs.Wordlist;
 using RuriLib.Models.Environment;
@@ -16,7 +14,6 @@ using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Threading.Tasks;
 using Microsoft.Win32;
-using Microsoft.Extensions.DependencyInjection;
 
 
 namespace Flux.Native.Views.Pages.Data
@@ -33,14 +30,14 @@ namespace Flux.Native.Views.Pages.Data
 
         private IEnumerable<WordlistEntity> GetSelectedWordlists() => wordlistListView.SelectedItems.Cast<WordlistEntity>().ToList();
 
-        public Wordlists()
+        public Wordlists(WordlistsViewModel vm, RuriLibSettingsService rlSettingsService)
         {
-            vm = App.ServiceProvider.GetRequiredService<ViewModelsService>().Wordlists;
-            DataContext = vm;
-            _ = vm.InitializeAsync();
+            this.vm = vm;
+            DataContext = this.vm;
+            _ = this.vm.InitializeAsync();
 
             InitializeComponent();
-            env = App.ServiceProvider.GetRequiredService<RuriLibSettingsService>().Environment;
+            env = rlSettingsService.Environment;
         }
 
         public async Task Refresh()

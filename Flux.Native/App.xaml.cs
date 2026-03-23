@@ -9,6 +9,7 @@ using Flux.Logging;
 using Flux.Native.Helpers;
 
 using Flux.Native.Services;
+using Flux.Native.Factories;
 using Flux.Native.Services.Navigation;
 using Flux.Native.Services.Menu;
 using Flux.Native.Services.Sidebar;
@@ -25,6 +26,7 @@ using Flux.Native.ViewModels.Pages;
 using Flux.Native.ViewModels.Shared;
 using Flux.Native.Enums;
 using Flux.Native.Views.Pages;
+using Flux.Native.Views.Pages.Configs;
 using Flux.Shared.DependencyInjection;
 using DebuggerPage = Flux.Native.Views.Pages.Shared.Debugger;
 using RuriLib.Logging;
@@ -223,6 +225,10 @@ public partial class App : Application
         services.AddSingleton<DebuggerPage>();
         services.AddSingleton<MainWindowViewModel>();
         services.AddSingleton<IAppUpdateService, AppUpdateService>();
+        services.AddSingleton<IPageFactory, PageFactory>();
+        services.AddSingleton<IMultiRunJobOptionsViewModelFactory, MultiRunJobOptionsViewModelFactory>();
+        services.AddSingleton<IProxyCheckJobOptionsViewModelFactory, ProxyCheckJobOptionsViewModelFactory>();
+        services.AddSingleton<IJobOptionsDialogFactory, JobOptionsDialogFactory>();
 
         // EF - Use absolute path for database
         var dbConnectionString = _config.GetConnectionString("DefaultConnection");
@@ -272,6 +278,9 @@ public partial class App : Application
         services.AddSingleton<ConfigSettingsViewModel>();
         services.AddSingleton<DebuggerViewModel>();
         services.AddTransient<HomeViewModel>();
+        services.AddTransient<ConfigEditorViewModel>();
+        services.AddTransient<ConfigLoliCodeViewModel>();
+        services.AddTransient<ConfigCSharpCodeViewModel>();
         
         // ViewModelsService depends on all ViewModels
         services.AddSingleton<ViewModelsService>();

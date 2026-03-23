@@ -3,8 +3,6 @@ using Flux.Core.Models.Settings;
 using Flux.Core.Services;
 using Flux.Native.Helpers;
 
-using Flux.Native.Services;
-using Flux.Native.ViewModels;
 using Flux.Native.ViewModels.Shared;
 using RuriLib.Logging;
 using System;
@@ -13,7 +11,6 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Threading;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Flux.Native.Views.Pages.Shared;
 
@@ -42,12 +39,11 @@ public partial class Debugger : Page
     #endregion
 
     #region Constructor
-    public Debugger()
+    public Debugger(DebuggerViewModel viewModel, FluxSettingsService settingsService)
     {
-        var settingsService = App.ServiceProvider.GetRequiredService<FluxSettingsService>();
         _accessibility = settingsService.Settings.AccessibilitySettings ?? new AccessibilitySettings();
 
-        _viewModel = App.ServiceProvider.GetRequiredService<ViewModelsService>().Debugger;
+        _viewModel = viewModel;
         DataContext = _viewModel;
 
         _uiManager = new DebuggerUIManager(() => Application.Current.MainWindow as MainWindow);

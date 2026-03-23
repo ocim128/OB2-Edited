@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using Flux.Core.Entities;
 using Flux.Core.Models.Jobs;
+using Flux.Native.Factories;
 using Flux.Native.Helpers;
 using Flux.Native.ViewModels.Configs;
 using Flux.Native.ViewModels.Jobs;
@@ -15,10 +16,13 @@ public partial class MultiRunJobOptionsDialog : Page
     private readonly Action<JobOptions> onAccept;
     private readonly MultiRunJobOptionsViewModel vm;
 
-    public MultiRunJobOptionsDialog(MultiRunJobOptions options = null, Action<JobOptions> onAccept = null)
+    public MultiRunJobOptionsDialog(
+        IMultiRunJobOptionsViewModelFactory viewModelFactory,
+        MultiRunJobOptions? options = null,
+        Action<JobOptions>? onAccept = null)
     {
         this.onAccept = onAccept;
-        vm = new MultiRunJobOptionsViewModel(options);
+        vm = viewModelFactory.Create(options);
         DataContext = vm;
 
         InitializeComponent();

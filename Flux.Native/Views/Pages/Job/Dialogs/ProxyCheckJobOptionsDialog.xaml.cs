@@ -3,7 +3,7 @@ using Flux.Core.Models.Jobs;
 using Flux.Core.Models.Settings;
 using Flux.Core.Repositories;
 using Flux.Core.Services;
-using Flux.Native.ViewModels;
+using Flux.Native.Factories;
 using Flux.Native.ViewModels.Jobs;
 using RuriLib.Models.Jobs.StartConditions;
 using System;
@@ -12,7 +12,6 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using Flux.Native.ViewModels.Base;
-using Microsoft.Extensions.DependencyInjection;
 
 
 namespace Flux.Native.Views.Dialogs.Job
@@ -25,10 +24,13 @@ namespace Flux.Native.Views.Dialogs.Job
         private readonly Action<JobOptions> onAccept;
         private readonly ProxyCheckJobOptionsViewModel vm;
 
-        public ProxyCheckJobOptionsDialog(ProxyCheckJobOptions options = null, Action<JobOptions> onAccept = null)
+        public ProxyCheckJobOptionsDialog(
+            IProxyCheckJobOptionsViewModelFactory viewModelFactory,
+            ProxyCheckJobOptions? options = null,
+            Action<JobOptions>? onAccept = null)
         {
             this.onAccept = onAccept;
-            vm = new ProxyCheckJobOptionsViewModel(options);
+            vm = viewModelFactory.Create(options);
             DataContext = vm;
 
             vm.StartConditionModeChanged += mode => startConditionTabControl.SelectedIndex = (int)mode;
@@ -136,12 +138,16 @@ namespace Flux.Native.Views.Dialogs.Job
         }
         #endregion
 
-        public ProxyCheckJobOptionsViewModel(ProxyCheckJobOptions options)
+        public ProxyCheckJobOptionsViewModel(
+            ProxyCheckJobOptions? options,
+            IProxyGroupRepository proxyGroupRepo,
+            JobFactoryService jobFactory,
+            FluxSettingsService fluxSettingsService)
         {
             Options = options ?? JobOptionsFactory.CreateNew(JobType.ProxyCheck) as ProxyCheckJobOptions;
-            proxyGroupRepo = App.ServiceProvider.GetRequiredService<IProxyGroupRepository>();
-            jobFactory = App.ServiceProvider.GetRequiredService<JobFactoryService>();
-            fluxSettingsService = App.ServiceProvider.GetRequiredService<FluxSettingsService>();
+            this.proxyGroupRepo = proxyGroupRepo;
+            this.jobFactory = jobFactory;
+            this.fluxSettingsService = fluxSettingsService;
 
             proxyGroups = proxyGroupRepo.GetAll().ToList();
 

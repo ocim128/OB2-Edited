@@ -9,7 +9,6 @@ using Flux.Core.Models.Settings;
 using Flux.Core.Repositories;
 using Flux.Core.Services;
 using Flux.Native.Helpers;
-using Flux.Native.ViewModels;
 using RuriLib.Models.Configs;
 using System;
 using System.Linq;
@@ -21,8 +20,8 @@ using System.Xml;
 
 
 using Flux.Native.Enums;
+using Flux.Native.Services.Navigation;
 using Flux.Native.ViewModels.Base;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Flux.Native.Views.Pages.Configs;
 
@@ -33,19 +32,26 @@ public partial class ConfigLoliCode : Page
 {
         private readonly ConfigLoliCodeViewModel vm;
         private readonly ConfigService configService;
-        private readonly IConfigRepository configRepo; // TODO: This should not be here
+        private readonly IConfigRepository configRepo;
+        private readonly INavigationHandler navigationHandler;
         private readonly AccessibilitySettings accessibility;
         private CompletionWindow completionWindow;
 
-        public ConfigLoliCode()
+        public ConfigLoliCode(
+            ConfigLoliCodeViewModel vm,
+            ConfigService configService,
+            IConfigRepository configRepo,
+            FluxSettingsService fluxSettingsService,
+            INavigationHandler navigationHandler)
         {
-            vm = new ConfigLoliCodeViewModel();
-            DataContext = vm;
+            this.vm = vm;
+            this.configService = configService;
+            this.configRepo = configRepo;
+            this.navigationHandler = navigationHandler;
+            accessibility = fluxSettingsService.Settings.AccessibilitySettings ?? new AccessibilitySettings();
+            DataContext = this.vm;
 
             InitializeComponent();
-            configService = App.ServiceProvider.GetRequiredService<ConfigService>();
-            configRepo = App.ServiceProvider.GetRequiredService<IConfigRepository>();
-            accessibility = App.ServiceProvider.GetRequiredService<FluxSettingsService>().Settings.AccessibilitySettings ?? new AccessibilitySettings();
 
             HighlightSyntax(editor);
             AddAutoCompletion(editor);
@@ -78,7 +84,7 @@ public partial class ConfigLoliCode : Page
             {
                 // On fail, prompt it to the user and go back to the configs page
                 Alert.Exception(ex);
-                App.ServiceProvider.GetRequiredService<MainWindow>().NavigateTo(MainWindowPage.Configs);
+                _ = navigationHandler.NavigateTo(MainWindowPage.Configs);
             }
         }
 
@@ -247,10 +253,10 @@ public partial class ConfigLoliCode : Page
         private readonly FluxSettingsService fluxSettingsService;
         private Config Config => configService.SelectedConfig;
 
-        public ConfigLoliCodeViewModel()
+        public ConfigLoliCodeViewModel(ConfigService configService, FluxSettingsService fluxSettingsService)
         {
-            configService = App.ServiceProvider.GetRequiredService<ConfigService>();
-            fluxSettingsService = App.ServiceProvider.GetRequiredService<FluxSettingsService>();
+            this.configService = configService;
+            this.fluxSettingsService = fluxSettingsService;
         }
 
         public bool WordWrap => fluxSettingsService.Settings.CustomizationSettings.WordWrap;

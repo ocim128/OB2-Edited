@@ -3,9 +3,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using Flux.Native.Helpers;
-using Flux.Native.Services;
 using Flux.Native.ViewModels.Settings;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Flux.Native.Views.Pages.Settings;
 
@@ -13,10 +11,10 @@ public partial class RLSettings : Page
 {
     private readonly RLSettingsViewModel vm;
 
-    public RLSettings()
+    public RLSettings(RLSettingsViewModel vm)
     {
-        vm = App.ServiceProvider.GetRequiredService<ViewModelsService>().RLSettings;
-        DataContext = vm;
+        this.vm = vm;
+        DataContext = this.vm;
 
         InitializeComponent();
     }

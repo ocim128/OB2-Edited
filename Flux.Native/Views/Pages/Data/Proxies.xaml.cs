@@ -3,8 +3,6 @@ using Flux.Core.Entities;
 using Flux.Native.DTOs;
 using Flux.Native.Extensions;
 using Flux.Native.Helpers;
-using Flux.Native.Services;
-using Flux.Native.ViewModels;
 using Flux.Native.ViewModels.Data;
 using Flux.Native.Views.Dialogs.Proxy;
 using RuriLib.Models.Proxies;
@@ -18,7 +16,6 @@ using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Input;
 using System.Threading.Tasks;
-using Microsoft.Extensions.DependencyInjection;
 
 
 namespace Flux.Native.Views.Pages.Data;
@@ -35,16 +32,16 @@ public partial class Proxies : Page
 
     private IEnumerable<ProxyEntity> GetSelectedProxies() => proxiesListView.SelectedItems.Cast<ProxyEntity>().ToList();
 
-    public Proxies()
+    public Proxies(ProxiesViewModel vm)
     {
         try
         {
             System.Diagnostics.Debug.WriteLine("Proxies: Starting page construction");
-            vm = App.ServiceProvider.GetRequiredService<ViewModelsService>().Proxies;
-            DataContext = vm;
+            this.vm = vm;
+            DataContext = this.vm;
             
             System.Diagnostics.Debug.WriteLine("Proxies: Initializing ViewModel");
-            _ = vm.InitializeAsync();
+            _ = this.vm.InitializeAsync();
 
             InitializeComponent();
             System.Diagnostics.Debug.WriteLine("Proxies: Page construction completed successfully");

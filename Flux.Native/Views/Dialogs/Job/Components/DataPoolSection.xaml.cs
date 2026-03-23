@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using Microsoft.Win32;
 using Flux.Native.Views.Dialogs.Wordlist;
+using Flux.Native.ViewModels.Jobs;
 
 namespace Flux.Native.Views.Dialogs.Job.Components
 {

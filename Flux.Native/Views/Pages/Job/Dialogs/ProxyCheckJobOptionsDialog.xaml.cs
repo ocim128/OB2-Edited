@@ -4,6 +4,7 @@ using Flux.Core.Models.Settings;
 using Flux.Core.Repositories;
 using Flux.Core.Services;
 using Flux.Native.ViewModels;
+using Flux.Native.ViewModels.Jobs;
 using RuriLib.Models.Jobs.StartConditions;
 using System;
 using System.Collections.Generic;

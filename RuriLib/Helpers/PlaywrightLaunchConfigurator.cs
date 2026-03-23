@@ -72,58 +72,6 @@ namespace RuriLib.Helpers.Playwright
             }
         }
 
-        /// <summary>
-        /// Adds stealth flags to Chromium browsers to avoid detection.
-        /// </summary>
-        public static void EnsureChromiumStealthFlags(ICollection<string> args, PlaywrightBrowserType browserType)
-        {
-            if (browserType != PlaywrightBrowserType.Chromium || args == null)
-            {
-                return;
-            }
-
-            var stealthFlags = new[]
-            {
-                "--disable-blink-features=AutomationControlled",
-                "--disable-infobars",
-                "--disable-background-networking",
-                "--disable-backgrounding-occluded-windows",
-                "--disable-breakpad",
-                "--disable-component-update",
-                "--disable-default-apps",
-                "--disable-dev-shm-usage",
-                "--disable-extensions-file-access-check",
-                "--disable-features=TranslateUI,BlinkGenPropertyTrees,ImprovedCookieControls,LazyFrameLoading,GlobalMediaControls,DestroyProfileOnBrowserClose,MediaRouter,DialMediaRouteProvider,AcceptCHFrame,AutoExpandDetailsElement,CertificateTransparencyComponentUpdater,AvoidUnnecessaryBeforeUnloadCheckSync,Translate",
-                "--disable-hang-monitor",
-                "--disable-ipc-flooding-protection",
-                "--disable-popup-blocking",
-                "--disable-prompt-on-repost",
-                "--disable-renderer-backgrounding",
-                "--disable-sync",
-                "--enable-features=NetworkService,NetworkServiceInProcess",
-                "--force-color-profile=srgb",
-                "--metrics-recording-only",
-                "--no-first-run",
-                "--password-store=basic",
-                "--use-mock-keychain",
-                "--export-tagged-pdf",
-                "--hide-scrollbars",
-                "--mute-audio"
-            };
-
-            foreach (var flag in stealthFlags)
-            {
-                var hasFlag = args.Any(arg =>
-                    !string.IsNullOrWhiteSpace(arg) &&
-                    string.Equals(arg.Trim(), flag, StringComparison.OrdinalIgnoreCase));
-
-                if (!hasFlag)
-                {
-                    args.Add(flag);
-                }
-            }
-        }
-
         private static IEnumerable<string> GetSandboxFlagsForPlatform(PlaywrightBrowserType browserType)
         {
             if (browserType != PlaywrightBrowserType.Chromium)

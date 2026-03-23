@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using RuriLib.Functions.Http;
+using PuppeteerSharp;
 
 namespace RuriLib.Models.Bots;
 
@@ -46,6 +47,8 @@ public class BotData(Providers providers, ConfigSettings configSettings, IBotLog
     public int BOTNUM { get; set; }
     // Isolates TlsClient cookie jars per bot run to avoid cross-run leakage.
     public Guid? TlsClientSessionId { get; set; }
+    public PlaywrightSessionState PlaywrightSession { get; } = new();
+    public PuppeteerSessionState PuppeteerSession { get; } = new();
 
     [Obsolete("Do not use this property, it's only here for retro compatibility but it can cause memory leaks." +
               " Use the SetObject and TryGetObject methods instead!")]
@@ -115,7 +118,7 @@ public class BotData(Providers providers, ConfigSettings configSettings, IBotLog
     }
 
     // Cached exclusions for performance
-    public static readonly HashSet<string> DefaultExclusions = new(["puppeteer", "puppeteerPage", "puppeteerFrame", "httpClient", "ironPyEngine"], StringComparer.Ordinal);
+    public static readonly HashSet<string> DefaultExclusions = new(["httpClient", "ironPyEngine"], StringComparer.Ordinal);
 
     public void ResetState()
     {
@@ -197,10 +200,70 @@ public class BotData(Providers providers, ConfigSettings configSettings, IBotLog
     }
 
     private static bool IsFrequentInternal(string name)
-        => name is "httpClient" or "ironPyEngine" or "puppeteer" or "puppeteerPage" or "puppeteerFrame" or "selenium" or "seleniumDriver";
+        => name is "httpClient" or "ironPyEngine" or "selenium" or "seleniumDriver";
 
     private static bool IsSystemManaged(string name)
         => name is "httpClient" or "ironPyEngine";
+
+    public void DisposeTrackedBrowserSessions()
+    {
+        DisposePlaywrightSession();
+        DisposePuppeteerSession();
+    }
+
+    private void DisposePlaywrightSession()
+    {
+        try
+        {
+            if (PlaywrightSession.CleanupState?.Cleanup(null) == true)
+            {
+                return;
+            }
+
+            if (PlaywrightSession.Context is not null)
+            {
+                PlaywrightSession.Context.CloseAsync().GetAwaiter().GetResult();
+            }
+            else if (PlaywrightSession.Browser is not null)
+            {
+                PlaywrightSession.Browser.CloseAsync().GetAwaiter().GetResult();
+            }
+        }
+        catch
+        {
+        }
+        finally
+        {
+            try
+            {
+                PlaywrightSession.Instance?.Dispose();
+            }
+            catch
+            {
+            }
+
+            PlaywrightSession.Clear();
+        }
+    }
+
+    private void DisposePuppeteerSession()
+    {
+        try
+        {
+            if (PuppeteerSession.Browser is not null && !PuppeteerSession.Browser.IsClosed)
+            {
+                PuppeteerSession.Browser.CloseAsync().GetAwaiter().GetResult();
+            }
+        }
+        catch
+        {
+        }
+        finally
+        {
+            PuppeteerSession.DisposeTrackedResources();
+            PuppeteerSession.Clear();
+        }
+    }
 
     public void DisposeObjectsExcept(IEnumerable<string>? except = null)
     {

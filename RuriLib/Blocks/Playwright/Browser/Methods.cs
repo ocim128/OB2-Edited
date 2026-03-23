@@ -17,7 +17,6 @@ namespace RuriLib.Blocks.Playwright.Browser
     [BlockCategory("Browser", "Blocks for managing Playwright browser instances", "#9370db")]
     public static partial class Methods
     {
-        private const string PlaywrightCleanupStateKey = "playwright.cleanupState";
         private static readonly TimeSpan ManualClosePollInterval = TimeSpan.FromMilliseconds(750);
 
         [Block("Opens a new playwright browser", name = "Open Browser")]
@@ -27,7 +26,7 @@ namespace RuriLib.Blocks.Playwright.Browser
             data.Logger.LogHeader();
 
             // Check if there is already an open browser
-            var oldBrowser = data.TryGetObject<IBrowser>("playwright");
+            var oldBrowser = data.PlaywrightSession.Browser;
             if (oldBrowser?.IsConnected == true)
             {
                 data.Logger.Log("The browser is already open, close it if you want to open a new browser", LogColors.MediumPurple);
@@ -35,7 +34,7 @@ namespace RuriLib.Blocks.Playwright.Browser
             }
 
             // Cleanup any previous state
-            var previousCleanupState = data.TryGetObject<PlaywrightCleanupState>(PlaywrightCleanupStateKey);
+            var previousCleanupState = data.PlaywrightSession.CleanupState;
             previousCleanupState?.Cleanup(null);
 
             var tempEntriesBeforeLaunch = CapturePlaywrightTempEntries();
@@ -60,7 +59,6 @@ namespace RuriLib.Blocks.Playwright.Browser
             // Prepare launch arguments
             PlaywrightLaunchConfigurator.StripIncompatibleFlags(args, config.BrowserType);
             PlaywrightLaunchConfigurator.EnsureSandboxFlags(args, config.BrowserType);
-            PlaywrightLaunchConfigurator.EnsureChromiumStealthFlags(args, config.BrowserType);
             config.ExtraArgs = args.ToArray();
 
             // Resolve executable and timeout
@@ -79,7 +77,7 @@ namespace RuriLib.Blocks.Playwright.Browser
             // Create Playwright instance
             Action<string> runtimeLog = message => data.Logger.Log(message, LogColors.MediumPurple);
             var playwright = await PlaywrightRuntimeService.CreateAsync(config.BrowserType, config.ExecutablePath, runtimeLog, useBuildPath);
-            data.SetObject("playwrightInstance", playwright);
+            PlaywrightHelpers.SetInstance(data, playwright);
 
             // Launch browser or context
             IBrowser? browser = null;
@@ -107,7 +105,7 @@ namespace RuriLib.Blocks.Playwright.Browser
             StoreFirefoxProcessDelta(data, config.FirefoxProcessesBeforeLaunch);
 
             var manualCloseWatcherEnabled = !config.Headless && config.BrowserType == PlaywrightBrowserType.Firefox;
-            var cleanupState = data.TryGetObject<PlaywrightCleanupState>(PlaywrightCleanupStateKey);
+            var cleanupState = data.PlaywrightSession.CleanupState;
             cleanupState?.StartManualCloseWatcher(manualCloseWatcherEnabled);
         }
 
@@ -116,9 +114,9 @@ namespace RuriLib.Blocks.Playwright.Browser
         {
             data.Logger.LogHeader();
 
-            var context = data.TryGetObject<IBrowserContext>("playwrightContext");
-            var browser = data.TryGetObject<IBrowser>("playwright");
-            var cleanupState = data.TryGetObject<PlaywrightCleanupState>(PlaywrightCleanupStateKey);
+            var context = data.PlaywrightSession.Context;
+            var browser = data.PlaywrightSession.Browser;
+            var cleanupState = data.PlaywrightSession.CleanupState;
 
             cleanupState?.SuppressBrowserDisconnect();
             cleanupState?.StopManualCloseWatcher();
@@ -152,18 +150,11 @@ namespace RuriLib.Blocks.Playwright.Browser
         {
             data.Logger.LogHeader();
 
-            var context = data.TryGetObject<IBrowserContext>("playwrightContext");
-            var browser = data.TryGetObject<IBrowser>("playwright");
-            var currentPage = data.TryGetObject<IPage>("playwrightPage");
+            var context = data.PlaywrightSession.Context;
+            var browser = data.PlaywrightSession.Browser;
+            var currentPage = data.PlaywrightSession.Page;
             
-            // Get browser type from objects dictionary (enum is a value type, can't use TryGetObject)
-            PlaywrightBrowserType? browserType = null;
-#pragma warning disable CS0618 // Type or member is obsolete
-            if (data.Objects.TryGetValue("playwrightBrowserType", out var btObj) && btObj is PlaywrightBrowserType bt)
-            {
-                browserType = bt;
-            }
-#pragma warning restore CS0618
+            var browserType = data.PlaywrightSession.BrowserType;
 
             // Prefer using the context to create a new tab (not a new window)
             // browser.NewPageAsync() creates a new context which opens a new window
@@ -198,7 +189,7 @@ namespace RuriLib.Blocks.Playwright.Browser
                 // Last resort: create a new context (this will open a new window)
                 // This should rarely happen as Open Browser always creates a context
                 var newContext = await browser.NewContextAsync();
-                data.SetObject("playwrightContext", newContext);
+                PlaywrightHelpers.SetContext(data, newContext);
                 page = await newContext.NewPageAsync();
                 data.Logger.Log("Created new context for new page", LogColors.Yellow);
             }
@@ -207,11 +198,7 @@ namespace RuriLib.Blocks.Playwright.Browser
                 throw new Exception("No browser or context open. Use the 'Open Browser' block first");
             }
 
-            data.SetObject("playwrightPage", page);
-            
-            // Reset frame to the new page's MainFrame to ensure text retrieval
-            // and other frame-based operations work correctly on the new page
-            data.SetObject("playwrightFrame", page.MainFrame);
+            PlaywrightHelpers.SetPage(data, page);
         }
 
         [Block("Closes the current page", name = "Close Page")]
@@ -258,12 +245,7 @@ namespace RuriLib.Blocks.Playwright.Browser
                 // Ignore errors (e.g. if the page is closed or not supported)
             }
 
-            data.SetObject("playwrightPage", page);
-            
-            // Reset frame to the new page's MainFrame to ensure text retrieval 
-            // and other frame-based operations work correctly after switching pages
-            // (especially important for popup windows which are separate page instances)
-            data.SetObject("playwrightFrame", page.MainFrame);
+            PlaywrightHelpers.SetPage(data, page);
 
             data.Logger.Log($"Switched to page {index}", LogColors.MediumPurple);
         }
@@ -274,8 +256,8 @@ namespace RuriLib.Blocks.Playwright.Browser
         /// </summary>
         private static IPage[] GetAllPages(BotData data)
         {
-            var browser = data.TryGetObject<IBrowser>(PlaywrightHelpers.Keys.Browser);
-            var context = data.TryGetObject<IBrowserContext>(PlaywrightHelpers.Keys.Context);
+            var browser = data.PlaywrightSession.Browser;
+            var context = data.PlaywrightSession.Context;
 
             // Try to get pages from browser contexts first
             if (browser != null)
@@ -312,10 +294,7 @@ namespace RuriLib.Blocks.Playwright.Browser
         }
 
         private static void StoreBrowserRuntimeState(BotData data, PlaywrightBrowserType browserType, bool headless)
-        {
-            data.SetObject("playwrightBrowserType", browserType);
-            data.SetObject("playwrightHeadless", headless);
-        }
+            => PlaywrightHelpers.SetBrowserRuntimeState(data, browserType, headless);
 
     }
 }

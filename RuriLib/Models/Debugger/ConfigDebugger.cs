@@ -319,14 +319,14 @@ public partial class ConfigDebugger : IDisposable
             Logger.Log($"BOT ENDED AFTER {sw.ElapsedMilliseconds} ms WITH STATUS: {_data.STATUS}");
 
             // Save the browsers for later use if they were set during this run
-            _lastPuppeteerBrowser = _data.TryGetObject<Browser>("puppeteer");
+            _lastPuppeteerBrowser = _data.PuppeteerSession.Browser as Browser;
             _lastSeleniumBrowser = _data.TryGetObject<OpenQA.Selenium.WebDriver>("selenium");
-            _lastPlaywrightBrowser = _data.TryGetObject<Microsoft.Playwright.IBrowser>("playwright");
-            _lastPlaywrightInstance = _data.TryGetObject<Microsoft.Playwright.IPlaywright>("playwrightInstance");
+            _lastPlaywrightBrowser = _data.PlaywrightSession.Browser;
+            _lastPlaywrightInstance = _data.PlaywrightSession.Instance;
 
             // Dispose stuff in data.Objects
             // We only want to dispose of general objects, not browser objects that are managed by the debugger itself
-            _data.DisposeObjectsExcept(["ironPyEngine", "puppeteer", "puppeteerPage", "puppeteerFrame", "selenium", "seleniumDriver", "playwright", "playwrightPage", "playwrightInstance"]);
+            _data.DisposeObjectsExcept(["ironPyEngine", "selenium", "seleniumDriver"]);
 
             // Dispose resources - fixed: use ToList() to avoid modification during iteration
             foreach (var resource in runtimeContext.Resources.Values.OfType<IDisposable>().ToList())

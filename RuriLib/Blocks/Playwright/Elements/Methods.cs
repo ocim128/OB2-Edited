@@ -365,7 +365,7 @@ namespace RuriLib.Blocks.Playwright.Elements
             if (frame == null)
                 throw new Exception("The specified element is not a frame or iframe");
 
-            data.SetObject("playwrightFrame", frame);
+            PlaywrightHelpers.SetFrame(data, frame);
             data.Logger.Log($"Switched to iframe: {findBy} {identifier}", LogColors.Tomato);
         }
 

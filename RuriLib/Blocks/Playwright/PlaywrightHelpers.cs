@@ -2,6 +2,7 @@ using Microsoft.Playwright;
 using RuriLib.Functions.Puppeteer;
 using RuriLib.Logging;
 using RuriLib.Models.Bots;
+using RuriLib.Models.Settings;
 using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
@@ -14,28 +15,6 @@ namespace RuriLib.Blocks.Playwright
     /// </summary>
     internal static class PlaywrightHelpers
     {
-        #region Object Keys
-        
-        /// <summary>Keys used for storing/retrieving Playwright objects in BotData.</summary>
-        public static class Keys
-        {
-            public const string Browser = "playwright";
-            public const string Page = "playwrightPage";
-            public const string Context = "playwrightContext";
-            public const string Instance = "playwrightInstance";
-            public const string Frame = "playwrightFrame";
-            public const string CleanupState = "playwright.cleanupState";
-            public const string FirefoxProcessIds = "playwright.firefoxProcessIds";
-            public const string TempFirefoxProfile = "playwright.tempFirefoxProfile";
-            public const string TempChromiumUserData = "playwright.tempChromiumUserData";
-            public const string TempArtifacts = "playwright.tempArtifacts";
-            public const string BrowserType = "playwrightBrowserType";
-            public const string Headless = "playwrightHeadless";
-            public const string RealBrowserProcessId = "playwright.realBrowserProcessId";
-        }
-
-        #endregion
-
         #region Core Accessors
 
         /// <summary>
@@ -44,7 +23,7 @@ namespace RuriLib.Blocks.Playwright
         /// <exception cref="Exception">Thrown when no page is available.</exception>
         public static IPage GetPage(BotData data)
         {
-            var page = data.TryGetObject<IPage>(Keys.Page);
+            var page = data.PlaywrightSession.Page;
             return page ?? throw new Exception("No page available. Use the 'Open Browser' or 'New Page' block first.");
         }
 
@@ -54,7 +33,7 @@ namespace RuriLib.Blocks.Playwright
         /// <exception cref="Exception">Thrown when no page is available.</exception>
         public static IFrame GetFrame(BotData data)
         {
-            var frame = data.TryGetObject<IFrame>(Keys.Frame);
+            var frame = data.PlaywrightSession.Frame;
             return frame ?? GetPage(data).MainFrame;
         }
 
@@ -64,7 +43,7 @@ namespace RuriLib.Blocks.Playwright
         /// <exception cref="Exception">Thrown when no browser is open.</exception>
         public static IBrowser GetBrowser(BotData data)
         {
-            var browser = data.TryGetObject<IBrowser>(Keys.Browser);
+            var browser = data.PlaywrightSession.Browser;
             return browser ?? throw new Exception("No browser open. Use the 'Open Browser' block first.");
         }
 
@@ -74,7 +53,7 @@ namespace RuriLib.Blocks.Playwright
         /// <exception cref="Exception">Thrown when no context is available.</exception>
         public static IBrowserContext GetContext(BotData data)
         {
-            var context = data.TryGetObject<IBrowserContext>(Keys.Context);
+            var context = data.PlaywrightSession.Context;
             return context ?? throw new Exception("No browser context available. Use the 'Open Browser' block first.");
         }
 
@@ -83,7 +62,7 @@ namespace RuriLib.Blocks.Playwright
         /// </summary>
         public static IBrowser? TryGetBrowser(BotData data)
         {
-            return data.TryGetObject<IBrowser>(Keys.Browser);
+            return data.PlaywrightSession.Browser;
         }
 
         /// <summary>
@@ -91,7 +70,34 @@ namespace RuriLib.Blocks.Playwright
         /// </summary>
         public static IBrowserContext? TryGetContext(BotData data)
         {
-            return data.TryGetObject<IBrowserContext>(Keys.Context);
+            return data.PlaywrightSession.Context;
+        }
+
+        public static void SetBrowser(BotData data, IBrowser? browser)
+            => data.PlaywrightSession.Browser = browser;
+
+        public static void SetContext(BotData data, IBrowserContext? context)
+            => data.PlaywrightSession.Context = context;
+
+        public static void SetPage(BotData data, IPage? page)
+        {
+            data.PlaywrightSession.Page = page;
+            data.PlaywrightSession.Frame = page?.MainFrame;
+        }
+
+        public static void SetFrame(BotData data, IFrame? frame)
+            => data.PlaywrightSession.Frame = frame;
+
+        public static void SetInstance(BotData data, IPlaywright? playwright)
+            => data.PlaywrightSession.Instance = playwright;
+
+        public static void SetCleanupState(BotData data, IPlaywrightCleanupState? cleanupState)
+            => data.PlaywrightSession.CleanupState = cleanupState;
+
+        public static void SetBrowserRuntimeState(BotData data, PlaywrightBrowserType browserType, bool headless)
+        {
+            data.PlaywrightSession.BrowserType = browserType;
+            data.PlaywrightSession.Headless = headless;
         }
 
         #endregion

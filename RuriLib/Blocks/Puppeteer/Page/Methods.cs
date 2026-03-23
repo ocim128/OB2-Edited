@@ -283,10 +283,10 @@ namespace RuriLib.Blocks.Puppeteer.Page
         }
 
         private static IPage GetPage(BotData data)
-            => data.TryGetObject<IPage>("puppeteerPage") ?? throw new Exception("No pages open!");
+            => data.PuppeteerSession.Page ?? throw new Exception("No pages open!");
 
         private static void SwitchToMainFramePrivate(BotData data)
-            => data.SetObject("puppeteerFrame", GetPage(data).MainFrame);
+            => data.PuppeteerSession.Frame = GetPage(data).MainFrame;
 
         private static ScreenshotOptions CreateScreenshotOptions(bool fullPage, bool omitBackground)
             => new()

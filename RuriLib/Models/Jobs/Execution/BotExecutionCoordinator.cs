@@ -290,11 +290,12 @@ public class BotExecutionCoordinator
         if (botData.ConfigSettings.BrowserSettings.QuitBrowserStatuses.Contains(botData.STATUS))
         {
             botData.Logger.Log($"Disposing of browser objects since the bot STATUS was {botData.STATUS}", LogColors.Yellow);
+            botData.DisposeTrackedBrowserSessions();
             botData.DisposeObjectsExcept(ExceptObjects);
         }
         else
         {
-            botData.Logger.Log("Disposing of browser objects except puppeteer, puppeteerPage, puppeteerFrame, httpClient, ironPyEngine", LogColors.Yellow);
+            botData.Logger.Log("Disposing runtime objects while keeping browser session state alive", LogColors.Yellow);
             botData.DisposeObjectsExcept(BotData.DefaultExclusions);
         }
 

@@ -1,0 +1,152 @@
+<UserControl x:Class="Flux.Native.Controls.MetadataFieldsPresenter"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:mah="http://metro.mahapps.com/winfx/xaml/controls"
+             xmlns:metadata="clr-namespace:Flux.Native.ViewModels.Settings.Metadata"
+             mc:Ignorable="d">
+    <UserControl.Resources>
+        <Style x:Key="MetadataLabelStyle" TargetType="TextBlock" BasedOn="{StaticResource ModernBodyText}">
+            <Setter Property="Margin" Value="0,0,0,4"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+
+        <Style x:Key="MetadataDescriptionStyle" TargetType="TextBlock" BasedOn="{StaticResource ModernCaptionText}">
+            <Setter Property="Margin" Value="0,0,0,8"/>
+            <Setter Property="Foreground" Value="{StaticResource Modern.ForegroundSecondary}"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+        </Style>
+
+        <DataTemplate DataType="{x:Type metadata:MetadataBooleanFieldViewModel}">
+            <StackPanel Margin="0,0,0,10" Visibility="{Binding Visibility}">
+                <CheckBox Content="{Binding Label}"
+                          IsChecked="{Binding Value, Mode=TwoWay}"
+                          Foreground="{StaticResource Modern.ForegroundMain}"/>
+                <TextBlock Text="{Binding Description}" Margin="24,2,0,0">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource MetadataDescriptionStyle}">
+                            <Setter Property="Visibility" Value="Visible"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Description}" Value="">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+            </StackPanel>
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type metadata:MetadataTextFieldViewModel}">
+            <StackPanel Margin="0,0,0,14" Visibility="{Binding Visibility}">
+                <TextBlock Text="{Binding Label}" Style="{StaticResource MetadataLabelStyle}"/>
+                <TextBlock Text="{Binding Description}">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource MetadataDescriptionStyle}">
+                            <Setter Property="Visibility" Value="Visible"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Description}" Value="">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+                <TextBox Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                         Style="{StaticResource MatchingTextBox}"/>
+            </StackPanel>
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type metadata:MetadataMultilineTextFieldViewModel}">
+            <StackPanel Margin="0,0,0,14" Visibility="{Binding Visibility}">
+                <TextBlock Text="{Binding Label}" Style="{StaticResource MetadataLabelStyle}"/>
+                <TextBlock Text="{Binding Description}">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource MetadataDescriptionStyle}">
+                            <Setter Property="Visibility" Value="Visible"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Description}" Value="">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+                <TextBox Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                         Style="{StaticResource MatchingTextBox}"
+                         FontFamily="Consolas"
+                         Height="100"
+                         AcceptsReturn="True"
+                         VerticalContentAlignment="Top"
+                         VerticalScrollBarVisibility="Auto"
+                         TextWrapping="Wrap"/>
+            </StackPanel>
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type metadata:MetadataIntegerFieldViewModel}">
+            <StackPanel Margin="0,0,0,14" Visibility="{Binding Visibility}">
+                <TextBlock Text="{Binding Label}" Style="{StaticResource MetadataLabelStyle}"/>
+                <TextBlock Text="{Binding Description}">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource MetadataDescriptionStyle}">
+                            <Setter Property="Visibility" Value="Visible"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Description}" Value="">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+                <mah:NumericUpDown Minimum="{Binding Minimum}"
+                                   Maximum="{Binding Maximum}"
+                                   Interval="{Binding Interval}"
+                                   Value="{Binding Value, Mode=TwoWay}"/>
+            </StackPanel>
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type metadata:MetadataEnumFieldViewModel}">
+            <StackPanel Margin="0,0,0,14" Visibility="{Binding Visibility}">
+                <TextBlock Text="{Binding Label}" Style="{StaticResource MetadataLabelStyle}"/>
+                <TextBlock Text="{Binding Description}">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource MetadataDescriptionStyle}">
+                            <Setter Property="Visibility" Value="Visible"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Description}" Value="">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+                <ComboBox ItemsSource="{Binding Options}"
+                          SelectedItem="{Binding Value, Mode=TwoWay}"
+                          Style="{StaticResource CleanComboBox}"/>
+            </StackPanel>
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type metadata:MetadataMessageFieldViewModel}">
+            <Border Margin="0,0,0,10"
+                    Padding="10"
+                    CornerRadius="8"
+                    Background="{StaticResource Modern.BackgroundMain}"
+                    BorderBrush="{StaticResource Modern.BorderSecondary}"
+                    BorderThickness="1"
+                    Visibility="{Binding Visibility}">
+                <TextBlock Text="{Binding Message}"
+                           Foreground="{Binding Foreground}"
+                           TextWrapping="Wrap"/>
+            </Border>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <ItemsControl ItemsSource="{Binding ItemsSource, RelativeSource={RelativeSource AncestorType=UserControl}}">
+        <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+                <StackPanel />
+            </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+    </ItemsControl>
+</UserControl>

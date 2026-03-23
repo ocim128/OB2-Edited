@@ -1,23 +1,29 @@
+using System;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Windows.Media;
+using Flux.Core.Models.Jobs;
+using Flux.Core.Services;
+using Flux.Native.ViewModels.Base;
+using Flux.Shared.Models;
+using Microsoft.Extensions.DependencyInjection;
 using RuriLib.Models.Jobs;
 using RuriLib.Models.Jobs.StartConditions;
 using RuriLib.Models.Proxies;
 using RuriLib.Parallelization.Models;
-using System;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Windows.Media;
-using Flux.Native.ViewModels.Base;
 
 namespace Flux.Native.ViewModels.Jobs;
 
 public class ProxyCheckJobViewerViewModel : ViewModelBase, IDisposable
 {
         private readonly Timer secondsTicker;
+        private readonly ProxyCheckJob proxyCheckJob;
 
         public event Action<object, string, Color> NewMessage;
 
         public ProxyCheckJobViewModel Job { get; set; }
-        private ProxyCheckJob ProxyCheckJob => Job.Job as ProxyCheckJob;
+        private ProxyCheckJob ProxyCheckJob => proxyCheckJob;
 
         #region Properties that need to be updated every second
         public string RemainingWaitString => ProxyCheckJob.StartCondition switch
@@ -48,6 +54,9 @@ public class ProxyCheckJobViewerViewModel : ViewModelBase, IDisposable
         public ProxyCheckJobViewerViewModel(ProxyCheckJobViewModel jobVM)
         {
             Job = jobVM;
+            var jobManager = App.ServiceProvider.GetRequiredService<JobManagerService>();
+            proxyCheckJob = jobManager.Jobs.OfType<ProxyCheckJob>().First(job => job.Id == jobVM.Id);
+            RefreshJobSnapshot();
 
             #region Bind events and timers
             ProxyCheckJob.OnCompleted += UpdateOnCompleted;
@@ -72,7 +81,7 @@ public class ProxyCheckJobViewerViewModel : ViewModelBase, IDisposable
                 OnPropertyChanged(nameof(RemainingWaitString));
             }
 
-            Job.PeriodicUpdate();
+            RefreshJobSnapshot();
         }
 
         // Updates everything (only when a job completes, just to be safe, not expensive)
@@ -81,14 +90,14 @@ public class ProxyCheckJobViewerViewModel : ViewModelBase, IDisposable
         // Updates the stats after every successful check
         private void UpdateViewModel(object sender, ResultDetails<ProxyCheckInput, Proxy> details)
         {
+            RefreshJobSnapshot();
             OnPropertyChanged(nameof(Progress));
-            Job.UpdateStats();
         }
 
         // Update the stuff related to a job's status change
         private void UpdateStatus(object sender, JobStatus status)
         {
-            Job.UpdateStatus();
+            RefreshJobSnapshot();
 
             OnPropertyChanged(nameof(CanStart));
             OnPropertyChanged(nameof(CanSkipWait));
@@ -142,9 +151,33 @@ public class ProxyCheckJobViewerViewModel : ViewModelBase, IDisposable
 
             await ProxyCheckJob.ChangeBots(newValue);
             ProxyCheckJob.Bots = newValue;
-            Job.UpdateBots();
+            RefreshJobSnapshot();
         }
         #endregion
+
+        private void RefreshJobSnapshot()
+            => Job.ApplySnapshot(new DesktopJobListItemDto(
+                ProxyCheckJob.Id,
+                JobType.ProxyCheck,
+                ProxyCheckJob.Status,
+                ProxyCheckJob.Name,
+                "Proxy Check",
+                "Proxy Check Job",
+                $"URL: {ProxyCheckJob.Url}",
+                ProxyCheckJob.Url,
+                ProxyCheckJob.Bots,
+                0,
+                JobProxyMode.Off,
+                ProxyCheckJob.CPM,
+                Math.Clamp(ProxyCheckJob.Progress, 0, 1),
+                ProxyCheckJob.Tested,
+                ProxyCheckJob.Total,
+                ProxyCheckJob.Working,
+                0,
+                ProxyCheckJob.StartTime,
+                ProxyCheckJob.Elapsed,
+                ProxyCheckJob.Remaining,
+                false));
 
         public void Dispose()
         {

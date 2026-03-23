@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using Flux.Core.Models.Hits;
+using Flux.Native.ViewModels.Jobs;
 
 namespace Flux.Native.Views.Dialogs.Job.Components
 {

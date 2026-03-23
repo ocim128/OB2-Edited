@@ -137,8 +137,8 @@ public partial class MultiRunJobViewer : Page
         private async void Abort(object sender, RoutedEventArgs e)
             => await Alert.SafeExecuteAsync(() => vm.AbortAsync(), "aborting multi-run job");
 
-        private void SkipWait(object sender, RoutedEventArgs e)
-            => Alert.SafeExecute(() => vm.SkipWait(), "skipping wait");
+        private async void SkipWait(object sender, RoutedEventArgs e)
+            => await Alert.SafeExecuteAsync(() => vm.SkipWaitAsync(), "skipping wait");
 
         private void ChangeOptions(object sender, RoutedEventArgs e) => mainWindow.EditJob(vm.Job);
 
@@ -148,9 +148,9 @@ public partial class MultiRunJobViewer : Page
         public async Task ChangeBots(int newValue)
             => await Alert.SafeExecuteAsync(() => vm.ChangeBotsAsync(newValue), "changing bot count");
 
-        private void ResetSkip(object sender, RoutedEventArgs e)
+        private async void ResetSkip(object sender, RoutedEventArgs e)
         {
-            Alert.SafeExecute(() =>
+            try
             {
                 var dialog = new ConfirmationDialog(
                     "Reset Skip Confirmation",
@@ -160,9 +160,13 @@ public partial class MultiRunJobViewer : Page
 
                 if (dialog.Result)
                 {
-                    vm.ResetSkip();
+                    await Alert.SafeExecuteAsync(() => vm.ResetSkipAsync(), "resetting skip count");
                 }
-            }, "resetting skip count");
+            }
+            catch (Exception ex)
+            {
+                Alert.Exception(ex);
+            }
         }
 
         // Quick bot adjustment handlers
@@ -222,29 +226,34 @@ public partial class MultiRunJobViewer : Page
             {
                 debuggerViewModel.TestData = hitVM.Data;
 
-                if (hitVM.Hit.Proxy is not null)
+                if (!string.IsNullOrWhiteSpace(hitVM.Proxy))
                 {
-                    debuggerViewModel.TestProxy = hitVM.Hit.Proxy.ToString();
-                    debuggerViewModel.ProxyType = hitVM.Hit.Proxy.Type;
+                    debuggerViewModel.TestProxy = hitVM.Proxy;
+                }
+
+                if (hitVM.ProxyType.HasValue)
+                {
+                    debuggerViewModel.ProxyType = hitVM.ProxyType.Value;
                 }
             }
         }
 
         private void SelectAll(object sender, RoutedEventArgs e) => resultsListView.SelectAll();
 
-        private void ShowBotLog(object sender, RoutedEventArgs e)
+        private async void ShowBotLog(object sender, RoutedEventArgs e)
         {
             var hitVM = GetSelectedHits().FirstOrDefault();
 
             if (hitVM is null) return;
 
-            if (hitVM.Hit.Config.Mode == ConfigMode.DLL)
+            if (hitVM.ConfigMode == ConfigMode.DLL)
             {
                 Alert.Error("Bot log unavailable", "The bot log is not available for pre-compiled configs");
                 return;
             }
 
-            new MainDialog(new BotLogDialog(hitVM.Hit.BotLogger), $"Bot log for {hitVM.Data}", 950, 700).Show();
+            var botLog = await vm.GetBotLogAsync(hitVM.ResultId);
+            new MainDialog(new BotLogDialog(botLog), $"Bot log for {hitVM.Data}", 950, 700).Show();
         }
 
         private void ColumnHeaderClicked(object sender, RoutedEventArgs e)

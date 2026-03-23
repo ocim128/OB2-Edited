@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using Flux.Native.ViewModels.Jobs;
 using Microsoft.Win32;
 
 namespace Flux.Native.Views.Dialogs.Job.Components

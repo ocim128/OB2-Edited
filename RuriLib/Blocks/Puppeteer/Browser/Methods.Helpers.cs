@@ -1,7 +1,6 @@
 using PuppeteerSharp;
 using RuriLib.Logging;
 using RuriLib.Models.Bots;
-using RuriLib.Models.Configs.Settings;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -20,72 +19,6 @@ namespace RuriLib.Blocks.Puppeteer.Browser;
 public static partial class Methods
 {
     private static readonly List<string> BaseBrowserArgs = new();
-
-    private static readonly List<string> StealthArgs = new()
-    {
-        "--disable-blink-features=AutomationControlled"
-    };
-
-    private static readonly List<string> EnhancedStealthArgs = new()
-    {
-        "--disable-blink-features=AutomationControlled",
-        "--disable-features=IsolateOrigins,site-per-process",
-        "--disable-site-isolation-trials",
-        "--disable-web-security",
-        "--disable-features=VizDisplayCompositor",
-        "--disable-features=TranslateUI",
-        "--disable-extensions-except",
-        "--disable-default-apps",
-        "--no-default-browser-check",
-        "--disable-component-extensions-with-background-pages",
-        "--disable-background-timer-throttling",
-        "--disable-renderer-backgrounding",
-        "--disable-backgrounding-occluded-windows",
-        "--disable-ipc-flooding-protection",
-        "--password-store=basic",
-        "--use-mock-keychain",
-        "--disable-dev-shm-usage",
-        "--no-sandbox",
-        "--disable-setuid-sandbox",
-        "--disable-gpu-sandbox",
-        "--disable-software-rasterizer"
-    };
-
-    private static readonly List<string> Option4StealthArgs = new()
-    {
-        "--disable-blink-features=AutomationControlled",
-        "--disable-features=IsolateOrigins,site-per-process",
-        "--disable-site-isolation-trials",
-        "--disable-web-security",
-        "--disable-features=VizDisplayCompositor",
-        "--disable-features=TranslateUI",
-        "--disable-extensions-except",
-        "--disable-default-apps",
-        "--no-default-browser-check",
-        "--disable-component-extensions-with-background-pages",
-        "--disable-background-timer-throttling",
-        "--disable-renderer-backgrounding",
-        "--disable-backgrounding-occluded-windows",
-        "--disable-ipc-flooding-protection",
-        "--password-store=basic",
-        "--use-mock-keychain",
-        "--disable-dev-shm-usage",
-        "--no-sandbox",
-        "--disable-setuid-sandbox",
-        "--disable-gpu-sandbox",
-        "--disable-software-rasterizer",
-        "--disable-features=PrivacySandboxSettings4",
-        "--disable-features=PrivacySandboxAdsAPIs",
-        "--disable-features=TrackingProtection3pcd",
-        "--disable-features=InterestCohortFeaturePolicy",
-        "--disable-features=Fledge",
-        "--disable-features=FledgeBiddingAndAuctionServer",
-        "--disable-features=SharedStorage",
-        "--disable-features=PrivateAggregationApi",
-        "--disable-features=PrivateAggregationApiFledgeExtensions",
-        "--disable-features=AttributionReporting",
-        "--disable-features=AttributionReportingCrossAppWeb"
-    };
 
     private static readonly Dictionary<string, string> BrowserHeaders = new()
     {
@@ -109,29 +42,28 @@ public static partial class Methods
     };
 
     private static IBrowser GetBrowser(BotData data)
-        => data.TryGetObject<IBrowser>("puppeteer") ?? throw new Exception("The browser is not open!");
+        => data.PuppeteerSession.Browser ?? throw new Exception("The browser is not open!");
 
     private static IPage GetPage(BotData data)
-        => data.TryGetObject<IPage>("puppeteerPage") ?? throw new Exception("No pages open!");
+        => data.PuppeteerSession.Page ?? throw new Exception("No pages open!");
 
     private static void SwitchToMainFrame(BotData data)
-        => data.SetObject("puppeteerFrame", GetPage(data).MainFrame, false);
+        => data.PuppeteerSession.Frame = GetPage(data).MainFrame;
 
     private static void SetPageAndFrame(BotData data, IPage page)
     {
         if (page == null)
         {
-            data.Objects.Remove("puppeteerPage");
-            data.Objects.Remove("puppeteerFrame");
+            data.PuppeteerSession.Page = null;
+            data.PuppeteerSession.Frame = null;
             return;
         }
 
-        data.SetObject("puppeteerPage", page, false);
-        data.SetObject("puppeteerFrame", page.MainFrame, false);
+        data.PuppeteerSession.Page = page;
+        data.PuppeteerSession.Frame = page.MainFrame;
     }
 
-    private static async Task PreparePageAsync(BotData data, IPage page, bool applyDefaultHeaders, bool authenticateProxy,
-        bool logStealthActivation, string defaultModeMessage = null)
+    private static async Task PreparePageAsync(BotData data, IPage page, bool applyDefaultHeaders, bool authenticateProxy)
     {
         if (applyDefaultHeaders)
         {
@@ -139,7 +71,6 @@ public static partial class Methods
         }
 
         await SetPageLoadingOptions(data, page).ConfigureAwait(false);
-        await ApplyConfiguredStealthMeasuresAsync(data, page, logStealthActivation, defaultModeMessage).ConfigureAwait(false);
 
         if (authenticateProxy)
         {
@@ -164,7 +95,7 @@ public static partial class Methods
         var blockedUrls = data.ConfigSettings.BrowserSettings.BlockedUrls ?? new List<string>();
         var needsInterception = data.ConfigSettings.BrowserSettings.LoadOnlyDocumentAndScript
                                 || blockedUrls.Any(u => !string.IsNullOrWhiteSpace(u));
-        var isRealBrowser = data.TryGetObject<Process>("puppeteer.realBrowserProcess") is not null;
+        var isRealBrowser = data.PuppeteerSession.RealBrowserProcess is not null;
 
         if (needsInterception)
         {
@@ -314,22 +245,6 @@ public static partial class Methods
         var browserArgs = includeDefaultArgs
             ? new List<string>(BaseBrowserArgs)
             : new List<string>();
-
-        if (includeDefaultArgs)
-        {
-            switch (data.ConfigSettings.BrowserSettings.StealthMode)
-            {
-                case BrowserStealthMode.Option4:
-                    browserArgs.AddRange(Option4StealthArgs);
-                    break;
-                case BrowserStealthMode.Stealth:
-                    browserArgs.AddRange(StealthArgs);
-                    break;
-                case BrowserStealthMode.EnhancedStealth:
-                    browserArgs.AddRange(EnhancedStealthArgs);
-                    break;
-            }
-        }
 
         if (!string.IsNullOrWhiteSpace(data.ConfigSettings.BrowserSettings.CommandLineArgs))
         {

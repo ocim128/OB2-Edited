@@ -30,7 +30,7 @@ namespace RuriLib.Blocks.Playwright.Page
             var response = await page.GotoAsync(url, options);
 
             // Switch to main frame after navigation
-            data.SetObject("playwrightFrame", page.MainFrame);
+            PlaywrightHelpers.SetFrame(data, page.MainFrame);
 
             // Provide richer logging information (status code when available)
             var statusInfo = response != null ? $" | Status: {response.Status}" : string.Empty;
@@ -44,7 +44,7 @@ namespace RuriLib.Blocks.Playwright.Page
             var page = GetPage(data);
             await page.ReloadAsync(CreatePageOptions<PageReloadOptions>(timeoutSeconds));
             // Switch to main frame after reload
-            data.SetObject("playwrightFrame", page.MainFrame);
+            PlaywrightHelpers.SetFrame(data, page.MainFrame);
             data.Logger.Log("Reloaded the page", LogColors.MediumPurple);
         }
 
@@ -55,7 +55,7 @@ namespace RuriLib.Blocks.Playwright.Page
             var page = GetPage(data);
             await page.GoBackAsync(CreatePageOptions<PageGoBackOptions>(timeoutSeconds));
             // Switch to main frame after navigation
-            data.SetObject("playwrightFrame", page.MainFrame);
+            PlaywrightHelpers.SetFrame(data, page.MainFrame);
             data.Logger.Log("Went back in history", LogColors.MediumPurple);
         }
 
@@ -66,7 +66,7 @@ namespace RuriLib.Blocks.Playwright.Page
             var page = GetPage(data);
             await page.GoForwardAsync(CreatePageOptions<PageGoForwardOptions>(timeoutSeconds));
             // Switch to main frame after navigation
-            data.SetObject("playwrightFrame", page.MainFrame);
+            PlaywrightHelpers.SetFrame(data, page.MainFrame);
             data.Logger.Log("Went forward in history", LogColors.MediumPurple);
         }
 
@@ -238,7 +238,7 @@ namespace RuriLib.Blocks.Playwright.Page
                 var targetWidth = width + chromeWidth;
                 var targetHeight = height + chromeHeight;
 
-                var trackedPids = data.TryGetObject<int[]>("playwright.firefoxProcessIds");
+                var trackedPids = data.PlaywrightSession.FirefoxProcessIds;
                 if (trackedPids == null || trackedPids.Length == 0)
                 {
                     return false;
@@ -303,10 +303,8 @@ namespace RuriLib.Blocks.Playwright.Page
             data.Logger.LogHeader();
 
             var page = GetPage(data);
-            var headlessObj = data.TryGetObject<object>("playwrightHeadless");
-            var headless = headlessObj is bool storedHeadless ? storedHeadless : data.Providers.PlaywrightBrowser.Headless;
-            var browserTypeObj = data.TryGetObject<object>("playwrightBrowserType");
-            var browserType = browserTypeObj is PlaywrightBrowserType storedType ? storedType : data.Providers.PlaywrightBrowser.BrowserType;
+            var headless = data.PlaywrightSession.Headless ?? data.Providers.PlaywrightBrowser.Headless;
+            var browserType = data.PlaywrightSession.BrowserType ?? data.Providers.PlaywrightBrowser.BrowserType;
 
             if (!headless && browserType == PlaywrightBrowserType.Chromium)
             {
@@ -351,7 +349,7 @@ namespace RuriLib.Blocks.Playwright.Page
             data.Logger.LogHeader();
 
             var page = GetPage(data);
-            data.SetObject("playwrightFrame", page.MainFrame);
+            PlaywrightHelpers.SetFrame(data, page.MainFrame);
             data.Logger.Log("Switched to main frame", LogColors.MediumPurple);
         }
 

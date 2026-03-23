@@ -1,32 +1,21 @@
-using Flux.Core.Entities;
-using Flux.Core.Models.Hits;
-using Flux.Core.Models.Proxies.Sources;
-using Flux.Core.Services;
-using Flux.Native.Helpers;
-
-using Flux.Native.Utils;
-using Flux.Shared.Abstractions;
-using RuriLib.Extensions;
-using RuriLib.Models.Bots;
-using RuriLib.Models.Data.DataPools;
-using RuriLib.Models.Hits;
-using RuriLib.Models.Hits.HitOutputs;
-using RuriLib.Models.Jobs;
-using RuriLib.Models.Jobs.StartConditions;
-using RuriLib.Models.Proxies.ProxySources;
-using RuriLib.Parallelization.Models;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Media;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using Flux.Core.Services;
+using Flux.Native.Helpers;
+using Flux.Native.Utils;
+using Flux.Shared.Abstractions;
+using Flux.Shared.Models;
 using Flux.Native.ViewModels.Base;
+using RuriLib.Models.Configs;
+using RuriLib.Models.Jobs;
 
 namespace Flux.Native.ViewModels.Jobs;
 
@@ -34,226 +23,92 @@ public class MultiRunJobViewerViewModel : ViewModelBase, IDisposable
 {
     private readonly FluxSettingsService fluxSettingsService;
     private readonly IJobCommands jobCommands;
-    private readonly Timer botsInfoTimer;
-    private readonly Timer secondsTicker;
+    private readonly IJobQueries jobQueries;
+    private readonly Timer refreshTimer;
     private readonly SoundPlayer soundPlayer;
-    private readonly SemaphoreSlim botChangeLock = new(1, 1); // Prevent race conditions on rapid bot changes
-    private readonly IReadOnlyDictionary<int, string> proxyGroupNames;
+    private readonly SemaphoreSlim refreshLock = new(1, 1);
+    private readonly SemaphoreSlim botChangeLock = new(1, 1);
+
+    private MultiRunJobViewerSnapshotDto snapshot;
+    private IReadOnlyList<JobRuntimeResultDto> allResults = [];
+    private Dictionary<string, string> customInputAnswers = [];
+    private string lastConfigIconBase64 = string.Empty;
+
+    private const int MaxHistoryPoints = 30;
+    private readonly List<double> cpmHistory = new();
+    private readonly List<double> hitsPerMinuteHistory = new();
+    private int lastRecordedHits;
+    private DateTime lastHitsRecordTime = DateTime.Now;
+    private int lastSoundHitsCount;
 
     public event Action<object, string, Color> NewMessage;
+    public event Action SparklineDataUpdated;
 
-    public MultiRunJobViewModel Job { get; set; }
-    private MultiRunJob MultiRunJob => Job.Job as MultiRunJob;
+    public MultiRunJobViewModel Job { get; }
 
-    #region Properties that don't need to be updated during the run
-    private BitmapImage configIcon;
-    public BitmapImage ConfigIcon
-    {
-        get => configIcon;
-        private set
-        {
-            configIcon = value;
-            OnPropertyChanged();
-        }
-    }
+    public BitmapImage ConfigIcon { get; private set; }
 
-    private string configNameAndAuthor;
-    public string ConfigNameAndAuthor
-    {
-        get => configNameAndAuthor;
-        set
-        {
-            configNameAndAuthor = value;
-            OnPropertyChanged();
-        }
-    }
-
-    public string ConfigName => MultiRunJob.Config?.Metadata.Name ?? "No config";
-    public string ConfigAuthor => MultiRunJob.Config != null ? $"by {MultiRunJob.Config.Metadata.Author}" : "";
-
-    public string DataPoolInfo => MultiRunJob.DataPool switch
-    {
-        WordlistDataPool w => $"Wordlist ({w.Wordlist.Name})",
-        FileDataPool f => $"File ({f.FileName})",
-        InfiniteDataPool => "Infinite",
-        RangeDataPool r => $"Range (start: {r.Start}, amount: {r.Amount}, step: {r.Step}, pad: {r.Pad})",
-        CombinationsDataPool c => $"Combinations (charset: {c.CharSet}, length: {c.Length})",
-        _ => throw new NotImplementedException()
-    };
-
-    private string proxySourcesInfo = string.Empty;
-    public string ProxySourcesInfo
-    {
-        get => proxySourcesInfo;
-        set
-        {
-            proxySourcesInfo = value;
-            OnPropertyChanged();
-        }
-    }
-
-    private string hitOutputsInfo = string.Empty;
-    public string HitOutputsInfo
-    {
-        get => hitOutputsInfo;
-        set
-        {
-            hitOutputsInfo = value;
-            OnPropertyChanged();
-        }
-    }
-
-    public string CustomInputsInfo => string.Join(", ", MultiRunJob.CustomInputsAnswers.Select(static kvp => $"{kvp.Key}: {kvp.Value}"));
-    public bool HasCustomInputs => MultiRunJob.Config?.Settings.InputSettings.CustomInputs.Any() == true;
-
+    public string ConfigNameAndAuthor => $"{ConfigName} {ConfigAuthor}".Trim();
+    public string ConfigName => snapshot?.ConfigName ?? "No config";
+    public string ConfigAuthor => snapshot?.ConfigAuthor ?? string.Empty;
+    public string DataPoolInfo => snapshot?.DataPoolInfo ?? "Unknown";
+    public string ProxySourcesInfo => snapshot?.ProxySourcesInfo ?? "None";
+    public string HitOutputsInfo => snapshot?.HitOutputsInfo ?? "None";
+    public string CustomInputsInfo => string.Join(", ", customInputAnswers.Select(static kvp => $"{kvp.Key}: {kvp.Value}"));
+    public bool HasCustomInputs => snapshot?.CustomInputs.Count > 0;
     public bool EnableJobLog => fluxSettingsService.Settings.GeneralSettings.EnableJobLogging;
-    #endregion Properties that don't need to be updated during the run
+    public string RemainingWaitString => !IsWaiting || snapshot?.WaitUntil is null
+        ? string.Empty
+        : (snapshot.WaitUntil.Value - DateTime.Now).ToString(@"hh\:mm\:ss");
 
-    #region Properties that need to be updated every second
-    public string RemainingWaitString => !IsWaiting
-                ? ""
-                : MultiRunJob.StartCondition switch
-                {
-                    RelativeTimeStartCondition r => (MultiRunJob.StartTime + r.StartAfter - DateTime.Now).ToString(@"hh\:mm\:ss"),
-                    AbsoluteTimeStartCondition a => (a.StartAt - DateTime.Now).ToString(@"hh\:mm\:ss"),
-                    _ => ""
-                };
+    public bool IsWaiting => Job.Status is JobStatus.Waiting;
+    public bool CanChangeOptions => Job.Status is JobStatus.Idle;
+    public bool CanStart => Job.Status is JobStatus.Idle;
+    public bool CanSkipWait => Job.Status is JobStatus.Waiting;
+    public bool CanPause => Job.Status is JobStatus.Running;
+    public bool CanResume => Job.Status is JobStatus.Paused;
+    public bool CanStop => Job.Status is JobStatus.Running or JobStatus.Paused;
+    public bool CanAbort => Job.Status is JobStatus.Starting or JobStatus.Running or JobStatus.Paused or JobStatus.Pausing or JobStatus.Stopping;
+    public bool IsStarting => Job.Status is JobStatus.Starting;
+    public bool IsStopping => Job.Status is JobStatus.Stopping;
+    public bool IsPausing => Job.Status is JobStatus.Pausing;
+    public double Progress => Math.Clamp(Job.Progress * 100, 0, 100);
 
-    public bool IsWaiting => MultiRunJob.Status is JobStatus.Waiting;
-    #endregion Properties that need to be updated every second
-
-    #region Properties that need to be updated when the status changes
-    public bool CanChangeOptions => MultiRunJob.Status is JobStatus.Idle;
-    public bool CanStart => MultiRunJob.Status is JobStatus.Idle;
-    public bool CanSkipWait => MultiRunJob.Status is JobStatus.Waiting;
-    public bool CanPause => MultiRunJob.Status is JobStatus.Running;
-    public bool CanResume => MultiRunJob.Status is JobStatus.Paused;
-    public bool CanStop => MultiRunJob.Status is JobStatus.Running or JobStatus.Paused;
-    public bool CanAbort => MultiRunJob.Status is JobStatus.Starting or JobStatus.Running or JobStatus.Paused or JobStatus.Pausing or JobStatus.Stopping;
-
-    public bool IsStarting => MultiRunJob.Status is JobStatus.Starting;
-    public bool IsStopping => MultiRunJob.Status is JobStatus.Stopping;
-    public bool IsPausing => MultiRunJob.Status is JobStatus.Pausing;
-    #endregion Properties that need to be updated when the status changes
-
-    #region Properties that need to be updated when a new result comes in
-    public double Progress => Math.Clamp(MultiRunJob.Progress * 100, 0, 100);
-    #endregion Properties that need to be updated when a new result comes in
-
-    #region Badge Counts for Tab Buttons
-    public int HitsCount => MultiRunJob.DataHits;
-    public int CustomCount => MultiRunJob.DataCustom;
-    public int ToCheckCount => MultiRunJob.DataToCheck;
+    public int HitsCount => snapshot?.Summary.DataHits ?? 0;
+    public int CustomCount => snapshot?.Summary.DataCustom ?? 0;
+    public int ToCheckCount => snapshot?.DataToCheck ?? 0;
 
     public string HitsTabLabel => HitsCount > 0 ? $"Hits ({HitsCount})" : "Hits";
     public string CustomTabLabel => CustomCount > 0 ? $"Custom ({CustomCount})" : "Custom";
     public string ToCheckTabLabel => ToCheckCount > 0 ? $"ToCheck ({ToCheckCount})" : "ToCheck";
-    #endregion Badge Counts for Tab Buttons
 
-    #region Real-time Statistics Visualization
-    private const int MaxHistoryPoints = 30;
-    
-    // CPM History for sparkline
-    private readonly List<double> cpmHistory = new();
     public IReadOnlyList<double> CpmHistory => cpmHistory;
-    
-    // Hits per minute history
-    private readonly List<double> hitsPerMinuteHistory = new();
     public IReadOnlyList<double> HitsPerMinuteHistory => hitsPerMinuteHistory;
-    
-    private int lastRecordedHits = 0;
-    private DateTime lastHitsRecordTime = DateTime.Now;
-    
-    /// <summary>
-    /// Animated counter values for smooth transitions
-    /// </summary>
-    public double AnimatedCpm => Job?.CPM ?? 0;
-    public double AnimatedHits => Job?.Job is MultiRunJob mrj ? mrj.DataHits : 0;
-    public double AnimatedCustom => Job?.Job is MultiRunJob mrj ? mrj.DataCustom : 0;
-    public double AnimatedToCheck => Job?.Job is MultiRunJob mrj ? mrj.DataToCheck : 0;
-    public double AnimatedBanned => Job?.Job is MultiRunJob mrj ? mrj.DataBanned : 0;
-    public double AnimatedFails => Job?.Job is MultiRunJob mrj ? mrj.DataFails : 0;
-    public double AnimatedRetried => Job?.Job is MultiRunJob mrj ? mrj.DataRetried : 0;
-    public double AnimatedErrors => Job?.Job is MultiRunJob mrj ? mrj.DataErrors : 0;
-    
-    /// <summary>
-    /// Event fired when sparkline data is updated
-    /// </summary>
-    public event Action SparklineDataUpdated;
-    
-    /// <summary>
-    /// Records current stats for sparkline history. Called every second.
-    /// </summary>
-    private void RecordSparklineData()
-    {
-        if (MultiRunJob == null) return;
-        
-        // Record CPM
-        cpmHistory.Add(MultiRunJob.CPM);
-        while (cpmHistory.Count > MaxHistoryPoints)
-            cpmHistory.RemoveAt(0);
-        
-        // Calculate and record hits per minute
-        var now = DateTime.Now;
-        var elapsed = (now - lastHitsRecordTime).TotalMinutes;
-        if (elapsed > 0)
-        {
-            var currentHits = MultiRunJob.DataHits;
-            var hitsDelta = currentHits - lastRecordedHits;
-            var hitsPerMinute = hitsDelta / elapsed;
-            
-            hitsPerMinuteHistory.Add(Math.Max(0, hitsPerMinute));
-            while (hitsPerMinuteHistory.Count > MaxHistoryPoints)
-                hitsPerMinuteHistory.RemoveAt(0);
-            
-            lastRecordedHits = currentHits;
-            lastHitsRecordTime = now;
-        }
-        
-        // Notify UI to update sparklines
-        SparklineDataUpdated?.Invoke();
-        
-        // Update animated counter bindings
-        OnPropertyChanged(nameof(AnimatedCpm));
-        OnPropertyChanged(nameof(AnimatedHits));
-        OnPropertyChanged(nameof(AnimatedCustom));
-        OnPropertyChanged(nameof(AnimatedToCheck));
-        OnPropertyChanged(nameof(AnimatedBanned));
-        OnPropertyChanged(nameof(AnimatedFails));
-        OnPropertyChanged(nameof(AnimatedRetried));
-        OnPropertyChanged(nameof(AnimatedErrors));
-    }
-    
-    /// <summary>
-    /// Clears all sparkline history data. Call when starting a new job.
-    /// </summary>
-    public void ClearSparklineData()
-    {
-        cpmHistory.Clear();
-        hitsPerMinuteHistory.Clear();
-        lastRecordedHits = 0;
-        lastHitsRecordTime = DateTime.Now;
-        SparklineDataUpdated?.Invoke();
-    }
-    #endregion Real-time Statistics Visualization
+    public double AnimatedCpm => Job.CPM;
+    public double AnimatedHits => snapshot?.Summary.DataHits ?? 0;
+    public double AnimatedCustom => snapshot?.Summary.DataCustom ?? 0;
+    public double AnimatedToCheck => snapshot?.DataToCheck ?? 0;
+    public double AnimatedBanned => snapshot?.DataBanned ?? 0;
+    public double AnimatedFails => snapshot?.DataFails ?? 0;
+    public double AnimatedRetried => snapshot?.DataRetried ?? 0;
+    public double AnimatedErrors => snapshot?.DataErrors ?? 0;
 
-    #region Collections
-    private ObservableCollection<BotViewModel> botsCollection = new();
+    private ObservableCollection<BotViewModel> botsCollection = [];
     public ObservableCollection<BotViewModel> BotsCollection
     {
         get => botsCollection;
-        set
+        private set
         {
             botsCollection = value;
             OnPropertyChanged();
         }
     }
 
-    private ObservableCollection<HitViewModel> hitsCollection = new();
+    private ObservableCollection<HitViewModel> hitsCollection = [];
     public ObservableCollection<HitViewModel> HitsCollection
     {
         get => hitsCollection;
-        set
+        private set
         {
             hitsCollection = value;
             OnPropertyChanged();
@@ -291,326 +146,37 @@ public class MultiRunJobViewerViewModel : ViewModelBase, IDisposable
         }
     }
 
-    #endregion Collections
-
     public MultiRunJobViewerViewModel(
         MultiRunJobViewModel jobVM,
         FluxSettingsService fluxSettingsService,
         IJobCommands jobCommands,
         IJobQueries jobQueries)
     {
+        Job = jobVM;
         this.fluxSettingsService = fluxSettingsService;
         this.jobCommands = jobCommands;
-        Job = jobVM;
-        proxyGroupNames = jobQueries.GetProxyGroupNamesAsync().GetAwaiter().GetResult();
-
-        #region Setup
-        if (MultiRunJob.Config is not null)
-        {
-            ConfigIcon = Images.Base64ToBitmapImage(MultiRunJob.Config.Metadata.Base64Image);
-            ConfigNameAndAuthor = $"{MultiRunJob.Config.Metadata.Name} by {MultiRunJob.Config.Metadata.Author}";
-        }
-
-        var sb = new StringBuilder();
-        for (var i = 0; i < MultiRunJob.ProxySources.Count; i++)
-        {
-            var info = MultiRunJob.ProxySources[i] switch
-            {
-                GroupProxySource g => $"Group ({GetProxyGroupName(g.GroupId)})",
-                FileProxySource f => $"File ({f.FileName})",
-                RemoteProxySource r => $"Remote ({r.Url})",
-                _ => throw new NotImplementedException()
-            };
-
-            _ = sb.Append(info);
-
-            if (i < MultiRunJob.ProxySources.Count - 1)
-            {
-                _ = sb.Append(" | ");
-            }
-        }
-
-        ProxySourcesInfo = sb.ToString();
-
-        sb = new StringBuilder();
-        for (var i = 0; i < MultiRunJob.HitOutputs.Count; i++)
-        {
-            var info = MultiRunJob.HitOutputs[i] switch
-            {
-                DatabaseHitOutput => "Database",
-                FileSystemHitOutput fs => $"File System ({fs.BaseDir})",
-                DiscordWebhookHitOutput d => $"Discord ({d.Webhook.TruncatePretty(70)})",
-                TelegramBotHitOutput t => $"Telegram ({t.Token.Split(':')[0]})",
-                CustomWebhookHitOutput c => $"Custom Webhook ({c.Url.TruncatePretty(70)})",
-                _ => throw new NotImplementedException()
-            };
-
-            _ = sb.Append(info);
-
-            if (i < MultiRunJob.HitOutputs.Count - 1)
-            {
-                _ = sb.Append(" | ");
-            }
-        }
-
-        HitOutputsInfo = sb.ToString();
-        #endregion Setup
-
-        #region Bind events and timers
-        MultiRunJob.OnCompleted += UpdateOnCompleted;
-        MultiRunJob.OnResult += UpdateViewModel;
-        MultiRunJob.OnStatusChanged += UpdateStatus;
-        MultiRunJob.OnProgress += UpdateViewModel;
-
-        MultiRunJob.OnResult += OnResult;
-        MultiRunJob.OnResult += PlayHitSound;
-        MultiRunJob.OnTaskError += OnTaskError;
-        MultiRunJob.OnError += OnError;
-        MultiRunJob.OnHit += OnHit;
-
-        // Timer intervals optimized for performance:
-        // - 500ms for bot info (was 200ms) - reduces PropertyChanged events
-        // - 1000ms for periodic updates remains the same
-        botsInfoTimer = new Timer(new TimerCallback(_ => RefreshBotsInfo()), null, 500, 500);
-        secondsTicker = new Timer(new TimerCallback(_ => PeriodicUpdate()), null, 1000, 1000);
+        this.jobQueries = jobQueries;
         soundPlayer = new SoundPlayer("Sounds/hit.wav");
-        #endregion Bind events and timers
 
-        UpdateBots();
-        UpdateHitsCollection();
+        snapshot = jobQueries.GetMultiRunJobViewerSnapshotAsync(jobVM.Id).GetAwaiter().GetResult()
+            ?? throw new InvalidOperationException($"Multi-run job {jobVM.Id} could not be loaded");
+
+        ApplySnapshot(snapshot, refreshResults: true);
+        refreshTimer = new Timer(_ => _ = RefreshAsync(), null, 1000, 1000);
     }
 
-    #region Update methods
-    /// <summary>
-    /// Updates the VM of all the current BotViewModel instances
-    /// Only updates when job is actively running to save CPU
-    /// </summary>
-    private void RefreshBotsInfo()
+    public void ClearSparklineData()
     {
-        // Skip updates when job is not running to save CPU cycles
-        var status = MultiRunJob?.Status;
-        if (status is not (JobStatus.Running or JobStatus.Starting or JobStatus.Pausing or JobStatus.Stopping))
-        {
-            return;
-        }
-
-        if (BotsCollection is not null)
-        {
-            foreach (var bot in BotsCollection)
-            {
-                bot.UpdateViewModel();
-            }
-        }
+        cpmHistory.Clear();
+        hitsPerMinuteHistory.Clear();
+        lastRecordedHits = 0;
+        lastHitsRecordTime = DateTime.Now;
+        SparklineDataUpdated?.Invoke();
     }
 
-    /// <summary>
-    /// Periodic update for stuff that needs to be updated every second
-    /// </summary>
-    private void PeriodicUpdate()
-    {
-        OnPropertyChanged(nameof(IsWaiting));
-
-        if (MultiRunJob.Status == JobStatus.Waiting)
-        {
-            OnPropertyChanged(nameof(RemainingWaitString));
-        }
-
-        Job.PeriodicUpdate();
-
-        // Update the bots collection if the number of bots was changed
-        if (BotsCollection is not null && BotsCollection.Count != MultiRunJob.Bots)
-        {
-            UpdateBots();
-        }
-        
-        // Record stats for sparkline visualization when running
-        if (MultiRunJob.Status is JobStatus.Running)
-        {
-            RecordSparklineData();
-        }
-    }
-
-    /// <summary>
-    /// Updates everything (only when a job completes, just to be safe, not expensive)
-    /// </summary>
-    private void UpdateOnCompleted(object? sender, EventArgs e) => UpdateViewModel();
-
-    /// <summary>
-    /// Updates the stats after every successful check
-    /// </summary>
-    private void UpdateViewModel(object? sender, ResultDetails<MultiRunInput, CheckResult> details)
-    {
-        OnPropertyChanged(nameof(Progress));
-        
-        // Update badge counts for tabs
-        OnPropertyChanged(nameof(HitsCount));
-        OnPropertyChanged(nameof(CustomCount));
-        OnPropertyChanged(nameof(ToCheckCount));
-        OnPropertyChanged(nameof(HitsTabLabel));
-        OnPropertyChanged(nameof(CustomTabLabel));
-        OnPropertyChanged(nameof(ToCheckTabLabel));
-        
-        Job.UpdateStats();
-    }
-
-    /// <summary>
-    /// Update the stuff related to a job's status change
-    /// </summary>
-    private void UpdateStatus(object? sender, JobStatus status)
-    {
-        Job.UpdateStatus();
-
-        OnPropertyChanged(nameof(CanChangeOptions));
-        OnPropertyChanged(nameof(CanStart));
-        OnPropertyChanged(nameof(CanSkipWait));
-        OnPropertyChanged(nameof(CanResume));
-        OnPropertyChanged(nameof(CanPause));
-        OnPropertyChanged(nameof(CanStop));
-        OnPropertyChanged(nameof(CanAbort));
-
-        OnPropertyChanged(nameof(IsStarting));
-        OnPropertyChanged(nameof(IsStopping));
-        OnPropertyChanged(nameof(IsPausing));
-    }
-
-    private void UpdateViewModel(object? sender, float progress) => UpdateViewModel();
-
-    private void OnHit(object? sender, Hit hit)
-    {
-        // Only add hits that match the current filter to avoid performance issues
-        var shouldAdd = HitsFilter switch
-        {
-            HitsFilter.Hits => hit.Type == "SUCCESS",
-            HitsFilter.ToCheck => hit.Type == "NONE",
-            HitsFilter.Custom => hit.Type is not "SUCCESS" and not "NONE" and not "FAIL",
-            _ => false
-        };
-
-        var query = SearchQuery;
-        var matchesSearch = string.IsNullOrWhiteSpace(query) || HitMatchesSearch(hit, query);
-
-        if (shouldAdd && matchesSearch)
-        {
-            Application.Current.Dispatcher.Invoke(() => HitsCollection?.Add(new HitViewModel(hit)));
-        }
-    }
-
-    /// <summary>
-    /// Call this at the start and when bots are changed
-    /// </summary>
-    private void UpdateBots()
-    {
-        var bots = Enumerable.Range(0, MultiRunJob.Bots)
-            .Select(i => new BotViewModel(i, MultiRunJob.CurrentBotDatas));
-
-        BotsCollection = new ObservableCollection<BotViewModel>(bots);
-    }
-
-    private void UpdateHitsCollection()
-    {
-        try
-        {
-            // Take a snapshot of the hits collection to avoid threading issues
-            var hitsSnapshot = MultiRunJob.Hits.ToList();
-
-            var hits = HitsFilter switch
-            {
-                HitsFilter.Hits => hitsSnapshot.Where(static h => h?.Type == "SUCCESS"),
-                HitsFilter.ToCheck => hitsSnapshot.Where(static h => h?.Type == "NONE"),
-                HitsFilter.Custom => hitsSnapshot.Where(static h => h != null && h.Type != "SUCCESS" && h.Type != "NONE" && h.Type != "FAIL"),
-                _ => throw new NotImplementedException()
-            };
-
-            var filteredHits = ApplySearchFilter(hits);
-
-            HitsCollection = new ObservableCollection<HitViewModel>(filteredHits.Select(static h => new HitViewModel(h)));
-        }
-        catch (InvalidOperationException)
-        {
-            // Collection was modified during enumeration, retry once
-            try
-            {
-                var hitsSnapshot = MultiRunJob.Hits.ToList();
-
-                var hits = HitsFilter switch
-                {
-                    HitsFilter.Hits => hitsSnapshot.Where(static h => h?.Type == "SUCCESS"),
-                    HitsFilter.ToCheck => hitsSnapshot.Where(static h => h?.Type == "NONE"),
-                    HitsFilter.Custom => hitsSnapshot.Where(static h => h != null && h.Type != "SUCCESS" && h.Type != "NONE" && h.Type != "FAIL"),
-                    _ => throw new NotImplementedException()
-                };
-
-                var filteredHits = ApplySearchFilter(hits);
-
-                HitsCollection = new ObservableCollection<HitViewModel>(filteredHits.Select(static h => new HitViewModel(h)));
-            }
-            catch
-            {
-                // If it still fails, just set an empty collection
-                HitsCollection = [];
-            }
-        }
-    }
-    #endregion Update methods
-
-    #region Logging
-    private void OnResult(object? sender, ResultDetails<MultiRunInput, CheckResult> details)
-    {
-        var botData = details.Result.BotData;
-        var data = botData.Line.Data;
-        var proxy = botData.Proxy != null
-            ? $"{botData.Proxy.Host}:{botData.Proxy.Port}"
-            : string.Empty;
-
-        var message = $"Line checked ({data})({proxy}) with status {botData.STATUS}";
-        var color = botData.STATUS switch
-        {
-            "SUCCESS" => Colors.YellowGreen,
-            "FAIL" => Colors.Tomato,
-            "BAN" => Colors.Plum,
-            "RETRY" => Colors.Yellow,
-            "ERROR" => Colors.Red,
-            "NONE" => Colors.SkyBlue,
-            _ => Colors.Orange
-        };
-
-        NewMessage?.Invoke(this, message, color);
-    }
-
-    private void OnTaskError(object? sender, ErrorDetails<MultiRunInput> details)
-    {
-        var botData = details.Item.BotData;
-        var data = botData.Line.Data;
-        var proxy = botData.Proxy != null
-            ? $"{botData.Proxy.Host}:{botData.Proxy.Port}"
-            : string.Empty;
-
-        var message = $"Task error ({data})({proxy})! {details.Exception.Message}";
-        NewMessage?.Invoke(this, message, Colors.Tomato);
-    }
-
-    private void OnError(object? sender, Exception ex)
-        => NewMessage?.Invoke(this, $"Job error: {ex.Message}", Colors.Tomato);
-    #endregion Logging
-
-    private void PlayHitSound(object? sender, ResultDetails<MultiRunInput, CheckResult> details)
-    {
-        if (fluxSettingsService.Settings.CustomizationSettings.PlaySoundOnHit && details.Result.BotData.STATUS == "SUCCESS")
-        {
-            try
-            {
-                soundPlayer.Play();
-            }
-            catch
-            {
-            }
-        }
-    }
-
-    #region Controls
     public async Task StartAsync()
     {
-        if (MultiRunJob.Config is null)
+        if (!(snapshot?.HasConfig ?? false))
         {
             Alert.Error(
                 "Config missing",
@@ -621,179 +187,317 @@ public class MultiRunJobViewerViewModel : ViewModelBase, IDisposable
         try
         {
             HitsCollection = [];
-            AskCustomInputs();
+            ClearSparklineData();
+            customInputAnswers = AskCustomInputs();
             OnPropertyChanged(nameof(CustomInputsInfo));
-            await jobCommands.StartAsync(MultiRunJob);
-            UpdateBots();
+            await jobCommands.StartAsync(Job.Id, customInputAnswers).ConfigureAwait(false);
+            await RefreshAsync(forceResultsRefresh: true).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
         }
     }
 
-    public Task StopAsync() => jobCommands.StopAsync(MultiRunJob);
+    public Task StopAsync() => jobCommands.StopAsync(Job.Id);
 
-    public Task AbortAsync() => jobCommands.AbortAsync(MultiRunJob);
-    public Task PauseAsync() => jobCommands.PauseAsync(MultiRunJob);
-    public Task ResumeAsync() => jobCommands.ResumeAsync(MultiRunJob);
-    public void SkipWait() => jobCommands.SkipWait(MultiRunJob);
+    public Task AbortAsync() => jobCommands.AbortAsync(Job.Id);
+
+    public Task PauseAsync() => jobCommands.PauseAsync(Job.Id);
+
+    public Task ResumeAsync() => jobCommands.ResumeAsync(Job.Id);
+
+    public Task SkipWaitAsync() => jobCommands.SkipWaitAsync(Job.Id);
 
     public async Task ChangeBotsAsync(int newValue)
     {
-        // TODO: Also edit the job options! So the number of bots is persisted
-        if (MultiRunJob == null) return;
-
-        await jobCommands.ChangeBotsAsync(MultiRunJob, newValue);
-        Job?.UpdateBots();
+        await jobCommands.ChangeBotsAsync(Job.Id, newValue).ConfigureAwait(false);
+        await RefreshAsync().ConfigureAwait(false);
     }
 
-    /// <summary>
-    /// Quick bot adjustment: increase bots by specified amount
-    /// Uses a lock to prevent race conditions when clicking rapidly
-    /// </summary>
     public async Task IncreaseBotsByAsync(int amount)
     {
-        if (!await botChangeLock.WaitAsync(0)) return; // Skip if another change is in progress
-        try
+        if (!await botChangeLock.WaitAsync(0).ConfigureAwait(false))
         {
-            if (MultiRunJob == null) return;
-            var newValue = Math.Max(1, MultiRunJob.Bots + amount);
-            await ChangeBotsAsync(newValue);
-        }
-        finally
-        {
-            botChangeLock.Release();
-        }
-    }
-
-    /// <summary>
-    /// Quick bot adjustment: decrease bots by specified amount
-    /// Uses a lock to prevent race conditions when clicking rapidly
-    /// </summary>
-    public async Task DecreaseBotsByAsync(int amount)
-    {
-        if (!await botChangeLock.WaitAsync(0)) return; // Skip if another change is in progress
-        try
-        {
-            if (MultiRunJob == null) return;
-            var newValue = Math.Max(1, MultiRunJob.Bots - amount);
-            await ChangeBotsAsync(newValue);
-        }
-        finally
-        {
-            botChangeLock.Release();
-        }
-    }
-
-    /// <summary>
-    /// Returns all current hits as a newline-separated string for clipboard copy
-    /// </summary>
-    public string GetAllHitsForClipboard()
-    {
-        var hits = MultiRunJob.Hits
-            .Where(h => h != null && h.Type == "SUCCESS")
-            .Select(h => h.Data?.Data ?? "");
-        return string.Join(Environment.NewLine, hits);
-    }
-
-    /// <summary>
-    /// Returns all current hits with capture as a newline-separated string
-    /// </summary>
-    public string GetAllHitsWithCaptureForClipboard()
-    {
-        var hits = MultiRunJob.Hits
-            .Where(h => h != null && h.Type == "SUCCESS")
-            .Select(h => $"{h.Data?.Data} | {h.CapturedDataString}");
-        return string.Join(Environment.NewLine, hits);
-    }
-
-    public void ResetSkip()
-    {
-        if (MultiRunJob.Status is JobStatus.Idle)
-        {
-            jobCommands.ResetSkip(MultiRunJob);
-            Job.UpdateSkip();
-            Job.UpdateViewModel();
-            OnPropertyChanged(nameof(Job.Skip));
-            OnPropertyChanged(nameof(Job.ProgressString));
-        }
-    }
-    #endregion Controls
-
-    #region Utils
-    private IEnumerable<Hit> ApplySearchFilter(IEnumerable<Hit?> hits)
-    {
-        var query = SearchQuery;
-
-        if (string.IsNullOrWhiteSpace(query))
-        {
-            return hits.Where(static h => h is not null)!;
-        }
-
-        return hits.Where(h => h is not null && HitMatchesSearch(h, query))!;
-    }
-
-    private static bool HitMatchesSearch(Hit hit, string query)
-    {
-        if (string.IsNullOrWhiteSpace(query))
-        {
-            return true;
-        }
-
-        return ContainsIgnoreCase(hit.Data?.Data, query)
-            || ContainsIgnoreCase(hit.Proxy?.ToString(), query)
-            || ContainsIgnoreCase(hit.Type, query)
-            || ContainsIgnoreCase(hit.CapturedDataString, query);
-    }
-
-    private static bool ContainsIgnoreCase(string? source, string query)
-        => !string.IsNullOrEmpty(source) && source.IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0;
-
-    private void AskCustomInputs()
-    {
-        var customInputs = MultiRunJob.Config?.Settings.InputSettings.CustomInputs;
-
-        if (customInputs is null || customInputs.Count == 0)
-        {
-            MultiRunJob.CustomInputsAnswers.Clear();
             return;
         }
 
-        MultiRunJob.CustomInputsAnswers.Clear();
-
-        foreach (var input in customInputs)
+        try
         {
-            MultiRunJob.CustomInputsAnswers[input.VariableName] = Alert.CustomInput(input.Description, input.DefaultAnswer);
+            var newValue = Math.Max(1, Job.Bots + amount);
+            await ChangeBotsAsync(newValue).ConfigureAwait(false);
+        }
+        finally
+        {
+            botChangeLock.Release();
         }
     }
 
-    private string GetProxyGroupName(int id)
+    public async Task DecreaseBotsByAsync(int amount)
     {
-        return proxyGroupNames.TryGetValue(id, out var name)
-            ? name
-            : "Invalid";
+        if (!await botChangeLock.WaitAsync(0).ConfigureAwait(false))
+        {
+            return;
+        }
+
+        try
+        {
+            var newValue = Math.Max(1, Job.Bots - amount);
+            await ChangeBotsAsync(newValue).ConfigureAwait(false);
+        }
+        finally
+        {
+            botChangeLock.Release();
+        }
     }
-    #endregion Utils
+
+    public async Task ResetSkipAsync()
+    {
+        await jobCommands.ResetSkipAsync(Job.Id).ConfigureAwait(false);
+        await RefreshAsync().ConfigureAwait(false);
+    }
+
+    public string GetAllHitsForClipboard()
+        => string.Join(Environment.NewLine, allResults
+            .Where(static hit => hit.Type == "SUCCESS")
+            .Select(static hit => hit.Data ?? string.Empty));
+
+    public string GetAllHitsWithCaptureForClipboard()
+        => string.Join(Environment.NewLine, allResults
+            .Where(static hit => hit.Type == "SUCCESS")
+            .Select(static hit => $"{hit.Data} | {hit.Capture}"));
+
+    public Task<BotLogDto?> GetBotLogAsync(string resultId)
+        => jobQueries.GetBotLogAsync(Job.Id, resultId);
+
+    private async Task RefreshAsync(bool forceResultsRefresh = false)
+    {
+        if (!await refreshLock.WaitAsync(0).ConfigureAwait(false))
+        {
+            return;
+        }
+
+        try
+        {
+            var latest = await jobQueries.GetMultiRunJobViewerSnapshotAsync(Job.Id).ConfigureAwait(false);
+            if (latest is null)
+            {
+                return;
+            }
+
+            ApplySnapshot(latest, refreshResults: forceResultsRefresh || latest.Results.Count != allResults.Count);
+        }
+        finally
+        {
+            refreshLock.Release();
+        }
+    }
+
+    private void ApplySnapshot(MultiRunJobViewerSnapshotDto latest, bool refreshResults)
+    {
+        var previousHits = snapshot?.Summary.DataHits ?? 0;
+        snapshot = latest;
+        Job.ApplySnapshot(latest.Summary);
+        customInputAnswers = latest.CustomInputAnswers.ToDictionary(static kvp => kvp.Key, static kvp => kvp.Value);
+
+        if (lastConfigIconBase64 != latest.ConfigIconBase64)
+        {
+            lastConfigIconBase64 = latest.ConfigIconBase64 ?? string.Empty;
+            ConfigIcon = string.IsNullOrWhiteSpace(lastConfigIconBase64)
+                ? null
+                : Images.Base64ToBitmapImage(lastConfigIconBase64);
+            OnPropertyChanged(nameof(ConfigIcon));
+        }
+
+        UpdateBots(latest.Bots);
+
+        if (refreshResults)
+        {
+            allResults = latest.Results;
+            UpdateHitsCollection();
+        }
+
+        if (fluxSettingsService.Settings.CustomizationSettings.PlaySoundOnHit && latest.Summary.DataHits > lastSoundHitsCount)
+        {
+            TryPlayHitSound();
+        }
+
+        lastSoundHitsCount = latest.Summary.DataHits;
+
+        if (latest.Summary.Status is JobStatus.Running)
+        {
+            RecordSparklineData();
+        }
+
+        NotifyStateChanged();
+
+        if (latest.Summary.DataHits != previousHits)
+        {
+            OnPropertyChanged(nameof(HitsCount));
+            OnPropertyChanged(nameof(HitsTabLabel));
+        }
+    }
+
+    private void NotifyStateChanged()
+    {
+        Job.UpdateViewModel();
+        Job.UpdateStats();
+        Job.PeriodicUpdate();
+
+        OnPropertyChanged(nameof(ConfigNameAndAuthor));
+        OnPropertyChanged(nameof(ConfigName));
+        OnPropertyChanged(nameof(ConfigAuthor));
+        OnPropertyChanged(nameof(DataPoolInfo));
+        OnPropertyChanged(nameof(ProxySourcesInfo));
+        OnPropertyChanged(nameof(HitOutputsInfo));
+        OnPropertyChanged(nameof(CustomInputsInfo));
+        OnPropertyChanged(nameof(HasCustomInputs));
+        OnPropertyChanged(nameof(RemainingWaitString));
+        OnPropertyChanged(nameof(IsWaiting));
+        OnPropertyChanged(nameof(CanChangeOptions));
+        OnPropertyChanged(nameof(CanStart));
+        OnPropertyChanged(nameof(CanSkipWait));
+        OnPropertyChanged(nameof(CanPause));
+        OnPropertyChanged(nameof(CanResume));
+        OnPropertyChanged(nameof(CanStop));
+        OnPropertyChanged(nameof(CanAbort));
+        OnPropertyChanged(nameof(IsStarting));
+        OnPropertyChanged(nameof(IsStopping));
+        OnPropertyChanged(nameof(IsPausing));
+        OnPropertyChanged(nameof(Progress));
+        OnPropertyChanged(nameof(HitsCount));
+        OnPropertyChanged(nameof(CustomCount));
+        OnPropertyChanged(nameof(ToCheckCount));
+        OnPropertyChanged(nameof(HitsTabLabel));
+        OnPropertyChanged(nameof(CustomTabLabel));
+        OnPropertyChanged(nameof(ToCheckTabLabel));
+        OnPropertyChanged(nameof(AnimatedCpm));
+        OnPropertyChanged(nameof(AnimatedHits));
+        OnPropertyChanged(nameof(AnimatedCustom));
+        OnPropertyChanged(nameof(AnimatedToCheck));
+        OnPropertyChanged(nameof(AnimatedBanned));
+        OnPropertyChanged(nameof(AnimatedFails));
+        OnPropertyChanged(nameof(AnimatedRetried));
+        OnPropertyChanged(nameof(AnimatedErrors));
+    }
+
+    private void UpdateBots(IReadOnlyList<BotStateDto> bots)
+    {
+        var botItems = bots.Select(static bot => new BotViewModel(bot));
+        RunOnUiThread(() => BotsCollection = new ObservableCollection<BotViewModel>(botItems));
+    }
+
+    private void UpdateHitsCollection()
+    {
+        var filteredHits = ApplySearchFilter(allResults)
+            .Where(MatchesFilter)
+            .Select(static hit => new HitViewModel(hit))
+            .ToList();
+
+        RunOnUiThread(() => HitsCollection = new ObservableCollection<HitViewModel>(filteredHits));
+    }
+
+    private IEnumerable<JobRuntimeResultDto> ApplySearchFilter(IEnumerable<JobRuntimeResultDto> hits)
+    {
+        var query = SearchQuery;
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            return hits;
+        }
+
+        return hits.Where(hit => HitMatchesSearch(hit, query));
+    }
+
+    private bool MatchesFilter(JobRuntimeResultDto hit)
+        => HitsFilter switch
+        {
+            HitsFilter.Hits => hit.Type == "SUCCESS",
+            HitsFilter.ToCheck => hit.Type == "NONE",
+            HitsFilter.Custom => hit.Type is not "SUCCESS" and not "NONE" and not "FAIL",
+            _ => false
+        };
+
+    private static bool HitMatchesSearch(JobRuntimeResultDto hit, string query)
+        => ContainsIgnoreCase(hit.Data, query)
+            || ContainsIgnoreCase(hit.Proxy, query)
+            || ContainsIgnoreCase(hit.Type, query)
+            || ContainsIgnoreCase(hit.Capture, query);
+
+    private static bool ContainsIgnoreCase(string source, string query)
+        => !string.IsNullOrEmpty(source) && source.IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0;
+
+    private Dictionary<string, string> AskCustomInputs()
+    {
+        var answers = new Dictionary<string, string>();
+        if (snapshot?.CustomInputs is null || snapshot.CustomInputs.Count == 0)
+        {
+            return answers;
+        }
+
+        foreach (var input in snapshot.CustomInputs)
+        {
+            answers[input.VariableName] = Alert.CustomInput(input.Description, input.DefaultAnswer);
+        }
+
+        return answers;
+    }
+
+    private void RecordSparklineData()
+    {
+        cpmHistory.Add(Job.CPM);
+        while (cpmHistory.Count > MaxHistoryPoints)
+        {
+            cpmHistory.RemoveAt(0);
+        }
+
+        var now = DateTime.Now;
+        var elapsedMinutes = (now - lastHitsRecordTime).TotalMinutes;
+        if (elapsedMinutes > 0)
+        {
+            var currentHits = HitsCount;
+            var hitsDelta = currentHits - lastRecordedHits;
+            hitsPerMinuteHistory.Add(Math.Max(0, hitsDelta / elapsedMinutes));
+            while (hitsPerMinuteHistory.Count > MaxHistoryPoints)
+            {
+                hitsPerMinuteHistory.RemoveAt(0);
+            }
+
+            lastRecordedHits = currentHits;
+            lastHitsRecordTime = now;
+        }
+
+        SparklineDataUpdated?.Invoke();
+    }
+
+    private void TryPlayHitSound()
+    {
+        try
+        {
+            soundPlayer.Play();
+        }
+        catch
+        {
+        }
+    }
+
+    private static void RunOnUiThread(Action action)
+    {
+        if (Application.Current?.Dispatcher is null || Application.Current.Dispatcher.CheckAccess())
+        {
+            action();
+            return;
+        }
+
+        Application.Current.Dispatcher.Invoke(action);
+    }
 
     public void Dispose()
     {
         try
         {
-            botsInfoTimer?.Dispose();
-            secondsTicker?.Dispose();
+            refreshTimer?.Dispose();
             soundPlayer?.Dispose();
+            refreshLock?.Dispose();
             botChangeLock?.Dispose();
-
-            MultiRunJob.OnCompleted -= UpdateOnCompleted;
-            MultiRunJob.OnResult -= UpdateViewModel;
-            MultiRunJob.OnStatusChanged -= UpdateStatus;
-            MultiRunJob.OnProgress -= UpdateViewModel;
-
-            MultiRunJob.OnResult -= OnResult;
-            MultiRunJob.OnResult -= PlayHitSound;
-            MultiRunJob.OnTaskError -= OnTaskError;
-            MultiRunJob.OnError -= OnError;
-            MultiRunJob.OnHit -= OnHit;
         }
         catch
         {
@@ -801,38 +505,39 @@ public class MultiRunJobViewerViewModel : ViewModelBase, IDisposable
     }
 }
 
-#region Other ViewModels
-public class BotViewModel(int index, BotData[] datas) : ViewModelBase
+public class BotViewModel : ViewModelBase
 {
-    private readonly int index = index;
-    private readonly BotData[] datas = datas;
+    private readonly BotStateDto bot;
 
-    private BotData BotData => datas.Length > index ? datas[index] : null;
-
-    public int Id => index + 1;
-    public string Data => BotData?.Line?.Data;
-    public string Proxy => BotData?.Proxy?.ToString();
-    public string Info => BotData?.ExecutionInfo;
-
-    public override void UpdateViewModel()
+    public BotViewModel(BotStateDto bot)
     {
-        OnPropertyChanged(nameof(Data));
-        OnPropertyChanged(nameof(Proxy));
-        OnPropertyChanged(nameof(Info));
+        this.bot = bot;
     }
+
+    public int Id => bot.Id;
+    public string Data => bot.Data;
+    public string Proxy => bot.Proxy;
+    public string Info => bot.Info;
 }
 
-public class HitViewModel(Hit hit) : ViewModelBase
+public class HitViewModel : ViewModelBase
 {
-    public Hit Hit { get; init; } = hit;
+    public HitViewModel(JobRuntimeResultDto hit)
+    {
+        Hit = hit;
+    }
 
-    public DateTime Time => Hit.Date;
-    public string Data => Hit.Data.Data;
-    public string Proxy => Hit.Proxy?.ToString();
+    public JobRuntimeResultDto Hit { get; }
+    public string ResultId => Hit.Id;
+    public DateTime Time => Hit.Timestamp;
+    public string Data => Hit.Data;
+    public string Proxy => Hit.Proxy;
     public string Type => Hit.Type;
-    public string Capture => Hit.CapturedDataString;
+    public string Capture => Hit.Capture;
+    public RuriLib.Models.Proxies.ProxyType? ProxyType => Hit.ProxyType;
+    public ConfigMode? ConfigMode => Hit.ConfigMode;
+    public bool HasBotLog => Hit.HasBotLog;
 }
-#endregion Other ViewModels
 
 public enum HitsFilter
 {
@@ -840,5 +545,3 @@ public enum HitsFilter
     Custom = 1,
     ToCheck = 2
 }
-
-

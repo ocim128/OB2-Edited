@@ -20,30 +20,26 @@ public static partial class Methods
     {
         StopYoveProxyInternalServer(data);
         DisposeTrackedRealBrowserProcess(data);
-
-        data.Objects.Remove("puppeteer");
-        data.Objects.Remove("puppeteerPage");
-        data.Objects.Remove("puppeteerFrame");
-        data.Objects.Remove("puppeteer.pageList");
+        data.PuppeteerSession.Clear();
     }
 
     private static void StopYoveProxyInternalServer(BotData data)
     {
-        if (data.TryGetObject<ProxyClient>("puppeteer.yoveproxy") is not { } proxyClient)
+        if (data.PuppeteerSession.YoveProxy is not { } proxyClient)
         {
             return;
         }
 
         proxyClient.Dispose();
-        data.Objects.Remove("puppeteer.yoveproxy");
+        data.PuppeteerSession.YoveProxy = null;
     }
 
     private static void DisposeTrackedRealBrowserProcess(BotData data)
     {
-        if (data.TryGetObject<Process>("puppeteer.realBrowserProcess") is not { } storedProcess)
+        if (data.PuppeteerSession.RealBrowserProcess is not { } storedProcess)
         {
-            data.Objects.Remove("puppeteer.realBrowserProcess");
-            data.Objects.Remove("puppeteer.realBrowserProcessId");
+            data.PuppeteerSession.RealBrowserProcess = null;
+            data.PuppeteerSession.RealBrowserProcessId = null;
             return;
         }
 
@@ -60,21 +56,19 @@ public static partial class Methods
         finally
         {
             storedProcess.Dispose();
-            data.Objects.Remove("puppeteer.realBrowserProcess");
-            data.Objects.Remove("puppeteer.realBrowserProcessId");
+            data.PuppeteerSession.RealBrowserProcess = null;
+            data.PuppeteerSession.RealBrowserProcessId = null;
         }
     }
 
-    private static async Task InitializeBrowserSessionAsync(BotData data, IBrowser browser, bool applyDefaultHeaders,
-        string defaultModeMessage)
+    private static async Task InitializeBrowserSessionAsync(BotData data, IBrowser browser, bool applyDefaultHeaders)
     {
         var page = await GetOrCreatePrimaryPageAsync(browser).ConfigureAwait(false);
 
-        data.SetObject("puppeteer", browser);
+        data.PuppeteerSession.Browser = browser;
         SetPageAndFrame(data, page);
 
-        await PreparePageAsync(data, page, applyDefaultHeaders, authenticateProxy: true, logStealthActivation: true,
-            defaultModeMessage).ConfigureAwait(false);
+        await PreparePageAsync(data, page, applyDefaultHeaders, authenticateProxy: true).ConfigureAwait(false);
 
         await InitializePageTracking(data, browser).ConfigureAwait(false);
     }
@@ -230,11 +224,10 @@ public static partial class Methods
                 DefaultViewport = null
             }).ConfigureAwait(false);
 
-            data.SetObject("puppeteer.realBrowserProcess", process, false);
-            data.SetObject("puppeteer.realBrowserProcessId", launchResponse.ProcessId ?? process.Id, false);
+            data.PuppeteerSession.RealBrowserProcess = process;
+            data.PuppeteerSession.RealBrowserProcessId = launchResponse.ProcessId ?? process.Id;
 
-            await InitializeBrowserSessionAsync(data, browser, applyDefaultHeaders: false,
-                defaultModeMessage: "puppeteer-real-browser connected with default mode.").ConfigureAwait(false);
+            await InitializeBrowserSessionAsync(data, browser, applyDefaultHeaders: false).ConfigureAwait(false);
 
             data.Logger.Log("Connected to puppeteer-real-browser.", LogColors.Green);
         }
@@ -252,8 +245,8 @@ public static partial class Methods
             }
 
             process.Dispose();
-            data.Objects.Remove("puppeteer.realBrowserProcess");
-            data.Objects.Remove("puppeteer.realBrowserProcessId");
+            data.PuppeteerSession.RealBrowserProcess = null;
+            data.PuppeteerSession.RealBrowserProcessId = null;
             throw;
         }
     }
@@ -274,9 +267,7 @@ public static partial class Methods
             DefaultViewport = null,
             IgnoredDefaultArgs =
             [
-                "--enable-automation",
                 "--enable-blink-features=IdleDetection",
-                "--enable-blink-features=AutomationControlled",
                 "--disable-extensions",
                 "--disable-component-extensions-with-background-pages"
             ]
@@ -284,8 +275,7 @@ public static partial class Methods
 
         data.Logger.Log("Puppeteer browser launched successfully.", LogColors.Green);
 
-        await InitializeBrowserSessionAsync(data, browser, applyDefaultHeaders: true,
-            defaultModeMessage: "Default mode - standard browser behavior.").ConfigureAwait(false);
+        await InitializeBrowserSessionAsync(data, browser, applyDefaultHeaders: true).ConfigureAwait(false);
     }
 
     private static string ResolveScriptsDirectory()
@@ -420,7 +410,7 @@ public static partial class Methods
             pageList.Add(page.Target.TargetId);
         }
 
-        data.SetObject("puppeteer.pageList", pageList);
+        data.PuppeteerSession.PageList = pageList;
 
         browser.TargetCreated += (_, e) =>
         {

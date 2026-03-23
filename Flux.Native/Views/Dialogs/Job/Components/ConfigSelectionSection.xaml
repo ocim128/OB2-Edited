@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:controls="clr-namespace:Flux.Native.Controls"
              xmlns:mah="http://metro.mahapps.com/winfx/xaml/controls"
              mc:Ignorable="d" 
              d:DesignHeight="300" d:DesignWidth="400">
@@ -49,83 +50,16 @@
                     <TextBlock Text="Select Config" VerticalAlignment="Center" Margin="5,0,0,0" FontSize="11"/>
                 </StackPanel>
             </Button>
-            <!-- Execution Settings -->
-            <Grid Margin="0,12,0,0">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="auto" />
-                    <RowDefinition Height="auto" />
-                    <RowDefinition Height="auto" />
-                </Grid.RowDefinitions>
-
-                <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,8,8">
-                    <TextBlock Text="Bots" Style="{StaticResource SecondaryLabelStyle}"/>
-                    <mah:NumericUpDown Minimum="1" Maximum="{Binding BotLimit}" Interval="1"
-                                       Value="{Binding Bots, Mode=TwoWay}" Width="90" HorizontalAlignment="Left"/>
-                </StackPanel>
-                <StackPanel Grid.Row="0" Grid.Column="1" Margin="8,0,0,8">
-                    <TextBlock Text="Skip" Style="{StaticResource SecondaryLabelStyle}"/>
-                    <mah:NumericUpDown Minimum="0" Maximum="2147483647" Interval="1"
-                                       Value="{Binding Skip, Mode=TwoWay}" Width="120" HorizontalAlignment="Left"/>
-                </StackPanel>
-
-                <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,8,8">
-                    <TextBlock Text="Proxy Mode" Style="{StaticResource SecondaryLabelStyle}"/>
-                    <ComboBox ItemsSource="{Binding ProxyModes}" SelectedValue="{Binding ProxyMode}" 
-                              MinWidth="160" HorizontalAlignment="Left" Style="{StaticResource CleanComboBox}"/>
-                </StackPanel>
-
-                <StackPanel Grid.Row="1" Grid.Column="1" Margin="8,0,0,8">
-                    <TextBlock Text="No Valid Proxy Behaviour" Style="{StaticResource SecondaryLabelStyle}"/>
-                    <ComboBox ItemsSource="{Binding NoValidProxyBehaviours}" 
-                              SelectedValue="{Binding NoValidProxyBehaviour}"
-                              MinWidth="160" HorizontalAlignment="Left" Style="{StaticResource CleanComboBox}"/>
-                </StackPanel>
-
-                <Grid Grid.Row="2" Grid.ColumnSpan="2">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="*" />
-                    </Grid.ColumnDefinitions>
-                    <StackPanel Grid.Column="0" Margin="0,0,8,0">
-                        <TextBlock Text="Reload Interval (sec, 0 = disabled)" Style="{StaticResource SecondaryLabelStyle}"/>
-                        <mah:NumericUpDown Minimum="0" Maximum="2147483647" Interval="1"
-                                          Value="{Binding PeriodicReloadIntervalSeconds}" Width="120" HorizontalAlignment="Left"/>
-                    </StackPanel>
-                    <StackPanel Grid.Column="1" Margin="8,0,0,0">
-                        <TextBlock Text="Proxy Ban Time (sec)" Style="{StaticResource SecondaryLabelStyle}"/>
-                        <mah:NumericUpDown Minimum="0" Maximum="2147483647" Interval="1"
-                                          Value="{Binding ProxyBanTimeSeconds}" Width="120" HorizontalAlignment="Left"/>
-                    </StackPanel>
-                </Grid>
-            </Grid>
+            <controls:MetadataFieldsPresenter ItemsSource="{Binding ExecutionFields}" />
 
             <!-- Proxy Behavior Settings -->
             <StackPanel Margin="0,8,0,0">
                 <TextBlock Text="Proxy Options" Style="{StaticResource SecondaryLabelStyle}" Margin="0,0,0,4"/>
-                <WrapPanel>
-                    <CheckBox Content="Shuffle proxies" IsChecked="{Binding ShuffleProxies}" 
-                              Foreground="White" FontSize="10" Margin="0,0,12,6"/>
-                    <CheckBox Content="Never ban proxies" IsChecked="{Binding NeverBanProxies}" 
-                              Foreground="White" FontSize="10" Margin="0,0,12,6"/>
-                    <CheckBox Content="Concurrent mode (rotating services)" 
-                              IsChecked="{Binding ConcurrentProxyMode}" 
-                              Foreground="White" FontSize="10" Margin="0,0,12,6"/>
-                    <CheckBox Content="Mark lines as ToCheck on abort" 
-                              IsChecked="{Binding MarkAsToCheckOnAbort}" 
-                              Foreground="White" FontSize="10" Margin="0,0,12,6"/>
-                </WrapPanel>
+                <controls:MetadataFieldsPresenter ItemsSource="{Binding ProxyOptionFields}" />
             </StackPanel>
             <StackPanel Margin="0,6,0,0">
                 <TextBlock Text="Automation" Style="{StaticResource SecondaryLabelStyle}" Margin="0,0,0,4"/>
-                <CheckBox Content="CPM trigger (Ctrl+Alt+Shift+Y modem refresh)"
-                          IsChecked="{Binding CpmTriggerEnabled}"
-                          Foreground="White" FontSize="10" Margin="0,0,12,2"/>
-                <TextBlock Text="Starts 1 minute after the job runs. If CPM drops below 5000, triggers the modem refresh. Cooldown is 1 minute, retry every 5 seconds."
-                           FontSize="9" Foreground="#99FFFFFF" TextWrapping="Wrap"/>
+                <controls:MetadataFieldsPresenter ItemsSource="{Binding AutomationFields}" />
             </StackPanel>
         </StackPanel>
     </Border>

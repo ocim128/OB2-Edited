@@ -9,7 +9,6 @@
       xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
       xmlns:resources="clr-namespace:RuriLib.Models.Data.Resources.Options;assembly=RuriLib"
       xmlns:rules="clr-namespace:RuriLib.Models.Data.Rules;assembly=RuriLib"
-      xmlns:settings="clr-namespace:RuriLib.Models.Configs.Settings;assembly=RuriLib"
       mc:Ignorable="d" 
       d:DesignHeight="2750" d:DesignWidth="800"
       Title="Config Settings">
@@ -450,20 +449,7 @@
                         <!-- Browser Options -->
                         <StackPanel Margin="0,0,0,16">
                             <CheckBox Content="Headless mode" IsChecked="{Binding BrowserSettings.Headless}" Margin="0,8"/>
-                            
-                            <StackPanel Margin="0,8">
-                                <TextBlock Text="Stealth Mode:" Style="{StaticResource SettingLabelStyle}" Margin="0,0,0,4"/>
-                                <ComboBox SelectedValue="{Binding BrowserSettings.StealthMode}" 
-                                          Style="{StaticResource CleanComboBox}" 
-                                          Width="250" HorizontalAlignment="Left"
-                                          SelectedValuePath="Tag">
-                                    <ComboBoxItem Content="Default" Tag="{x:Static settings:BrowserStealthMode.Default}" />
-                                    <ComboBoxItem Content="Stealth" Tag="{x:Static settings:BrowserStealthMode.Stealth}" />
-                                    <ComboBoxItem Content="Enhanced Stealth" Tag="{x:Static settings:BrowserStealthMode.EnhancedStealth}" />
-                                    <ComboBoxItem Content="Option4 Maximum Stealth" Tag="{x:Static settings:BrowserStealthMode.Option4}" />
-                                </ComboBox>
-                            </StackPanel>
-                            
+
                             <CheckBox Content="Load only document and script" IsChecked="{Binding BrowserSettings.LoadOnlyDocumentAndScript}" Margin="0,8"/>
                             <CheckBox Content="Dismiss dialogs" IsChecked="{Binding BrowserSettings.DismissDialogs}" Margin="0,8"/>
                             <CheckBox Content="Ignore HTTPS errors" IsChecked="{Binding BrowserSettings.IgnoreHttpsErrors}" Margin="0,8"/>

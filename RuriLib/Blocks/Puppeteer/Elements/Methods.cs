@@ -400,7 +400,7 @@ namespace RuriLib.Blocks.Puppeteer.Elements
             {
                 var page = GetPage(data);
                 frame = page.MainFrame;
-                data.SetObject("puppeteerFrame", frame);
+                data.PuppeteerSession.Frame = frame;
                 data.Logger.Log("Current frame is detached; reset to MainFrame", LogColors.Yellow);
             }
 
@@ -418,7 +418,7 @@ namespace RuriLib.Blocks.Puppeteer.Elements
                     // If timed out, try once more after resetting to MainFrame
                     var page = GetPage(data);
                     frame = page.MainFrame;
-                    data.SetObject("puppeteerFrame", frame);
+                    data.PuppeteerSession.Frame = frame;
                     var retryTask = GetElement(frame, findBy, identifier, index);
                     var retryDone = await Task.WhenAny(retryTask, Task.Delay(500));
                     if (retryDone != retryTask)
@@ -465,7 +465,7 @@ namespace RuriLib.Blocks.Puppeteer.Elements
                 {
                     var page = GetPage(data);
                     frame = page.MainFrame;
-                    data.SetObject("puppeteerFrame", frame);
+                    data.PuppeteerSession.Frame = frame;
                     // Re-acquire element after frame reset (with timeout)
                     var reacquireTask = GetElement(frame, findBy, identifier, index);
                     var reacquireDone = await Task.WhenAny(reacquireTask, Task.Delay(400));
@@ -563,7 +563,7 @@ namespace RuriLib.Blocks.Puppeteer.Elements
                 throw new TimeoutException("Timeout acquiring iframe content frame");
             }
 
-            data.SetObject("puppeteerFrame", targetFrame);
+            data.PuppeteerSession.Frame = targetFrame;
             data.Logger.Log("Switched to iframe", LogColors.DarkSalmon);
         }
 
@@ -634,10 +634,10 @@ namespace RuriLib.Blocks.Puppeteer.Elements
             => data.TryGetObject<IBrowser>("puppeteer") ?? throw new Exception("The browser is not open!");
 
         private static IPage GetPage(BotData data)
-            => data.TryGetObject<IPage>("puppeteerPage") ?? throw new Exception("No pages open!");
+            => data.PuppeteerSession.Page ?? throw new Exception("No pages open!");
 
         private static IFrame GetFrame(BotData data)
-            => data.TryGetObject<IFrame>("puppeteerFrame") ?? GetPage(data).MainFrame;
+            => data.PuppeteerSession.Frame ?? GetPage(data).MainFrame;
 
         // New: Get innerHTML of a single element
         [Block("Gets the innerHTML of an element", name = "Get InnerHTML")]

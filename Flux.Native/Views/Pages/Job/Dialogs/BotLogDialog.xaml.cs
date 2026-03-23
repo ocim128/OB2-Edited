@@ -1,5 +1,6 @@
 using ICSharpCode.AvalonEdit.Document;
 using Flux.Native.Views.Pages.Shared;
+using Flux.Shared.Models;
 using RuriLib.Logging;
 using System;
 using System.Collections.Generic;
@@ -27,7 +28,7 @@ namespace Flux.Native.Views.Dialogs.Job
         private const double MinFontSize = 9;
         private const double MaxFontSize = 24;
 
-        public BotLogDialog(IBotLogger logger)
+        private BotLogDialog()
         {
             vm = new BotLogDialogViewModel();
             DataContext = vm;
@@ -37,7 +38,10 @@ namespace Flux.Native.Views.Dialogs.Job
             // Initialize Syntax Highlighting
             _colorizer = new DebuggerLogColorizer(_segments);
             logRTB.TextArea.TextView.LineTransformers.Add(_colorizer);
+        }
 
+        public BotLogDialog(IBotLogger logger) : this()
+        {
             if (logger is null)
             {
                 AppendLog("Bot log was not enabled when this hit was obtained" + Environment.NewLine, "#FF6347"); // Tomato
@@ -45,35 +49,19 @@ namespace Flux.Native.Views.Dialogs.Job
                 return;
             }
 
-            var sb = new System.Text.StringBuilder();
-            int currentOffset = 0;
+            LoadEntries(logger.Entries.Select(entry => new BotLogEntryDto(entry.Message, entry.Color)).ToList());
+        }
 
-            foreach (var entry in logger.Entries)
+        public BotLogDialog(BotLogDto log) : this()
+        {
+            if (log is null || log.Entries.Count == 0)
             {
-                var line = entry.Message + Environment.NewLine;
-                sb.Append(line);
-                
-                var brush = GetBrush(entry.Color);
-                _segments.Add(new LogSegment
-                {
-                    StartOffset = currentOffset,
-                    Length = line.Length,
-                    Foreground = brush,
-                    Background = null,
-                    FontWeight = FontWeights.Normal
-                });
+                AppendLog("Bot log was not enabled when this hit was obtained" + Environment.NewLine, "#FF6347");
+                vm.EntryCount = 0;
+                return;
+            }
 
-                currentOffset += line.Length;
-            }
-            
-            logRTB.Text = sb.ToString();
-            vm.EntryCount = logger.Entries.Count();
-            
-            try
-            {
-                logRTB.ScrollToEnd();
-            }
-            catch { }
+            LoadEntries(log.Entries);
         }
         
         private void AppendLog(string text, string hexColor)
@@ -124,6 +112,41 @@ namespace Flux.Native.Views.Dialogs.Job
                 _currentFontSize++;
                 logRTB.FontSize = _currentFontSize;
                 fontSizeDisplay.Text = _currentFontSize.ToString();
+            }
+        }
+
+        private void LoadEntries(IReadOnlyCollection<BotLogEntryDto> entries)
+        {
+            var sb = new System.Text.StringBuilder();
+            var currentOffset = 0;
+
+            foreach (var entry in entries)
+            {
+                var line = entry.Message + Environment.NewLine;
+                sb.Append(line);
+
+                var brush = GetBrush(entry.Color);
+                _segments.Add(new LogSegment
+                {
+                    StartOffset = currentOffset,
+                    Length = line.Length,
+                    Foreground = brush,
+                    Background = null,
+                    FontWeight = FontWeights.Normal
+                });
+
+                currentOffset += line.Length;
+            }
+
+            logRTB.Text = sb.ToString();
+            vm.EntryCount = entries.Count;
+
+            try
+            {
+                logRTB.ScrollToEnd();
+            }
+            catch
+            {
             }
         }
         

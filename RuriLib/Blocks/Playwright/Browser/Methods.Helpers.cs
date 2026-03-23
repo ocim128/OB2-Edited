@@ -259,11 +259,6 @@ namespace RuriLib.Blocks.Playwright.Browser
                 ExecutablePath = executablePath
             };
 
-            if (browserType == PlaywrightBrowserType.Chromium)
-            {
-                options.IgnoreDefaultArgs = new[] { "--enable-automation" };
-            }
-
             if (browserType == PlaywrightBrowserType.Firefox)
             {
                 PlaywrightLaunchConfigurator.ApplyFirefoxSafeDefaults(options);
@@ -294,11 +289,6 @@ namespace RuriLib.Blocks.Playwright.Browser
                 IgnoreHTTPSErrors = ignoreHttpsErrors,
                 FirefoxUserPrefs = firefoxUserPrefs
             };
-
-            if (browserType == PlaywrightBrowserType.Chromium)
-            {
-                options.IgnoreDefaultArgs = new[] { "--enable-automation" };
-            }
 
             if (!headless)
             {
@@ -382,7 +372,7 @@ namespace RuriLib.Blocks.Playwright.Browser
                     // Create a temporary profile path for addon installation
                     profilePath = Path.Combine(Path.GetTempPath(), "firefox_temp_profile_" + Guid.NewGuid().ToString("N")[..8]);
                     Directory.CreateDirectory(profilePath);
-                    data.SetObject(PlaywrightHelpers.Keys.TempFirefoxProfile, profilePath);
+                    data.PlaywrightSession.TempFirefoxProfile = profilePath;
                     data.Logger.Log($"📁 Created temporary Firefox profile for addon installation: {profilePath}", LogColors.Yellow);
                 }
             }
@@ -392,7 +382,7 @@ namespace RuriLib.Blocks.Playwright.Browser
             {
                 profilePath = Path.Combine(Path.GetTempPath(), "firefox_visible_profile_" + Guid.NewGuid().ToString("N")[..8]);
                 Directory.CreateDirectory(profilePath);
-                data.SetObject(PlaywrightHelpers.Keys.TempFirefoxProfile, profilePath);
+                data.PlaywrightSession.TempFirefoxProfile = profilePath;
                 data.Logger.Log($"Created dedicated Firefox profile for visible mode: {profilePath}", LogColors.MediumPurple);
             }
 
@@ -476,7 +466,7 @@ namespace RuriLib.Blocks.Playwright.Browser
             data.Logger.Log($"Using persistent context for Chromium extension: {config.ExtensionPath}", LogColors.MediumPurple);
 
             var tempUserDataDir = Path.Combine(Path.GetTempPath(), "playwright-chromium-" + Guid.NewGuid().ToString());
-            data.SetObject(PlaywrightHelpers.Keys.TempChromiumUserData, tempUserDataDir);
+            data.PlaywrightSession.TempChromiumUserData = tempUserDataDir;
 
             var persistentOptions = CreatePersistentContextOptions(
                 config.BrowserType, config.Headless, config.ExtraArgs, config.Timeout,
@@ -533,16 +523,15 @@ namespace RuriLib.Blocks.Playwright.Browser
         {
             if (browser != null)
             {
-                data.SetObject(PlaywrightHelpers.Keys.Browser, browser);
+                PlaywrightHelpers.SetBrowser(data, browser);
                 data.Logger.Log($"Opened {config.BrowserType} browser (headless: {config.Headless})", LogColors.MediumPurple);
 
                 var contextOptions = CreateContextOptions(config.Headless, config.IgnoreHttpsErrors);
                 var freshContext = await browser.NewContextAsync(contextOptions);
-                await ApplyStealthScriptsAsync(freshContext, config.BrowserType);
-                data.SetObject(PlaywrightHelpers.Keys.Context, freshContext);
+                PlaywrightHelpers.SetContext(data, freshContext);
 
                 var page = await freshContext.NewPageAsync();
-                data.SetObject(PlaywrightHelpers.Keys.Page, page);
+                PlaywrightHelpers.SetPage(data, page);
                 data.Logger.Log("Created new browser context and page", LogColors.MediumPurple);
                 return page;
             }
@@ -551,11 +540,10 @@ namespace RuriLib.Blocks.Playwright.Browser
             {
                 // Store both the context AND the browser reference for persistent contexts
                 // This is critical for operations like Switch to Page and Get Pages that need the browser
-                data.SetObject(PlaywrightHelpers.Keys.Context, context);
-                await ApplyStealthScriptsAsync(context, config.BrowserType);
+                PlaywrightHelpers.SetContext(data, context);
                 if (context.Browser != null)
                 {
-                    data.SetObject(PlaywrightHelpers.Keys.Browser, context.Browser);
+                    PlaywrightHelpers.SetBrowser(data, context.Browser);
                 }
                 data.Logger.Log($"Opened {config.BrowserType} browser with persistent context (headless: {config.Headless})", LogColors.MediumPurple);
 
@@ -573,7 +561,7 @@ namespace RuriLib.Blocks.Playwright.Browser
                     data.Logger.Log("Created new page from persistent context", LogColors.MediumPurple);
                 }
 
-                data.SetObject(PlaywrightHelpers.Keys.Page, page);
+                PlaywrightHelpers.SetPage(data, page);
                 return page;
             }
 
@@ -606,398 +594,6 @@ namespace RuriLib.Blocks.Playwright.Browser
             }
 
             return options;
-        }
-
-        private static async Task ApplyStealthScriptsAsync(IBrowserContext context, PlaywrightBrowserType browserType)
-        {
-            if (browserType == PlaywrightBrowserType.Chromium)
-            {
-                await context.AddInitScriptAsync(@"
-                    // --- Stealth Evasion Script (Comprehensive CDP & DevTools Bypass) ---
-
-                    // 0. GLOBAL TOSTRING SPOOFING (Robust)
-                    const mocks = new WeakMap();
-                    
-                    const originalFunctionToString = Function.prototype.toString;
-                    const nativeToStringStr = 'function toString() { [native code] }';
-                    
-                    Function.prototype.toString = function() {
-                        if (mocks.has(this)) {
-                            return mocks.get(this);
-                        }
-                        return originalFunctionToString.apply(this, arguments);
-                    };
-                    mocks.set(Function.prototype.toString, nativeToStringStr);
-
-                    const stealthify = (obj, prop, mockImpl, nativeString) => {
-                        try {
-                            const str = nativeString || `function ${prop}() { [native code] }`;
-                            Object.defineProperty(mockImpl, 'name', { value: prop, configurable: true });
-                            mocks.set(mockImpl, str);
-
-                            Object.defineProperty(obj, prop, {
-                                value: mockImpl,
-                                configurable: true,
-                                writable: true,
-                                enumerable: true
-                            });
-                        } catch(e) {}
-                    };
-
-                    // ==============================================
-                    // 1. CDP DETECTION EVASION (Primary Fix)
-                    // ==============================================
-                    
-                    // 1a. Remove CDP-related artifacts from window
-                    const cdpArtifacts = [
-                        '__playwright',
-                        '__playwright_routeHandler',
-                        '__pw_manual_listeners',
-                        '__PW_inspect',
-                        'cdc_adoQpoasnfa76pfcZLmcfl_Array',
-                        'cdc_adoQpoasnfa76pfcZLmcfl_Promise',
-                        'cdc_adoQpoasnfa76pfcZLmcfl_Symbol'
-                    ];
-                    for (const art of cdpArtifacts) {
-                        try { delete window[art]; } catch(e) {}
-                    }
-
-                    // 1b. Hook Error stack traces to remove CDP-related paths
-                    const originalPrepareStackTrace = Error.prepareStackTrace;
-                    Error.prepareStackTrace = function(error, stack) {
-                        const filtered = stack.filter(frame => {
-                            const fn = frame.getFunctionName() || '';
-                            const file = frame.getFileName() || '';
-                            // Filter out Playwright/CDP internal frames
-                            return !fn.includes('__playwright') && 
-                                   !file.includes('pptr:') && 
-                                   !file.includes('playwright');
-                        });
-                        if (originalPrepareStackTrace) {
-                            return originalPrepareStackTrace(error, filtered);
-                        }
-                        return filtered.map(f => f.toString()).join('\n');
-                    };
-
-                    // 1c. Mask Runtime.enable detection by hooking performance.getEntries
-                    // CDP detection often checks for unusual resource timing entries
-                    if (window.PerformanceObserver) {
-                        const OriginalObserver = window.PerformanceObserver;
-                        window.PerformanceObserver = function(callback) {
-                            const wrappedCallback = (list) => {
-                                const entries = list.getEntries().filter(entry => {
-                                    const name = entry.name || '';
-                                    return !name.includes('devtools') && !name.includes('pptr');
-                                });
-                                callback({ getEntries: () => entries });
-                            };
-                            return new OriginalObserver(wrappedCallback);
-                        };
-                        window.PerformanceObserver.prototype = OriginalObserver.prototype;
-                        stealthify(window, 'PerformanceObserver', window.PerformanceObserver);
-                    }
-
-                    // 1d. Mask getOwnPropertyDescriptor to hide CDP artifacts AND mask webdriver
-                    const originalGetOwnPropertyDescriptor = Object.getOwnPropertyDescriptor;
-                    Object.getOwnPropertyDescriptor = function(obj, prop) {
-                        // Handle CDP artifacts
-                        if (obj === window && typeof prop === 'string') {
-                            if (prop.includes('cdc_') || prop.includes('__playwright') || 
-                                prop.includes('$chrome_') || prop.includes('$wdc_')) {
-                                return undefined;
-                            }
-                        }
-                        
-                        // Handle webdriver property
-                        if (prop === 'webdriver') {
-                            // For navigator INSTANCE, return undefined (property is only on prototype)
-                            if (obj === navigator) {
-                                return undefined;
-                            }
-                            // For navigator PROTOTYPE, return proper descriptor
-                            if (obj === Object.getPrototypeOf(navigator)) {
-                                const nativeGetter = function webdriver() { return false; };
-                                Object.defineProperty(nativeGetter, 'name', { value: 'get webdriver' });
-                                
-                                // Register with our robust toString mocker
-                                mocks.set(nativeGetter, 'function get webdriver() { [native code] }');
-                                
-                                return {
-                                    get: nativeGetter,
-                                    set: undefined,
-                                    enumerable: true,
-                                    configurable: true
-                                };
-                            }
-                        }
-                        return originalGetOwnPropertyDescriptor.apply(this, arguments);
-                    };
-
-                    // 1e. Mask getOwnPropertyNames to hide CDP artifacts
-                    const originalGetOwnPropertyNames = Object.getOwnPropertyNames;
-                    Object.getOwnPropertyNames = function(obj) {
-                        const props = originalGetOwnPropertyNames.apply(this, arguments);
-                        if (obj === window) {
-                            return props.filter(p => 
-                                !p.includes('cdc_') && 
-                                !p.includes('__playwright') && 
-                                !p.includes('$chrome_') && 
-                                !p.includes('$wdc_')
-                            );
-                        }
-                        return props;
-                    };
-
-                    // ==============================================
-                    // 2. DEVTOOLS DETECTION EVASION (isDevtoolOpen fix)
-                    // ==============================================
-
-                    // 2a. Prevent debugger statement detection
-                    // Some sites use debugger statements to detect if DevTools is open
-                    // by measuring execution time differences
-                    const originalDateNow = Date.now;
-                    let timeOffset = 0;
-                    Date.now = function() {
-                        return originalDateNow.call(Date) + timeOffset;
-                    };
-                    stealthify(Date, 'now', Date.now);
-
-                    // 2b. Block Firebug detection
-                    Object.defineProperty(window, 'Firebug', {
-                        get: () => undefined,
-                        set: () => {},
-                        configurable: true
-                    });
-
-                    // 2c. Prevent console.profile timing detection
-                    // Detection method: console.profile() takes longer when DevTools is open
-                    if (window.console) {
-                        const fakeProfile = function profile() {};
-                        const fakeProfileEnd = function profileEnd() {};
-                        stealthify(console, 'profile', fakeProfile);
-                        stealthify(console, 'profileEnd', fakeProfileEnd);
-                    }
-
-// Console proxy removed (dead code)
-
-                    // Replace console methods with stealthified versions
-                    const consoleMethods = [
-                        'debug', 'error', 'info', 'log', 'warn', 'dir', 'dirxml', 'table', 
-                        'trace', 'group', 'groupCollapsed', 'groupEnd', 'clear', 'assert', 
-                        'count', 'countReset', 'time', 'timeEnd', 'timeLog', 'timeStamp'
-                    ];
-                    
-                    consoleMethods.forEach(method => {
-                        if (console[method]) {
-                            const mock = function() {};
-                            stealthify(console, method, mock);
-                        }
-                    });
-
-                    // 2e. Prevent outerHeight/outerWidth detection
-                    // DevTools changes these values when docked
-                    const realOuterWidth = window.outerWidth;
-                    const realOuterHeight = window.outerHeight;
-                    const realInnerWidth = window.innerWidth;
-                    const realInnerHeight = window.innerHeight;
-                    
-                    Object.defineProperty(window, 'outerWidth', {
-                        get: () => realInnerWidth + 16, // Normal window chrome offset
-                        configurable: true
-                    });
-                    Object.defineProperty(window, 'outerHeight', {
-                        get: () => realInnerHeight + 88, // Normal window chrome offset
-                        configurable: true
-                    });
-
-                    // 2f. Prevent window.chrome.devtools detection
-                    if (window.chrome) {
-                        Object.defineProperty(window.chrome, 'devtools', {
-                            get: () => undefined,
-                            configurable: true
-                        });
-                    }
-
-                    // ==============================================
-                    // 3. NAVIGATOR.WEBDRIVER MASKING (Critical)
-                    // ==============================================
-                    
-                    // Real Chrome returns FALSE for navigator.webdriver when not in automation.
-                    // Playwright sets it to TRUE. We need to make it return FALSE.
-                    // Important: returning undefined is detectable as manual tampering!
-                    
-                    try {
-                        const navigatorProto = Object.getPrototypeOf(navigator);
-                        if (navigatorProto) {
-                            // Create a native-looking getter that returns false
-                            const webdriverGetter = function webdriver() { return false; };
-                            // Fix the name property to be 'get webdriver' (this is what real Chrome has)
-                            Object.defineProperty(webdriverGetter, 'name', { value: 'get webdriver' });
-                            
-                            // Critical: Register with global toString hook
-                            const str = 'function get webdriver() { [native code] }';
-                            mocks.set(webdriverGetter, str);
-                            
-                            // Delete any existing property first
-                            delete navigatorProto.webdriver;
-                            
-                            // Redefine with our native-looking getter
-                            Object.defineProperty(navigatorProto, 'webdriver', {
-                                get: webdriverGetter,
-                                set: undefined,
-                                enumerable: true,
-                                configurable: true
-                            });
-                        }
-                    } catch(e) {}
-                    
-                    // Also delete from navigator instance if it exists there
-                    try {
-                        if (navigator.hasOwnProperty && navigator.hasOwnProperty('webdriver')) {
-                            delete navigator.webdriver;
-                        }
-                    } catch(e) {}
-
-                    // ==============================================
-                    // 4. WINDOW.CHROME MOCKING
-                    // ==============================================
-                    
-                    if (!window.chrome) {
-                        const chromeObj = {
-                            runtime: {
-                                connect: function connect() {},
-                                sendMessage: function sendMessage() {},
-                                onMessage: { addListener: function() {} },
-                                onConnect: { addListener: function() {} }
-                            },
-                            loadTimes: function() { return {}; },
-                            csi: function() { return {}; },
-                            app: {
-                                isInstalled: false,
-                                getDetails: function getDetails() { return null; },
-                                getIsInstalled: function getIsInstalled() { return false; },
-                                installState: function installState() { return 'not_installed'; },
-                                runningState: function runningState() { return 'cannot_run'; }
-                            }
-                        };
-                        
-                        // Apply stealth to all chrome methods
-                        stealthify(chromeObj.runtime, 'connect', chromeObj.runtime.connect);
-                        stealthify(chromeObj.runtime, 'sendMessage', chromeObj.runtime.sendMessage);
-                        stealthify(chromeObj, 'loadTimes', chromeObj.loadTimes);
-                        stealthify(chromeObj, 'csi', chromeObj.csi);
-                        stealthify(chromeObj.app, 'getDetails', chromeObj.app.getDetails);
-                        stealthify(chromeObj.app, 'getIsInstalled', chromeObj.app.getIsInstalled);
-                        stealthify(chromeObj.app, 'installState', chromeObj.app.installState);
-                        stealthify(chromeObj.app, 'runningState', chromeObj.app.runningState);
-
-                        Object.defineProperty(window, 'chrome', {
-                            value: chromeObj,
-                            writable: true,
-                            enumerable: true,
-                            configurable: false
-                        });
-                    }
-
-                    // ==============================================
-                    // 5. PERMISSIONS MOCKING
-                    // ==============================================
-                    
-                    if (navigator.permissions && navigator.permissions.query) {
-                        const originalQuery = navigator.permissions.query.bind(navigator.permissions);
-                        const mockedQuery = function query(parameters) {
-                            if (parameters && parameters.name === 'notifications') {
-                                return Promise.resolve({ state: Notification.permission, onchange: null });
-                            }
-                            return originalQuery(parameters);
-                        };
-                        stealthify(navigator.permissions, 'query', mockedQuery);
-                    }
-
-                    // ==============================================
-                    // 6. CLEANUP AUTOMATION INDICATORS
-                    // ==============================================
-                    
-                    const cleanWindow = () => {
-                        const patterns = ['$cdc_', '$wdc_', '__webdriver', '__selenium', '__driver', 'callPhantom', '_phantom'];
-                        for (const prop in window) {
-                            try {
-                                for (const pattern of patterns) {
-                                    if (prop.includes(pattern)) {
-                                        delete window[prop];
-                                        break;
-                                    }
-                                }
-                            } catch(e) {}
-                        }
-                    };
-                    cleanWindow();
-
-                    // ==============================================
-                    // 6b. POPUP DETECTOR CRASH FIX
-                    // ==============================================
-
-                    // Hook window.open globally to prevent crash exploits
-                    try {
-                        const originalOpen = window.open;
-                        window.open = function(url, target, features) {
-                            if (features && (features.includes('top=9999') || features.includes('left=9999'))) {
-                                return null;
-                            }
-                            return originalOpen.apply(this, arguments);
-                        };
-                        stealthify(window, 'open', window.open);
-                    } catch(e) {}
-
-                    // ==============================================
-                    // 7. IFRAME PROTECTION
-                    // ==============================================
-                    
-                    // Apply stealth patches to iframes
-                    const originalCreateElement = document.createElement.bind(document);
-                    document.createElement = function(tagName) {
-                        const element = originalCreateElement(tagName);
-                        if (tagName.toLowerCase() === 'iframe') {
-                            element.addEventListener('load', function() {
-                                try {
-                                    const iframeWindow = element.contentWindow;
-                                    if (iframeWindow && iframeWindow.navigator) {
-                                        Object.defineProperty(iframeWindow.navigator, 'webdriver', {
-                                            get: () => false,
-                                            configurable: true
-                                        });
-                                    }
-                                } catch(e) {}
-                            });
-                        }
-                        return element;
-                    };
-                    stealthify(document, 'createElement', document.createElement);
-
-                    // Hook Node.prototype.appendChild to intercept iframe creation and patch window.open immediately
-                    const originalAppendChild = Node.prototype.appendChild;
-                    Node.prototype.appendChild = function(node) {
-                        const result = originalAppendChild.apply(this, arguments);
-                        
-                        if (node.tagName && node.tagName.toLowerCase() === 'iframe') {
-                            try {
-                                if (node.contentWindow) {
-                                    const frameWin = node.contentWindow;
-                                    const originalFrameOpen = frameWin.open;
-                                    frameWin.open = function(url, target, features) {
-                                        if (features && (features.includes('top=9999') || features.includes('left=9999'))) {
-                                            return null;
-                                        }
-                                        return originalFrameOpen.apply(this, arguments);
-                                    };
-                                }
-                            } catch(e) {}
-                        }
-                        return result;
-                    };
-                    stealthify(Node.prototype, 'appendChild', Node.prototype.appendChild);
-                ");
-            }
         }
 
         #endregion

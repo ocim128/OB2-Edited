@@ -17,7 +17,7 @@ public static partial class Methods
     {
         data.Logger.LogHeader();
 
-        var oldBrowser = data.TryGetObject<IBrowser>("puppeteer");
+        var oldBrowser = data.PuppeteerSession.Browser;
         if (oldBrowser?.IsClosed == false)
         {
             data.Logger.Log("The browser is already open, close it if you want to open a new browser", LogColors.DarkSalmon);
@@ -64,7 +64,7 @@ public static partial class Methods
         var browser = GetBrowser(data);
         var page = await browser.NewPageAsync().ConfigureAwait(false);
 
-        await PreparePageAsync(data, page, applyDefaultHeaders: false, authenticateProxy: false, logStealthActivation: false)
+        await PreparePageAsync(data, page, applyDefaultHeaders: false, authenticateProxy: false)
             .ConfigureAwait(false);
 
         SetPageAndFrame(data, page);
@@ -102,7 +102,7 @@ public static partial class Methods
         _ = await browser.GetVersionAsync().ConfigureAwait(false);
 
         IPage page = null;
-        var pageList = data.TryGetObject<List<string>>("puppeteer.pageList");
+        var pageList = data.PuppeteerSession.PageList;
 
         if (pageList != null)
         {

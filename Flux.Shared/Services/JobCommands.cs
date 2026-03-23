@@ -1,7 +1,10 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Flux.Core.Services;
 using Flux.Shared.Abstractions;
 using RuriLib.Models.Jobs;
 
@@ -9,13 +12,20 @@ namespace Flux.Shared.Services;
 
 public class JobCommands : IJobCommands, IDisposable
 {
+    private readonly JobManagerService _jobManager;
     private readonly ConcurrentDictionary<int, CancellationTokenSource> _runningStarts = new();
 
-    public async Task StartAsync(MultiRunJob job)
+    public JobCommands(JobManagerService jobManager)
     {
-        ArgumentNullException.ThrowIfNull(job);
+        _jobManager = jobManager;
+    }
 
-        var cts = new CancellationTokenSource();
+    public async Task StartAsync(int jobId, IReadOnlyDictionary<string, string>? customInputs = null, CancellationToken cancellationToken = default)
+    {
+        var job = FindMultiRunJob(jobId);
+        ApplyCustomInputs(job, customInputs);
+
+        var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         if (!_runningStarts.TryAdd(job.Id, cts))
         {
             cts.Dispose();
@@ -35,15 +45,12 @@ public class JobCommands : IJobCommands, IDisposable
         }
     }
 
-    public Task StopAsync(MultiRunJob job)
-    {
-        ArgumentNullException.ThrowIfNull(job);
-        return job.Stop();
-    }
+    public Task StopAsync(int jobId, CancellationToken cancellationToken = default)
+        => FindMultiRunJob(jobId).Stop();
 
-    public async Task AbortAsync(MultiRunJob job)
+    public async Task AbortAsync(int jobId, CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(job);
+        var job = FindMultiRunJob(jobId);
 
         if (job.Status is JobStatus.Starting or JobStatus.Waiting
             && _runningStarts.TryGetValue(job.Id, out var cts))
@@ -55,44 +62,55 @@ public class JobCommands : IJobCommands, IDisposable
         await job.Abort().ConfigureAwait(false);
     }
 
-    public Task PauseAsync(MultiRunJob job)
-    {
-        ArgumentNullException.ThrowIfNull(job);
-        return job.Pause();
-    }
+    public Task PauseAsync(int jobId, CancellationToken cancellationToken = default)
+        => FindMultiRunJob(jobId).Pause();
 
-    public Task ResumeAsync(MultiRunJob job)
-    {
-        ArgumentNullException.ThrowIfNull(job);
-        return job.Resume();
-    }
+    public Task ResumeAsync(int jobId, CancellationToken cancellationToken = default)
+        => FindMultiRunJob(jobId).Resume();
 
-    public async Task ChangeBotsAsync(MultiRunJob job, int bots)
+    public async Task ChangeBotsAsync(int jobId, int bots, CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(job);
-
+        var job = FindMultiRunJob(jobId);
         var normalizedBots = Math.Max(1, bots);
         await job.ChangeBots(normalizedBots).ConfigureAwait(false);
         job.Bots = normalizedBots;
     }
 
-    public void SkipWait(MultiRunJob job)
+    public Task SkipWaitAsync(int jobId, CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(job);
-        job.SkipWait();
+        FindMultiRunJob(jobId).SkipWait();
+        return Task.CompletedTask;
     }
 
-    public void ResetSkip(MultiRunJob job)
+    public Task ResetSkipAsync(int jobId, CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(job);
-
+        var job = FindMultiRunJob(jobId);
         if (job.Status is not JobStatus.Idle)
         {
-            return;
+            return Task.CompletedTask;
         }
 
         job.Skip = 0;
         job.DataPool.Reload();
+        return Task.CompletedTask;
+    }
+
+    private MultiRunJob FindMultiRunJob(int jobId)
+        => _jobManager.Jobs.OfType<MultiRunJob>().FirstOrDefault(job => job.Id == jobId)
+            ?? throw new InvalidOperationException($"Multi-run job {jobId} is not loaded");
+
+    private static void ApplyCustomInputs(MultiRunJob job, IReadOnlyDictionary<string, string>? customInputs)
+    {
+        job.CustomInputsAnswers.Clear();
+        if (customInputs is null)
+        {
+            return;
+        }
+
+        foreach (var answer in customInputs)
+        {
+            job.CustomInputsAnswers[answer.Key] = answer.Value;
+        }
     }
 
     public void Dispose()

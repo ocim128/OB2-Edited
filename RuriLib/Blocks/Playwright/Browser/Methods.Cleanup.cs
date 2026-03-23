@@ -18,16 +18,16 @@ namespace RuriLib.Blocks.Playwright.Browser
         {
             var cleanupState = new PlaywrightCleanupState(data);
             cleanupState.Register(browser, tempSnapshotBeforeLaunch);
-            data.SetObject(PlaywrightCleanupStateKey, cleanupState);
+            PlaywrightHelpers.SetCleanupState(data, cleanupState);
         }
 
         private static void PerformCleanup(BotData data)
         {
             // Stop the manual close watcher first to prevent it from triggering during cleanup
-            var cleanupState = data.TryGetObject<PlaywrightCleanupState>(PlaywrightCleanupStateKey);
+            var cleanupState = data.PlaywrightSession.CleanupState;
             cleanupState?.StopManualCloseWatcher();
 
-            var playwrightInstance = data.TryGetObject<IPlaywright>("playwrightInstance");
+            var playwrightInstance = data.PlaywrightSession.Instance;
             if (playwrightInstance != null)
             {
                 try
@@ -40,12 +40,12 @@ namespace RuriLib.Blocks.Playwright.Browser
                 }
             }
 
-            var realBrowserProcessIdObj = data.TryGetObject<object>("playwright.realBrowserProcessId");
-            if (realBrowserProcessIdObj is int realBrowserProcessId)
+            var realBrowserProcessId = data.PlaywrightSession.RealBrowserProcessId;
+            if (realBrowserProcessId.HasValue)
             {
                 try
                 {
-                    var process = System.Diagnostics.Process.GetProcessById(realBrowserProcessId);
+                    var process = System.Diagnostics.Process.GetProcessById(realBrowserProcessId.Value);
                     if (!process.HasExited)
                     {
                         process.Kill();
@@ -56,30 +56,21 @@ namespace RuriLib.Blocks.Playwright.Browser
                     // Ignore if process is already terminated or inaccessible
                 }
 
-                data.SetObject("playwright.realBrowserProcessId", null);
+                data.PlaywrightSession.RealBrowserProcessId = null;
             }
 
             // Kill tracked Firefox processes (manual close watcher already stopped above)
             KillTrackedFirefoxProcessesAndTempDirs(data);
 
-            DeleteDirectoryIfExists(data, "playwright.tempFirefoxProfile", "temporary Firefox profile");
-            DeleteDirectoryIfExists(data, "playwright.tempChromiumUserData", "temporary Chromium user data");
+            DeleteDirectoryIfExists(data, data.PlaywrightSession.TempFirefoxProfile, "temporary Firefox profile");
+            DeleteDirectoryIfExists(data, data.PlaywrightSession.TempChromiumUserData, "temporary Chromium user data");
             DeleteTrackedArtifacts(data);
 
-            data.Objects.Remove("playwright");
-            data.Objects.Remove("playwrightContext");
-            data.Objects.Remove("playwrightPage");
-            data.Objects.Remove("playwrightInstance");
-            data.Objects.Remove("playwright.tempFirefoxProfile");
-            data.Objects.Remove("playwright.tempChromiumUserData");
-            data.Objects.Remove("playwright.tempArtifacts");
-            data.Objects.Remove("playwright.firefoxProcessIds");
-            data.Objects.Remove(PlaywrightCleanupStateKey);
+            data.PlaywrightSession.Clear();
         }
 
-        private static void DeleteDirectoryIfExists(BotData data, string key, string description)
+        private static void DeleteDirectoryIfExists(BotData data, string? directoryPath, string description)
         {
-            var directoryPath = data.TryGetObject<string>(key);
             if (string.IsNullOrWhiteSpace(directoryPath))
             {
                 return;
@@ -90,7 +81,7 @@ namespace RuriLib.Blocks.Playwright.Browser
 
         private static void DeleteTrackedArtifacts(BotData data)
         {
-            var artifacts = data.TryGetObject<IEnumerable<string>>("playwright.tempArtifacts");
+            var artifacts = data.PlaywrightSession.TempArtifacts;
             if (artifacts == null)
             {
                 return;
@@ -140,11 +131,11 @@ namespace RuriLib.Blocks.Playwright.Browser
 
                 if (currentEntries.Count > 0)
                 {
-                    data.SetObject("playwright.tempArtifacts", currentEntries.ToArray());
+                    data.PlaywrightSession.TempArtifacts = currentEntries.ToArray();
                 }
                 else
                 {
-                    data.Objects.Remove("playwright.tempArtifacts");
+                    data.PlaywrightSession.TempArtifacts = null;
                 }
             }
             catch (Exception ex)
@@ -220,7 +211,7 @@ namespace RuriLib.Blocks.Playwright.Browser
         {
             if (baseline == null)
             {
-                data.Objects.Remove("playwright.firefoxProcessIds");
+                data.PlaywrightSession.FirefoxProcessIds = null;
                 return;
             }
 
@@ -230,16 +221,16 @@ namespace RuriLib.Blocks.Playwright.Browser
                 var delta = current.Keys.Except(baseline.Keys).ToArray();
                 if (delta.Length > 0)
                 {
-                    data.SetObject("playwright.firefoxProcessIds", delta, false);
+                    data.PlaywrightSession.FirefoxProcessIds = delta;
                 }
                 else
                 {
-                    data.Objects.Remove("playwright.firefoxProcessIds");
+                    data.PlaywrightSession.FirefoxProcessIds = null;
                 }
             }
             catch
             {
-                data.Objects.Remove("playwright.firefoxProcessIds");
+                data.PlaywrightSession.FirefoxProcessIds = null;
             }
         }
 
@@ -273,7 +264,7 @@ namespace RuriLib.Blocks.Playwright.Browser
             }
         }
 
-        private sealed class PlaywrightCleanupState
+        private sealed class PlaywrightCleanupState : IPlaywrightCleanupState
         {
             private readonly BotData _data;
             private IBrowser? _browser;
@@ -348,7 +339,7 @@ namespace RuriLib.Blocks.Playwright.Browser
                     return;
                 }
 
-                var tracked = _data.TryGetObject<int[]>("playwright.firefoxProcessIds");
+                var tracked = _data.PlaywrightSession.FirefoxProcessIds;
                 if (tracked == null || tracked.Length == 0)
                 {
                     return;
@@ -442,7 +433,7 @@ namespace RuriLib.Blocks.Playwright.Browser
         private static HashSet<int> KillTrackedFirefoxProcesses(BotData data)
         {
             var killed = new HashSet<int>();
-            var tracked = data.TryGetObject<int[]>("playwright.firefoxProcessIds");
+            var tracked = data.PlaywrightSession.FirefoxProcessIds;
             if (tracked == null || tracked.Length == 0)
             {
                 return killed;
@@ -468,7 +459,7 @@ namespace RuriLib.Blocks.Playwright.Browser
                 }
             }
 
-            data.Objects.Remove("playwright.firefoxProcessIds");
+            data.PlaywrightSession.FirefoxProcessIds = null;
             return killed;
         }
 
@@ -520,7 +511,7 @@ namespace RuriLib.Blocks.Playwright.Browser
                     if (manualCloseDetected)
                     {
                         logger.Log("Detected manual Firefox window close. Cleaning up Playwright resources...", LogColors.Yellow);
-                        var cleanupState = data.TryGetObject<PlaywrightCleanupState>(PlaywrightCleanupStateKey);
+                        var cleanupState = data.PlaywrightSession.CleanupState;
                         if (cleanupState != null)
                         {
                             cleanupState.Cleanup("Firefox window closed manually. Cleaning up.");

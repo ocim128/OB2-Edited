@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json;
 using RuriLib.Models.Blocks.Parameters;
 using RuriLib.Models.Variables;
+using System;
 using System.Collections.Generic;
 
 namespace RuriLib.Models.Blocks
@@ -22,5 +23,12 @@ namespace RuriLib.Models.Blocks
 
         [JsonIgnore]
         public Dictionary<string, BlockImageInfo> Images { get; set; } = new Dictionary<string, BlockImageInfo>();
+
+        [JsonIgnore]
+        public Func<BlockDescriptor, BlockInstance> InstanceFactory { get; set; }
+
+        public BlockInstance CreateBlockInstance()
+            => InstanceFactory?.Invoke(this)
+                ?? throw new InvalidOperationException($"No instance factory was registered for block descriptor {Id}");
     }
 }

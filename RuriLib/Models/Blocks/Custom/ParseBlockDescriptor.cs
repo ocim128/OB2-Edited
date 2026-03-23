@@ -11,6 +11,7 @@ namespace RuriLib.Models.Blocks.Custom
             Id = "Parse";
             Name = Id;
             Description = "Parses text from a string";
+            InstanceFactory = static descriptor => new ParseBlockInstance((ParseBlockDescriptor)descriptor);
             Category = new BlockCategory
             {
                 Name = "Parsing",

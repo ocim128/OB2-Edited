@@ -97,6 +97,21 @@ Read:
 - implementation under `RuriLib/Blocks/`
 - transpiler glue under `RuriLib/Helpers/Transpilers/` if needed
 
+If the issue is block registration or discovery, also read:
+
+- `RuriLib/Helpers/Blocks/BuiltInBlockRegistry.cs`
+- `RuriLib/Helpers/Blocks/DescriptorsRepository.cs`
+- `RuriLib/Helpers/Blocks/BlockFactory.cs`
+
+If the issue is custom block LC parsing/serialization or generated C#, start from:
+
+- `RuriLib/Models/Blocks/Custom/HttpRequestBlockInstance.cs`
+- `RuriLib/Models/Blocks/Custom/HttpRequestBlockInstance.LoliCode.cs`
+- `RuriLib/Models/Blocks/Custom/HttpRequestBlockInstance.CSharp.cs`
+- `RuriLib/Models/Blocks/Custom/ParseBlockInstance.cs`
+- `RuriLib/Models/Blocks/Custom/ParseBlockInstance.LoliCode.cs`
+- `RuriLib/Models/Blocks/Custom/ParseBlockInstance.CSharp.cs`
+
 ### "Desktop UI issue"
 
 Read:
@@ -121,7 +136,10 @@ The codebase already contains a few important simplifications:
 - `JobOrchestrator` no longer owns all projection and subscription logic directly
 - desktop job create/edit/clone/delete and job option loading now flow through `Flux.Shared/Services/JobOrchestrator.cs` instead of `Flux.Native`
 - HTTP transport behavior is centered around a shared request pipeline in `HttpRequestHandler`
+- built-in block registration now goes through `RuriLib/Helpers/Blocks/BuiltInBlockRegistry.cs`; reflection-based descriptor discovery is now mainly the plugin path
+- `BlockDescriptor` now owns block instance creation through a registered factory, so `BlockFactory` stays thin
 - Legacy `HttpCloak` HTTP block settings are normalized to `TlsClient` during load/transpile
+- `HttpRequestBlockInstance` and `ParseBlockInstance` are split into core state, LoliCode parsing/serialization, and C# emission partials
 - Puppeteer browser blocks now mirror the Playwright browser split across `Methods.cs`, `Methods.Helpers.cs`, `Methods.Cleanup.cs`, and `Methods.Stealth.cs`
 - Runtime/global settings and config-scoped settings now use distinct model names: `GlobalGeneralSettings`/`GlobalProxySettings` and `ConfigGeneralSettings`/`ConfigProxySettings`
 - `Monitor` and `ConfigStacker` in `Flux.Native` are now shell pages with feature-specific controls/viewmodels

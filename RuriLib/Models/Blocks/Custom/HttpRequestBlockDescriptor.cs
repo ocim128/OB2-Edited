@@ -13,6 +13,7 @@ namespace RuriLib.Models.Blocks.Custom
             Id = "HttpRequest";
             Name = "Http Request";
             Description = "Performs an Http request and reads the response";
+            InstanceFactory = static descriptor => new HttpRequestBlockInstance((HttpRequestBlockDescriptor)descriptor);
             Category = new BlockCategory
             {
                 Name = "Http",

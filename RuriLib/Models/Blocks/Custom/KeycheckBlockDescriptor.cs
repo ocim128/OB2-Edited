@@ -10,6 +10,7 @@ namespace RuriLib.Models.Blocks.Custom
             Id = "Keycheck";
             Name = Id;
             Description = "Modifies the bot's status by checking conditions";
+            InstanceFactory = static descriptor => new KeycheckBlockInstance((KeycheckBlockDescriptor)descriptor);
             Category = new BlockCategory
             {
                 Name = "Conditions",

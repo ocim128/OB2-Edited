@@ -7,6 +7,7 @@
             Id = "Script";
             Name = "Script";
             Description = "This block can invoke a script in a different language, pass some variables and return some results.";
+            InstanceFactory = static descriptor => new ScriptBlockInstance((ScriptBlockDescriptor)descriptor);
             Category = new BlockCategory
             {
                 Name = "Interop",

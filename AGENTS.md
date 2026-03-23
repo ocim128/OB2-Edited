@@ -100,6 +100,19 @@ Read in this order:
 2. implementation under `RuriLib/Blocks/`
 3. transpiler glue under `RuriLib/Helpers/Transpilers/` if the block is emitted into generated C#
 
+If the issue is block registration or discovery, also read:
+- `RuriLib/Helpers/Blocks/BuiltInBlockRegistry.cs`
+- `RuriLib/Helpers/Blocks/DescriptorsRepository.cs`
+- `RuriLib/Helpers/Blocks/BlockFactory.cs`
+
+If the issue is custom block LC parsing/serialization or generated C#, start from:
+- `RuriLib/Models/Blocks/Custom/HttpRequestBlockInstance.cs`
+- `RuriLib/Models/Blocks/Custom/HttpRequestBlockInstance.LoliCode.cs`
+- `RuriLib/Models/Blocks/Custom/HttpRequestBlockInstance.CSharp.cs`
+- `RuriLib/Models/Blocks/Custom/ParseBlockInstance.cs`
+- `RuriLib/Models/Blocks/Custom/ParseBlockInstance.LoliCode.cs`
+- `RuriLib/Models/Blocks/Custom/ParseBlockInstance.CSharp.cs`
+
 ### "Desktop UI issue"
 
 Read in this order:
@@ -113,7 +126,7 @@ For recently split `Flux.Native` pages, start from the shell page and then move 
 - Individual tool cards: `Flux.Native/ViewModels/Tools/` and `Flux.Native/Views/Controls/Tools/`
 - Config stacker shell: `Flux.Native/Views/Pages/ConfigPages/ConfigStacker.xaml` and `ConfigStacker.xaml.cs`
 - Config stacker block list / inspector: `Flux.Native/Views/Controls/Config/`
-- Config stacker state: `Flux.Native/ViewModels/Config/ConfigStackerViewModel.cs`, `ConfigStackerViewModel.Tooling.cs`, and `ConfigStackerInspectorViewModel.cs`
+- Config stacker state: `Flux.Native/ViewModels/Config/ConfigStackerViewModel.cs`, `ConfigStackerViewModel.Selection.cs`, `ConfigStackerViewModel.Stack.cs`, `ConfigStackerViewModel.Search.cs`, `ConfigStackerViewModel.Tooling.cs`, and `ConfigStackerInspectorViewModel.cs`
 
 ## Common Architecture Notes
 
@@ -128,7 +141,10 @@ Recent runtime simplifications already in place:
 - Job projection and event subscriptions were extracted from `JobOrchestrator`.
 - Desktop job create/edit/clone/delete and job option loading now go through `Flux.Shared/Services/JobOrchestrator.cs`; `Flux.Native` jobs UI should not persist jobs or deserialize job options directly.
 - HTTP request execution is now centered on shared pipeline logic in `HttpRequestHandler`.
+- Built-in block registration now goes through `RuriLib/Helpers/Blocks/BuiltInBlockRegistry.cs`; reflection-based descriptor discovery remains for plugin assemblies only.
+- `BlockDescriptor` now owns block instance creation through a registered factory, so `BlockFactory` should stay thin and not grow new descriptor-type switches.
 - Legacy `HttpCloak` HTTP block settings now normalize to `TlsClient` during load/transpile.
+- `HttpRequestBlockInstance` and `ParseBlockInstance` are split into core state, LoliCode parsing/serialization, and C# emission partials.
 - Puppeteer browser blocks now mirror the Playwright browser split across `RuriLib/Blocks/Puppeteer/Browser/Methods.cs`, `Methods.Helpers.cs`, `Methods.Cleanup.cs`, and `Methods.Stealth.cs`.
 - Runtime/global settings and config-scoped settings now use distinct model names: `GlobalGeneralSettings`/`GlobalProxySettings` and `ConfigGeneralSettings`/`ConfigProxySettings`.
 

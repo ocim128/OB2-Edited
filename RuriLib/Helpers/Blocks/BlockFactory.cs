@@ -1,5 +1,4 @@
 ﻿using RuriLib.Models.Blocks;
-using RuriLib.Models.Blocks.Custom;
 using System;
 
 namespace RuriLib.Helpers.Blocks
@@ -27,18 +26,8 @@ namespace RuriLib.Helpers.Blocks
             if (!Globals.DescriptorsRepository.Descriptors.TryGetValue(id, out BlockDescriptor descriptor))
                 throw new Exception($"Invalid block id: {id}");
 
-            BlockInstance instance = descriptor switch
-            {
-                AutoBlockDescriptor x when x.Id == "ConstantString" => new ConditionalConstantStringBlockInstance(x),
-                AutoBlockDescriptor x => new AutoBlockInstance(x),
-                KeycheckBlockDescriptor x => new KeycheckBlockInstance(x),
-                HttpRequestBlockDescriptor x => new HttpRequestBlockInstance(x),
-                ParseBlockDescriptor x => new ParseBlockInstance(x),
-                ScriptBlockDescriptor x => new ScriptBlockInstance(x),
-                _ => throw new NotImplementedException()
-            };
-
-            return instance as T;
+            return descriptor.CreateBlockInstance() as T
+                ?? throw new InvalidCastException($"Block {id} could not be cast to {typeof(T).Name}");
         }
     }
 }

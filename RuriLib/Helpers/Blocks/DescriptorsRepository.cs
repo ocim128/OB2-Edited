@@ -37,14 +37,7 @@ namespace RuriLib.Helpers.Blocks
         public void Recreate()
         {
             Descriptors.Clear();
-
-            // Add custom block descriptors
-            Descriptors["Keycheck"] = new KeycheckBlockDescriptor();
-            Descriptors["HttpRequest"] = new HttpRequestBlockDescriptor();
-            Descriptors["Parse"] = new ParseBlockDescriptor();
-            Descriptors["Script"] = new ScriptBlockDescriptor();
-
-            AddFromExposedMethods(Assembly.GetExecutingAssembly());
+            BuiltInBlockRegistry.RegisterBuiltIns(this);
         }
 
         /// <summary>
@@ -59,93 +52,67 @@ namespace RuriLib.Helpers.Blocks
             return descriptor as T;
         }
 
+        public void AddDescriptor(BlockDescriptor descriptor)
+        {
+            if (!Descriptors.TryAdd(descriptor.Id, descriptor))
+                throw new Exception($"Duplicate descriptor id: {descriptor.Id}");
+        }
+
         /// <summary>
         /// Adds descriptors to the repository by finding exposed methods in the given
         /// <paramref name="assembly"/>.
         /// </summary>
         public void AddFromExposedMethods(Assembly assembly)
+            => AddFromExposedMethods(assembly.GetTypes());
+
+        public void AddFromExposedMethods(IEnumerable<Type> types)
         {
-            // Get all types of the assembly
-            var types = assembly.GetTypes();
-            foreach (var type in types)
+            var exposedTypes = types.ToList();
+            foreach (var type in exposedTypes)
             {
-                // Check if the type has a BlockCategory attribute
-                var category = type.GetCustomAttribute<Attributes.BlockCategory>();
-                if (category == null) continue;
-
-                // Get the methods in the type
-                var methods = type.GetMethods();
-                foreach (var method in methods)
-                {
-                    // Check if the methods has a Block attribute
-                    var attribute = method.GetCustomAttribute<Attributes.Block>();
-                    if (attribute == null) continue;
-
-                    // Check if the descriptor already exists
-                    if (Descriptors.ContainsKey(method.Name))
-                        throw new Exception($"Duplicate descriptor id: {method.Name}");
-
-                    // Get parameters excluding BotData
-                    var parameters = method.GetParameters().Where(p => p.ParameterType != typeof(BotData)).ToArray();
-
-                    // Add the descriptor
-                    Descriptors[method.Name] = new AutoBlockDescriptor
-                    {
-                        Id = method.Name,
-                        Async = method.CustomAttributes.Any(a => a.AttributeType == typeof(AsyncStateMachineAttribute)),
-                        // If the name specified in the attribute is null, use the readable method's name
-                        Name = attribute.name ?? method.Name.ToReadableName(),
-                        Description = attribute.description ?? string.Empty,
-                        ExtraInfo = attribute.extraInfo ?? string.Empty,
-                        AssemblyFullName = assembly.FullName,
-                        Parameters = parameters.Select(BuildBlockParameter).ToDictionary(p => p.Name, p => p),
-                        OriginalParameterTypes = parameters.ToDictionary(p => p.Name, p => p.ParameterType),
-                        ReturnType = ToVariableType(method.ReturnType),
-                        Category = new BlockCategory
-                        {
-                            Name = category.name ?? type.Namespace.Split('.')[2],
-                            Path = $"{type.Namespace}",
-                            Namespace = $"{type.Namespace}.{type.Name}",
-                            Description = category.description,
-                            ForegroundColor = category.foregroundColor,
-                            BackgroundColor = category.backgroundColor
-                        },
-                        Images = method.GetCustomAttributes<Attributes.BlockImage>()
-                        .ToDictionary(a => a.id, a => new BlockImageInfo
-                        {
-                            Name = a.id.ToReadableName(),
-                            MaxWidth = a.maxWidth,
-                            MaxHeight = a.maxHeight
-                        })
-                    };
-                }
+                AddDescriptorsFromType(type);
             }
 
-            AddBlockActions(assembly);
+            AddBlockActions(exposedTypes);
         }
 
-        private void AddBlockActions(Assembly assembly)
+        private void AddDescriptorsFromType(Type type)
         {
-            // Get all types of the assembly
-            var types = assembly.GetTypes();
+            var category = type.GetCustomAttribute<Attributes.BlockCategory>();
+            if (category == null)
+            {
+                return;
+            }
+
+            foreach (var method in type.GetMethods())
+            {
+                var attribute = method.GetCustomAttribute<Attributes.Block>();
+                if (attribute == null)
+                {
+                    continue;
+                }
+
+                AddDescriptor(BuildAutoBlockDescriptor(type, method, category, attribute));
+            }
+        }
+
+        private void AddBlockActions(IEnumerable<Type> types)
+        {
             foreach (var type in types)
             {
-                // Get the methods in the type
-                var methods = type.GetMethods();
-                foreach (var method in methods)
+                foreach (var method in type.GetMethods())
                 {
-                    // Check if the methods has a BlockAction attribute
                     var attribute = method.GetCustomAttribute<Attributes.BlockAction>();
-                    if (attribute == null) continue;
+                    if (attribute == null)
+                    {
+                        continue;
+                    }
 
                     var id = attribute.parentBlockId;
 
-                    // Check if a descriptor with the given id exists
-                    if (!Descriptors.ContainsKey(id))
+                    if (!Descriptors.TryGetValue(id, out var descriptor))
                         throw new Exception($"Invalid descriptor id: {id}");
 
-                    // Add the action to the block descriptor
-                    var descriptor = Descriptors[id];
                     descriptor.Actions.Add(new BlockActionInfo
                     {
                         Name = attribute.name ?? method.Name.ToReadableName(),
@@ -155,6 +122,59 @@ namespace RuriLib.Helpers.Blocks
                 }
             }
         }
+
+        private static AutoBlockDescriptor BuildAutoBlockDescriptor(
+            Type type,
+            MethodInfo method,
+            Attributes.BlockCategory category,
+            Attributes.Block attribute)
+        {
+            var parameters = method.GetParameters().Where(p => p.ParameterType != typeof(BotData)).ToArray();
+
+            return new AutoBlockDescriptor
+            {
+                Id = method.Name,
+                Async = method.CustomAttributes.Any(a => a.AttributeType == typeof(AsyncStateMachineAttribute)),
+                Name = attribute.name ?? method.Name.ToReadableName(),
+                Description = attribute.description ?? string.Empty,
+                ExtraInfo = attribute.extraInfo ?? string.Empty,
+                AssemblyFullName = type.Assembly.FullName,
+                Parameters = parameters.Select(BuildBlockParameter).ToDictionary(p => p.Name, p => p),
+                OriginalParameterTypes = parameters.ToDictionary(GetParameterName, p => p.ParameterType),
+                ReturnType = ToVariableType(method.ReturnType),
+                Category = new BlockCategory
+                {
+                    Name = category.name ?? GetDefaultCategoryName(type),
+                    Path = type.Namespace ?? string.Empty,
+                    Namespace = $"{type.Namespace}.{type.Name}",
+                    Description = category.description,
+                    ForegroundColor = category.foregroundColor,
+                    BackgroundColor = category.backgroundColor
+                },
+                Images = method.GetCustomAttributes<Attributes.BlockImage>()
+                    .ToDictionary(a => a.id, a => new BlockImageInfo
+                    {
+                        Name = a.id.ToReadableName(),
+                        MaxWidth = a.maxWidth,
+                        MaxHeight = a.maxHeight
+                    }),
+                InstanceFactory = CreateAutoBlockInstanceFactory(method.Name)
+            };
+        }
+
+        private static string GetDefaultCategoryName(Type type)
+        {
+            var namespaceParts = type.Namespace?.Split('.');
+            return namespaceParts?.Length > 2 ? namespaceParts[2] : type.Name;
+        }
+
+        private static string GetParameterName(ParameterInfo parameter)
+            => parameter.Name ?? throw new ArgumentException($"Parameter without a name in method signature {parameter.Member.Name}");
+
+        private static Func<BlockDescriptor, BlockInstance> CreateAutoBlockInstanceFactory(string id)
+            => id == "ConstantString"
+                ? static descriptor => new ConditionalConstantStringBlockInstance((AutoBlockDescriptor)descriptor)
+                : static descriptor => new AutoBlockInstance((AutoBlockDescriptor)descriptor);
 
         private static BlockParameter BuildBlockParameter(ParameterInfo info)
         {

@@ -55,16 +55,21 @@ Transport selection:
 2. `RuriLib/Models/Jobs/JobInitializer.cs`
 3. `RuriLib/Models/Jobs/JobLifecycleService.cs`
 4. `RuriLib/Models/Jobs/Execution/`
-5. `Flux.Shared/Services/JobOrchestrator.cs`
-6. `Flux.Shared/Services/JobProjectionService.cs`
-7. `Flux.Shared/Services/JobEventSubscriptionService.cs`
+5. `RuriLib/Models/Jobs/Execution/WorkItemFactory.cs`
+6. `RuriLib/Models/Jobs/Execution/JobResultProcessor.cs`
+7. `RuriLib/Models/Jobs/Execution/JobResourceScope.cs`
+8. `Flux.Shared/Services/JobOrchestrator.cs`
+9. `Flux.Shared/Services/JobProjectionService.cs`
+10. `Flux.Shared/Services/JobEventSubscriptionService.cs`
 
 ### Config execution / debugging flow
 
 1. `RuriLib/Models/Debugger/ConfigDebugger.cs`
-2. `RuriLib/Helpers/Transpilers/`
-3. `RuriLib/Models/Blocks/`
-4. `RuriLib/Blocks/`
+2. `RuriLib/Models/Scripting/ScriptPreparationService.cs`
+3. `RuriLib/Models/Bots/BotSessionFactory.cs`
+4. `RuriLib/Helpers/Transpilers/`
+5. `RuriLib/Models/Blocks/`
+6. `RuriLib/Blocks/`
 
 ### Bot state / providers
 
@@ -138,6 +143,8 @@ For recently split `Flux.Native` pages, start from the shell page and then move 
 
 Recent runtime simplifications already in place:
 - Job initialization and lifecycle were extracted from `MultiRunJob`.
+- `MultiRunJob` now delegates work-item creation, result propagation, hit/stats updates, and runtime-owned cleanup to `WorkItemFactory`, `JobResultProcessor`, and `JobResourceScope`.
+- Shared runtime script preparation and bot/session setup now flow through `ScriptPreparationService` and `BotSessionFactory`, used by `JobInitializer`, `WorkItemFactory`, and `ConfigDebugger`.
 - Job projection and event subscriptions were extracted from `JobOrchestrator`.
 - Desktop job create/edit/clone/delete and job option loading now go through `Flux.Shared/Services/JobOrchestrator.cs`; `Flux.Native` jobs UI should not persist jobs or deserialize job options directly.
 - HTTP request execution is now centered on shared pipeline logic in `HttpRequestHandler`.
@@ -227,10 +234,15 @@ rg -n "ConfigDebugger" RuriLib
 - `RuriLib/Functions/Http/HttpRequestHandler.cs`
 - `RuriLib/Functions/Http/HttpFactory.cs`
 - `RuriLib/Models/Bots/BotData.cs`
+- `RuriLib/Models/Bots/BotSessionFactory.cs`
 - `RuriLib/Models/Debugger/ConfigDebugger.cs`
 - `RuriLib/Models/Jobs/MultiRunJob.cs`
 - `RuriLib/Models/Jobs/JobInitializer.cs`
 - `RuriLib/Models/Jobs/JobLifecycleService.cs`
+- `RuriLib/Models/Jobs/Execution/WorkItemFactory.cs`
+- `RuriLib/Models/Jobs/Execution/JobResultProcessor.cs`
+- `RuriLib/Models/Jobs/Execution/JobResourceScope.cs`
+- `RuriLib/Models/Scripting/ScriptPreparationService.cs`
 - `Flux.Shared/Services/JobOrchestrator.cs`
 - `Flux.Shared/Services/JobProjectionService.cs`
 - `Flux.Shared/Services/JobEventSubscriptionService.cs`

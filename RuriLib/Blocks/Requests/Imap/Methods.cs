@@ -1,19 +1,15 @@
 ﻿using MailKit;
 using MailKit.Net.Imap;
-using MailKit.Net.Proxy;
 using MailKit.Search;
 using RuriLib.Attributes;
-using RuriLib.Functions.Http;
 using RuriLib.Functions.Imap;
-using RuriLib.Functions.Networking;
-using RuriLib.Http.Models;
+using RuriLib.Functions.Mail;
 using RuriLib.Logging;
 using RuriLib.Models.Bots;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -32,7 +28,7 @@ namespace RuriLib.Blocks.Requests.Imap
         {
             data.Logger.LogHeader();
 
-            var protocolLogger = InitLogger(data);
+            var protocolLogger = MailAutoConnectHelper.InitLogger(data, "imapLoggerStream", "imapLogger");
 
             var client = new ImapClient(protocolLogger)
             {
@@ -42,204 +38,19 @@ namespace RuriLib.Blocks.Requests.Imap
 
             if (data.UseProxy && data.Proxy != null)
             {
-                client.ProxyClient = MapProxyClient(data);
+                client.ProxyClient = MailAutoConnectHelper.MapProxyClient(data);
             }
 
-            data.SetObject("imapClient", client);
-
-            var domain = email.Split('@')[1];
-
-            // Try the entries from imapdomains.dat
-            var candidates = (await data.Providers.EmailDomains.GetImapServers(domain).ConfigureAwait(false)).ToList();
-
-            foreach (var c in candidates)
+            await MailAutoConnectHelper.AutoConnectAsync(data, client, email, new MailAutoConnectOptions<ImapClient>
             {
-                var success = await TryConnect(data, client, domain, c).ConfigureAwait(false);
-
-                if (success)
-                {
-                    return;
-                }
-            }
-
-            // Thunderbird autoconfig
-            candidates.Clear();
-            var thunderbirdUrl = $"{"https"}://live.mozillamessaging.com/autoconfig/v1.1/{domain}";
-            try
-            {
-                var xml = await GetString(data, thunderbirdUrl).ConfigureAwait(false);
-                candidates = ImapAutoconfig.Parse(xml);
-                data.Logger.Log($"Queried {thunderbirdUrl} and got {candidates.Count} server(s)", LogColors.DarkOrchid);
-            }
-            catch
-            {
-                data.Logger.Log($"Failed to query {thunderbirdUrl}", LogColors.DarkOrchid);
-            }
-
-            foreach (var c in candidates)
-            {
-                var success = await TryConnect(data, client, domain, c).ConfigureAwait(false);
-
-                if (success)
-                {
-                    return;
-                }
-            }
-
-            // Site autoconfig
-            candidates.Clear();
-            var autoconfigUrl = $"https://autoconfig.{domain}/mail/config-v1.1.xml?emailaddress={email}";
-            var autoconfigUrlUnsecure = $"http://autoconfig.{domain}/mail/config-v1.1.xml?emailaddress={email}";
-            try
-            {
-                string xml;
-
-                try
-                {
-                    xml = await GetString(data, autoconfigUrl).ConfigureAwait(false);
-                }
-                catch
-                {
-                    xml = await GetString(data, autoconfigUrlUnsecure).ConfigureAwait(false);
-                }
-
-                candidates = ImapAutoconfig.Parse(xml);
-                data.Logger.Log($"Queried {autoconfigUrl} and got {candidates.Count} server(s)", LogColors.DarkOrchid);
-            }
-            catch
-            {
-                data.Logger.Log($"Failed to query {autoconfigUrl} (both https and http)", LogColors.DarkOrchid);
-            }
-
-            foreach (var c in candidates)
-            {
-                var success = await TryConnect(data, client, domain, c).ConfigureAwait(false);
-
-                if (success)
-                {
-                    return;
-                }
-            }
-
-            // Site well-known
-            candidates.Clear();
-            var wellKnownUrl = $"https://{domain}/.well-known/autoconfig/mail/config-v1.1.xml";
-            var wellKnownUrlUnsecure = $"http://{domain}/.well-known/autoconfig/mail/config-v1.1.xml";
-            try
-            {
-                string xml;
-
-                try
-                {
-                    xml = await GetString(data, wellKnownUrl).ConfigureAwait(false);
-                }
-                catch
-                {
-                    xml = await GetString(data, wellKnownUrlUnsecure).ConfigureAwait(false);
-                }
-
-                candidates = ImapAutoconfig.Parse(xml);
-                data.Logger.Log($"Queried {wellKnownUrl} and got {candidates.Count} server(s)", LogColors.DarkOrchid);
-            }
-            catch
-            {
-                data.Logger.Log($"Failed to query {wellKnownUrl} (both https and http)", LogColors.DarkOrchid);
-            }
-
-            foreach (var c in candidates)
-            {
-                var success = await TryConnect(data, client, domain, c).ConfigureAwait(false);
-
-                if (success)
-                {
-                    return;
-                }
-            }
-
-            // Try the domain itself and possible subdomains
-            candidates.Clear();
-            candidates.Add(new HostEntry(domain, 993));
-            candidates.Add(new HostEntry(domain, 143));
-
-            foreach (var sub in subdomains)
-            {
-                candidates.Add(new HostEntry($"{sub}.{domain}", 993));
-                candidates.Add(new HostEntry($"{sub}.{domain}", 143));
-            }
-
-            foreach (var c in candidates)
-            {
-                var success = await TryConnect(data, client, domain, c).ConfigureAwait(false);
-
-                if (success)
-                {
-                    return;
-                }
-            }
-
-            // Try MX records
-            candidates.Clear();
-            try
-            {
-                var mxRecords = await DnsLookup.FromGoogleAsync(domain, "MX", data.Proxy, 30000, data.CancellationToken).ConfigureAwait(false);
-                mxRecords.ForEach(r =>
-                {
-                    candidates.Add(new HostEntry(r, 993));
-                    candidates.Add(new HostEntry(r, 143));
-                });
-
-                data.Logger.Log($"Queried the MX records and got {candidates.Count} server(s)", LogColors.DarkOrchid);
-            }
-            catch
-            {
-                data.Logger.Log($"Failed to query the MX records", LogColors.DarkOrchid);
-            }
-
-            foreach (var c in candidates)
-            {
-                var success = await TryConnect(data, client, domain, c).ConfigureAwait(false);
-
-                if (success)
-                {
-                    return;
-                }
-            }
-
-            throw new Exception("Exhausted all possibilities, failed to connect!");
-        }
-
-        private static async Task<bool> TryConnect(BotData data, ImapClient client, string domain, HostEntry entry)
-        {
-            data.Logger.Log($"Trying {entry.Host} on port {entry.Port}...", LogColors.DarkOrchid);
-
-            try
-            {
-                await client.ConnectAsync(entry.Host, entry.Port, MailKit.Security.SecureSocketOptions.Auto, data.CancellationToken).ConfigureAwait(false);
-                data.Logger.Log($"Connected! SSL/TLS: {client.IsSecure}", LogColors.DarkOrchid);
-                await data.Providers.EmailDomains.TryAddImapServer(domain, entry).ConfigureAwait(false);
-                return true;
-            }
-            catch
-            {
-                data.Logger.Log($"Failed!", LogColors.DarkOrchid);
-            }
-
-            return false;
-        }
-
-        private static async Task<string> GetString(BotData data, string url)
-        {
-            using var httpClient = HttpFactory.GetRLHttpClient(data.Proxy, new HttpOptions
-            {
-                ConnectTimeout = TimeSpan.FromMilliseconds(30000),
-                ReadWriteTimeout = TimeSpan.FromMilliseconds(30000)
-            });
-
-            using var request = new HttpRequest();
-            request.Uri = new Uri(url);
-
-            using var response = await httpClient.SendAsync(request, data.CancellationToken).ConfigureAwait(false);
-            return await response.Content.ReadAsStringAsync(data.CancellationToken).ConfigureAwait(false);
+                ClientObjectKey = "imapClient",
+                LogColor = LogColors.DarkOrchid,
+                CandidatePorts = new[] { 993, 143 },
+                CandidateSubdomains = subdomains,
+                GetKnownServersAsync = data.Providers.EmailDomains.GetImapServers,
+                CacheConnectedServerAsync = data.Providers.EmailDomains.TryAddImapServer,
+                ParseAutoconfig = ImapAutoconfig.Parse
+            }).ConfigureAwait(false);
         }
 
         [Block("Connects to an IMAP server")]
@@ -247,7 +58,7 @@ namespace RuriLib.Blocks.Requests.Imap
         {
             data.Logger.LogHeader();
 
-            var protocolLogger = InitLogger(data);
+            var protocolLogger = MailAutoConnectHelper.InitLogger(data, "imapLoggerStream", "imapLogger");
 
             var client = new ImapClient(protocolLogger)
             {
@@ -257,7 +68,7 @@ namespace RuriLib.Blocks.Requests.Imap
 
             if (data.UseProxy && data.Proxy != null)
             {
-                client.ProxyClient = MapProxyClient(data);
+                client.ProxyClient = MailAutoConnectHelper.MapProxyClient(data);
             }
 
             data.SetObject("imapClient", client);
@@ -571,33 +382,6 @@ namespace RuriLib.Blocks.Requests.Imap
         private static void SetCurrentFolder(BotData data, IMailFolder folder)
             => data.SetObject("imapCurrentFolder", folder);
 
-        private static IProxyClient MapProxyClient(BotData data)
-        {
-            if (!data.Proxy.NeedsAuthentication)
-            {
-                return data.Proxy.Type switch
-                {
-                    Models.Proxies.ProxyType.Http => new HttpProxyClient(data.Proxy.Host, data.Proxy.Port),
-                    Models.Proxies.ProxyType.Socks4 => new Socks4Client(data.Proxy.Host, data.Proxy.Port),
-                    Models.Proxies.ProxyType.Socks4a => new Socks4aClient(data.Proxy.Host, data.Proxy.Port),
-                    Models.Proxies.ProxyType.Socks5 => new Socks5Client(data.Proxy.Host, data.Proxy.Port),
-                    _ => throw new NotImplementedException(),
-                };
-            }
-            
-            var credentials = new NetworkCredential(data.Proxy.Username, data.Proxy.Password);
-
-            return data.Proxy.Type switch
-            {
-                Models.Proxies.ProxyType.Http => new HttpProxyClient(data.Proxy.Host, data.Proxy.Port, credentials),
-                Models.Proxies.ProxyType.Socks4 => new Socks4Client(data.Proxy.Host, data.Proxy.Port, credentials),
-                Models.Proxies.ProxyType.Socks4a => new Socks4aClient(data.Proxy.Host, data.Proxy.Port, credentials),
-                Models.Proxies.ProxyType.Socks5 => new Socks5Client(data.Proxy.Host, data.Proxy.Port, credentials),
-                _ => throw new NotImplementedException(),
-            };
-
-        }
-
         private static SearchTerm MapSearchTerm(SearchField field) => field switch
         {
             SearchField.To => SearchTerm.ToContains,
@@ -606,15 +390,5 @@ namespace RuriLib.Blocks.Requests.Imap
             SearchField.Body => SearchTerm.BodyContains,
             _ => throw new NotImplementedException()
         };
-
-        private static ProtocolLogger InitLogger(BotData data)
-        {
-            var ms = new MemoryStream();
-            var protocolLogger = new ProtocolLogger(ms, true);
-            data.SetObject("imapLoggerStream", ms);
-            data.SetObject("imapLogger", protocolLogger);
-
-            return protocolLogger;
-        }
     }
 }

@@ -147,7 +147,7 @@ The codebase already contains a few important simplifications:
 - `BlockDescriptor` now owns block instance creation through a registered factory, so `BlockFactory` stays thin
 - Legacy `HttpCloak` HTTP block settings are normalized to `TlsClient` during load/transpile
 - `HttpRequestBlockInstance` and `ParseBlockInstance` are split into core state, LoliCode parsing/serialization, and C# emission partials
-- Puppeteer browser blocks now mirror the Playwright browser split across `Methods.cs`, `Methods.Helpers.cs`, `Methods.Cleanup.cs`, and `Methods.Stealth.cs`
+- Puppeteer browser blocks are now split across `Methods.cs`, `Methods.Helpers.cs`, `Methods.Cleanup.cs`, `Methods.Launch.cs`, and `Methods.LaunchOptions.cs`
 - Runtime/global settings and config-scoped settings now use distinct model names: `GlobalGeneralSettings`/`GlobalProxySettings` and `ConfigGeneralSettings`/`ConfigProxySettings`
 - `Monitor` and `ConfigStacker` in `Flux.Native` are now shell pages with feature-specific controls/viewmodels
 - `Home` is now a thin page over `Flux.Native/ViewModels/Pages/HomeViewModel.cs`, with dashboard data coming from `Flux.Shared/Abstractions/IDashboardService.cs`

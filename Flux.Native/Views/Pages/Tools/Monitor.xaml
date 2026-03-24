@@ -91,11 +91,6 @@
                                     Margin="0,0,10,10"
                                     Tag="Line Reducer"
                                     Click="NavigateToToolCard"/>
-                            <Button Style="{StaticResource StyledButton}"
-                                    Content="Performance bench"
-                                    Margin="0,0,10,10"
-                                    Tag="Performance Benchmark"
-                                    Click="NavigateToToolCard"/>
                         </WrapPanel>
 
                         <TextBlock Margin="0,10,0,0"
@@ -167,12 +162,6 @@
                                                          MaxWidth="420"
                                                          Margin="0,0,16,16"
                                                          DataContext="{Binding LineReducerTool}"/>
-                    <toolControls:PerformanceBenchmarkToolControl x:Name="BenchmarkToolCard"
-                                                                  Width="{Binding ElementName=ToolCardPanel, Path=ItemWidth}"
-                                                                  MinWidth="300"
-                                                                  MaxWidth="420"
-                                                                  Margin="0,0,16,16"
-                                                                  DataContext="{Binding PerformanceBenchmarkTool}"/>
                     <TextBlock Style="{StaticResource CaptionTextStyle}"
                                Foreground="{DynamicResource Modern.Error}"
                                TextWrapping="Wrap"

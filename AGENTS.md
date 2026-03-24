@@ -152,7 +152,7 @@ Recent runtime simplifications already in place:
 - `BlockDescriptor` now owns block instance creation through a registered factory, so `BlockFactory` should stay thin and not grow new descriptor-type switches.
 - Legacy `HttpCloak` HTTP block settings now normalize to `TlsClient` during load/transpile.
 - `HttpRequestBlockInstance` and `ParseBlockInstance` are split into core state, LoliCode parsing/serialization, and C# emission partials.
-- Puppeteer browser blocks now mirror the Playwright browser split across `RuriLib/Blocks/Puppeteer/Browser/Methods.cs`, `Methods.Helpers.cs`, `Methods.Cleanup.cs`, and `Methods.Stealth.cs`.
+- Puppeteer browser blocks are now split across `RuriLib/Blocks/Puppeteer/Browser/Methods.cs`, `Methods.Helpers.cs`, `Methods.Cleanup.cs`, `Methods.Launch.cs`, and `Methods.LaunchOptions.cs`.
 - Runtime/global settings and config-scoped settings now use distinct model names: `GlobalGeneralSettings`/`GlobalProxySettings` and `ConfigGeneralSettings`/`ConfigProxySettings`.
 
 Recent desktop refactors already in place:

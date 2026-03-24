@@ -28,8 +28,7 @@ namespace Flux.Native.ViewModels.Pages
                 new BookmarkletToolViewModel(),
                 new TextCleanerToolViewModel(),
                 new FirefoxToolViewModel(),
-                new LineReducerToolViewModel(),
-                new PerformanceBenchmarkToolViewModel())
+                new LineReducerToolViewModel())
         {
         }
 
@@ -38,15 +37,13 @@ namespace Flux.Native.ViewModels.Pages
             BookmarkletToolViewModel bookmarkletTool,
             TextCleanerToolViewModel textCleanerTool,
             FirefoxToolViewModel firefoxTool,
-            LineReducerToolViewModel lineReducerTool,
-            PerformanceBenchmarkToolViewModel performanceBenchmarkTool)
+            LineReducerToolViewModel lineReducerTool)
         {
             OtpTool = otpTool ?? throw new ArgumentNullException(nameof(otpTool));
             BookmarkletTool = bookmarkletTool ?? throw new ArgumentNullException(nameof(bookmarkletTool));
             TextCleanerTool = textCleanerTool ?? throw new ArgumentNullException(nameof(textCleanerTool));
             FirefoxTool = firefoxTool ?? throw new ArgumentNullException(nameof(firefoxTool));
             LineReducerTool = lineReducerTool ?? throw new ArgumentNullException(nameof(lineReducerTool));
-            PerformanceBenchmarkTool = performanceBenchmarkTool ?? throw new ArgumentNullException(nameof(performanceBenchmarkTool));
 
             toolCards = new ToolCardViewModelBase[]
             {
@@ -54,8 +51,7 @@ namespace Flux.Native.ViewModels.Pages
                 BookmarkletTool,
                 TextCleanerTool,
                 FirefoxTool,
-                LineReducerTool,
-                PerformanceBenchmarkTool
+                LineReducerTool
             };
 
             Categories = new[] { AllCategoriesLabel }
@@ -75,8 +71,6 @@ namespace Flux.Native.ViewModels.Pages
         public FirefoxToolViewModel FirefoxTool { get; }
 
         public LineReducerToolViewModel LineReducerTool { get; }
-
-        public PerformanceBenchmarkToolViewModel PerformanceBenchmarkTool { get; }
 
         public IReadOnlyList<string> Categories { get; }
 
@@ -169,7 +163,6 @@ namespace Flux.Native.ViewModels.Pages
             OtpTool.Dispose();
             FirefoxTool.Dispose();
             LineReducerTool.Dispose();
-            PerformanceBenchmarkTool.Dispose();
         }
 
         private void ApplyToolFilters()

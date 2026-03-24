@@ -141,11 +141,20 @@ namespace RuriLib.Functions.Crypto
         /// </summary>
         /// <param name="input">The byte array for which to calculate the hash</param>
         /// <returns>The MD5 digest.</returns>
-        public static byte[] MD5(byte[] input)
+        private static byte[] ComputeHash(byte[] input, Func<HashAlgorithm> createAlgorithm)
         {
-            using var md5 = System.Security.Cryptography.MD5.Create();
-            return md5.ComputeHash(input);
+            using var algorithm = createAlgorithm();
+            return algorithm.ComputeHash(input);
         }
+
+        private static byte[] ComputeHmac(byte[] input, byte[] key, Func<byte[], HMAC> createHmac)
+        {
+            using var hmac = createHmac(key);
+            return hmac.ComputeHash(input);
+        }
+
+        public static byte[] MD5(byte[] input)
+            => ComputeHash(input, System.Security.Cryptography.MD5.Create);
 
         /// <summary>
         /// Calculates an MD5 hash signature.
@@ -154,10 +163,7 @@ namespace RuriLib.Functions.Crypto
         /// <param name="key">The secret key to use to sign the message</param>
         /// <returns>The HMAC signature.</returns>
         public static byte[] HMACMD5(byte[] input, byte[] key)
-        {
-            using var hmac = new HMACMD5(key);
-            return hmac.ComputeHash(input);
-        }
+            => ComputeHmac(input, key, static hmacKey => new System.Security.Cryptography.HMACMD5(hmacKey));
 
         /// <summary>
         /// Hashes a byte array through SHA-1.
@@ -165,10 +171,7 @@ namespace RuriLib.Functions.Crypto
         /// <param name="input">The byte array for which to calculate the hash</param>
         /// <returns>The SHA-1 digest.</returns>
         public static byte[] SHA1(byte[] input)
-        {
-            using var sha1 = System.Security.Cryptography.SHA1.Create();
-            return sha1.ComputeHash(input);
-        }
+            => ComputeHash(input, System.Security.Cryptography.SHA1.Create);
 
         /// <summary>
         /// Calculates a SHA-1 hash signature.
@@ -177,10 +180,7 @@ namespace RuriLib.Functions.Crypto
         /// <param name="key">The secret key to use to sign the message</param>
         /// <returns>The HMAC signature.</returns>
         public static byte[] HMACSHA1(byte[] input, byte[] key)
-        {
-            using var hmac = new HMACSHA1(key);
-            return hmac.ComputeHash(input);
-        }
+            => ComputeHmac(input, key, static hmacKey => new System.Security.Cryptography.HMACSHA1(hmacKey));
 
         /// <summary>
         /// Hashes a byte array through SHA-256.
@@ -188,10 +188,7 @@ namespace RuriLib.Functions.Crypto
         /// <param name="input">The byte array for which to calculate the hash</param>
         /// <returns>The SHA-256 digest.</returns>
         public static byte[] SHA256(byte[] input)
-        {
-            using var sha256 = System.Security.Cryptography.SHA256.Create();
-            return sha256.ComputeHash(input);
-        }
+            => ComputeHash(input, System.Security.Cryptography.SHA256.Create);
         
         /// <summary>
         /// Overload for method below that calculates a SHA-256 hash signature.
@@ -208,10 +205,7 @@ namespace RuriLib.Functions.Crypto
         /// <param name="key">The secret key to use to sign the message</param>
         /// <returns>The HMAC signature.</returns>
         public static byte[] HMACSHA256(byte[] input, byte[] key)
-        {
-            using var hmac = new HMACSHA256(key);
-            return hmac.ComputeHash(input);
-        }
+            => ComputeHmac(input, key, static hmacKey => new System.Security.Cryptography.HMACSHA256(hmacKey));
 
         /// <summary>
         /// Hashes a byte array through SHA-384.
@@ -219,10 +213,7 @@ namespace RuriLib.Functions.Crypto
         /// <param name="input">The byte array for which to calculate the hash</param>
         /// <returns>The SHA-384 digest.</returns>
         public static byte[] SHA384(byte[] input)
-        {
-            using var sha384 = System.Security.Cryptography.SHA384.Create();
-            return sha384.ComputeHash(input);
-        }
+            => ComputeHash(input, System.Security.Cryptography.SHA384.Create);
 
         /// <summary>
         /// Calculates a SHA-384 hash signature.
@@ -231,10 +222,7 @@ namespace RuriLib.Functions.Crypto
         /// <param name="key">The secret key to use to sign the message</param>
         /// <returns>The HMAC signature.</returns>
         public static byte[] HMACSHA384(byte[] input, byte[] key)
-        {
-            using var hmac = new HMACSHA384(key);
-            return hmac.ComputeHash(input);
-        }
+            => ComputeHmac(input, key, static hmacKey => new System.Security.Cryptography.HMACSHA384(hmacKey));
 
         /// <summary>
         /// Hashes a byte array through SHA-512.
@@ -242,10 +230,7 @@ namespace RuriLib.Functions.Crypto
         /// <param name="input">The byte array for which to calculate the hash</param>
         /// <returns>The SHA-512 digest.</returns>
         public static byte[] SHA512(byte[] input)
-        {
-            using var sha512 = System.Security.Cryptography.SHA512.Create();
-            return sha512.ComputeHash(input);
-        }
+            => ComputeHash(input, System.Security.Cryptography.SHA512.Create);
 
         /// <summary>
         /// Calculates a SHA-512 hash signature.
@@ -254,10 +239,7 @@ namespace RuriLib.Functions.Crypto
         /// <param name="key">The secret key to use to sign the message</param>
         /// <returns>The HMAC signature.</returns>
         public static byte[] HMACSHA512(byte[] input, byte[] key)
-        {
-            using var hmac = new HMACSHA512(key);
-            return hmac.ComputeHash(input);
-        }
+            => ComputeHmac(input, key, static hmacKey => new System.Security.Cryptography.HMACSHA512(hmacKey));
 
         /// <summary>
         /// Converts from the Hash enum to the HashAlgorithmName default struct.

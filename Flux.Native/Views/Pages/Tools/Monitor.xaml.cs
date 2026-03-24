@@ -71,7 +71,6 @@ public partial class Monitor : Page
             "Text Cleaner" => TextCleanerToolCard,
             "Firefox Switcher" => FirefoxToolCard,
             "Line Reducer" => LineReducerToolCard,
-            "Performance Benchmark" => BenchmarkToolCard,
             _ => null
         };
     }

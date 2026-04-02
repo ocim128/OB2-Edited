@@ -185,6 +185,7 @@ namespace RuriLib.Functions.Http
             {
                 httpHandler.MaxAutomaticRedirections = NormalizeMaxAutomaticRedirections(options.MaxNumberOfRedirects);
                 httpHandler.AllowAutoRedirect = options.AutoRedirect;
+                httpHandler.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
                 httpHandler.SslProtocols = ToSslProtocols(options.SecurityProtocol);
                 httpHandler.CheckCertificateRevocationList = options.CertRevocationMode == X509RevocationMode.Online;
                 httpHandler.UseCookies = cookieContainer != null;
@@ -194,16 +195,13 @@ namespace RuriLib.Functions.Http
                     httpHandler.CookieContainer = cookieContainer;
                 }
 
-                // Hack to modify the SSL options
-                var underlyingHandler = (dynamic)httpHandler.GetType().InvokeMember("_underlyingHandler",
-                    BindingFlags.NonPublic | BindingFlags.GetField | BindingFlags.Instance, null, httpHandler, null);
-
-                underlyingHandler.SslOptions = sslOptions;
+                TryApplySslOptions(httpHandler, sslOptions);
             }
             else if (handler is SocketsHttpHandler socksHandler)
             {
                 socksHandler.MaxAutomaticRedirections = NormalizeMaxAutomaticRedirections(options.MaxNumberOfRedirects);
                 socksHandler.AllowAutoRedirect = options.AutoRedirect;
+                socksHandler.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
                 socksHandler.SslOptions = sslOptions;
                 socksHandler.ConnectTimeout = NormalizeHandlerTimeout(options.ConnectTimeout, nameof(options.ConnectTimeout));
                 socksHandler.ResponseDrainTimeout = NormalizeHandlerTimeout(options.ReadWriteTimeout, nameof(options.ReadWriteTimeout));
@@ -220,6 +218,30 @@ namespace RuriLib.Functions.Http
 
         private static TimeSpan NormalizeHttpClientTimeout(TimeSpan timeout)
             => timeout == TimeSpan.Zero ? Timeout.InfiniteTimeSpan : NormalizeHandlerTimeout(timeout, nameof(timeout));
+
+        private static void TryApplySslOptions(HttpClientHandler httpHandler, SslClientAuthenticationOptions sslOptions)
+        {
+            try
+            {
+                var field = httpHandler.GetType().GetField(
+                    "_underlyingHandler",
+                    BindingFlags.NonPublic | BindingFlags.Instance);
+                var underlyingHandler = field?.GetValue(httpHandler);
+                var sslOptionsProperty = underlyingHandler?.GetType().GetProperty(
+                    "SslOptions",
+                    BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+
+                if (sslOptionsProperty?.CanWrite == true)
+                {
+                    sslOptionsProperty.SetValue(underlyingHandler, sslOptions);
+                }
+            }
+            catch
+            {
+                // HttpClientHandler private implementation differs by runtime.
+                // When the internal handler is unavailable, keep the public settings already applied above.
+            }
+        }
 
         private static int NormalizeMaxAutomaticRedirections(int maxRedirects)
             => maxRedirects <= 0 ? 1 : maxRedirects;

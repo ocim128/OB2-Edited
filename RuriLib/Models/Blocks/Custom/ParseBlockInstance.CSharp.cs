@@ -147,9 +147,9 @@ namespace RuriLib.Models.Blocks.Custom
                 case ParseMode.Regex:
                     writer.Write($", {CSharpWriter.FromSetting(GetCaseSetting(overrideSettings, "pattern"))}");
                     writer.Write($", {CSharpWriter.FromSetting(GetCaseSetting(overrideSettings, "outputFormat"))}");
+                    writer.Write($", {CSharpWriter.FromSetting(GetCaseSetting(overrideSettings, "multiLine"))}");
                     writer.Write($", {CSharpWriter.FromSetting(GetCaseSetting(overrideSettings, "prefix"))}");
                     writer.Write($", {CSharpWriter.FromSetting(GetCaseSetting(overrideSettings, "suffix"))}");
-                    writer.Write($", {CSharpWriter.FromSetting(GetCaseSetting(overrideSettings, "multiLine"))}");
                     writer.Write($", {CSharpWriter.FromSetting(GetCaseSetting(overrideSettings, "urlEncodeOutput"))}");
                     break;
             }

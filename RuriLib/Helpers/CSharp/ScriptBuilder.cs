@@ -123,6 +123,13 @@ namespace RuriLib.Helpers.CSharp
             // Include optimization level
             sb.Append((int)optimizationLevel);
             sb.Append('|');
+
+            // Include the current runtime assembly build identity so stale compiled scripts
+            // are not reused across local rebuilds with API-shape changes.
+            sb.Append(_ruriLibAssembly.FullName);
+            sb.Append('|');
+            sb.Append(_ruriLibAssembly.ManifestModule.ModuleVersionId);
+            sb.Append('|');
             
             // Include custom usings
             if (settings?.CustomUsings != null)
@@ -139,6 +146,8 @@ namespace RuriLib.Helpers.CSharp
             foreach (var plugin in plugins.OrderBy(p => p.FullName))
             {
                 sb.Append(plugin.FullName);
+                sb.Append('@');
+                sb.Append(plugin.ManifestModule.ModuleVersionId);
                 sb.Append(',');
             }
             

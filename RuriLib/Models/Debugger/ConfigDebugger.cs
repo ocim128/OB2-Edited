@@ -5,6 +5,7 @@ using Microsoft.CodeAnalysis.Scripting;
 using Newtonsoft.Json;
 using PuppeteerSharp;
 using RuriLib.Exceptions;
+using RuriLib.Extensions;
 using RuriLib.Helpers;
 using RuriLib.Helpers.Blocks;
 using RuriLib.Helpers.CSharp;

@@ -13,46 +13,45 @@ namespace RuriLib.Functions.Http
 {
     internal class HttpClientRequestHandler : HttpRequestHandler
     {
-        private static readonly HttpClient sharedClient = new(new HttpClientHandler
-        {
-            AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate,
-            AllowAutoRedirect = false,
-            UseCookies = false
-        });
-
         public override Task HttpRequestStandard(BotData data, StandardHttpRequestOptions options)
             => ExecutePipelineAsync(
                 data,
                 CreateNormalizedRequest(data, options),
                 "SystemNet",
-                (request, token) => SendAsync(data, request, token));
+                (request, token) => SendAsync(data, options, request, token));
 
         public override Task HttpRequestRaw(BotData data, RawHttpRequestOptions options)
             => ExecutePipelineAsync(
                 data,
                 CreateNormalizedRequest(data, options),
                 "SystemNet",
-                (request, token) => SendAsync(data, request, token));
+                (request, token) => SendAsync(data, options, request, token));
 
         public override Task HttpRequestBasicAuth(BotData data, BasicAuthHttpRequestOptions options)
             => ExecutePipelineAsync(
                 data,
                 CreateNormalizedRequest(data, options),
                 "SystemNet",
-                (request, token) => SendAsync(data, request, token));
+                (request, token) => SendAsync(data, options, request, token));
 
         public override Task HttpRequestMultipart(BotData data, MultipartHttpRequestOptions options)
             => ExecutePipelineAsync(
                 data,
                 CreateNormalizedRequest(data, options),
                 "SystemNet",
-                (request, token) => SendAsync(data, request, token));
+                (request, token) => SendAsync(data, options, request, token));
 
         private static async Task<NormalizedHttpResponse> SendAsync(
             BotData data,
+            Options.HttpRequestOptions options,
             NormalizedHttpRequest request,
             CancellationToken cancellationToken)
         {
+            var clientOptions = GetClientOptions(data, options);
+            clientOptions.AutoRedirect = false;
+            clientOptions.MaxNumberOfRedirects = 0;
+
+            using var client = HttpFactory.GetHttpClient(data.UseProxy ? data.Proxy : null, clientOptions, null);
             FileStream? fileStream = null;
             using var content = CreateHttpContent(data, request, out fileStream);
             using var message = new HttpRequestMessage
@@ -77,7 +76,7 @@ namespace RuriLib.Functions.Http
 
             try
             {
-                using var response = await sharedClient.SendAsync(
+                using var response = await client.SendAsync(
                     message,
                     request.ReadResponseContent ? HttpCompletionOption.ResponseContentRead : HttpCompletionOption.ResponseHeadersRead,
                     cancellationToken).ConfigureAwait(false);

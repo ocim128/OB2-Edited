@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Runtime.ExceptionServices;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Linq;
@@ -42,10 +43,9 @@ namespace RuriLib.Models.Scripting
             {
                 instance = constructor.Invoke(new object[] { submissionArray });
             }
-            catch (Exception)
+            catch (TargetInvocationException ex) when (ex.InnerException != null)
             {
-                // Maybe it isn't wrapping globals in an array? 
-                // No, standard script submission takes object[]
+                ExceptionDispatchInfo.Capture(ex.InnerException).Throw();
                 throw;
             }
 
@@ -54,7 +54,17 @@ namespace RuriLib.Models.Scripting
             
             if (initializeMethod != null)
             {
-                var result = initializeMethod.Invoke(instance, null);
+                object result;
+                try
+                {
+                    result = initializeMethod.Invoke(instance, null);
+                }
+                catch (TargetInvocationException ex) when (ex.InnerException != null)
+                {
+                    ExceptionDispatchInfo.Capture(ex.InnerException).Throw();
+                    throw;
+                }
+
                 if (result is Task t)
                 {
                     await t.ConfigureAwait(false);

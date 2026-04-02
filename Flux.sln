@@ -44,6 +44,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TlsClient.Native", "Librari
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TlsClient.Core", "Libraries\TlsClient.NET\src\TlsClient.Core\TlsClient.Core.csproj", "{621662C8-0BE4-4EC6-8DF6-4D64AAF8E474}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RuriLib.Tests", "RuriLib.Tests\RuriLib.Tests.csproj", "{8AF1CA36-D59C-4310-953C-56923FBA8FDF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -214,6 +216,18 @@ Global
 		{621662C8-0BE4-4EC6-8DF6-4D64AAF8E474}.Release|x64.Build.0 = Release|Any CPU
 		{621662C8-0BE4-4EC6-8DF6-4D64AAF8E474}.Release|x86.ActiveCfg = Release|Any CPU
 		{621662C8-0BE4-4EC6-8DF6-4D64AAF8E474}.Release|x86.Build.0 = Release|Any CPU
+		{8AF1CA36-D59C-4310-953C-56923FBA8FDF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8AF1CA36-D59C-4310-953C-56923FBA8FDF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8AF1CA36-D59C-4310-953C-56923FBA8FDF}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{8AF1CA36-D59C-4310-953C-56923FBA8FDF}.Debug|x64.Build.0 = Debug|Any CPU
+		{8AF1CA36-D59C-4310-953C-56923FBA8FDF}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{8AF1CA36-D59C-4310-953C-56923FBA8FDF}.Debug|x86.Build.0 = Debug|Any CPU
+		{8AF1CA36-D59C-4310-953C-56923FBA8FDF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8AF1CA36-D59C-4310-953C-56923FBA8FDF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8AF1CA36-D59C-4310-953C-56923FBA8FDF}.Release|x64.ActiveCfg = Release|Any CPU
+		{8AF1CA36-D59C-4310-953C-56923FBA8FDF}.Release|x64.Build.0 = Release|Any CPU
+		{8AF1CA36-D59C-4310-953C-56923FBA8FDF}.Release|x86.ActiveCfg = Release|Any CPU
+		{8AF1CA36-D59C-4310-953C-56923FBA8FDF}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

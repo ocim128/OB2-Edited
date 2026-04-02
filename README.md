@@ -14,6 +14,8 @@ This root README is optimized for fast orientation. If you are trying to underst
   TCP/proxy abstraction used by `RuriLib.Http`.
 - `RuriLib.Parallelization/`
   Parallel job execution primitives.
+- `RuriLib.Tests/`
+  Runtime and debugger integration tests for `RuriLib`.
 - `Flux.Shared/`
   Shared application services, job orchestration, DTO projection, notifications.
 - `Flux.Core/`
@@ -73,6 +75,8 @@ For debugger and generated execution behavior, start here:
 4. `RuriLib/Helpers/Transpilers/`
 5. `RuriLib/Models/Blocks/`
 6. `RuriLib/Blocks/`
+
+If the bug crosses generated C#, compiled script caching, debugger execution, or transport selection, add or update coverage in `RuriLib.Tests/`.
 
 ## Good Starting Points By Problem
 
@@ -195,6 +199,7 @@ Useful targeted commands:
 ```powershell
 dotnet build RuriLib/RuriLib.csproj -c Debug --no-restore
 dotnet build Flux.Shared/Flux.Shared.csproj -c Debug --no-restore
+dotnet test RuriLib.Tests/RuriLib.Tests.csproj
 dotnet test RuriLib.Http.Tests/RuriLib.Http.Tests.csproj
 dotnet test Flux.Shared.Tests/Flux.Shared.Tests.csproj
 ```

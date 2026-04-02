@@ -1,0 +1,90 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.2">
+      <ExcludeAssets></ExcludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.10.0">
+      <ExcludeAssets></ExcludeAssets>
+    </PackageReference>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" GeneratePathProperty="true">
+      <ExcludeAssets></ExcludeAssets>
+    </PackageReference>
+    <PackageReference Include="PuppeteerSharp" Version="20.2.4" GeneratePathProperty="true">
+      <ExcludeAssets></ExcludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.TestPlatform.ObjectModel" Version="17.10.0" GeneratePathProperty="true">
+      <ExcludeAssets></ExcludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.TestPlatform.TestHost" Version="17.10.0" GeneratePathProperty="true">
+      <ExcludeAssets></ExcludeAssets>
+    </PackageReference>
+    <PackageReference Include="xunit" Version="2.8.1">
+      <ExcludeAssets></ExcludeAssets>
+    </PackageReference>
+    <PackageReference Include="xunit.assert" Version="2.8.1" GeneratePathProperty="true">
+      <ExcludeAssets></ExcludeAssets>
+    </PackageReference>
+    <PackageReference Include="xunit.abstractions" Version="2.0.3" GeneratePathProperty="true">
+      <ExcludeAssets></ExcludeAssets>
+    </PackageReference>
+    <PackageReference Include="xunit.extensibility.core" Version="2.8.1" GeneratePathProperty="true">
+      <ExcludeAssets></ExcludeAssets>
+    </PackageReference>
+    <PackageReference Include="xunit.extensibility.execution" Version="2.8.1" GeneratePathProperty="true">
+      <ExcludeAssets></ExcludeAssets>
+    </PackageReference>
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.1">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+      <ExcludeAssets></ExcludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\RuriLib\RuriLib.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <Target Name="CopyTestPlatformRuntimeDependencies" AfterTargets="Build">
+    <ItemGroup>
+      <_TestPlatformRuntimeFiles Include="$(PkgMicrosoft_TestPlatform_ObjectModel)\lib\net8.0\*.dll" />
+      <_TestPlatformRuntimeFiles Include="$(PkgMicrosoft_TestPlatform_TestHost)\lib\netcoreapp3.1\*.dll" />
+      <_TestPlatformRuntimeFiles Include="$(PkgMicrosoft_TestPlatform_TestHost)\lib\netcoreapp3.1\testhost.deps.json" />
+      <_TestPlatformRuntimeFiles Include="$(PkgNewtonsoft_Json)\lib\netstandard2.0\Newtonsoft.Json.dll" />
+      <_TestPlatformRuntimeFiles Include="$(PkgPuppeteerSharp)\lib\netstandard2.0\PuppeteerSharp.dll" />
+      <_TestPlatformRuntimeFiles Include="$(Pkgxunit_assert)\lib\netstandard1.1\xunit.assert.dll" />
+      <_TestPlatformRuntimeFiles Include="$(Pkgxunit_abstractions)\lib\netstandard2.0\xunit.abstractions.dll" />
+      <_TestPlatformRuntimeFiles Include="$(Pkgxunit_extensibility_core)\lib\netstandard1.1\xunit.core.dll" />
+      <_TestPlatformRuntimeFiles Include="$(Pkgxunit_extensibility_execution)\lib\netstandard1.1\xunit.execution.dotnet.dll" />
+      <_ProjectRuntimeFiles Include="..\RuriLib\bin\$(Configuration)\net8.0\RuriLib.dll" />
+      <_ProjectRuntimeFiles Include="..\RuriLib.Http\bin\$(Configuration)\net8.0\RuriLib.Http.dll" />
+      <_ProjectRuntimeFiles Include="..\RuriLib.Proxies\bin\$(Configuration)\net8.0\RuriLib.Proxies.dll" />
+      <_ProjectRuntimeFiles Include="..\RuriLib.Parallelization\bin\$(Configuration)\net8.0\RuriLib.Parallelization.dll" />
+      <_ProjectRuntimeFiles Include="..\Libraries\TlsClient.NET\src\TlsClient.Core\bin\$(Configuration)\net8.0\TlsClient.Core.dll" />
+      <_ProjectRuntimeFiles Include="..\Libraries\TlsClient.NET\src\TlsClient.Native\bin\$(Configuration)\net8.0\TlsClient.Native.dll" />
+    </ItemGroup>
+
+    <Copy
+      SourceFiles="@(_TestPlatformRuntimeFiles)"
+      DestinationFolder="$(OutputPath)"
+      SkipUnchangedFiles="true" />
+
+    <Copy
+      SourceFiles="@(_ProjectRuntimeFiles)"
+      DestinationFolder="$(OutputPath)"
+      SkipUnchangedFiles="true" />
+  </Target>
+
+</Project>

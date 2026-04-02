@@ -21,6 +21,8 @@ If a task only concerns runtime logic, jobs, blocks, proxies, or HTTP, start in 
   Custom HTTP transport implementation used by `HttpLibrary.RuriLibHttp`.
 - `RuriLib.Proxies/`
   TCP/proxy connection layer used by `RuriLib.Http`.
+- `RuriLib.Tests/`
+  Runtime/debugger integration tests for `RuriLib`, including compiled script and HTTP execution regressions.
 - `Flux.Shared/`
   Shared orchestration and DTO layer used by the application shell around `RuriLib`.
 - `Flux.Core/`
@@ -70,6 +72,12 @@ Transport selection:
 4. `RuriLib/Helpers/Transpilers/`
 5. `RuriLib/Models/Blocks/`
 6. `RuriLib/Blocks/`
+
+Regression coverage for this path belongs in `RuriLib.Tests/`, especially when a bug crosses:
+- transpilation
+- compiled script cache/load
+- debugger execution
+- HTTP transport selection
 
 ### Bot state / providers
 
@@ -194,6 +202,7 @@ Useful targeted commands:
 ```powershell
 dotnet build RuriLib/RuriLib.csproj -c Debug --no-restore
 dotnet build Flux.Shared/Flux.Shared.csproj -c Debug --no-restore
+dotnet test RuriLib.Tests/RuriLib.Tests.csproj
 dotnet test RuriLib.Http.Tests/RuriLib.Http.Tests.csproj
 dotnet test Flux.Shared.Tests/Flux.Shared.Tests.csproj
 ```

@@ -173,21 +173,44 @@ namespace RuriLib.Helpers.CSharp
                 "System.Net.Security",
                 "RuriLib.Models.Blocks.Custom.HttpRequest.Multipart",
                 "RuriLib.Functions.Http.Options",
-                "Jering.Javascript.NodeJS",
-                "Jint",
                 "System.Threading",
                 "System.Threading.Tasks",
                 "System",
                 "System.Text",
                 "System.Text.RegularExpressions"
             };
+
+            AddOptionalImport("Jering.Javascript.NodeJS", "Jering.Javascript.NodeJS.INodeJSService, Jering.Javascript.NodeJS");
+            AddOptionalImport("Jint", "Jint.Engine, Jint");
             
-            // Add block category namespaces
-            if (Globals.DescriptorsRepository?.Descriptors != null)
+            try
             {
-                _standardUsings.AddRange(Globals.DescriptorsRepository.Descriptors.Values
-                    .Select(d => d.Category.Namespace)
-                    .Distinct());
+                if (Globals.DescriptorsRepository?.Descriptors != null)
+                {
+                    _standardUsings.AddRange(Globals.DescriptorsRepository.Descriptors.Values
+                        .Select(d => d.Category.Namespace)
+                        .Distinct());
+                }
+            }
+            catch
+            {
+                // Direct C# scripts can compile without descriptor-derived namespaces.
+                // Avoid failing static initialization when optional block dependencies are unavailable.
+            }
+        }
+
+        private static void AddOptionalImport(string @namespace, string typeName)
+        {
+            try
+            {
+                if (Type.GetType(typeName, throwOnError: false) is not null)
+                {
+                    _standardUsings.Add(@namespace);
+                }
+            }
+            catch
+            {
+                // Optional scripting engines should not block unrelated script compilation.
             }
         }
 

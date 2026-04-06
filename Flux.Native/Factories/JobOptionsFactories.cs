@@ -33,7 +33,17 @@ public sealed class MultiRunJobOptionsViewModelFactory : IMultiRunJobOptionsView
     }
 
     public MultiRunJobOptionsViewModel Create(MultiRunJobOptions? options = null)
-        => ActivatorUtilities.CreateInstance<MultiRunJobOptionsViewModel>(serviceProvider, options);
+    {
+        return new MultiRunJobOptionsViewModel(
+            options,
+            serviceProvider.GetRequiredService<Flux.Core.Repositories.IRecordRepository>(),
+            serviceProvider.GetRequiredService<Flux.Core.Repositories.IWordlistRepository>(),
+            serviceProvider.GetRequiredService<RuriLib.Services.RuriLibSettingsService>(),
+            serviceProvider.GetRequiredService<Flux.Core.Services.ConfigService>(),
+            serviceProvider.GetRequiredService<Flux.Core.Services.JobFactoryService>(),
+            serviceProvider.GetRequiredService<Flux.Core.Repositories.IProxyGroupRepository>()
+        );
+    }
 }
 
 public sealed class ProxyCheckJobOptionsViewModelFactory : IProxyCheckJobOptionsViewModelFactory
@@ -46,21 +56,32 @@ public sealed class ProxyCheckJobOptionsViewModelFactory : IProxyCheckJobOptions
     }
 
     public ProxyCheckJobOptionsViewModel Create(ProxyCheckJobOptions? options = null)
-        => ActivatorUtilities.CreateInstance<ProxyCheckJobOptionsViewModel>(serviceProvider, options);
+    {
+        return new ProxyCheckJobOptionsViewModel(
+            options,
+            serviceProvider.GetRequiredService<Flux.Core.Repositories.IProxyGroupRepository>(),
+            serviceProvider.GetRequiredService<Flux.Core.Services.JobFactoryService>(),
+            serviceProvider.GetRequiredService<Flux.Core.Services.FluxSettingsService>()
+        );
+    }
 }
 
 public sealed class JobOptionsDialogFactory : IJobOptionsDialogFactory
 {
-    private readonly IServiceProvider serviceProvider;
+    private readonly IMultiRunJobOptionsViewModelFactory multiRunFactory;
+    private readonly IProxyCheckJobOptionsViewModelFactory proxyCheckFactory;
 
-    public JobOptionsDialogFactory(IServiceProvider serviceProvider)
+    public JobOptionsDialogFactory(
+        IMultiRunJobOptionsViewModelFactory multiRunFactory,
+        IProxyCheckJobOptionsViewModelFactory proxyCheckFactory)
     {
-        this.serviceProvider = serviceProvider;
+        this.multiRunFactory = multiRunFactory;
+        this.proxyCheckFactory = proxyCheckFactory;
     }
 
     public MultiRunJobOptionsDialog CreateMultiRun(MultiRunJobOptions? options = null, Action<JobOptions>? onAccept = null)
-        => ActivatorUtilities.CreateInstance<MultiRunJobOptionsDialog>(serviceProvider, options, onAccept);
+        => new MultiRunJobOptionsDialog(multiRunFactory, options, onAccept);
 
     public ProxyCheckJobOptionsDialog CreateProxyCheck(ProxyCheckJobOptions? options = null, Action<JobOptions>? onAccept = null)
-        => ActivatorUtilities.CreateInstance<ProxyCheckJobOptionsDialog>(serviceProvider, options, onAccept);
+        => new ProxyCheckJobOptionsDialog(proxyCheckFactory, options, onAccept);
 }

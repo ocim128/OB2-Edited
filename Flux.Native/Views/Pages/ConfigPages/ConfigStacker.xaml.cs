@@ -132,7 +132,7 @@ public partial class ConfigStacker : Page
             vm.MoveSelectedDownCommand.Execute(null);
             e.Handled = true;
         }
-        else if (e.Key == Key.D && ctrl)
+        else if (e.Key == Key.D && ctrl && !isTextInputFocused)
         {
             vm.CloneSelectedCommand.Execute(null);
             e.Handled = true;
@@ -142,12 +142,12 @@ public partial class ConfigStacker : Page
             vm.RemoveSelectedCommand.Execute(null);
             e.Handled = true;
         }
-        else if (e.Key == Key.C && ctrl)
+        else if (e.Key == Key.C && ctrl && !isTextInputFocused)
         {
             vm.CopyCommand.Execute(null);
             e.Handled = true;
         }
-        else if (e.Key == Key.V && ctrl)
+        else if (e.Key == Key.V && ctrl && !isTextInputFocused)
         {
             vm.PasteCommand.Execute(null);
             e.Handled = true;

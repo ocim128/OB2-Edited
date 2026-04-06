@@ -217,13 +217,7 @@ public partial class ConfigStackerViewModel
             pastedBlock.Selected = true;
         }
 
-        if (Stack != null)
-        {
-            configService.SelectedConfig.Stack = Stack
-                .Where(block => block is not null && block.Block is not null)
-                .Select(block => block.Block)
-                .ToList();
-        }
+        SaveStack();
 
         RaiseToolCommandStateChanged();
     }

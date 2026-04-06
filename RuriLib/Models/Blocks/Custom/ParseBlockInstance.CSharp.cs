@@ -78,6 +78,11 @@ namespace RuriLib.Models.Blocks.Custom
                 writer.WriteLine("data.Logger.Log($\"[SAFE MODE] Exception caught and saved to data.ERROR: {data.ERROR}\", LogColors.Tomato); }");
             }
 
+            if (IsCapture)
+            {
+                writer.WriteLine($"data.MarkForCapture(\"{OutputVariable}\");");
+            }
+
             return writer.ToString();
         }
 

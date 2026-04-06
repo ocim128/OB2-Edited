@@ -259,11 +259,11 @@ public partial class AutoBlockInstance : BlockInstance
         // If the block has a return type, log which variable was written
         if (Descriptor.ReturnType.HasValue)
         {
-            writer.WriteLine($"data.LogVariableAssignment(nameof({OutputVariable}));");
+            writer.WriteLine($"data.LogVariableAssignment(\"{OutputVariable}\");");
 
             if (IsCapture)
             {
-                writer.WriteLine($"data.MarkForCapture(nameof({OutputVariable}));");
+                writer.WriteLine($"data.MarkForCapture(\"{OutputVariable}\");");
             }
         }
     }

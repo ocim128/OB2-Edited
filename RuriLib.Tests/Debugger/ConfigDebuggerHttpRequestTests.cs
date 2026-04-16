@@ -35,6 +35,27 @@ public class ConfigDebuggerHttpRequestTests
         await RunDebuggerAndAssertAsync(script, settingsService, expectedBody: "OK");
     }
 
+    [Theory]
+    [InlineData(HttpLibrary.SystemNet)]
+    [InlineData(HttpLibrary.RuriLibHttp)]
+    public async Task Run_HttpRequestScript_WithDuplicateHeaderCasing_DoesNotThrow(HttpLibrary httpLibrary)
+    {
+        TestAssemblyResolver.EnsureRegistered();
+        await using var server = await TestHttpServer.StartAsync("OK", expectedRequests: 1);
+        using var workspace = new TestWorkspace();
+        var settingsService = CreateSettingsService(workspace.RootPath);
+        var script = CreateHttpRequestScript(
+            server.Uri,
+            httpLibrary,
+            @"new Dictionary<string, string>
+        {
+            [""User-Agent""] = ""agent-one"",
+            [""user-agent""] = ""agent-two""
+        }");
+
+        await RunDebuggerAndAssertAsync(script, settingsService, expectedBody: "OK");
+    }
+
     private static async Task RunDebuggerAndAssertAsync(
         string script,
         RuriLibSettingsService settingsService,
@@ -79,7 +100,10 @@ public class ConfigDebuggerHttpRequestTests
         return settings;
     }
 
-    private static string CreateHttpRequestScript(Uri uri, HttpLibrary httpLibrary) =>
+    private static string CreateHttpRequestScript(
+        Uri uri,
+        HttpLibrary httpLibrary,
+        string customHeadersExpression = "new Dictionary<string, string>()") =>
 $@"data.ExecutingBlock(""Http Request"");
 await RuriLib.Blocks.Requests.Http.Methods.HttpRequestStandard(
     data,
@@ -96,7 +120,7 @@ await RuriLib.Blocks.Requests.Http.Methods.HttpRequestStandard(
         Content = string.Empty,
         ContentType = ""application/x-www-form-urlencoded"",
         CustomCookies = new Dictionary<string, string>(),
-        CustomHeaders = new Dictionary<string, string>()
+        CustomHeaders = {customHeadersExpression}
     }}).ConfigureAwait(false);
 
 string responseBody = data.SOURCE;

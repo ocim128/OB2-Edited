@@ -355,10 +355,23 @@ namespace RuriLib.Functions.Http
                 return new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
             }
 
-            return headers.ToDictionary(
-                kv => kv.Key,
-                kv => kv.Value?.ToList() ?? new List<string>(),
-                StringComparer.OrdinalIgnoreCase);
+            var normalized = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var header in headers)
+            {
+                if (!normalized.TryGetValue(header.Key, out var values))
+                {
+                    values = new List<string>();
+                    normalized[header.Key] = values;
+                }
+
+                if (header.Value != null)
+                {
+                    values.AddRange(header.Value);
+                }
+            }
+
+            return normalized;
         }
 
         private static void ValidateTlsResponse(Response response)

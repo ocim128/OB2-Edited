@@ -227,7 +227,7 @@ namespace RuriLib.Functions.Http
         }
 
         protected static Dictionary<string, string> CopyHeaders(NormalizedHttpRequest request)
-            => request.Headers.ToDictionary(kv => kv.Key, kv => kv.Value, StringComparer.OrdinalIgnoreCase);
+            => HttpRequestNormalizer.NormalizeSingleValueHeaders(request.Headers);
 
         protected static Dictionary<string, string> CopyCookies(NormalizedHttpRequest request)
             => request.Cookies.ToDictionary(kv => kv.Key, kv => kv.Value, StringComparer.OrdinalIgnoreCase);

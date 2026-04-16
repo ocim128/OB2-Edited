@@ -151,10 +151,27 @@ namespace RuriLib.Functions.Http
                 data.COOKIES[cookie.Key] = cookie.Value;
             }
 
-            var headers = options.CustomHeaders?.ToDictionary(kv => kv.Key, kv => kv.Value, StringComparer.OrdinalIgnoreCase)
-                ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            var headers = NormalizeSingleValueHeaders(options.CustomHeaders);
             MergeCookieHeader(headers, data.COOKIES);
             return headers;
+        }
+
+        internal static Dictionary<string, string> NormalizeSingleValueHeaders(
+            IEnumerable<KeyValuePair<string, string>>? headers)
+        {
+            var normalized = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+            if (headers == null)
+            {
+                return normalized;
+            }
+
+            foreach (var header in headers)
+            {
+                normalized[header.Key] = header.Value;
+            }
+
+            return normalized;
         }
 
         private static string GenerateMultipartBoundary()

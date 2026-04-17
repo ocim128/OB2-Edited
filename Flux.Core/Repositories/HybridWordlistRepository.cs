@@ -66,12 +66,12 @@ public class HybridWordlistRepository : IWordlistRepository
             ? path.Replace('/', '\\')
             : path.Replace('\\', '/');
 
+        // Count the amount of lines from the in-memory buffer before writing to disk
+        entity.Total = CountLines(stream);
+
         // Create the file on disk
         await File.WriteAllBytesAsync(entity.FileName, stream.ToArray(),
             cancellationToken);
-
-        // Count the amount of lines
-        entity.Total = File.ReadLines(entity.FileName).Count();
 
         await AddAsync(entity);
     }
@@ -158,5 +158,17 @@ public class HybridWordlistRepository : IWordlistRepository
     {
         _getAllScope?.Dispose();
         GC.SuppressFinalize(this);
+    }
+
+    private static int CountLines(MemoryStream ms)
+    {
+        var position = ms.Position;
+        ms.Position = 0;
+        int count = 0;
+        using var reader = new StreamReader(ms, leaveOpen: true);
+        while (reader.ReadLine() != null)
+            count++;
+        ms.Position = position;
+        return count;
     }
 }

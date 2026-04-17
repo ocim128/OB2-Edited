@@ -175,17 +175,12 @@ namespace RuriLib.Functions.Http
         }
 
         private static string GenerateMultipartBoundary()
-        {
-            var builder = new StringBuilder();
-            var random = new Random();
-            for (var i = 0; i < 16; i++)
+            => "------WebKitFormBoundary" + string.Create(16, 0, (span, _) =>
             {
-                var ch = Convert.ToChar(Convert.ToInt32(Math.Floor(26 * random.NextDouble() + 65)));
-                builder.Append(ch);
-            }
+                for (int i = 0; i < span.Length; i++)
+                    span[i] = (char)('a' + Random.Shared.Next(26));
+            });
 
-            return $"------WebKitFormBoundary{builder.ToString().ToLower()}";
-        }
 
         private static string SerializeMultipart(string boundary, List<MyHttpContent> contents)
         {

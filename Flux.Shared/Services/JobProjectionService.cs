@@ -195,7 +195,7 @@ public class JobProjectionService(IServiceScopeFactory scopeFactory)
 
         using var scope = scopeFactory.CreateScope();
         var hitRepo = scope.ServiceProvider.GetRequiredService<IHitRepository>();
-        var query = hitRepo.GetAll();
+        var query = hitRepo.GetAll().AsNoTracking();
 
         if (job is MultiRunJob multiRun)
         {

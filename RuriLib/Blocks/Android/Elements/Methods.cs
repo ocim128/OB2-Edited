@@ -38,7 +38,7 @@ namespace RuriLib.Blocks.Android.Elements
                 var wait = new WebDriverWait(driver, TimeSpan.FromMilliseconds(timeoutMs));
                 var element = wait.Until(d => d.FindElement(locator));
                 element.Click();
-            });
+            }).ConfigureAwait(false);
 
             data.Logger.Log("Element clicked!", LogColors.LimeGreen);
         }
@@ -71,7 +71,7 @@ namespace RuriLib.Blocks.Android.Elements
                     element.Clear();
                 }
                 element.SendKeys(text);
-            });
+            }).ConfigureAwait(false);
 
             data.Logger.Log($"Typed: {text}", LogColors.LimeGreen);
         }
@@ -97,7 +97,7 @@ namespace RuriLib.Blocks.Android.Elements
                 var wait = new WebDriverWait(driver, TimeSpan.FromMilliseconds(timeoutMs));
                 var element = wait.Until(d => d.FindElement(locator));
                 return element.Text;
-            });
+            }).ConfigureAwait(false);
 
             data.Logger.Log($"Text: {text}", LogColors.LimeGreen);
 
@@ -126,7 +126,7 @@ namespace RuriLib.Blocks.Android.Elements
                 var wait = new WebDriverWait(driver, TimeSpan.FromMilliseconds(timeoutMs));
                 var element = wait.Until(d => d.FindElement(locator));
                 return element.GetAttribute(attributeName) ?? string.Empty;
-            });
+            }).ConfigureAwait(false);
 
             data.Logger.Log($"Attribute value: {value}", LogColors.LimeGreen);
 
@@ -153,7 +153,7 @@ namespace RuriLib.Blocks.Android.Elements
             {
                 var wait = new WebDriverWait(driver, TimeSpan.FromMilliseconds(timeoutMs));
                 wait.Until(d => d.FindElement(locator));
-            });
+            }).ConfigureAwait(false);
 
             data.Logger.Log("Element found!", LogColors.LimeGreen);
         }
@@ -190,7 +190,7 @@ namespace RuriLib.Blocks.Android.Elements
                 {
                     return false;
                 }
-            });
+            }).ConfigureAwait(false);
 
             data.Logger.Log($"Element exists: {exists}", LogColors.LimeGreen);
 
@@ -218,7 +218,7 @@ namespace RuriLib.Blocks.Android.Elements
                 var wait = new WebDriverWait(driver, TimeSpan.FromMilliseconds(timeoutMs));
                 var element = wait.Until(d => d.FindElement(locator));
                 element.Clear();
-            });
+            }).ConfigureAwait(false);
 
             data.Logger.Log("Element cleared!", LogColors.LimeGreen);
         }
@@ -247,7 +247,7 @@ namespace RuriLib.Blocks.Android.Elements
                         ? e.Text 
                         : e.GetAttribute(attributeToGet) ?? string.Empty
                 ).ToList();
-            });
+            }).ConfigureAwait(false);
 
             data.Logger.Log($"Found {results.Count} elements", LogColors.LimeGreen);
 
@@ -292,7 +292,7 @@ namespace RuriLib.Blocks.Android.Elements
                 actions.AddAction(finger.CreatePointerUp(OpenQA.Selenium.Interactions.MouseButton.Left));
                 
                 driver.PerformActions(new List<OpenQA.Selenium.Interactions.ActionSequence> { actions });
-            });
+            }).ConfigureAwait(false);
 
             data.Logger.Log("Long press completed!", LogColors.LimeGreen);
         }
@@ -317,7 +317,7 @@ namespace RuriLib.Blocks.Android.Elements
                 // Use UiScrollable to scroll to element
                 var scrollCommand = $"new UiScrollable(new UiSelector().scrollable(true)).scrollIntoView(new UiSelector().textContains(\"{targetText}\"))";
                 driver.FindElement(MobileBy.AndroidUIAutomator(scrollCommand));
-            });
+            }).ConfigureAwait(false);
 
             data.Logger.Log($"Found element with text: '{targetText}'", LogColors.LimeGreen);
         }

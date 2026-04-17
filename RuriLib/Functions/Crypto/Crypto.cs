@@ -350,7 +350,7 @@ namespace RuriLib.Functions.Crypto
             }
 
             // Padding, I think
-            var random = new Random();
+            var random = Random.Shared;
             buffer[--keySize] = 0;
             while (keySize > 2)
             {

@@ -23,8 +23,6 @@ namespace RuriLib.Http;
 internal class HttpResponseBuilder : IDisposable
 {
     private PipeReader reader;
-    private const string newLine = "\r\n";
-    private readonly byte[] CRLF = Encoding.UTF8.GetBytes(newLine);
     private static readonly byte[] CRLFCRLF_Bytes = [13, 10, 13, 10];
     private HttpResponse response;
 
@@ -275,7 +273,7 @@ internal class HttpResponseBuilder : IDisposable
 
         try
         {
-            while (sequenceReader.TryReadTo(out ReadOnlySpan<byte> Line, CRLF, true))
+            while (sequenceReader.TryReadTo(out ReadOnlySpan<byte> Line, CrLf.Span, true))
             {
                 if (Line.Length == 0)// reached last crlf (empty line)
                 {
@@ -740,7 +738,7 @@ internal class HttpResponseBuilder : IDisposable
     private bool TryReadLine(ReadOnlySequence<byte> buffer, out string line, out long bytesConsumed)
     {
         var reader = new SequenceReader<byte>(buffer);
-        if (reader.TryReadTo(out ReadOnlySequence<byte> lineSequence, CRLF))
+        if (reader.TryReadTo(out ReadOnlySequence<byte> lineSequence, CrLf.Span))
         {
             line = lineSequence.IsSingleSegment
                 ? Encoding.UTF8.GetString(lineSequence.FirstSpan)

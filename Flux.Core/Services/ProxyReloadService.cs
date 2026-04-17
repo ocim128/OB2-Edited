@@ -48,14 +48,14 @@ public class ProxyReloadService : IDisposable
             if (groupId == -1)
             {
                 entities = userId == 0
-                    ? await proxyRepo.GetAll().ToListAsync(cancellationToken).ConfigureAwait(false)
-                    : await proxyRepo.GetAll().Include(p => p.Group).ThenInclude(g => g.Owner)
+                    ? await proxyRepo.GetAll().AsNoTracking().ToListAsync(cancellationToken).ConfigureAwait(false)
+                    : await proxyRepo.GetAll().AsNoTracking()
                         .Where(p => p.Group.Owner.Id == userId).ToListAsync(cancellationToken).ConfigureAwait(false);
             }
             else
             {
                 var group = await proxyGroupsRepo.GetAsync(groupId, cancellationToken).ConfigureAwait(false);
-                entities = await proxyRepo.GetAll()
+                entities = await proxyRepo.GetAll().AsNoTracking()
                     .Where(p => p.Group.Id == groupId)
                     .ToListAsync(cancellationToken).ConfigureAwait(false);
             }

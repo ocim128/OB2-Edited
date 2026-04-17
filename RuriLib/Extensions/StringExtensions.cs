@@ -11,6 +11,10 @@ namespace RuriLib.Extensions
 {
     public static class StringExtensions
     {
+        private static readonly Regex UnescapeCrLfRegex = new(@"(?<!\\)\\r\\n", RegexOptions.Compiled);
+        private static readonly Regex UnescapeLfRegex = new(@"(?<!\\)\\n", RegexOptions.Compiled);
+        private static readonly Regex UnescapeTabRegex = new(@"(?<!\\)\\t", RegexOptions.Compiled);
+
         public static bool AsBool(this string str)
             => bool.Parse(str);
 
@@ -41,9 +45,9 @@ namespace RuriLib.Extensions
         public static string Unescape(this string str, bool useEnvNewLine = false)
         {
             // Unescape only \n etc. not \\n
-            str = Regex.Replace(str, @"(?<!\\)\\r\\n", useEnvNewLine ? Environment.NewLine : "\r\n");
-            str = Regex.Replace(str, @"(?<!\\)\\n", useEnvNewLine ? Environment.NewLine : "\n");
-            str = Regex.Replace(str, @"(?<!\\)\\t", "\t");
+            str = UnescapeCrLfRegex.Replace(str, useEnvNewLine ? Environment.NewLine : "\r\n");
+            str = UnescapeLfRegex.Replace(str, useEnvNewLine ? Environment.NewLine : "\n");
+            str = UnescapeTabRegex.Replace(str, "\t");
 
             // Replace \\n with \n
             return new StringBuilder(str)
@@ -220,6 +224,11 @@ namespace RuriLib.Extensions
         /// Counts the lines (amount of \r\n and \n) in a given string.
         /// </summary>
         public static int CountLines(this string input)
-            => input.Split(new string[] { "\r\n", "\n" }, StringSplitOptions.None).Length;
+        {
+            int count = 1;
+            foreach (char c in input)
+                if (c == '\n') count++;
+            return count;
+        }
     }
 }

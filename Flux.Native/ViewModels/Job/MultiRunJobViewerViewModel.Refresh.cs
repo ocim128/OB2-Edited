@@ -126,8 +126,13 @@ public partial class MultiRunJobViewerViewModel
 
     private void UpdateBots(IReadOnlyList<BotStateDto> bots)
     {
-        var botItems = bots.Select(static bot => new BotViewModel(bot));
-        RunOnUiThread(() => BotsCollection = new ObservableCollection<BotViewModel>(botItems));
+        var botItems = bots.Select(static bot => new BotViewModel(bot)).ToList();
+        RunOnUiThread(() =>
+        {
+            BotsCollection.Clear();
+            foreach (var bot in botItems)
+                BotsCollection.Add(bot);
+        });
     }
 
     private static void RunOnUiThread(Action action)
@@ -138,7 +143,7 @@ public partial class MultiRunJobViewerViewModel
             return;
         }
 
-        Application.Current.Dispatcher.Invoke(action);
+        Application.Current.Dispatcher.BeginInvoke(action);
     }
 
     public void Dispose()

@@ -38,7 +38,7 @@ namespace RuriLib.Models.Data
             Path = path;
             Type = type ?? throw new ArgumentNullException(nameof(type));
             Purpose = purpose ?? "";
-            Total = countLines ? Total = File.ReadLines(path).Count() : 0;
+            Total = countLines ? File.ReadLines(path).Count() : 0;
         }
     }
 }

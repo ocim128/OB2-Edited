@@ -1,4 +1,5 @@
-﻿using RuriLib.Models.Conditions.Comparisons;
+﻿using RuriLib.Functions.Parsing;
+using RuriLib.Models.Conditions.Comparisons;
 using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
@@ -29,8 +30,8 @@ namespace RuriLib.Functions.Conditions
                 StrComparison.DoesNotContain => !leftTerm.Contains(rightTerm),
                 StrComparison.Exists => leftTerm != null,
                 StrComparison.DoesNotExist => leftTerm == null,
-                StrComparison.MatchesRegex => Regex.Match(leftTerm, rightTerm).Success,
-                StrComparison.DoesNotMatchRegex => !Regex.Match(leftTerm, rightTerm).Success,
+                StrComparison.MatchesRegex => RegexCache.GetOrCreate(rightTerm).IsMatch(leftTerm),
+                StrComparison.DoesNotMatchRegex => !RegexCache.GetOrCreate(rightTerm).IsMatch(leftTerm),
                 _ => throw new ArgumentException("Comparison not supported", nameof(comparison))
             };
         }

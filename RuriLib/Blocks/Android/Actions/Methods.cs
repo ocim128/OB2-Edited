@@ -32,11 +32,11 @@ namespace RuriLib.Blocks.Android.Actions
             {
                 var screenshot = driver.GetScreenshot();
                 return screenshot.AsByteArray;
-            });
+            }).ConfigureAwait(false);
 
             if (!string.IsNullOrEmpty(savePath))
             {
-                await File.WriteAllBytesAsync(savePath, screenshotBytes);
+                await File.WriteAllBytesAsync(savePath, screenshotBytes).ConfigureAwait(false);
                 data.Logger.Log($"Screenshot saved to: {savePath}", LogColors.LimeGreen);
             }
             else
@@ -59,7 +59,7 @@ namespace RuriLib.Blocks.Android.Actions
 
             data.Logger.Log($"Pressing key: {keyCode} ({(int)keyCode})", LogColors.LimeGreen);
 
-            await Task.Run(() => driver.PressKeyCode((int)keyCode));
+            await Task.Run(() => driver.PressKeyCode((int)keyCode)).ConfigureAwait(false);
 
             data.Logger.Log("Key pressed!", LogColors.LimeGreen);
         }
@@ -87,7 +87,7 @@ namespace RuriLib.Blocks.Android.Actions
                 actions.AddAction(finger.CreatePointerUp(MouseButton.Left));
 
                 driver.PerformActions(new List<ActionSequence> { actions });
-            });
+            }).ConfigureAwait(false);
 
             data.Logger.Log("Tap completed!", LogColors.LimeGreen);
         }
@@ -118,7 +118,7 @@ namespace RuriLib.Blocks.Android.Actions
                 actions.AddAction(finger.CreatePointerUp(MouseButton.Left));
 
                 driver.PerformActions(new List<ActionSequence> { actions });
-            });
+            }).ConfigureAwait(false);
 
             data.Logger.Log("Swipe completed!", LogColors.LimeGreen);
         }
@@ -148,7 +148,7 @@ namespace RuriLib.Blocks.Android.Actions
                 actions.AddAction(finger.CreatePointerUp(MouseButton.Left));
 
                 driver.PerformActions(new List<ActionSequence> { actions });
-            });
+            }).ConfigureAwait(false);
 
             data.Logger.Log("Long press completed!", LogColors.LimeGreen);
         }
@@ -165,7 +165,7 @@ namespace RuriLib.Blocks.Android.Actions
 
             data.Logger.Log("Getting UI hierarchy...", LogColors.LimeGreen);
 
-            var source = await Task.Run(() => driver.PageSource);
+            var source = await Task.Run(() => driver.PageSource).ConfigureAwait(false);
 
             data.Logger.Log($"UI hierarchy retrieved ({source.Length} chars)", LogColors.LimeGreen);
 
@@ -182,7 +182,7 @@ namespace RuriLib.Blocks.Android.Actions
 
             data.Logger.Log($"Waiting for {milliseconds}ms...", LogColors.LimeGreen);
 
-            await Task.Delay(milliseconds);
+            await Task.Delay(milliseconds).ConfigureAwait(false);
 
             data.Logger.Log("Wait completed!", LogColors.LimeGreen);
         }
@@ -206,7 +206,7 @@ namespace RuriLib.Blocks.Android.Actions
                     { "command", command }
                 });
                 return output?.ToString() ?? string.Empty;
-            });
+            }).ConfigureAwait(false);
 
             data.Logger.Log($"Shell output: {result}", LogColors.LimeGreen);
 
@@ -223,7 +223,7 @@ namespace RuriLib.Blocks.Android.Actions
 
             var driver = AndroidHelpers.GetDriver(data);
 
-            var size = await Task.Run(() => driver.Manage().Window.Size);
+            var size = await Task.Run(() => driver.Manage().Window.Size).ConfigureAwait(false);
 
             data.Logger.Log($"Screen size: {size.Width}x{size.Height}", LogColors.LimeGreen);
 
@@ -244,7 +244,7 @@ namespace RuriLib.Blocks.Android.Actions
 
             data.Logger.Log($"Rotating to: {orientation}", LogColors.LimeGreen);
 
-            await Task.Run(() => driver.Orientation = orientation);
+            await Task.Run(() => driver.Orientation = orientation).ConfigureAwait(false);
 
             data.Logger.Log("Rotation completed!", LogColors.LimeGreen);
         }
@@ -277,7 +277,7 @@ namespace RuriLib.Blocks.Android.Actions
                 actions.AddAction(finger.CreatePointerUp(MouseButton.Left));
 
                 driver.PerformActions(new List<ActionSequence> { actions });
-            });
+            }).ConfigureAwait(false);
 
             data.Logger.Log("Scroll up completed!", LogColors.LimeGreen);
         }
@@ -310,7 +310,7 @@ namespace RuriLib.Blocks.Android.Actions
                 actions.AddAction(finger.CreatePointerUp(MouseButton.Left));
 
                 driver.PerformActions(new List<ActionSequence> { actions });
-            });
+            }).ConfigureAwait(false);
 
             data.Logger.Log("Scroll down completed!", LogColors.LimeGreen);
         }
@@ -337,7 +337,7 @@ namespace RuriLib.Blocks.Android.Actions
                 {
                     // Keyboard might not be visible, ignore
                 }
-            });
+            }).ConfigureAwait(false);
 
             data.Logger.Log("Keyboard hidden!", LogColors.LimeGreen);
         }
@@ -352,7 +352,7 @@ namespace RuriLib.Blocks.Android.Actions
 
             var driver = AndroidHelpers.GetDriver(data);
 
-            var isShown = await Task.Run(() => driver.IsKeyboardShown());
+            var isShown = await Task.Run(() => driver.IsKeyboardShown()).ConfigureAwait(false);
 
             data.Logger.Log($"Keyboard shown: {isShown}", LogColors.LimeGreen);
 

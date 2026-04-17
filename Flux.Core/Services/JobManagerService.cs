@@ -22,6 +22,8 @@ namespace Flux.Core.Services;
 /// </summary>
 public class JobManagerService : IDisposable
 {
+    private static readonly JsonSerializerSettings SharedJsonSettings = new() { TypeNameHandling = TypeNameHandling.Auto };
+
     /// <summary>
     /// The list of all created jobs.
     /// </summary>
@@ -50,8 +52,8 @@ public class JobManagerService : IDisposable
             var jobRepo = scope.ServiceProvider.GetRequiredService<IJobRepository>();
 
             // Restore jobs from the database
-            var entities = jobRepo.GetAll().Include(j => j.Owner).ToList();
-            var jsonSettings = new JsonSerializerSettings { TypeNameHandling = TypeNameHandling.Auto };
+            var entities = jobRepo.GetAll().AsNoTracking().Include(j => j.Owner).ToList();
+            var jsonSettings = SharedJsonSettings;
 
             foreach (var entity in entities)
             {
@@ -240,7 +242,7 @@ public class JobManagerService : IDisposable
             }
 
             // Deserialize and unwrap the job options
-            var settings = new JsonSerializerSettings { TypeNameHandling = TypeNameHandling.Auto };
+            var settings = SharedJsonSettings;
             var wrapper = JsonConvert.DeserializeObject<JobOptionsWrapper>(entity.JobOptions, settings);
             var options = (MultiRunJobOptions)wrapper.Options;
 

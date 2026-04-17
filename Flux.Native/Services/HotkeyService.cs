@@ -425,7 +425,7 @@ namespace Flux.Native.Services
                     {
                         try
                         {
-                            Application.Current.Dispatcher.Invoke(() =>
+                            Application.Current.Dispatcher.BeginInvoke(new Action(() =>
                             {
                                 var player = new System.Windows.Media.MediaPlayer();
                                 player.Open(new Uri(soundPath));
@@ -443,7 +443,7 @@ namespace Flux.Native.Services
                                     player.Close();
                                 };
                                 timer.Start();
-                            });
+                            }));
                         }
                         catch (Exception ex)
                         {
@@ -694,15 +694,28 @@ namespace Flux.Native.Services
             };
         }
 
+        private static readonly System.Windows.Media.SolidColorBrush ErrorBrush = FreezeBrush(System.Windows.Media.Color.FromRgb(239, 68, 68));
+        private static readonly System.Windows.Media.SolidColorBrush SuccessBrush = FreezeBrush(System.Windows.Media.Color.FromRgb(34, 197, 94));
+        private static readonly System.Windows.Media.SolidColorBrush DisabledBrush = FreezeBrush(System.Windows.Media.Color.FromRgb(156, 163, 175));
+        private static readonly System.Windows.Media.SolidColorBrush SentBrush = FreezeBrush(System.Windows.Media.Color.FromRgb(59, 130, 246));
+        private static readonly System.Windows.Media.SolidColorBrush DefaultBrush = FreezeBrush(System.Windows.Media.Color.FromRgb(129, 140, 248));
+
+        private static System.Windows.Media.SolidColorBrush FreezeBrush(System.Windows.Media.Color color)
+        {
+            var brush = new System.Windows.Media.SolidColorBrush(color);
+            brush.Freeze();
+            return brush;
+        }
+
         private System.Windows.Media.Brush GetIconColor(string title)
         {
             return title.ToLower() switch
             {
-                var t when t.Contains("error") => new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(239, 68, 68)),
-                var t when t.Contains("enabled") || t.Contains("success") => new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(34, 197, 94)),
-                var t when t.Contains("disabled") => new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(156, 163, 175)),
-                var t when t.Contains("text sent") => new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(59, 130, 246)),
-                _ => new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(129, 140, 248))
+                var t when t.Contains("error") => ErrorBrush,
+                var t when t.Contains("enabled") || t.Contains("success") => SuccessBrush,
+                var t when t.Contains("disabled") => DisabledBrush,
+                var t when t.Contains("text sent") => SentBrush,
+                _ => DefaultBrush
             };
         }
     }

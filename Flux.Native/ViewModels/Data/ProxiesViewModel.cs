@@ -70,6 +70,7 @@ namespace Flux.Native.ViewModels.Data;
         get => searchString;
         set
         {
+            if (value == searchString) return;
             searchString = value;
             OnPropertyChanged();
             CollectionViewSource.GetDefaultView(ProxiesCollection).Refresh();

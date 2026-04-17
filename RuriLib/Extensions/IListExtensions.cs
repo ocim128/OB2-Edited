@@ -12,7 +12,7 @@ namespace RuriLib.Extensions
         /// <param name="rng">The random number generator</param>
         public static void Shuffle<T>(this IList<T> list, Random rng = null)
         {
-            Random rand = rng ?? new Random();
+            Random rand = rng ?? Random.Shared;
             int n = list.Count;
             while (n > 1)
             {

@@ -50,10 +50,12 @@ namespace RuriLib.Helpers
         /// </summary>
         public static string RandomName(int length = 4)
         {
-            var rand = new Random();
             const string chars = "abcdefghijklmnopqrstuvwxyz";
-            return new string(Enumerable.Repeat(chars, length)
-              .Select(s => s[rand.Next(s.Length)]).ToArray());
+            return string.Create(length, 0, (span, _) =>
+            {
+                for (int i = 0; i < span.Length; i++)
+                    span[i] = chars[Random.Shared.Next(chars.Length)];
+            });
         }
     }
 }

@@ -20,6 +20,8 @@ namespace Flux.Core.Services;
 /// </summary>
 public class ConfigService
 {
+    private static readonly HttpClient SharedHttpClient = new();
+
     /// <summary>
     /// The list of available configs.
     /// </summary>
@@ -141,9 +143,10 @@ public class ConfigService
                 try
                 {
                     // Get the file
-                    using HttpClient client = new();
-                    client.DefaultRequestHeaders.Add("Api-Key", endpoint.ApiKey);
-                    using var response = await client.GetAsync(endpoint.Url);
+                    var client = SharedHttpClient;
+                    using var request = new HttpRequestMessage(HttpMethod.Get, endpoint.Url);
+                    request.Headers.Add("Api-Key", endpoint.ApiKey);
+                    using var response = await client.SendAsync(request);
 
                     if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
                     {

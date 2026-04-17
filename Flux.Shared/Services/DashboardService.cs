@@ -21,6 +21,7 @@ public class DashboardService : IDashboardService
     private readonly IJobRepository _jobRepository;
     private readonly IConfigRepository _configRepository;
     private readonly IProxyGroupRepository _proxyGroupRepository;
+    private readonly IProxyRepository _proxyRepository;
     private readonly IWordlistRepository _wordlistRepository;
     private readonly IGuestRepository _guestRepository;
     private readonly PluginRepository _pluginRepository;
@@ -32,6 +33,7 @@ public class DashboardService : IDashboardService
         IJobRepository jobRepository,
         IConfigRepository configRepository,
         IProxyGroupRepository proxyGroupRepository,
+        IProxyRepository proxyRepository,
         IWordlistRepository wordlistRepository,
         IGuestRepository guestRepository,
         PluginRepository pluginRepository,
@@ -42,6 +44,7 @@ public class DashboardService : IDashboardService
         _jobRepository = jobRepository;
         _configRepository = configRepository;
         _proxyGroupRepository = proxyGroupRepository;
+        _proxyRepository = proxyRepository;
         _wordlistRepository = wordlistRepository;
         _guestRepository = guestRepository;
         _pluginRepository = pluginRepository;
@@ -65,6 +68,7 @@ public class DashboardService : IDashboardService
             .ToList();
 
         var hits = await _hitRepository.GetAll()
+            .AsNoTracking()
             .OrderByDescending(h => h.Date)
             .Take(20)
             .ToListAsync(cancellationToken)
@@ -132,22 +136,13 @@ public class DashboardService : IDashboardService
         => (await _configRepository.GetAllAsync().ConfigureAwait(false))?.Count() ?? 0;
 
     private async Task<int> CountProxiesAsync(CancellationToken cancellationToken)
-    {
-        var proxyGroups = await _proxyGroupRepository.GetAll()
-            .Include(group => group.Proxies)
-            .ToListAsync(cancellationToken)
-            .ConfigureAwait(false);
-
-        return proxyGroups.Sum(group => group.Proxies?.Count ?? 0);
-    }
+        => await _proxyRepository.GetAll().CountAsync(cancellationToken).ConfigureAwait(false);
 
     private async Task<(int Count, long TotalLines)> CountWordlistsAsync(CancellationToken cancellationToken)
     {
-        var wordlists = await _wordlistRepository.GetAll()
-            .ToListAsync(cancellationToken)
-            .ConfigureAwait(false);
-
-        return (wordlists.Count, wordlists.Sum(wordlist => wordlist.Total));
+        var count = await _wordlistRepository.GetAll().CountAsync(cancellationToken).ConfigureAwait(false);
+        var total = await _wordlistRepository.GetAll().SumAsync(w => (long?)w.Total, cancellationToken).ConfigureAwait(false) ?? 0L;
+        return (count, total);
     }
 
     private static int ReadInt(IConfigurationSection section, string key, int fallback)

@@ -64,7 +64,7 @@ namespace RuriLib.Blocks.Android.Driver
 
             // Connect to Appium server
             var serverUri = new Uri(appiumUrl);
-            var driver = await Task.Run(() => new AndroidDriver(serverUri, options, TimeSpan.FromSeconds(commandTimeoutSeconds)));
+            var driver = await Task.Run(() => new AndroidDriver(serverUri, options, TimeSpan.FromSeconds(commandTimeoutSeconds))).ConfigureAwait(false);
 
             // Wrap driver in disposable wrapper for automatic cleanup when bot ends
             var wrapper = new AndroidDriverWrapper(driver);
@@ -108,7 +108,7 @@ namespace RuriLib.Blocks.Android.Driver
                 {
                     data.Logger.Log($"Warning during disconnect: {ex.Message}", LogColors.Yellow);
                 }
-            });
+            }).ConfigureAwait(false);
 
             // Note: We don't need to manually clear objects as wrapper is already disposed
             // Setting to null removes reference (optional, but explicit)
@@ -146,7 +146,7 @@ namespace RuriLib.Blocks.Android.Driver
                 {
                     driver.ActivateApp(appPackage);
                 }
-            });
+            }).ConfigureAwait(false);
 
             data.SetObject(AndroidHelpers.Keys.AppPackage, appPackage);
             data.Logger.Log($"App {appPackage} launched successfully!", LogColors.LimeGreen);
@@ -174,7 +174,7 @@ namespace RuriLib.Blocks.Android.Driver
 
             data.Logger.Log($"Closing app: {packageToClose}", LogColors.LimeGreen);
 
-            await Task.Run(() => driver.TerminateApp(packageToClose));
+            await Task.Run(() => driver.TerminateApp(packageToClose)).ConfigureAwait(false);
 
             data.Logger.Log($"App {packageToClose} closed.", LogColors.LimeGreen);
         }
@@ -189,7 +189,7 @@ namespace RuriLib.Blocks.Android.Driver
 
             var driver = AndroidHelpers.GetDriver(data);
 
-            var currentPackage = await Task.Run(() => driver.CurrentPackage);
+            var currentPackage = await Task.Run(() => driver.CurrentPackage).ConfigureAwait(false);
 
             data.Logger.Log($"Current app: {currentPackage}", LogColors.LimeGreen);
 

@@ -54,7 +54,7 @@ namespace RuriLib.Blocks.Selenium.Elements
             foreach (var c in text)
             {
                 element.SendKeys(c.ToString());
-                await Task.Delay(timeBetweenKeystrokes);
+                await Task.Delay(timeBetweenKeystrokes).ConfigureAwait(false);
             }
 
             UpdateSeleniumData(data);
@@ -73,7 +73,7 @@ namespace RuriLib.Blocks.Selenium.Elements
             foreach (var c in text)
             {
                 element.SendKeys(c.ToString());
-                await Task.Delay(data.Random.Next(100, 300)); // Wait between 100 and 300 ms (average human type speed is 60 WPM ~ 360 CPM)
+                await Task.Delay(data.Random.Next(100, 300)).ConfigureAwait(false); // Wait between 100 and 300 ms (average human type speed is 60 WPM ~ 360 CPM)
             }
 
             UpdateSeleniumData(data);
@@ -330,7 +330,7 @@ namespace RuriLib.Blocks.Selenium.Elements
                 }
                 
                 waited += 200;
-                await Task.Delay(200);
+                await Task.Delay(200).ConfigureAwait(false);
             }
 
             throw new TimeoutException($"Timed out while waiting for element with {findBy} {identifier}");

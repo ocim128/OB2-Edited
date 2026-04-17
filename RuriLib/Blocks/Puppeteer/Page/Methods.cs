@@ -25,8 +25,8 @@ namespace RuriLib.Blocks.Puppeteer.Page
                 Referer = referer,
                 WaitUntil = [loadedEvent]
             };
-            var response = await page.GoToAsync(url, options);
-            await UpdateResponseData(data, response);
+            var response = await page.GoToAsync(url, options).ConfigureAwait(false);
+            await UpdateResponseData(data, response).ConfigureAwait(false);
             SwitchToMainFramePrivate(data);
 
             data.Logger.Log($"Navigated to {url}", LogColors.DarkSalmon);
@@ -38,8 +38,8 @@ namespace RuriLib.Blocks.Puppeteer.Page
         {
             data.Logger.LogHeader();
             var page = GetPage(data);
-            await page.WaitForNavigationAsync(new NavigationOptions { Timeout = timeout, WaitUntil = [loadedEvent] });
-            await UpdatePageData(data, page);
+            await page.WaitForNavigationAsync(new NavigationOptions { Timeout = timeout, WaitUntil = [loadedEvent] }).ConfigureAwait(false);
+            await UpdatePageData(data, page).ConfigureAwait(false);
             data.Logger.Log("Waited for navigation to complete", LogColors.DarkSalmon);
         }
 
@@ -49,8 +49,8 @@ namespace RuriLib.Blocks.Puppeteer.Page
             data.Logger.LogHeader();
 
             var page = GetPage(data);
-            var cookies = await page.GetCookiesAsync(website);
-            await page.DeleteCookieAsync(cookies);
+            var cookies = await page.GetCookiesAsync(website).ConfigureAwait(false);
+            await page.DeleteCookieAsync(cookies).ConfigureAwait(false);
             data.Logger.Log($"Cookies cleared for site {website}", LogColors.DarkSalmon);
         }
 
@@ -60,7 +60,7 @@ namespace RuriLib.Blocks.Puppeteer.Page
             data.Logger.LogHeader();
 
             var page = GetPage(data);
-            await page.Keyboard.TypeAsync(text);
+            await page.Keyboard.TypeAsync(text).ConfigureAwait(false);
             data.Logger.Log($"Typed {text}", LogColors.DarkSalmon);
         }
 
@@ -71,7 +71,7 @@ namespace RuriLib.Blocks.Puppeteer.Page
             data.Logger.LogHeader();
 
             var page = GetPage(data);
-            await page.Keyboard.PressAsync(key);
+            await page.Keyboard.PressAsync(key).ConfigureAwait(false);
             data.Logger.Log($"Pressed and released {key}", LogColors.DarkSalmon);
 
 
@@ -84,7 +84,7 @@ namespace RuriLib.Blocks.Puppeteer.Page
             data.Logger.LogHeader();
 
             var page = GetPage(data);
-            await page.Keyboard.DownAsync(key);
+            await page.Keyboard.DownAsync(key).ConfigureAwait(false);
             data.Logger.Log($"Pressed (and holding down) {key}", LogColors.DarkSalmon);
 
 
@@ -97,7 +97,7 @@ namespace RuriLib.Blocks.Puppeteer.Page
             data.Logger.LogHeader();
 
             var page = GetPage(data);
-            await page.Keyboard.UpAsync(key);
+            await page.Keyboard.UpAsync(key).ConfigureAwait(false);
             data.Logger.Log($"Released {key}", LogColors.DarkSalmon);
 
 
@@ -108,7 +108,7 @@ namespace RuriLib.Blocks.Puppeteer.Page
         {
             data.Logger.LogHeader();
             var options = CreateScreenshotOptions(fullPage, omitBackground);
-            await GetPage(data).ScreenshotAsync(file, options);
+            await GetPage(data).ScreenshotAsync(file, options).ConfigureAwait(false);
             data.Logger.Log($"Took a screenshot of the {(fullPage ? "full" : "visible")} page and saved it to {file}", LogColors.DarkSalmon);
         }
 
@@ -117,7 +117,7 @@ namespace RuriLib.Blocks.Puppeteer.Page
         {
             data.Logger.LogHeader();
             var options = CreateScreenshotOptions(fullPage, omitBackground);
-            var base64 = await GetPage(data).ScreenshotBase64Async(options);
+            var base64 = await GetPage(data).ScreenshotBase64Async(options).ConfigureAwait(false);
             data.Logger.Log($"Took a screenshot of the {(fullPage ? "full" : "visible")} page as base64", LogColors.DarkSalmon);
             return base64;
         }
@@ -128,7 +128,7 @@ namespace RuriLib.Blocks.Puppeteer.Page
             data.Logger.LogHeader();
 
             var page = GetPage(data);
-            await page.EvaluateExpressionAsync("window.scrollTo(0, 0);");
+            await page.EvaluateExpressionAsync("window.scrollTo(0, 0);").ConfigureAwait(false);
             data.Logger.Log($"Scrolled to the top of the page", LogColors.DarkSalmon);
         }
 
@@ -138,7 +138,7 @@ namespace RuriLib.Blocks.Puppeteer.Page
             data.Logger.LogHeader();
 
             var page = GetPage(data);
-            await page.EvaluateExpressionAsync("window.scrollTo(0, document.body.scrollHeight);");
+            await page.EvaluateExpressionAsync("window.scrollTo(0, document.body.scrollHeight);").ConfigureAwait(false);
             data.Logger.Log($"Scrolled to the bottom of the page", LogColors.DarkSalmon);
         }
 
@@ -148,7 +148,7 @@ namespace RuriLib.Blocks.Puppeteer.Page
             data.Logger.LogHeader();
 
             var page = GetPage(data);
-            await page.EvaluateExpressionAsync($"window.scrollBy({horizontalScroll}, {verticalScroll});");
+            await page.EvaluateExpressionAsync($"window.scrollBy({horizontalScroll}, {verticalScroll});").ConfigureAwait(false);
             data.Logger.Log($"Scrolled by ({horizontalScroll}, {verticalScroll})", LogColors.DarkSalmon);
         }
 
@@ -168,7 +168,7 @@ namespace RuriLib.Blocks.Puppeteer.Page
                 DeviceScaleFactor = scaleFactor
             };
 
-            await page.SetViewportAsync(options);
+            await page.SetViewportAsync(options).ConfigureAwait(false);
 
             data.Logger.Log($"Set the viewport size to {width}x{height}", LogColors.DarkSalmon);
         }
@@ -179,7 +179,7 @@ namespace RuriLib.Blocks.Puppeteer.Page
             data.Logger.LogHeader();
 
             var page = GetPage(data);
-            var dom = await page.EvaluateExpressionAsync<string>("document.documentElement.outerHTML");
+            var dom = await page.EvaluateExpressionAsync<string>("document.documentElement.outerHTML").ConfigureAwait(false);
 
             data.Logger.Log($"Got the full page DOM", LogColors.DarkSalmon);
             data.Logger.Log(dom, LogColors.DarkSalmon, true);
@@ -192,7 +192,7 @@ namespace RuriLib.Blocks.Puppeteer.Page
             data.Logger.LogHeader();
 
             var page = GetPage(data);
-            var cookies = await page.GetCookiesAsync();
+            var cookies = await page.GetCookiesAsync().ConfigureAwait(false);
 
             if (!string.IsNullOrWhiteSpace(domain))
             {
@@ -209,7 +209,7 @@ namespace RuriLib.Blocks.Puppeteer.Page
             data.Logger.LogHeader();
 
             var page = GetPage(data);
-            await page.SetCookieAsync(cookies.Select(c => new CookieParam { Domain = domain, Name = c.Key, Value = c.Value }).ToArray());
+            await page.SetCookieAsync(cookies.Select(c => new CookieParam { Domain = domain, Name = c.Key, Value = c.Value }).ToArray()).ConfigureAwait(false);
 
             data.Logger.Log($"Set {cookies.Count} cookies for {domain}", LogColors.DarkSalmon);
         }
@@ -220,7 +220,7 @@ namespace RuriLib.Blocks.Puppeteer.Page
             data.Logger.LogHeader();
 
             var page = GetPage(data);
-            await page.SetUserAgentAsync(userAgent);
+            await page.SetUserAgentAsync(userAgent).ConfigureAwait(false);
 
             data.Logger.Log($"User Agent set to {userAgent}", LogColors.DarkSalmon);
         }
@@ -240,7 +240,7 @@ namespace RuriLib.Blocks.Puppeteer.Page
             data.Logger.LogHeader();
 
             var page = GetPage(data);
-            var response = await page.EvaluateExpressionAsync(expression);
+            var response = await page.EvaluateExpressionAsync(expression).ConfigureAwait(false);
             var json = response != null ? response.ToString() : "undefined";
             data.Logger.Log($"Evaluated {expression}", LogColors.DarkSalmon);
             data.Logger.Log($"Got result: {json}", LogColors.DarkSalmon);
@@ -259,7 +259,7 @@ namespace RuriLib.Blocks.Puppeteer.Page
                 Timeout = timeoutMilliseconds
             };
 
-            var response = await page.WaitForResponseAsync(url, options);
+            var response = await page.WaitForResponseAsync(url, options).ConfigureAwait(false);
 
             data.ADDRESS = response.Url;
             data.RESPONSECODE = (int)response.Status;
@@ -268,8 +268,8 @@ namespace RuriLib.Blocks.Puppeteer.Page
             // On 3xx puppeteer returns a body missing exception
             if (((int)response.Status) / 100 != 3)
             {
-                data.SOURCE = await response.TextAsync();
-                data.RAWSOURCE = await response.BufferAsync();
+                data.SOURCE = await response.TextAsync().ConfigureAwait(false);
+                data.RAWSOURCE = await response.BufferAsync().ConfigureAwait(false);
             }
 
             data.Logger.Log($"Address: {data.ADDRESS}", LogColors.DodgerBlue);
@@ -300,14 +300,14 @@ namespace RuriLib.Blocks.Puppeteer.Page
         private static async Task UpdateResponseData(BotData data, IResponse response)
         {
             data.ADDRESS = response.Url;
-            data.SOURCE = await response.TextAsync();
-            data.RAWSOURCE = await response.BufferAsync();
+            data.SOURCE = await response.TextAsync().ConfigureAwait(false);
+            data.RAWSOURCE = await response.BufferAsync().ConfigureAwait(false);
         }
 
         private static async Task UpdatePageData(BotData data, IPage page)
         {
             data.ADDRESS = page.Url;
-            data.SOURCE = await page.GetContentAsync();
+            data.SOURCE = await page.GetContentAsync().ConfigureAwait(false);
             data.RAWSOURCE = System.Text.Encoding.UTF8.GetBytes(data.SOURCE);
             SwitchToMainFramePrivate(data);
         }

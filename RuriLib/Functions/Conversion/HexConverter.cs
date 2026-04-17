@@ -30,6 +30,6 @@ namespace RuriLib.Functions.Conversion
         /// Converts a <see cref="byte[]"/> to a hex-encoded string.
         /// </summary>
         public static string ToHexString(byte[] bytes)
-            => string.Concat(bytes.Select(b => Convert.ToString(b, 16).PadLeft(2, '0')));
+            => Convert.ToHexString(bytes).ToLowerInvariant();
     }
 }

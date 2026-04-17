@@ -49,7 +49,7 @@ public class BotExecutionCoordinator
         SetupBotData(botData, input);
 
         // Main execution loop with retry logic
-        var executionResult = await ExecuteWithRetryLogicAsync(input, outputVariables, cancellationToken);
+        var executionResult = await ExecuteWithRetryLogicAsync(input, outputVariables, cancellationToken).ConfigureAwait(false);
 
         return new CheckResult
         {
@@ -97,7 +97,7 @@ public class BotExecutionCoordinator
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            var result = await ExecuteSingleAttemptAsync(input, outputVariables, cancellationToken);
+            var result = await ExecuteSingleAttemptAsync(input, outputVariables, cancellationToken).ConfigureAwait(false);
 
             // Cache network exception check to avoid multiple calls for same exception
             bool isNetworkException = false;
@@ -115,7 +115,7 @@ public class BotExecutionCoordinator
             if (ShouldRetry(result.Status, botData, input.Job))
             {
                 retryCount++;
-                await HandleRetryAsync(botData, result.Status, input.Job, isNetworkException, retryCount);
+                await HandleRetryAsync(botData, result.Status, input.Job, isNetworkException, retryCount).ConfigureAwait(false);
                 continue;
             }
 
@@ -130,7 +130,7 @@ public class BotExecutionCoordinator
                         : FixedRetryDelayMs;
                     if (delayMs > 0)
                     {
-                        await Task.Delay(delayMs, cancellationToken);
+                        await Task.Delay(delayMs, cancellationToken).ConfigureAwait(false);
                     }
                     continue; // Retry
                 }
@@ -157,7 +157,7 @@ public class BotExecutionCoordinator
             botData.UseProxy = ProxyManager.ShouldUseProxies(input.Job.ProxyMode, botData.ConfigSettings.ProxySettings);
 
             // Get proxy if needed
-            if (_proxyManager != null && !await _proxyManager.TryGetProxyAsync(botData, input.ProxyPool, cancellationToken))
+            if (_proxyManager != null && !await _proxyManager.TryGetProxyAsync(botData, input.ProxyPool, cancellationToken).ConfigureAwait(false))
             {
                 botData.STATUS = BotStatus.Error;
                 lastException = new Exception("Failed to get proxy");
@@ -167,7 +167,7 @@ public class BotExecutionCoordinator
             LogBotStart(botData, input.Job.Config.Mode);
 
             // Execute the config
-            var executionOutputs = await _executionHandler.ExecuteAsync(botData, input, cancellationToken);
+            var executionOutputs = await _executionHandler.ExecuteAsync(botData, input, cancellationToken).ConfigureAwait(false);
 
             // Merge outputs
             foreach (var kvp in executionOutputs)
@@ -206,7 +206,7 @@ public class BotExecutionCoordinator
         // Handle captcha reporting on retry
         if (botData.ConfigSettings.GeneralSettings.ReportLastCaptchaOnRetry)
         {
-            _ = Task.Run(async () => await ReportBadCaptchaAsync(botData));
+            _ = Task.Run(async () => await ReportBadCaptchaAsync(botData).ConfigureAwait(false));
         }
 
         return true;

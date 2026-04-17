@@ -23,7 +23,7 @@ namespace RuriLib.Blocks.Puppeteer.Elements
             var elemScript = GetElementScript(findBy, identifier, index);
             var frame = GetFrame(data);
             var script = elemScript + $".setAttribute('{attributeName}', '{value}');";
-            await frame.EvaluateExpressionAsync(script);
+            await frame.EvaluateExpressionAsync(script).ConfigureAwait(false);
 
             data.Logger.Log($"Set value {value} of attribute {attributeName} by executing {script}", LogColors.DarkSalmon);
         }
@@ -35,8 +35,8 @@ namespace RuriLib.Blocks.Puppeteer.Elements
             data.Logger.LogHeader();
 
             var frame = GetFrame(data);
-            var elem = await GetElement(frame, findBy, identifier, index);
-            await elem.TypeAsync(text, new PuppeteerSharp.Input.TypeOptions { Delay = timeBetweenKeystrokes });
+            var elem = await GetElement(frame, findBy, identifier, index).ConfigureAwait(false);
+            await elem.TypeAsync(text, new PuppeteerSharp.Input.TypeOptions { Delay = timeBetweenKeystrokes }).ConfigureAwait(false);
 
             data.Logger.Log($"Typed {text}", LogColors.DarkSalmon);
         }
@@ -48,12 +48,12 @@ namespace RuriLib.Blocks.Puppeteer.Elements
             data.Logger.LogHeader();
 
             var frame = GetFrame(data);
-            var elem = await GetElement(frame, findBy, identifier, index);
+            var elem = await GetElement(frame, findBy, identifier, index).ConfigureAwait(false);
 
             foreach (var c in text)
             {
-                await elem.TypeAsync(c.ToString());
-                await Task.Delay(data.Random.Next(100, 300)); // Wait between 100 and 300 ms (average human type speed is 60 WPM ~ 360 CPM)
+                await elem.TypeAsync(c.ToString()).ConfigureAwait(false);
+                await Task.Delay(data.Random.Next(100, 300)).ConfigureAwait(false); // Wait between 100 and 300 ms (average human type speed is 60 WPM ~ 360 CPM)
             }
 
             data.Logger.Log($"Typed {text}", LogColors.DarkSalmon);
@@ -67,8 +67,8 @@ namespace RuriLib.Blocks.Puppeteer.Elements
             data.Logger.LogHeader();
 
             var frame = GetFrame(data);
-            var elem = await GetElement(frame, findBy, identifier, index);
-            await elem.ClickAsync(new PuppeteerSharp.Input.ClickOptions { Button = mouseButton, Count = clickCount, Delay = timeBetweenClicks });
+            var elem = await GetElement(frame, findBy, identifier, index).ConfigureAwait(false);
+            await elem.ClickAsync(new PuppeteerSharp.Input.ClickOptions { Button = mouseButton, Count = clickCount, Delay = timeBetweenClicks }).ConfigureAwait(false);
 
             data.Logger.Log($"Clicked {clickCount} time(s) with {mouseButton} button", LogColors.DarkSalmon);
         }
@@ -81,7 +81,7 @@ namespace RuriLib.Blocks.Puppeteer.Elements
             var elemScript = GetElementScript(findBy, identifier, index);
             var frame = GetFrame(data);
             var script = elemScript + ".submit();";
-            await frame.EvaluateExpressionAsync(script);
+            await frame.EvaluateExpressionAsync(script).ConfigureAwait(false);
 
             data.Logger.Log($"Submitted the form by executing {script}", LogColors.DarkSalmon);
         }
@@ -92,8 +92,8 @@ namespace RuriLib.Blocks.Puppeteer.Elements
             data.Logger.LogHeader();
 
             var frame = GetFrame(data);
-            var elem = await GetElement(frame, findBy, identifier, index);
-            await elem.SelectAsync(value);
+            var elem = await GetElement(frame, findBy, identifier, index).ConfigureAwait(false);
+            await elem.SelectAsync(value).ConfigureAwait(false);
 
             data.Logger.Log($"Selected value {value}", LogColors.DarkSalmon);
         }
@@ -106,10 +106,10 @@ namespace RuriLib.Blocks.Puppeteer.Elements
             var frame = GetFrame(data);
             var elemScript = GetElementScript(findBy, identifier, index);
             var script = elemScript + $".getElementsByTagName('option')[{selectionIndex}].value;";
-            var value = (await frame.EvaluateExpressionAsync(script)).ToString();
+            var value = (await frame.EvaluateExpressionAsync(script).ConfigureAwait(false)).ToString();
 
-            var elem = await GetElement(frame, findBy, identifier, index);
-            await elem.SelectAsync(value);
+            var elem = await GetElement(frame, findBy, identifier, index).ConfigureAwait(false);
+            await elem.SelectAsync(value).ConfigureAwait(false);
 
             data.Logger.Log($"Selected value {value}", LogColors.DarkSalmon);
         }
@@ -122,7 +122,7 @@ namespace RuriLib.Blocks.Puppeteer.Elements
             var frame = GetFrame(data);
             var elemScript = GetElementScript(findBy, identifier, index);
             var script = $"el={elemScript};for(let i=0;i<el.options.length;i++){{if(el.options[i].text=='{text}'){{el.selectedIndex = i;break;}}}}";
-            await frame.EvaluateExpressionAsync(script);
+            await frame.EvaluateExpressionAsync(script).ConfigureAwait(false);
 
             data.Logger.Log($"Selected text {text}", LogColors.DarkSalmon);
         }
@@ -136,7 +136,7 @@ namespace RuriLib.Blocks.Puppeteer.Elements
             var elemScript = GetElementScript(findBy, identifier, index);
             var frame = GetFrame(data);
             var script = $"{elemScript}.{attributeName};";
-            var value = await frame.EvaluateExpressionAsync<string>(script);
+            var value = await frame.EvaluateExpressionAsync<string>(script).ConfigureAwait(false);
 
             data.Logger.Log($"Got value {value} of attribute {attributeName} by executing {script}", LogColors.DarkSalmon);
             return value;
@@ -151,7 +151,7 @@ namespace RuriLib.Blocks.Puppeteer.Elements
             var elemScript = GetElementsScript(findBy, identifier);
             var frame = GetFrame(data);
             var script = $"Array.prototype.slice.call({elemScript}).map((item) => item.{attributeName})";
-            var values = await frame.EvaluateExpressionAsync<string[]>(script);
+            var values = await frame.EvaluateExpressionAsync<string[]>(script).ConfigureAwait(false);
 
             data.Logger.Log($"Got {values.Length} values for attribute {attributeName} by executing {script}", LogColors.DarkSalmon);
             return values.ToList();
@@ -168,7 +168,7 @@ namespace RuriLib.Blocks.Puppeteer.Elements
             var frame = GetFrame(data);
             var safeAttr = attributeName?.Replace("'", "\\'") ?? string.Empty;
             var script = $"(function(){{var el = {elemScript}; if(!el) return ''; var v = el.getAttribute('{safeAttr}'); return v == null ? '' : String(v);}})()";
-            var value = await frame.EvaluateExpressionAsync<string>(script);
+            var value = await frame.EvaluateExpressionAsync<string>(script).ConfigureAwait(false);
 
             data.Logger.Log($"Got attribute {attributeName} value '{value}' by executing {script}", LogColors.DarkSalmon);
             return value;
@@ -185,7 +185,7 @@ namespace RuriLib.Blocks.Puppeteer.Elements
             var frame = GetFrame(data);
             var safeAttr = attributeName?.Replace("'", "\\'") ?? string.Empty;
             var script = $"Array.prototype.slice.call({elemScript}).map((item) => {{ var v = item ? item.getAttribute('{safeAttr}') : null; return v == null ? '' : String(v); }})";
-            var values = await frame.EvaluateExpressionAsync<string[]>(script);
+            var values = await frame.EvaluateExpressionAsync<string[]>(script).ConfigureAwait(false);
 
             data.Logger.Log($"Got {values.Length} attribute '{attributeName}' values by executing {script}", LogColors.DarkSalmon);
             return values.ToList();
@@ -202,7 +202,7 @@ namespace RuriLib.Blocks.Puppeteer.Elements
             var frame = GetFrame(data);
             var safeProp = propertyName?.Replace("'", "\\'") ?? string.Empty;
             var script = $"(function(){{var el = {elemScript}; if(!el) return ''; var v = el['{safeProp}']; return v == null ? '' : String(v);}})()";
-            var value = await frame.EvaluateExpressionAsync<string>(script);
+            var value = await frame.EvaluateExpressionAsync<string>(script).ConfigureAwait(false);
 
             data.Logger.Log($"Got property {propertyName} value '{value}' by executing {script}", LogColors.DarkSalmon);
             return value;
@@ -219,7 +219,7 @@ namespace RuriLib.Blocks.Puppeteer.Elements
             var frame = GetFrame(data);
             var safeProp = propertyName?.Replace("'", "\\'") ?? string.Empty;
             var script = $"Array.prototype.slice.call({elemScript}).map((item) => {{ var v = item ? item['{safeProp}'] : null; return v == null ? '' : String(v); }})";
-            var values = await frame.EvaluateExpressionAsync<string[]>(script);
+            var values = await frame.EvaluateExpressionAsync<string[]>(script).ConfigureAwait(false);
 
             data.Logger.Log($"Got {values.Length} property '{propertyName}' values by executing {script}", LogColors.DarkSalmon);
             return values.ToList();
@@ -233,7 +233,7 @@ namespace RuriLib.Blocks.Puppeteer.Elements
             var elemScript = GetElementScript(findBy, identifier, index);
             var frame = GetFrame(data);
             var script = $"window.getComputedStyle({elemScript}).display !== 'none';";
-            var displayed = await frame.EvaluateExpressionAsync<bool>(script);
+            var displayed = await frame.EvaluateExpressionAsync<bool>(script).ConfigureAwait(false);
 
             data.Logger.Log($"Found out the element is{(displayed ? "" : " not")} displayed by executing {script}", LogColors.DarkSalmon);
             return displayed;
@@ -250,7 +250,7 @@ namespace RuriLib.Blocks.Puppeteer.Elements
 
             try
             {
-                var displayed = await frame.EvaluateExpressionAsync<bool>(script);
+                var displayed = await frame.EvaluateExpressionAsync<bool>(script).ConfigureAwait(false);
                 data.Logger.Log("The element exists", LogColors.DarkSalmon);
                 return true;
             }
@@ -267,8 +267,8 @@ namespace RuriLib.Blocks.Puppeteer.Elements
             data.Logger.LogHeader();
 
             var frame = GetFrame(data);
-            var elem = await GetElement(frame, findBy, identifier, index);
-            await elem.UploadFileAsync(filePaths.ToArray());
+            var elem = await GetElement(frame, findBy, identifier, index).ConfigureAwait(false);
+            await elem.UploadFileAsync(filePaths.ToArray()).ConfigureAwait(false);
 
             data.Logger.Log($"Uploaded {filePaths.Count} files to the element", LogColors.DarkSalmon);
         }
@@ -279,8 +279,8 @@ namespace RuriLib.Blocks.Puppeteer.Elements
             data.Logger.LogHeader();
 
             var frame = GetFrame(data);
-            var elem = await GetElement(frame, findBy, identifier, index);
-            var x = (int)(await elem.BoundingBoxAsync()).X;
+            var elem = await GetElement(frame, findBy, identifier, index).ConfigureAwait(false);
+            var x = (int)(await elem.BoundingBoxAsync().ConfigureAwait(false)).X;
 
             data.Logger.Log($"The X coordinate of the element is {x}", LogColors.DarkSalmon);
             return x;
@@ -292,8 +292,8 @@ namespace RuriLib.Blocks.Puppeteer.Elements
             data.Logger.LogHeader();
 
             var frame = GetFrame(data);
-            var elem = await GetElement(frame, findBy, identifier, index);
-            var y = (int)(await elem.BoundingBoxAsync()).Y;
+            var elem = await GetElement(frame, findBy, identifier, index).ConfigureAwait(false);
+            var y = (int)(await elem.BoundingBoxAsync().ConfigureAwait(false)).Y;
 
             data.Logger.Log($"The Y coordinate of the element is {y}", LogColors.DarkSalmon);
             return y;
@@ -305,8 +305,8 @@ namespace RuriLib.Blocks.Puppeteer.Elements
             data.Logger.LogHeader();
 
             var frame = GetFrame(data);
-            var elem = await GetElement(frame, findBy, identifier, index);
-            var width = (int)(await elem.BoundingBoxAsync()).Width;
+            var elem = await GetElement(frame, findBy, identifier, index).ConfigureAwait(false);
+            var width = (int)(await elem.BoundingBoxAsync().ConfigureAwait(false)).Width;
 
             data.Logger.Log($"The width of the element is {width}", LogColors.DarkSalmon);
             return width;
@@ -318,8 +318,8 @@ namespace RuriLib.Blocks.Puppeteer.Elements
             data.Logger.LogHeader();
 
             var frame = GetFrame(data);
-            var elem = await GetElement(frame, findBy, identifier, index);
-            var height = (int)(await elem.BoundingBoxAsync()).Height;
+            var elem = await GetElement(frame, findBy, identifier, index).ConfigureAwait(false);
+            var height = (int)(await elem.BoundingBoxAsync().ConfigureAwait(false)).Height;
 
             data.Logger.Log($"The height of the element is {height}", LogColors.DarkSalmon);
             return height;
@@ -335,14 +335,14 @@ namespace RuriLib.Blocks.Puppeteer.Elements
                 FileUtils.ThrowIfNotInCWD(fileName);
 
             var frame = GetFrame(data);
-            var elem = await GetElement(frame, findBy, identifier, index);
+            var elem = await GetElement(frame, findBy, identifier, index).ConfigureAwait(false);
             await elem.ScreenshotAsync(fileName, new ElementScreenshotOptions
             {
                 FullPage = fullPage,
                 OmitBackground = omitBackground,
                 Type = omitBackground ? ScreenshotType.Png : ScreenshotType.Jpeg,
                 Quality = omitBackground ? null : 100
-            });
+            }).ConfigureAwait(false);
 
             data.Logger.Log($"Took a screenshot of the element and saved it to {fileName}", LogColors.DarkSalmon);
         }
@@ -354,14 +354,14 @@ namespace RuriLib.Blocks.Puppeteer.Elements
             data.Logger.LogHeader();
 
             var frame = GetFrame(data);
-            var elem = await GetElement(frame, findBy, identifier, index);
+            var elem = await GetElement(frame, findBy, identifier, index).ConfigureAwait(false);
             var base64 = await elem.ScreenshotBase64Async(new ElementScreenshotOptions
             { 
                 FullPage = fullPage,
                 OmitBackground = omitBackground,
                 Type = omitBackground ? ScreenshotType.Png : ScreenshotType.Jpeg,
                 Quality = omitBackground ? null : 100
-            });
+            }).ConfigureAwait(false);
 
             data.Logger.Log($"Took a screenshot of the element as base64", LogColors.DarkSalmon);
             return base64;
@@ -378,7 +378,7 @@ namespace RuriLib.Blocks.Puppeteer.Elements
             try
             {
                 var pingTask = frame.EvaluateExpressionAsync<bool>("true");
-                var finished = await Task.WhenAny(pingTask, Task.Delay(300));
+                var finished = await Task.WhenAny(pingTask, Task.Delay(300)).ConfigureAwait(false);
                 if (finished == pingTask)
                 {
                     frameValid = true; // ping succeeded quickly
@@ -408,10 +408,10 @@ namespace RuriLib.Blocks.Puppeteer.Elements
             IElementHandle elem;
             {
                 var getTask = GetElement(frame, findBy, identifier, index);
-                var done = await Task.WhenAny(getTask, Task.Delay(500));
+                var done = await Task.WhenAny(getTask, Task.Delay(500)).ConfigureAwait(false);
                 if (done == getTask)
                 {
-                    elem = await getTask;
+                    elem = await getTask.ConfigureAwait(false);
                 }
                 else
                 {
@@ -420,10 +420,10 @@ namespace RuriLib.Blocks.Puppeteer.Elements
                     frame = page.MainFrame;
                     data.PuppeteerSession.Frame = frame;
                     var retryTask = GetElement(frame, findBy, identifier, index);
-                    var retryDone = await Task.WhenAny(retryTask, Task.Delay(500));
+                    var retryDone = await Task.WhenAny(retryTask, Task.Delay(500)).ConfigureAwait(false);
                     if (retryDone != retryTask)
                         throw new TimeoutException("Timeout locating iframe element");
-                    elem = await retryTask;
+                    elem = await retryTask.ConfigureAwait(false);
                 }
             }
 
@@ -431,10 +431,10 @@ namespace RuriLib.Blocks.Puppeteer.Elements
             try
             {
                 var tagTask = elem.EvaluateFunctionAsync<string>("e => e && e.tagName");
-                var tagCompleted = await Task.WhenAny(tagTask, Task.Delay(300));
+                var tagCompleted = await Task.WhenAny(tagTask, Task.Delay(300)).ConfigureAwait(false);
                 if (tagCompleted == tagTask)
                 {
-                    var tag = await tagTask;
+                    var tag = await tagTask.ConfigureAwait(false);
                     if (!string.Equals(tag, "IFRAME", StringComparison.OrdinalIgnoreCase))
                     {
                         throw new Exception("Selected element is not an iframe");
@@ -457,7 +457,7 @@ namespace RuriLib.Blocks.Puppeteer.Elements
                 try
                 {
                     var pingTask = frame.EvaluateExpressionAsync<bool>("true");
-                    var finished = await Task.WhenAny(pingTask, Task.Delay(200));
+                    var finished = await Task.WhenAny(pingTask, Task.Delay(200)).ConfigureAwait(false);
                     valid = finished == pingTask;
                 }
                 catch { valid = false; }
@@ -468,26 +468,26 @@ namespace RuriLib.Blocks.Puppeteer.Elements
                     data.PuppeteerSession.Frame = frame;
                     // Re-acquire element after frame reset (with timeout)
                     var reacquireTask = GetElement(frame, findBy, identifier, index);
-                    var reacquireDone = await Task.WhenAny(reacquireTask, Task.Delay(400));
+                    var reacquireDone = await Task.WhenAny(reacquireTask, Task.Delay(400)).ConfigureAwait(false);
                     if (reacquireDone == reacquireTask)
                     {
-                        elem = await reacquireTask;
+                        elem = await reacquireTask.ConfigureAwait(false);
                     }
                     else
                     {
-                        await Task.Delay(200);
+                        await Task.Delay(200).ConfigureAwait(false);
                         continue;
                     }
                 }
 
                 var contentFrameTask = elem.ContentFrameAsync();
-                var completed = await Task.WhenAny(contentFrameTask, Task.Delay(400));
+                var completed = await Task.WhenAny(contentFrameTask, Task.Delay(400)).ConfigureAwait(false);
 
                 if (completed == contentFrameTask)
                 {
                     try
                     {
-                        targetFrame = await contentFrameTask;
+                        targetFrame = await contentFrameTask.ConfigureAwait(false);
                         if (targetFrame != null) break;
                     }
                     catch
@@ -498,13 +498,13 @@ namespace RuriLib.Blocks.Puppeteer.Elements
 
                 // Re-acquire the element in case the handle is stale or detached (with timeout)
                 var reacquireTask2 = GetElement(frame, findBy, identifier, index);
-                var reacquireDone2 = await Task.WhenAny(reacquireTask2, Task.Delay(300));
+                var reacquireDone2 = await Task.WhenAny(reacquireTask2, Task.Delay(300)).ConfigureAwait(false);
                 if (reacquireDone2 == reacquireTask2)
                 {
-                    try { elem = await reacquireTask2; } catch { }
+                    try { elem = await reacquireTask2.ConfigureAwait(false); } catch { }
                 }
 
-                await Task.Delay(200);
+                await Task.Delay(200).ConfigureAwait(false);
             }
 
             if (targetFrame == null)
@@ -528,10 +528,10 @@ namespace RuriLib.Blocks.Puppeteer.Elements
                 {
                     var srcTask = elem.EvaluateFunctionAsync<string>("e => e && (e.getAttribute('src') || e.src) || ''");
                     var nameTask = elem.EvaluateFunctionAsync<string>("e => e && (e.getAttribute('name') || e.name) || ''");
-                    var srcDone = await Task.WhenAny(srcTask, Task.Delay(300));
-                    var nameDone = await Task.WhenAny(nameTask, Task.Delay(300));
-                    if (srcDone == srcTask) src = await srcTask;
-                    if (nameDone == nameTask) name = await nameTask;
+                    var srcDone = await Task.WhenAny(srcTask, Task.Delay(300)).ConfigureAwait(false);
+                    var nameDone = await Task.WhenAny(nameTask, Task.Delay(300)).ConfigureAwait(false);
+                    if (srcDone == srcTask) src = await srcTask.ConfigureAwait(false);
+                    if (nameDone == nameTask) name = await nameTask.ConfigureAwait(false);
                 }
                 catch { }
 
@@ -578,11 +578,11 @@ namespace RuriLib.Blocks.Puppeteer.Elements
 
             if (findBy == FindElementBy.XPath)
             {
-                await frame.WaitForXPathAsync(identifier, options);
+                await frame.WaitForXPathAsync(identifier, options).ConfigureAwait(false);
             }
             else
             {
-                await frame.WaitForSelectorAsync(BuildSelector(findBy, identifier), options);
+                await frame.WaitForSelectorAsync(BuildSelector(findBy, identifier), options).ConfigureAwait(false);
             }
 
             data.Logger.Log($"Waited for element with {findBy} {identifier}", LogColors.DarkSalmon);
@@ -591,8 +591,8 @@ namespace RuriLib.Blocks.Puppeteer.Elements
         private static async Task<IElementHandle> GetElement(IFrame frame, FindElementBy findBy, string identifier, int index)
         {
             var elements = findBy == FindElementBy.XPath
-                ? await frame.XPathAsync(identifier)
-                : await frame.QuerySelectorAllAsync(BuildSelector(findBy, identifier));
+                ? await frame.XPathAsync(identifier).ConfigureAwait(false)
+                : await frame.QuerySelectorAllAsync(BuildSelector(findBy, identifier)).ConfigureAwait(false);
 
             if (elements.Length < index + 1)
             {
@@ -629,7 +629,7 @@ namespace RuriLib.Blocks.Puppeteer.Elements
             var elemScript = GetElementScript(findBy, identifier, index);
             var frame = GetFrame(data);
             var script = $"(function(){{var el = {elemScript}; return el ? String(el.innerHTML || '') : '';}})()";
-            var value = await frame.EvaluateExpressionAsync<string>(script);
+            var value = await frame.EvaluateExpressionAsync<string>(script).ConfigureAwait(false);
 
             data.Logger.Log($"Got innerHTML length {value?.Length ?? 0}", LogColors.DarkSalmon);
             return value;
@@ -644,7 +644,7 @@ namespace RuriLib.Blocks.Puppeteer.Elements
             var elemScript = GetElementScript(findBy, identifier, index);
             var frame = GetFrame(data);
             var script = $"(function(){{var el = {elemScript}; return el ? String(el.outerHTML || '') : '';}})()";
-            var value = await frame.EvaluateExpressionAsync<string>(script);
+            var value = await frame.EvaluateExpressionAsync<string>(script).ConfigureAwait(false);
 
             data.Logger.Log($"Got outerHTML length {value?.Length ?? 0}", LogColors.DarkSalmon);
             return value;
@@ -659,7 +659,7 @@ namespace RuriLib.Blocks.Puppeteer.Elements
             var elemScript = GetElementsScript(findBy, identifier);
             var frame = GetFrame(data);
             var script = $"Array.prototype.slice.call({elemScript}).map((item) => {{ var v = item ? item.innerHTML : null; return v == null ? '' : String(v); }})";
-            var values = await frame.EvaluateExpressionAsync<string[]>(script);
+            var values = await frame.EvaluateExpressionAsync<string[]>(script).ConfigureAwait(false);
 
             data.Logger.Log($"Got {values.Length} innerHTML values", LogColors.DarkSalmon);
             return values.ToList();
@@ -674,7 +674,7 @@ namespace RuriLib.Blocks.Puppeteer.Elements
             var elemScript = GetElementsScript(findBy, identifier);
             var frame = GetFrame(data);
             var script = $"Array.prototype.slice.call({elemScript}).map((item) => {{ var v = item ? item.outerHTML : null; return v == null ? '' : String(v); }})";
-            var values = await frame.EvaluateExpressionAsync<string[]>(script);
+            var values = await frame.EvaluateExpressionAsync<string[]>(script).ConfigureAwait(false);
 
             data.Logger.Log($"Got {values.Length} outerHTML values", LogColors.DarkSalmon);
             return values.ToList();

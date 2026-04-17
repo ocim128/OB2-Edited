@@ -14,7 +14,7 @@ using RuriLib.Models.Jobs;
 
 namespace Flux.Native.ViewModels.Jobs;
 
-public partial class JobsViewModel : ViewModelBase
+public partial class JobsViewModel : ViewModelBase, IDisposable
 {
     private readonly IJobQueries jobQueries;
     private readonly IJobOrchestrator jobOrchestrator;
@@ -124,7 +124,12 @@ public partial class JobsViewModel : ViewModelBase
             .OrderBy(static job => job.Id)
             .ToList();
 
-        RunOnUiThread(() => JobsCollection = new ObservableCollection<JobViewModel>(filteredJobs));
+        RunOnUiThread(() =>
+        {
+            JobsCollection.Clear();
+            foreach (var job in filteredJobs)
+                JobsCollection.Add(job);
+        });
     }
 
     private bool JobMatchesSearch(DesktopJobListItemDto job)
@@ -154,6 +159,12 @@ public partial class JobsViewModel : ViewModelBase
             return;
         }
 
-        Application.Current.Dispatcher.Invoke(action);
+        Application.Current.Dispatcher.BeginInvoke(action);
+    }
+
+    public void Dispose()
+    {
+        timer?.Dispose();
+        refreshLock?.Dispose();
     }
 }

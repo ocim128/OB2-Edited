@@ -19,7 +19,7 @@ namespace RuriLib.Helpers
 
         public async Task<bool> IsPausedAsync(CancellationToken token = default)
         {
-            await stateAsyncLock.WaitAsync(token);
+            await stateAsyncLock.WaitAsync(token).ConfigureAwait(false);
 
             try
             {
@@ -33,7 +33,7 @@ namespace RuriLib.Helpers
 
         public async Task ResumeAsync(CancellationToken token = default)
         {
-            await stateAsyncLock.WaitAsync(token);
+            await stateAsyncLock.WaitAsync(token).ConfigureAwait(false);
 
             try
             {
@@ -42,7 +42,7 @@ namespace RuriLib.Helpers
                     return;
                 }
 
-                await pauseRequestAsyncLock.WaitAsync(token);
+                await pauseRequestAsyncLock.WaitAsync(token).ConfigureAwait(false);
 
                 try
                 {
@@ -66,7 +66,7 @@ namespace RuriLib.Helpers
 
         public async Task PauseAsync(CancellationToken token = default)
         {
-            await stateAsyncLock.WaitAsync(token);
+            await stateAsyncLock.WaitAsync(token).ConfigureAwait(false);
 
             try
             {
@@ -76,7 +76,7 @@ namespace RuriLib.Helpers
                 }
 
                 Task pauseConfirmationTask = null;
-                await pauseRequestAsyncLock.WaitAsync(token);
+                await pauseRequestAsyncLock.WaitAsync(token).ConfigureAwait(false);
 
                 try
                 {
@@ -90,7 +90,7 @@ namespace RuriLib.Helpers
                     pauseRequestAsyncLock.Release();
                 }
 
-                await pauseConfirmationTask;
+                await pauseConfirmationTask.ConfigureAwait(false);
 
                 paused = true;
             }
@@ -104,7 +104,7 @@ namespace RuriLib.Helpers
         {
             await using (token.Register(() => resumeRequestTcs.TrySetCanceled(), useSynchronizationContext: false))
             {
-                await resumeRequestTcs.Task;
+                await resumeRequestTcs.Task.ConfigureAwait(false);
             }
         }
 
@@ -112,7 +112,7 @@ namespace RuriLib.Helpers
         {
             await using (token.Register(() => pauseConfirmationTcs.TrySetCanceled(), useSynchronizationContext: false))
             {
-                await pauseConfirmationTcs.Task;
+                await pauseConfirmationTcs.Task.ConfigureAwait(false);
             }
         }
 
@@ -120,7 +120,7 @@ namespace RuriLib.Helpers
         {
             Task resumeRequestTask = null;
 
-            await pauseRequestAsyncLock.WaitAsync(token);
+            await pauseRequestAsyncLock.WaitAsync(token).ConfigureAwait(false);
 
             try
             {
@@ -137,7 +137,7 @@ namespace RuriLib.Helpers
                 pauseRequestAsyncLock.Release();
             }
 
-            await resumeRequestTask;
+            await resumeRequestTask.ConfigureAwait(false);
         }
     }
 

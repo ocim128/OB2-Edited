@@ -11,6 +11,13 @@ namespace RuriLib.Helpers.LoliCode
     /// </summary>
     public static class LineParser
     {
+        private static readonly Regex TokenRegex = new("[^ ]*", RegexOptions.Compiled);
+        private static readonly Regex IntRegex = new("-?[0-9]*", RegexOptions.Compiled);
+        private static readonly Regex FloatRegex = new("-?[0-9\\.]*", RegexOptions.Compiled);
+        private static readonly Regex Base64Regex = new("[A-Za-z0-9+/=]+", RegexOptions.Compiled);
+        private static readonly Regex BoolRegex = new("^([Tt]rue)|([Ff]alse)", RegexOptions.Compiled);
+        private static readonly Regex LiteralRegex = new("\"(\\\\.|[^\\\\\"])*\"", RegexOptions.Compiled);
+
         /// <summary>
         /// Parses a generic LoliCode token (anything until a space character) and moves forward.
         /// </summary>
@@ -18,7 +25,7 @@ namespace RuriLib.Helpers.LoliCode
         {
             input = input.TrimStart();
 
-            var match = Regex.Match(input, "[^ ]*");
+            var match = TokenRegex.Match(input);
 
             if (!match.Success)
                 throw new Exception("Could not parse the token");
@@ -36,7 +43,7 @@ namespace RuriLib.Helpers.LoliCode
         {
             input = input.TrimStart();
 
-            var match = Regex.Match(input, "-?[0-9]*");
+            var match = IntRegex.Match(input);
 
             if (!match.Success)
                 throw new Exception("Could not parse the int");
@@ -54,7 +61,7 @@ namespace RuriLib.Helpers.LoliCode
         {
             input = input.TrimStart();
 
-            var match = Regex.Match(input, "-?[0-9\\.]*");
+            var match = FloatRegex.Match(input);
 
             if (!match.Success)
                 throw new Exception("Could not parse the int");
@@ -77,7 +84,7 @@ namespace RuriLib.Helpers.LoliCode
             
             input = input.TrimStart();
 
-            var match = Regex.Match(input, "[A-Za-z0-9+/=]+");
+            var match = Base64Regex.Match(input);
 
             if (!match.Success)
                 throw new Exception("Could not parse the byte array");
@@ -95,7 +102,7 @@ namespace RuriLib.Helpers.LoliCode
         {
             input = input.TrimStart();
 
-            var match = Regex.Match(input, "^([Tt]rue)|([Ff]alse)");
+            var match = BoolRegex.Match(input);
 
             if (!match.Success)
                 throw new Exception("Could not parse the bool");
@@ -210,7 +217,7 @@ namespace RuriLib.Helpers.LoliCode
         {
             input = input.TrimStart();
 
-            var match = Regex.Match(input, "\"(\\\\.|[^\\\"])*\"");
+            var match = LiteralRegex.Match(input);
 
             if (!match.Success)
                 throw new Exception("Could not parse the literal");

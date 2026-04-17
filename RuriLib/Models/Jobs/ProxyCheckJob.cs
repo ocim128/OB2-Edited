@@ -88,8 +88,8 @@ public class ProxyCheckJob(RuriLibSettingsService settings, PluginRepository plu
 
             var sw = new Stopwatch();
             sw.Start();
-            using var response = await http.GetAsync(input.Url, linkedCts.Token);
-            var content = await response.Content.ReadAsStringAsync();
+            using var response = await http.GetAsync(input.Url, linkedCts.Token).ConfigureAwait(false);
+            var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
             sw.Stop();
 
             if (content.Contains(input.SuccessKey, StringComparison.InvariantCultureIgnoreCase))
@@ -124,7 +124,7 @@ public class ProxyCheckJob(RuriLibSettingsService settings, PluginRepository plu
         {
             try
             {
-                input.Proxy.Country = await input.GeoProvider.GeolocateAsync(input.Proxy.Host);
+                input.Proxy.Country = await input.GeoProvider.GeolocateAsync(input.Proxy.Host).ConfigureAwait(false);
             }
             catch
             {
@@ -270,7 +270,7 @@ public class ProxyCheckJob(RuriLibSettingsService settings, PluginRepository plu
 
             if (_startCts is not null)
             {
-                await _startCts.CancelAsync();
+                await _startCts.CancelAsync().ConfigureAwait(false);
             }
         }
         catch (Exception ex)

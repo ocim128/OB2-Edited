@@ -42,6 +42,7 @@ namespace Flux.Native.ViewModels.Configs
             get => searchString;
             set
             {
+                if (value == searchString) return;
                 searchString = value;
                 OnPropertyChanged();
                 CollectionViewSource.GetDefaultView(ConfigsCollection).Refresh();

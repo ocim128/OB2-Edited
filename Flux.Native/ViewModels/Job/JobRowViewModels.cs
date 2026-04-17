@@ -10,6 +10,22 @@ namespace Flux.Native.ViewModels.Jobs;
 
 public class JobViewModel : ViewModelBase
 {
+    private static readonly SolidColorBrush IdleBrush = FreezeBrush(Color.FromRgb(108, 117, 125));
+    private static readonly SolidColorBrush WaitingBrush = FreezeBrush(Color.FromRgb(23, 162, 184));
+    private static readonly SolidColorBrush StartingBrush = FreezeBrush(Color.FromRgb(255, 193, 7));
+    private static readonly SolidColorBrush RunningBrush = FreezeBrush(Color.FromRgb(40, 167, 69));
+    private static readonly SolidColorBrush PausingBrush = FreezeBrush(Color.FromRgb(255, 193, 7));
+    private static readonly SolidColorBrush PausedBrush = FreezeBrush(Color.FromRgb(253, 126, 20));
+    private static readonly SolidColorBrush StoppingBrush = FreezeBrush(Color.FromRgb(220, 53, 69));
+    private static readonly SolidColorBrush ResumingBrush = FreezeBrush(Color.FromRgb(23, 162, 184));
+
+    private static SolidColorBrush FreezeBrush(Color color)
+    {
+        var brush = new SolidColorBrush(color);
+        brush.Freeze();
+        return brush;
+    }
+
     private DesktopJobListItemDto snapshot;
 
     protected JobViewModel(DesktopJobListItemDto snapshot)
@@ -57,15 +73,15 @@ public class JobViewModel : ViewModelBase
 
     public virtual SolidColorBrush StatusColor => Status switch
     {
-        JobStatus.Idle => new SolidColorBrush(Color.FromRgb(108, 117, 125)),
-        JobStatus.Waiting => new SolidColorBrush(Color.FromRgb(23, 162, 184)),
-        JobStatus.Starting => new SolidColorBrush(Color.FromRgb(255, 193, 7)),
-        JobStatus.Running => new SolidColorBrush(Color.FromRgb(40, 167, 69)),
-        JobStatus.Pausing => new SolidColorBrush(Color.FromRgb(255, 193, 7)),
-        JobStatus.Paused => new SolidColorBrush(Color.FromRgb(253, 126, 20)),
-        JobStatus.Stopping => new SolidColorBrush(Color.FromRgb(220, 53, 69)),
-        JobStatus.Resuming => new SolidColorBrush(Color.FromRgb(23, 162, 184)),
-        _ => new SolidColorBrush(Color.FromRgb(108, 117, 125))
+        JobStatus.Idle => IdleBrush,
+        JobStatus.Waiting => WaitingBrush,
+        JobStatus.Starting => StartingBrush,
+        JobStatus.Running => RunningBrush,
+        JobStatus.Pausing => PausingBrush,
+        JobStatus.Paused => PausedBrush,
+        JobStatus.Stopping => StoppingBrush,
+        JobStatus.Resuming => ResumingBrush,
+        _ => IdleBrush
     };
 
     public string ElapsedString => $"{(int)Elapsed.TotalDays} day(s) {Elapsed:hh\\:mm\\:ss}";

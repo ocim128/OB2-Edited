@@ -1,9 +1,13 @@
 ﻿using System;
+using RuriLib.Functions.Parsing;
 
 namespace RuriLib.Models.Environment
 {
     public class WordlistType
     {
+        /// <summary>A cached compiled regex for this WordlistType's Regex pattern.</summary>
+        public System.Text.RegularExpressions.Regex CompiledRegex => RegexCache.GetOrCreate(Regex);
+
         /// <summary>The name of the Wordlist Type.</summary>
         public string Name { get; set; } = "Default";
 

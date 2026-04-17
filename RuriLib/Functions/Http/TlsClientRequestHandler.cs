@@ -154,13 +154,14 @@ namespace RuriLib.Functions.Http
                 throw new InvalidOperationException(initError ?? "TLS client is not initialized.");
             }
 
-            var transportRequest = BuildRequest(data, options, request);
+            var useByteResponse = request.ReadResponseContent;
+            var transportRequest = BuildRequest(data, options, request, useByteResponse);
             var response = await sharedClient.RequestAsync(transportRequest, cancellationToken).ConfigureAwait(false);
             ValidateTlsResponse(response);
 
             var statusCode = (int)response.Status;
-            var body = request.ReadResponseContent && (statusCode < 300 || statusCode >= 400)
-                ? Encoding.UTF8.GetBytes(response.Body ?? string.Empty)
+            var body = request.ReadResponseContent
+                ? GetResponseBytes(response, useByteResponse)
                 : Array.Empty<byte>();
             var headers = NormalizeTlsHeaders(response.Headers);
             var address = Uri.TryCreate(response.Target, UriKind.Absolute, out var targetUri)
@@ -176,7 +177,7 @@ namespace RuriLib.Functions.Http
             return CreateResponseSnapshot(address, statusCode, headers, body);
         }
 
-        private Request BuildRequest(BotData data, RuriLib.Functions.Http.Options.HttpRequestOptions options, NormalizedHttpRequest request)
+        private Request BuildRequest(BotData data, RuriLib.Functions.Http.Options.HttpRequestOptions options, NormalizedHttpRequest request, bool useByteResponse)
         {
             var tlsProfile = ResolveTlsClientProfile(options.TlsClientProfile, ClientProfile, data.Logger);
 
@@ -193,7 +194,8 @@ namespace RuriLib.Functions.Http
                 WithDefaultCookieJar = true,
                 SessionId = data.TlsClientSessionId ??= Guid.NewGuid(),
                 TransportOptions = defaultTransportOptions,
-                Headers = CopyHeaders(request)
+                Headers = CopyHeaders(request),
+                IsByteResponse = useByteResponse
             };
 
             if (options.HttpLibrary == HttpLibrary.RuriLibHttp)
@@ -227,6 +229,7 @@ namespace RuriLib.Functions.Http
             if (request.MultipartContents != null)
             {
                 transportRequest.RequestBody = BuildMultipartBody(data, request.MultipartContents, request.Boundary!);
+                transportRequest.IsByteRequest = true;
                 transportRequest.Headers["Content-Type"] = $"multipart/form-data; boundary={request.Boundary}";
             }
             else if (request.RawBody != null)
@@ -289,45 +292,72 @@ namespace RuriLib.Functions.Http
             return $"{scheme}://{proxy.Host}:{proxy.Port}";
         }
 
+        /// <summary>
+        /// Extracts the response body as raw bytes. When IsByteResponse was requested,
+        /// the native library returns a base64-encoded string in Body; decode it.
+        /// Otherwise fall back to UTF-8 encoding of the text body.
+        /// </summary>
+        private static byte[] GetResponseBytes(Response response, bool wasByteResponseRequested)
+        {
+            var body = response.Body ?? string.Empty;
+
+            if (wasByteResponseRequested && !string.IsNullOrEmpty(body))
+            {
+                try
+                {
+                    // Handle data-URI format: data:<mediatype>;base64,<payload>
+                    var base64 = body;
+                    var base64Index = body.IndexOf(";base64,", StringComparison.Ordinal);
+                    if (base64Index >= 0)
+                    {
+                        base64 = body[(base64Index + ";base64,".Length)..];
+                    }
+
+                    return Convert.FromBase64String(base64);
+                }
+                catch (FormatException)
+                {
+                    // Body wasn't valid base64 — fall back to UTF-8
+                }
+            }
+
+            return Encoding.UTF8.GetBytes(body);
+        }
+
+        /// <summary>
+        /// Builds a multipart body as bytes to preserve binary content (raw/file parts).
+        /// Returns a base64-encoded string suitable for IsByteRequest.
+        /// </summary>
         private static string BuildMultipartBody(BotData data, List<MyHttpContent> contents, string boundary)
         {
-            var sb = new StringBuilder();
+            using var ms = new MemoryStream();
+            var boundaryBytes = Encoding.UTF8.GetBytes($"--{boundary}\r\n");
+            var closingBoundary = Encoding.UTF8.GetBytes($"--{boundary}--\r\n");
+            var crlf = Encoding.UTF8.GetBytes("\r\n");
 
             foreach (var content in contents)
             {
+                ms.Write(boundaryBytes, 0, boundaryBytes.Length);
+
                 switch (content)
                 {
                     case StringHttpContent stringContent:
-                        sb.Append($"--{boundary}\r\n");
-                        sb.Append($"Content-Disposition: form-data; name=\"{stringContent.Name}\"\r\n");
-                        if (!string.IsNullOrEmpty(stringContent.ContentType))
-                        {
-                            sb.Append($"Content-Type: {stringContent.ContentType}\r\n");
-                        }
-
-                        sb.Append("\r\n");
-                        sb.Append(stringContent.Data);
-                        sb.Append("\r\n");
+                        WritePartHeaders(ms, $"form-data; name=\"{stringContent.Name}\"", stringContent.ContentType);
+                        var stringData = Encoding.UTF8.GetBytes(stringContent.Data);
+                        ms.Write(stringData, 0, stringData.Length);
+                        ms.Write(crlf, 0, crlf.Length);
                         break;
 
                     case RawHttpContent rawContent:
-                        sb.Append($"--{boundary}\r\n");
-                        sb.Append($"Content-Disposition: form-data; name=\"{rawContent.Name}\"\r\n");
-                        if (!string.IsNullOrEmpty(rawContent.ContentType))
-                        {
-                            sb.Append($"Content-Type: {rawContent.ContentType}\r\n");
-                        }
-
-                        sb.Append("\r\n");
-                        sb.Append(Encoding.UTF8.GetString(rawContent.Data));
-                        sb.Append("\r\n");
+                        WritePartHeaders(ms, $"form-data; name=\"{rawContent.Name}\"", rawContent.ContentType);
+                        ms.Write(rawContent.Data, 0, rawContent.Data.Length);
+                        ms.Write(crlf, 0, crlf.Length);
                         break;
 
                     case FileHttpContent fileContent:
-                        sb.Append($"--{boundary}\r\n");
-                        sb.Append($"Content-Disposition: form-data; name=\"{fileContent.Name}\"; filename=\"{Path.GetFileName(fileContent.FileName)}\"\r\n");
-                        sb.Append($"Content-Type: {fileContent.ContentType}\r\n");
-                        sb.Append("\r\n");
+                        WritePartHeaders(ms,
+                            $"form-data; name=\"{fileContent.Name}\"; filename=\"{Path.GetFileName(fileContent.FileName)}\"",
+                            fileContent.ContentType);
 
                         if (data.Providers.Security.RestrictBlocksToCWD)
                         {
@@ -336,16 +366,29 @@ namespace RuriLib.Functions.Http
 
                         if (File.Exists(fileContent.FileName))
                         {
-                            sb.Append(File.ReadAllText(fileContent.FileName));
+                            var fileBytes = File.ReadAllBytes(fileContent.FileName);
+                            ms.Write(fileBytes, 0, fileBytes.Length);
                         }
 
-                        sb.Append("\r\n");
+                        ms.Write(crlf, 0, crlf.Length);
                         break;
                 }
             }
 
-            sb.Append($"--{boundary}--\r\n");
-            return sb.ToString();
+            ms.Write(closingBoundary, 0, closingBoundary.Length);
+            return Convert.ToBase64String(ms.ToArray());
+        }
+
+        private static void WritePartHeaders(MemoryStream ms, string contentDisposition, string? contentType)
+        {
+            var header = $"Content-Disposition: {contentDisposition}\r\n";
+            if (!string.IsNullOrEmpty(contentType))
+            {
+                header += $"Content-Type: {contentType}\r\n";
+            }
+            header += "\r\n";
+            var headerBytes = Encoding.UTF8.GetBytes(header);
+            ms.Write(headerBytes, 0, headerBytes.Length);
         }
 
         private static Dictionary<string, List<string>> NormalizeTlsHeaders(Dictionary<string, List<string>>? headers)

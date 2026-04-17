@@ -51,7 +51,7 @@ namespace RuriLib.Functions.Http
                 redirectHeaders["Authorization"] = request.RedirectAuthorization;
             }
 
-            redirectRequest = request.CreateRedirect(targetUri, redirectHeaders);
+            redirectRequest = request.CreateRedirect(targetUri, redirectHeaders, response.StatusCode);
             return true;
         }
 

@@ -62,8 +62,13 @@ namespace RuriLib.Http.Models
         [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         public async Task WriteToAsync(IBufferWriter<byte> writer, CancellationToken cancellationToken = default)
         {
-            // Use the optimized HTTP performance writer for better throughput
-            await HttpPerformanceOptimizer.WriteOptimizedRequestAsync(this, writer, cancellationToken).ConfigureAwait(false);
+            BuildFirstLine(writer);
+            BuildHeaders(writer);
+
+            if (Content != null)
+            {
+                writer.Write(await Content.ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false));
+            }
         }
 
         private static readonly byte[] CRLF = Encoding.ASCII.GetBytes("\r\n");

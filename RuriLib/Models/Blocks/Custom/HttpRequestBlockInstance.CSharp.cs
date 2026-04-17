@@ -75,7 +75,8 @@ public partial class HttpRequestBlockInstance
         writer.Write("DisableCookieParsing = " + GetSettingValue("disableCookieParsing") + ", ");
         writer.Write("DisableHeaderParsing = " + GetSettingValue("disableHeaderParsing") + ", ");
         writer.Write("UseCustomCipherSuites = " + GetSettingValue("useCustomCipherSuites") + ", ");
-        writer.Write("CustomCipherSuites = " + GetSettingValue("customCipherSuites") + " ");
+        writer.Write("CustomCipherSuites = " + GetSettingValue("customCipherSuites") + ", ");
+        writer.Write("AllowHttpsToHttpRedirect = " + GetSettingValue("allowHttpsToHttpRedirect") + " ");
 
         writer.WriteLine("}).ConfigureAwait(false);");
 

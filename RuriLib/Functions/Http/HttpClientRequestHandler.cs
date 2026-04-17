@@ -82,7 +82,7 @@ namespace RuriLib.Functions.Http
                     cancellationToken).ConfigureAwait(false);
 
                 var statusCode = (int)response.StatusCode;
-                var body = request.ReadResponseContent && (statusCode < 300 || statusCode >= 400)
+                var body = request.ReadResponseContent
                     ? await ReadResponseBodyAsync(response, cancellationToken).ConfigureAwait(false)
                     : Array.Empty<byte>();
                 var headers = NormalizeHeaders(response.Headers.Concat(response.Content?.Headers ?? Enumerable.Empty<KeyValuePair<string, IEnumerable<string>>>()));

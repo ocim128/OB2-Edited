@@ -30,7 +30,7 @@ namespace RuriLib.Functions.Http
 
         private sealed class PooledClient : IDisposable
         {
-            public required RLHttpClient Client { get; init; }
+            public required RuriLib.Http.RLHttpClient Client { get; init; }
             public required string Key { get; init; }
             public DateTime LastUsed { get; set; } = DateTime.UtcNow;
 
@@ -107,7 +107,7 @@ namespace RuriLib.Functions.Http
 
                 using var response = await pooledClient.Client.SendAsync(rlRequest, cancellationToken).ConfigureAwait(false);
                 var statusCode = (int)response.StatusCode;
-                var body = request.ReadResponseContent && (statusCode < 300 || statusCode >= 400)
+                var body = request.ReadResponseContent
                     ? await ReadResponseBodyAsync(response, cancellationToken).ConfigureAwait(false)
                     : Array.Empty<byte>();
                 var headers = NormalizeHeaders(response.Headers);
@@ -195,12 +195,17 @@ namespace RuriLib.Functions.Http
             if (!pooledClient.IsValid)
             {
                 pooledClient.Dispose();
+
+                if (clientPool.TryGetValue(pooledClient.Key, out var poolEntry))
+                {
+                    Interlocked.Decrement(ref poolEntry.ActiveClients);
+                }
                 return;
             }
 
-            if (clientPool.TryGetValue(pooledClient.Key, out var poolEntry))
+            if (clientPool.TryGetValue(pooledClient.Key, out var entry))
             {
-                poolEntry.Clients.Enqueue(pooledClient);
+                entry.Clients.Enqueue(pooledClient);
             }
             else
             {
@@ -211,8 +216,24 @@ namespace RuriLib.Functions.Http
         private static string GenerateClientKey(BotData data, HttpOptions clientOptions)
         {
             var proxy = data.UseProxy ? data.Proxy : null;
-            var proxyKey = proxy != null ? $"{proxy.Type}:{proxy.Host}:{proxy.Port}" : "noproxy";
-            return $"{proxyKey}:{clientOptions.SecurityProtocol}:{clientOptions.UseCustomCipherSuites}";
+            string proxyKey;
+            if (proxy != null)
+            {
+                var creds = proxy.NeedsAuthentication
+                    ? $":{proxy.Username}:{proxy.Password}"
+                    : "";
+                proxyKey = $"{proxy.Type}:{proxy.Host}:{proxy.Port}{creds}";
+            }
+            else
+            {
+                proxyKey = "noproxy";
+            }
+
+            var cipherKey = clientOptions.UseCustomCipherSuites && clientOptions.CustomCipherSuites is { Length: > 0 }
+                ? string.Join(",", clientOptions.CustomCipherSuites)
+                : "default";
+
+            return $"{proxyKey}:{clientOptions.SecurityProtocol}:{cipherKey}:{clientOptions.CertRevocationMode}:{clientOptions.ConnectTimeout.Ticks}:{clientOptions.ReadWriteTimeout.Ticks}";
         }
 
         private static void CleanupExpiredClients(object? state)

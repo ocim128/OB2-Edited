@@ -25,7 +25,7 @@ namespace RuriLib.Functions.Http
             data.RESPONSECODE = response.StatusCode;
             data.Logger.Log($"Response code: {data.RESPONSECODE}", LogColors.Citrine);
 
-            data.RAWSOURCE = request.ReadResponseContent && response.StatusCode is < 300 or >= 400
+            data.RAWSOURCE = request.ReadResponseContent
                 ? response.RawBody ?? Array.Empty<byte>()
                 : Array.Empty<byte>();
 
@@ -83,7 +83,7 @@ namespace RuriLib.Functions.Http
                 data.SOURCE = WebUtility.HtmlDecode(data.SOURCE);
             }
 
-            if (response.StatusCode is < 300 or >= 400)
+            if (request.ReadResponseContent && response.RawBody is { Length: > 0 })
             {
                 data.Logger.Log("Received Payload:", LogColors.ForestGreen);
                 data.Logger.Log(data.SOURCE, LogColors.GreenYellow, true);

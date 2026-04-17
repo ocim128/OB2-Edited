@@ -29,14 +29,29 @@ namespace RuriLib.Functions.Http
         public string CodePagesEncoding { get; init; } = string.Empty;
         public bool AllowHttpsToHttpRedirect { get; init; }
 
-        public NormalizedHttpRequest CreateRedirect(Uri targetUri, Dictionary<string, string> headers)
-            => new()
+        /// <summary>
+        /// Creates a redirect request using the runtime redirect behavior:
+        /// 307/308 preserve method and body, 301/302 preserve non-POST methods,
+        /// and 303 rewrites to GET except for HEAD.
+        /// </summary>
+        public NormalizedHttpRequest CreateRedirect(Uri targetUri, Dictionary<string, string> headers, int statusCode)
+        {
+            var redirectMethod = GetRedirectMethod(Method, statusCode);
+            var preserveBody = ShouldPreserveBody(Method, redirectMethod, statusCode);
+            return new()
             {
                 Uri = targetUri,
-                Method = System.Net.Http.HttpMethod.Get,
+                Method = redirectMethod,
                 Version = Version,
                 Headers = headers,
                 Cookies = Cookies,
+                StringBody = preserveBody ? StringBody : null,
+                RawBody = preserveBody ? RawBody : null,
+                MultipartContents = preserveBody ? MultipartContents : null,
+                Boundary = preserveBody ? Boundary : null,
+                ContentType = preserveBody ? ContentType : null,
+                ContentLengthDisplay = preserveBody ? ContentLengthDisplay : null,
+                LoggedContent = null,
                 RedirectAuthorization = RedirectAuthorization,
                 AutoRedirect = AutoRedirect,
                 RemainingRedirects = RemainingRedirects - 1,
@@ -49,6 +64,30 @@ namespace RuriLib.Functions.Http
                 CodePagesEncoding = CodePagesEncoding,
                 AllowHttpsToHttpRedirect = AllowHttpsToHttpRedirect
             };
+        }
+
+        private static System.Net.Http.HttpMethod GetRedirectMethod(System.Net.Http.HttpMethod originalMethod, int statusCode)
+            => statusCode switch
+            {
+                307 or 308 => originalMethod,
+                303 => originalMethod == System.Net.Http.HttpMethod.Head
+                    ? System.Net.Http.HttpMethod.Head
+                    : System.Net.Http.HttpMethod.Get,
+                301 or 302 => originalMethod == System.Net.Http.HttpMethod.Post
+                    ? System.Net.Http.HttpMethod.Get
+                    : originalMethod,
+                _ => System.Net.Http.HttpMethod.Get
+            };
+
+        private static bool ShouldPreserveBody(
+            System.Net.Http.HttpMethod originalMethod,
+            System.Net.Http.HttpMethod redirectMethod,
+            int statusCode)
+            => statusCode is 307 or 308 ||
+               (statusCode is 301 or 302 &&
+                redirectMethod == originalMethod &&
+                originalMethod != System.Net.Http.HttpMethod.Get &&
+                originalMethod != System.Net.Http.HttpMethod.Head);
     }
 
     internal sealed class NormalizedHttpResponse

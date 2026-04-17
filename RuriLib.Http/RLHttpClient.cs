@@ -242,8 +242,8 @@ public class RLHttpClient(ProxyClient proxyClient = null) : IDisposable
 
             var redirectUri = new Uri(currentRequest.Uri, location);
 
-            // Change method to GET for non-307 redirects
-            var newMethod = response.StatusCode == HttpStatusCode.TemporaryRedirect ? currentRequest.Method : HttpMethod.Get;
+            var newMethod = GetRedirectMethod(currentRequest.Method, response.StatusCode);
+            var preserveContent = ShouldPreserveContent(currentRequest.Method, newMethod, response.StatusCode);
 
             // Reuse dictionary for better performance
             redirectHeaders.Clear();
@@ -266,8 +266,10 @@ public class RLHttpClient(ProxyClient proxyClient = null) : IDisposable
                 Uri = redirectUri,
                 Method = newMethod,
                 Version = currentRequest.Version,
-                Headers = redirectHeaders,
-                Content = newMethod == HttpMethod.Get ? null : currentRequest.Content
+                Headers = new Dictionary<string, string>(redirectHeaders, StringComparer.OrdinalIgnoreCase),
+                Cookies = new Dictionary<string, string>(currentRequest.Cookies, StringComparer.OrdinalIgnoreCase),
+                AbsoluteUriInFirstLine = currentRequest.AbsoluteUriInFirstLine,
+                Content = preserveContent ? currentRequest.Content : null
             };
         }
 
@@ -288,35 +290,72 @@ public class RLHttpClient(ProxyClient proxyClient = null) : IDisposable
         var poolKey = GetPoolKey(request.Uri.Host, request.Uri.Port, request.Uri.Scheme == "https");
         var pooledConnection = await GetPooledConnectionAsync(poolKey, request.Uri.Host, request.Uri.Port, request.Uri.Scheme == "https", cancellationToken).ConfigureAwait(false);
 
+        bool returnedToPool = false;
         try
         {
             await SendDataAsync(request, pooledConnection.CommonStream, cancellationToken).ConfigureAwait(false);
-            return await ReceiveDataAsync(request, pooledConnection.CommonStream, cancellationToken).ConfigureAwait(false);
-        }
-        catch
-        {
-            // On error, dispose the connection instead of returning it to pool
-            pooledConnection.Dispose();
-            throw;
+            var response = await ReceiveDataAsync(request, pooledConnection.CommonStream, cancellationToken).ConfigureAwait(false);
+
+            if (pooledConnection.IsValid)
+            {
+                if (_connectionPool.TryGetValue(poolKey, out var entry))
+                {
+                    entry.Connections.Enqueue(pooledConnection);
+                    entry.LastAccessed = DateTime.UtcNow;
+                    returnedToPool = true;
+                }
+            }
+
+            return response;
         }
         finally
         {
-            // Return connection to pool if still valid
-            if (pooledConnection.IsValid)
-            {
-                ReturnConnectionToPool(poolKey, pooledConnection);
-            }
-            else
+            if (!returnedToPool)
             {
                 pooledConnection.Dispose();
+                if (_connectionPool.TryGetValue(poolKey, out var entry))
+                {
+                    Interlocked.Decrement(ref entry.ActiveConnections);
+                }
             }
         }
     }
 
-    private static string GetPoolKey(string host, int port, bool isSecure)
+    private string GetPoolKey(string host, int port, bool isSecure)
     {
-        return $"{host}:{port}:{isSecure}";
+        var proxyKey = ProxyClient switch
+        {
+            NoProxyClient => "noproxy",
+            _ => string.Join(":",
+                ProxyClient.GetType().Name,
+                ProxyClient.Settings?.Host ?? string.Empty,
+                ProxyClient.Settings?.Port.ToString() ?? string.Empty,
+                ProxyClient.Settings?.Credentials?.UserName ?? string.Empty,
+                ProxyClient.Settings?.Credentials?.Password ?? string.Empty,
+                ProxyClient.Settings?.ConnectTimeout.Ticks.ToString() ?? string.Empty,
+                ProxyClient.Settings?.ReadWriteTimeOut.Ticks.ToString() ?? string.Empty)
+        };
+        var cipherKey = UseCustomCipherSuites && AllowedCipherSuites is { Length: > 0 }
+            ? string.Join(",", AllowedCipherSuites.Select(c => c.ToString()))
+            : "default";
+        return $"{host}:{port}:{isSecure}:{proxyKey}:{(int)SslProtocols}:{cipherKey}:{CertRevocationMode}";
     }
+
+    private static HttpMethod GetRedirectMethod(HttpMethod originalMethod, HttpStatusCode statusCode)
+        => statusCode switch
+        {
+            HttpStatusCode.TemporaryRedirect or HttpStatusCode.PermanentRedirect => originalMethod,
+            HttpStatusCode.SeeOther => originalMethod == HttpMethod.Head ? HttpMethod.Head : HttpMethod.Get,
+            HttpStatusCode.MovedPermanently or HttpStatusCode.Found => originalMethod == HttpMethod.Post ? HttpMethod.Get : originalMethod,
+            _ => HttpMethod.Get
+        };
+
+    private static bool ShouldPreserveContent(HttpMethod originalMethod, HttpMethod redirectMethod, HttpStatusCode statusCode)
+        => statusCode is HttpStatusCode.TemporaryRedirect or HttpStatusCode.PermanentRedirect ||
+           ((statusCode is HttpStatusCode.MovedPermanently or HttpStatusCode.Found) &&
+            redirectMethod == originalMethod &&
+            originalMethod != HttpMethod.Get &&
+            originalMethod != HttpMethod.Head);
 
     private async Task<PooledConnection> GetPooledConnectionAsync(string poolKey, string host, int port, bool isSecure, CancellationToken cancellationToken)
     {
@@ -340,7 +379,15 @@ public class RLHttpClient(ProxyClient proxyClient = null) : IDisposable
         if (entry.ActiveConnections < HttpPerformanceConfig.MaxConnectionsPerHost)
         {
             Interlocked.Increment(ref entry.ActiveConnections);
-            return await CreateNewConnectionAsync(host, port, isSecure, cancellationToken).ConfigureAwait(false);
+            try
+            {
+                return await CreateNewConnectionAsync(host, port, isSecure, cancellationToken).ConfigureAwait(false);
+            }
+            catch
+            {
+                Interlocked.Decrement(ref entry.ActiveConnections);
+                throw;
+            }
         }
 
         // Wait and retry if at limit

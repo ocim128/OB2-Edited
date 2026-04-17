@@ -175,17 +175,14 @@ internal class HttpResponseBuilder : IDisposable
             var res = await reader.ReadAsync(cancellationToken).ConfigureAwait(false);
 
             var buff = res.Buffer;
-            var crlfIndex = buff.FirstSpan.IndexOf(CRLF);
-            if (crlfIndex > -1)
+            if (TryReadLine(buff, out startingLine, out var bytesConsumed))
             {
                 try
                 {
-                    startingLine = Encoding.UTF8.GetString(res.Buffer.FirstSpan[..crlfIndex]);
                     var fields = startingLine.Split(' ');
                     response.Version = Version.Parse(fields[0].Trim()[5..]);
                     response.StatusCode = (HttpStatusCode)Enum.Parse(typeof(HttpStatusCode), fields[1]);
-                    buff = buff.Slice(0, crlfIndex + 2); // add 2 bytes for the CRLF
-                    reader.AdvanceTo(buff.End); // advance to the consumed position
+                    reader.AdvanceTo(buff.GetPosition(bytesConsumed));
                     break;
                 }
                 catch
@@ -357,6 +354,7 @@ internal class HttpResponseBuilder : IDisposable
                 headerName.Equals("Set-Cookie2", StringComparison.OrdinalIgnoreCase))
             {
                 SetCookie(response, headerValue);
+                AddGeneralHeader(headerName, headerValue);
             }
             // If it's a content header
             else if (IsContentHeader(headerName))
@@ -509,7 +507,7 @@ internal class HttpResponseBuilder : IDisposable
 
     private Task<Stream> GetMessageBodySource(CancellationToken cancellationToken) =>
         response.Headers.TryGetValue("Transfer-Encoding", out var value) &&
-        value.Equals("chunked", StringComparison.OrdinalIgnoreCase)
+        value.Contains("chunked", StringComparison.OrdinalIgnoreCase)
             ? GetChunkedDecompressedStream(cancellationToken)
             : GetContentLength() != -1
             ? GetContentLengthDecompressedStream(cancellationToken)
@@ -572,11 +570,7 @@ internal class HttpResponseBuilder : IDisposable
             throw new InvalidOperationException("Cannot read content by length when length is negative");
         }
 
-        // If the content is small, use a regular MemoryStream, otherwise use a pooled one.
-        // The threshold 4096 is arbitrary and can be tuned.
-        var ms = length > 4096
-            ? new PooledMemoryStream(_bufferPool.Rent(length))
-            : new MemoryStream();
+        var ms = new MemoryStream(length);
 
         long bytesRead = 0;
 
@@ -586,16 +580,11 @@ internal class HttpResponseBuilder : IDisposable
             {
                 var res = await reader.ReadAsync(cancellationToken).ConfigureAwait(false);
                 var buff = res.Buffer;
-
                 var bytesToCopy = Math.Min(buff.Length, length - bytesRead);
 
-                foreach (var segment in buff)
-                {
-                    await ms.WriteAsync(segment.Span.ToArray(), cancellationToken);
-                    bytesRead += segment.Length;
-                }
-
-                reader.AdvanceTo(buff.End);
+                await CopyToStreamAsync(ms, buff, bytesToCopy, cancellationToken).ConfigureAwait(false);
+                reader.AdvanceTo(buff.GetPosition(bytesToCopy));
+                bytesRead += bytesToCopy;
 
                 if (res.IsCompleted && bytesRead < length)
                 {
@@ -641,7 +630,7 @@ internal class HttpResponseBuilder : IDisposable
                 var chunkSize = await ReadChunkSizeAsync(cancellationToken);
                 if (chunkSize == 0)
                 {
-                    await SkipTrailingCrlfAsync(cancellationToken);
+                    await SkipTrailingHeadersAsync(cancellationToken);
                     break;
                 }
 
@@ -662,7 +651,7 @@ internal class HttpResponseBuilder : IDisposable
     private async Task<int> ReadChunkSizeAsync(CancellationToken cancellationToken)
     {
         var chunkSizeLine = await ReadLineAsync(cancellationToken);
-        return int.Parse(chunkSizeLine.Split(';')[0], System.Globalization.NumberStyles.HexNumber);
+        return int.Parse(chunkSizeLine.Split(';')[0].Trim(), System.Globalization.NumberStyles.HexNumber);
     }
 
     private async Task ReadChunkDataAsync(MemoryStream destination, int chunkSize, CancellationToken cancellationToken)
@@ -674,13 +663,9 @@ internal class HttpResponseBuilder : IDisposable
             var buff = res.Buffer;
 
             var bytesToCopy = Math.Min(buff.Length, chunkSize - bytesRead);
-
-            foreach (var segment in buff)
-            {
-                await destination.WriteAsync(segment.Span.ToArray(), cancellationToken);
-                bytesRead += segment.Length;
-            }
-            reader.AdvanceTo(buff.GetPosition(bytesRead));
+            await CopyToStreamAsync(destination, buff, bytesToCopy, cancellationToken).ConfigureAwait(false);
+            reader.AdvanceTo(buff.GetPosition(bytesToCopy));
+            bytesRead += bytesToCopy;
 
             if (res.IsCompleted && bytesRead < chunkSize)
             {
@@ -695,12 +680,9 @@ internal class HttpResponseBuilder : IDisposable
         {
             var res = await reader.ReadAsync(cancellationToken).ConfigureAwait(false);
             var buff = res.Buffer;
-            var crlfIndex = buff.FirstSpan.IndexOf(CRLF);
-
-            if (crlfIndex > -1)
+            if (TryReadLine(buff, out var line, out var bytesConsumed))
             {
-                var line = Encoding.UTF8.GetString(buff.FirstSpan[..crlfIndex]);
-                reader.AdvanceTo(buff.GetPosition(crlfIndex + 2));
+                reader.AdvanceTo(buff.GetPosition(bytesConsumed));
                 return line;
             }
 
@@ -713,14 +695,63 @@ internal class HttpResponseBuilder : IDisposable
         }
     }
 
-    private async Task SkipTrailingCrlfAsync(CancellationToken cancellationToken)
+    private async Task SkipTrailingHeadersAsync(CancellationToken cancellationToken)
     {
-        await ReadLineAsync(cancellationToken);
+        while (true)
+        {
+            var line = await ReadLineAsync(cancellationToken).ConfigureAwait(false);
+            if (line.Length == 0)
+            {
+                return;
+            }
+        }
     }
 
     private async Task SkipChunkCrlfAsync(CancellationToken cancellationToken)
     {
-        await ReadLineAsync(cancellationToken);
+        var line = await ReadLineAsync(cancellationToken).ConfigureAwait(false);
+        if (line.Length != 0)
+        {
+            throw new FormatException("Invalid chunk terminator");
+        }
+    }
+
+    private static async Task CopyToStreamAsync(
+        Stream destination,
+        ReadOnlySequence<byte> buffer,
+        long bytesToCopy,
+        CancellationToken cancellationToken)
+    {
+        var remaining = bytesToCopy;
+
+        foreach (var segment in buffer)
+        {
+            if (remaining <= 0)
+            {
+                break;
+            }
+
+            var segmentLength = (int)Math.Min(segment.Length, remaining);
+            await destination.WriteAsync(segment[..segmentLength], cancellationToken).ConfigureAwait(false);
+            remaining -= segmentLength;
+        }
+    }
+
+    private bool TryReadLine(ReadOnlySequence<byte> buffer, out string line, out long bytesConsumed)
+    {
+        var reader = new SequenceReader<byte>(buffer);
+        if (reader.TryReadTo(out ReadOnlySequence<byte> lineSequence, CRLF))
+        {
+            line = lineSequence.IsSingleSegment
+                ? Encoding.UTF8.GetString(lineSequence.FirstSpan)
+                : Encoding.UTF8.GetString(lineSequence.ToArray());
+            bytesConsumed = reader.Consumed;
+            return true;
+        }
+
+        line = string.Empty;
+        bytesConsumed = 0;
+        return false;
     }
 
     private Stream GetZipStream(Stream stream)

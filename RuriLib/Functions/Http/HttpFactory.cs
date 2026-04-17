@@ -35,25 +35,11 @@ namespace RuriLib.Functions.Http
             };
         }
 
-        public static RLHttpClient GetRLHttpClient(Proxy proxy, HttpOptions options)
+        public static RuriLib.Http.RLHttpClient GetRLHttpClient(Proxy proxy, HttpOptions options)
         {
             var client = GetProxyClient(proxy, options);
-            var handler = GetHttpMessageHandler(proxy, options, null);
 
-            // Disable cookies and auto-redirects on the handler as RLHttpClient handles them manually
-            // We need to do this because GetHttpMessageHandler sets them to true by default
-            if (handler is HttpClientHandler httpHandler)
-            {
-                httpHandler.UseCookies = false;
-                httpHandler.AllowAutoRedirect = false;
-            }
-            else if (handler is SocketsHttpHandler socksHandler)
-            {
-                socksHandler.UseCookies = false;
-                socksHandler.AllowAutoRedirect = false;
-            }
-
-            return new RLHttpClient(client, handler)
+            return new RuriLib.Http.RLHttpClient(client)
             {
                 AllowAutoRedirect = options.AutoRedirect,
                 MaxNumberOfRedirects = options.MaxNumberOfRedirects,

@@ -148,10 +148,10 @@ namespace Flux.Native.ViewModels.Data
 
         private bool HitsFilter(object item)
         {
-            var hit = item as HitEntity;
+            if (item is not HitEntity hit) return false;
             var searchOk = string.IsNullOrEmpty(searchString) || 
-                          hit.Data.Contains(searchString, StringComparison.OrdinalIgnoreCase) ||
-                          hit.CapturedData.Contains(searchString, StringComparison.OrdinalIgnoreCase);
+                          (hit.Data?.Contains(searchString, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                          (hit.CapturedData?.Contains(searchString, StringComparison.OrdinalIgnoreCase) ?? false);
             var configOk = configFilter == "All" || hit.ConfigName == configFilter;
             var typeOk = typeFilter == "All" || hit.Type == typeFilter;
 

@@ -6,6 +6,7 @@ namespace Flux.Native.Utils
     {
         private readonly string html;
         private readonly StringBuilder sb;
+        private bool finalized;
 
         public HtmlStyler(string html)
         {
@@ -22,8 +23,11 @@ namespace Flux.Native.Utils
 
         public override string ToString()
         {
-            // Finalize the style
-            sb.Append($"}} </style><body>{html}</body></html>");
+            if (!finalized)
+            {
+                sb.Append($"}} </style><body>{html}</body></html>");
+                finalized = true;
+            }
             return sb.ToString();
         }
     }

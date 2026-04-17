@@ -11,7 +11,7 @@ namespace Flux.Native.Helpers
                 UseShellExecute = true,
             };
 
-            Process.Start(sInfo);
+            using var _ = Process.Start(sInfo);
         }
     }
 }

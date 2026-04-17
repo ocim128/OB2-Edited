@@ -79,7 +79,7 @@ public partial class MultiRunJobViewer : Page
             InitializeComponent();
         }
 
-        public void BindViewModel(MultiRunJobViewModel jobVM)
+        public async void BindViewModel(MultiRunJobViewModel jobVM)
         {
             if (vm is not null)
             {
@@ -96,7 +96,7 @@ public partial class MultiRunJobViewer : Page
                 }
             }
 
-            vm = new MultiRunJobViewerViewModel(jobVM, fluxSettingsService, jobCommands, jobQueries);
+            vm = await MultiRunJobViewerViewModel.CreateAsync(jobVM, fluxSettingsService, jobCommands, jobQueries);
             vm.NewMessage += OnResultMessage;
             vm.SparklineDataUpdated += UpdateSparklines;
             DataContext = vm;

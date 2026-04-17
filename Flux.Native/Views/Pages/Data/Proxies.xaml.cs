@@ -17,13 +17,14 @@ using System.Windows.Documents;
 using System.Windows.Input;
 using System.Threading.Tasks;
 
+using Flux.Native.Services;
 
 namespace Flux.Native.Views.Pages.Data;
 
 /// <summary>
 /// Interaction logic for Proxies.xaml
 /// </summary>
-public partial class Proxies : Page
+public partial class Proxies : Page, IUpdatablePage
 {
     private const string ConfirmationTitle = "Are you sure?";
     private readonly ProxiesViewModel vm;

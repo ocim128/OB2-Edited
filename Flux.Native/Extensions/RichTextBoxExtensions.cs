@@ -29,7 +29,7 @@ namespace Flux.Native.Extensions
             => new TextRange(box.Document.ContentStart, box.Document.ContentEnd).Text;
 
         public static string GetTextFromLines(this RichTextBox box)
-            => box.Lines().Aggregate((current, next) => current + next);
+            => string.Join(Environment.NewLine, box.Lines());
 
         public static string Select(this RichTextBox rtb, int offset, int length, Color color)
         {

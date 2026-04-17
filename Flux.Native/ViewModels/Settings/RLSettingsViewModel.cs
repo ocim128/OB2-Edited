@@ -70,7 +70,7 @@ public class RLSettingsViewModel : ViewModelBase
                 browser,
                 null,
                 onLog,
-                true);
+                true).ConfigureAwait(false);
         }
 
         onLog("All browsers installed successfully!");

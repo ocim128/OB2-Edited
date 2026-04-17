@@ -282,7 +282,7 @@ public class DebuggerViewModel : ViewModelBase
             try
             {
                 // Reuse in-flight prewarm work instead of recompiling from scratch.
-                await prewarmTask;
+                await prewarmTask.ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {

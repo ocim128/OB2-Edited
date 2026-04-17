@@ -17,6 +17,7 @@ namespace Flux.Native.Utils
             image.CacheOption = BitmapCacheOption.OnLoad;
             image.StreamSource = ms;
             image.EndInit();
+            image.Freeze();
 
             return image;
         }

@@ -23,12 +23,14 @@ using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Threading.Tasks;
 
+using Flux.Native.Services;
+
 namespace Flux.Native.Views.Pages.Data
 {
     /// <summary>
     /// Interaction logic for Hits.xaml
     /// </summary>
-    public partial class Hits : Page
+    public partial class Hits : Page, IUpdatablePage
     {
         private readonly HitsViewModel vm;
         private readonly ConfigService configService;

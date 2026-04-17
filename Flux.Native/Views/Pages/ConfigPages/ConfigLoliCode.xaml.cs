@@ -23,12 +23,14 @@ using Flux.Native.Enums;
 using Flux.Native.Services.Navigation;
 using Flux.Native.ViewModels.Base;
 
+using Flux.Native.Services;
+
 namespace Flux.Native.Views.Pages.Configs;
 
 /// <summary>
 /// Interaction logic for ConfigLoliCode.xaml
 /// </summary>
-public partial class ConfigLoliCode : Page
+public partial class ConfigLoliCode : Page, IUpdatablePage
 {
         private readonly ConfigLoliCodeViewModel vm;
         private readonly ConfigService configService;

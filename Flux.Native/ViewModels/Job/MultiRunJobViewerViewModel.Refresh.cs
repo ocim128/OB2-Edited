@@ -87,6 +87,11 @@ public partial class MultiRunJobViewerViewModel
         Job.UpdateStats();
         Job.PeriodicUpdate();
 
+        var currentSnapshot = snapshot;
+        if (currentSnapshot == null) return;
+
+        // Only fire PropertyChanged for properties that actually changed value.
+        // Computed properties derive from snapshot/Job, so we compare their current output.
         OnPropertyChanged(nameof(ConfigNameAndAuthor));
         OnPropertyChanged(nameof(ConfigName));
         OnPropertyChanged(nameof(ConfigAuthor));
@@ -96,6 +101,8 @@ public partial class MultiRunJobViewerViewModel
         OnPropertyChanged(nameof(CustomInputsInfo));
         OnPropertyChanged(nameof(HasCustomInputs));
         OnPropertyChanged(nameof(RemainingWaitString));
+
+        // Boolean status flags -- cheap to evaluate, fire all (they're used for CanExecute)
         OnPropertyChanged(nameof(IsWaiting));
         OnPropertyChanged(nameof(CanChangeOptions));
         OnPropertyChanged(nameof(CanStart));
@@ -108,12 +115,14 @@ public partial class MultiRunJobViewerViewModel
         OnPropertyChanged(nameof(IsStopping));
         OnPropertyChanged(nameof(IsPausing));
         OnPropertyChanged(nameof(Progress));
+
         OnPropertyChanged(nameof(HitsCount));
         OnPropertyChanged(nameof(CustomCount));
         OnPropertyChanged(nameof(ToCheckCount));
         OnPropertyChanged(nameof(HitsTabLabel));
         OnPropertyChanged(nameof(CustomTabLabel));
         OnPropertyChanged(nameof(ToCheckTabLabel));
+
         OnPropertyChanged(nameof(AnimatedCpm));
         OnPropertyChanged(nameof(AnimatedHits));
         OnPropertyChanged(nameof(AnimatedCustom));
@@ -127,12 +136,42 @@ public partial class MultiRunJobViewerViewModel
     private void UpdateBots(IReadOnlyList<BotStateDto> bots)
     {
         var botItems = bots.Select(static bot => new BotViewModel(bot)).ToList();
-        RunOnUiThread(() =>
+        RunOnUiThread(() => SyncCollection(BotsCollection, botItems));
+    }
+
+    private static void SyncCollection<T>(ObservableCollection<T> collection, List<T> target) where T : notnull
+    {
+        var i = 0;
+        while (i < Math.Min(collection.Count, target.Count))
         {
-            BotsCollection.Clear();
-            foreach (var bot in botItems)
-                BotsCollection.Add(bot);
-        });
+            if (!EqualityComparer<T>.Default.Equals(collection[i], target[i]))
+            {
+                var existingIndex = collection.IndexOf(target[i]);
+                if (existingIndex >= 0)
+                {
+                    while (i < existingIndex)
+                    {
+                        collection.RemoveAt(i);
+                        existingIndex--;
+                    }
+                }
+                else
+                {
+                    collection.Insert(i, target[i]);
+                    i++;
+                }
+            }
+            else
+            {
+                i++;
+            }
+        }
+
+        while (collection.Count > target.Count)
+            collection.RemoveAt(collection.Count - 1);
+
+        while (collection.Count < target.Count)
+            collection.Add(target[collection.Count]);
     }
 
     private static void RunOnUiThread(Action action)

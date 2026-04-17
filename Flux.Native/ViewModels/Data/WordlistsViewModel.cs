@@ -54,7 +54,7 @@ namespace Flux.Native.ViewModels.Data;
     {
         if (!initialized)
         {
-            await RefreshListAsync();
+            await RefreshListAsync().ConfigureAwait(false);
             initialized = true;
         }
     }
@@ -65,7 +65,7 @@ namespace Flux.Native.ViewModels.Data;
         view.Filter = WordlistsFilter;
     }
 
-    private bool WordlistsFilter(object item) => (item as WordlistEntity).Name.Contains(searchString, StringComparison.OrdinalIgnoreCase);
+    private bool WordlistsFilter(object item) => (item as WordlistEntity)?.Name?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true;
 
     public WordlistEntity GetWordlistByName(string name) => WordlistsCollection.First(w => w.Name == name);
 
@@ -82,17 +82,17 @@ namespace Flux.Native.ViewModels.Data;
 
     public async Task RefreshListAsync()
     {
-        var items = await wordlistRepo.GetAll().ToListAsync();
+        var items = await wordlistRepo.GetAll().ToListAsync().ConfigureAwait(false);
         WordlistsCollection = new ObservableCollection<WordlistEntity>(items);
         HookFilters();
     }
 
-    public async Task UpdateAsync(WordlistEntity wordlist) => await wordlistRepo.UpdateAsync(wordlist);
+    public async Task UpdateAsync(WordlistEntity wordlist) => await wordlistRepo.UpdateAsync(wordlist).ConfigureAwait(false);
 
     public async Task DeleteAsync(WordlistEntity wordlist)
     {
         _ = WordlistsCollection.Remove(wordlist);
-        await wordlistRepo.DeleteAsync(wordlist, false);
+        await wordlistRepo.DeleteAsync(wordlist, false).ConfigureAwait(false);
         OnPropertyChanged(nameof(Total));
     }
 
@@ -113,7 +113,7 @@ namespace Flux.Native.ViewModels.Data;
 
             if (!File.Exists(wordlist.FileName))
             {
-                await DeleteAsync(wordlist);
+                await DeleteAsync(wordlist).ConfigureAwait(false);
                 deleted++;
             }
         }

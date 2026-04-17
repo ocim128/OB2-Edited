@@ -31,7 +31,7 @@ namespace Flux.Native.Views.Pages.Configs
     /// <summary>
     /// Interaction logic for Configs.xaml
     /// </summary>
-    public partial class Configs : Page
+    public partial class Configs : Page, IUpdatablePage
     {
         private readonly FluxSettingsService fluxSettingsService;
         private readonly ConfigService configService;

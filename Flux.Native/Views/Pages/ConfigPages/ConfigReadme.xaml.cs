@@ -2,13 +2,14 @@ using Flux.Native.Extensions;
 using Flux.Native.ViewModels.Configs;
 using System.Windows.Controls;
 
+using Flux.Native.Services;
 
 namespace Flux.Native.Views.Pages.Configs
 {
     /// <summary>
     /// Interaction logic for ConfigReadme.xaml
     /// </summary>
-    public partial class ConfigReadme : Page
+    public partial class ConfigReadme : Page, IUpdatablePage
     {
         private readonly ConfigReadmeViewModel vm;
 

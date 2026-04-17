@@ -26,14 +26,20 @@ namespace Flux.Native.Utils
             "data.STATUS", "data.RESPONSECODE", "data.RAWSOURCE", "data.Line.Data" ];
 
             var wordlistTypeName = debuggerVM.WordlistType;
-            var wordlistType = rlSettings.Environment.WordlistTypes.First(w => w.Name == wordlistTypeName);
-            foreach (var slice in wordlistType.Slices.Concat(wordlistType.SlicesAlias).Reverse())
+            var wordlistType = rlSettings.Environment.WordlistTypes
+                .FirstOrDefault(w => w.Name == wordlistTypeName)
+                ?? throw new InvalidOperationException($"Wordlist type '{wordlistTypeName}' not found in settings.");
+
+            // Collect prefix items separately, then combine -- avoids O(n^2) List.Insert(0, ...)
+            var prefix = new List<string>();
+            foreach (var slice in wordlistType.Slices.Concat(wordlistType.SlicesAlias))
             {
-                suggestions.Insert(0, $"input.{slice}");
+                prefix.Add($"input.{slice}");
             }
 
             var stack = configService.SelectedConfig.Stack;
 
+            var blockVariables = new List<string>();
             foreach (var block in stack)
             {
                 // If it's the current block, stop here (we don't want to add variables from this or the next blocks)
@@ -42,16 +48,22 @@ namespace Flux.Native.Utils
                     break;
                 }
 
-                foreach (var variable in GetOutputVariables(block).Reverse())
+                foreach (var variable in GetOutputVariables(block))
                 {
-                    if (!string.IsNullOrWhiteSpace(variable) && !suggestions.Contains(variable))
+                    if (!string.IsNullOrWhiteSpace(variable) && !suggestions.Contains(variable) && !blockVariables.Contains(variable))
                     {
-                        suggestions.Insert(0, variable);
+                        blockVariables.Add(variable);
                     }
                 }
             }
 
-            return suggestions;
+            // Final order: block variables (closest to current block first), then wordlist slices, then defaults
+            blockVariables.Reverse();
+            var result = new List<string>(blockVariables.Count + prefix.Count + suggestions.Count);
+            result.AddRange(blockVariables);
+            result.AddRange(prefix);
+            result.AddRange(suggestions);
+            return result;
         }
 
         private static IEnumerable<string> GetOutputVariables(BlockInstance block)

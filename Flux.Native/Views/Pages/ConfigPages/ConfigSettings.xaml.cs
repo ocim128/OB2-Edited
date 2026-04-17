@@ -15,7 +15,7 @@ namespace Flux.Native.Views.Pages.Configs
     /// <summary>
     /// Interaction logic for ConfigSettings.xaml
     /// </summary>
-    public partial class ConfigSettings : Page
+    public partial class ConfigSettings : Page, IUpdatablePage
     {
         private readonly ConfigSettingsViewModel vm;
 

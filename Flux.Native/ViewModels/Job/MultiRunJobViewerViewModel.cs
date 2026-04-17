@@ -22,7 +22,7 @@ public partial class MultiRunJobViewerViewModel : ViewModelBase, IDisposable
     private readonly FluxSettingsService fluxSettingsService;
     private readonly IJobCommands jobCommands;
     private readonly IJobQueries jobQueries;
-    private readonly Timer refreshTimer;
+    private Timer refreshTimer;
     private readonly SoundPlayer soundPlayer;
     private readonly SemaphoreSlim refreshLock = new(1, 1);
     private readonly SemaphoreSlim botChangeLock = new(1, 1);
@@ -102,7 +102,7 @@ public partial class MultiRunJobViewerViewModel : ViewModelBase, IDisposable
         }
     }
 
-    public MultiRunJobViewerViewModel(
+    private MultiRunJobViewerViewModel(
         MultiRunJobViewModel jobVM,
         FluxSettingsService fluxSettingsService,
         IJobCommands jobCommands,
@@ -113,12 +113,26 @@ public partial class MultiRunJobViewerViewModel : ViewModelBase, IDisposable
         this.jobCommands = jobCommands;
         this.jobQueries = jobQueries;
         soundPlayer = new SoundPlayer("Sounds/hit.wav");
+    }
 
-        snapshot = jobQueries.GetMultiRunJobViewerSnapshotAsync(jobVM.Id).GetAwaiter().GetResult()
+    /// <summary>
+    /// Creates and asynchronously initializes a new MultiRunJobViewerViewModel.
+    /// Use this instead of the constructor to avoid blocking the UI thread.
+    /// </summary>
+    public static async Task<MultiRunJobViewerViewModel> CreateAsync(
+        MultiRunJobViewModel jobVM,
+        FluxSettingsService fluxSettingsService,
+        IJobCommands jobCommands,
+        IJobQueries jobQueries)
+    {
+        var vm = new MultiRunJobViewerViewModel(jobVM, fluxSettingsService, jobCommands, jobQueries);
+
+        vm.snapshot = await jobQueries.GetMultiRunJobViewerSnapshotAsync(jobVM.Id).ConfigureAwait(false)
             ?? throw new InvalidOperationException($"Multi-run job {jobVM.Id} could not be loaded");
 
-        ApplySnapshot(snapshot, refreshResults: true);
-        refreshTimer = new Timer(_ => _ = RefreshAsync(), null, 1000, 1000);
+        vm.ApplySnapshot(vm.snapshot, refreshResults: true);
+        vm.refreshTimer = new Timer(_ => _ = vm.RefreshAsync(), null, 1000, 1000);
+        return vm;
     }
 
     public async Task StartAsync()

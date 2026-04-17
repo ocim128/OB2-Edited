@@ -5,6 +5,8 @@ using System.Threading.Tasks;
 
 using Microsoft.VisualBasic.Devices;
 
+using Flux.Native.Helpers;
+
 namespace Flux.Native.Utils
 {
     /// <summary>
@@ -15,6 +17,7 @@ namespace Flux.Native.Utils
         private static readonly object _lockObject = new object();
         private static DateTime _lastGcTime = DateTime.MinValue;
         private static readonly TimeSpan _minGcInterval = TimeSpan.FromSeconds(30);
+        private static readonly ComputerInfo _computerInfo = new();
 
         /// <summary>
         /// Applies garbage collection optimizations for low-spec systems
@@ -79,7 +82,7 @@ namespace Flux.Native.Utils
         {
             try
             {
-                var process = Process.GetCurrentProcess();
+                using var process = Process.GetCurrentProcess();
                 var workingSet = process.WorkingSet64;
                 var managedMemory = GC.GetTotalMemory(false);
 
@@ -100,9 +103,8 @@ namespace Flux.Native.Utils
             {
                 var (workingSet, managedMemory) = GetMemoryUsage();
 
-                var computerInfo = new ComputerInfo();
-                var totalMemory = computerInfo.TotalPhysicalMemory;
-                var availableMemory = computerInfo.AvailablePhysicalMemory;
+                var totalMemory = _computerInfo.TotalPhysicalMemory;
+                var availableMemory = _computerInfo.AvailablePhysicalMemory;
 
                 if (totalMemory == 0) return false;
 
@@ -120,23 +122,15 @@ namespace Flux.Native.Utils
         }
 
         /// <summary>
-        /// Formats memory size in human-readable format
+        /// Formats memory size in human-readable format (delegates to HumanReadable.Bytes)
         /// </summary>
-        public static string FormatMemorySize(long bytes)
-        {
-            if (bytes < 1024)
-                return $"{bytes} B";
-            if (bytes < 1024 * 1024)
-                return $"{bytes / 1024.0:F1} KB";
-            if (bytes < 1024 * 1024 * 1024)
-                return $"{bytes / (1024.0 * 1024.0):F1} MB";
-
-            return $"{bytes / (1024.0 * 1024.0 * 1024.0):F1} GB";
-        }
+        public static string FormatMemorySize(long bytes) => HumanReadable.Bytes(bytes);
 
         /// <summary>
-        /// Gets system-wide CPU usage percentage using lightweight WMI approach
+        /// Gets system-wide CPU usage percentage using lightweight WMI approach.
+        /// Thread-safe via lock on _cpuLock.
         /// </summary>
+        private static readonly object _cpuLock = new();
         private static DateTime _lastCpuTime = DateTime.MinValue;
         private static TimeSpan _lastTotalProcessorTime = TimeSpan.Zero;
         private static float _lastCpuUsage = 0f;
@@ -144,105 +138,116 @@ namespace Flux.Native.Utils
 
         public static float GetSystemCpuUsage()
         {
-            try
+            lock (_cpuLock)
             {
-                var now = DateTime.UtcNow;
-                if (now - _lastCpuTime < _cpuUpdateInterval)
+                try
                 {
+                    var now = DateTime.UtcNow;
+                    if (now - _lastCpuTime < _cpuUpdateInterval)
+                    {
+                        return _lastCpuUsage;
+                    }
+
+                    using var process = Process.GetCurrentProcess();
+                    var currentTotalProcessorTime = process.TotalProcessorTime;
+
+                    if (_lastCpuTime != DateTime.MinValue)
+                    {
+                        var cpuUsedMs = (currentTotalProcessorTime - _lastTotalProcessorTime).TotalMilliseconds;
+                        var totalMsPassed = (now - _lastCpuTime).TotalMilliseconds;
+                        if (totalMsPassed > 1)
+                        {
+                            var cpuUsageTotal = cpuUsedMs / (Environment.ProcessorCount * totalMsPassed);
+                            _lastCpuUsage = (float)Math.Clamp(cpuUsageTotal * 100.0, 0.0, 100.0);
+                        }
+                    }
+
+                    _lastTotalProcessorTime = currentTotalProcessorTime;
+                    _lastCpuTime = now;
+
                     return _lastCpuUsage;
                 }
-
-                using var process = Process.GetCurrentProcess();
-                var currentTotalProcessorTime = process.TotalProcessorTime;
-
-                if (_lastCpuTime != DateTime.MinValue)
+                catch
                 {
-                    var cpuUsedMs = (currentTotalProcessorTime - _lastTotalProcessorTime).TotalMilliseconds;
-                    var totalMsPassed = (now - _lastCpuTime).TotalMilliseconds;
-                    if (totalMsPassed > 1)
-                    {
-                        var cpuUsageTotal = cpuUsedMs / (Environment.ProcessorCount * totalMsPassed);
-                        _lastCpuUsage = (float)Math.Clamp(cpuUsageTotal * 100.0, 0.0, 100.0);
-                    }
+                    return 0f;
                 }
-
-                _lastTotalProcessorTime = currentTotalProcessorTime;
-                _lastCpuTime = now;
-
-                return _lastCpuUsage;
-            }
-            catch
-            {
-                return 0f;
             }
         }
 
         /// <summary>
-        /// Gets system-wide memory information using lightweight approach
+        /// Gets system-wide memory information using lightweight approach.
+        /// Thread-safe via lock on _memoryLock.
         /// </summary>
+        private static readonly object _memoryLock = new();
         private static DateTime _lastMemoryTime = DateTime.MinValue;
         private static (long total, long available, float percent) _lastMemoryInfo;
         private static readonly TimeSpan _memoryUpdateInterval = TimeSpan.FromSeconds(3);
 
         public static (long totalMemory, long availableMemory, float usagePercent) GetSystemMemoryInfo()
         {
-            try
+            lock (_memoryLock)
             {
-                var now = DateTime.UtcNow;
-                if (now - _lastMemoryTime < _memoryUpdateInterval)
+                try
                 {
+                    var now = DateTime.UtcNow;
+                    if (now - _lastMemoryTime < _memoryUpdateInterval)
+                    {
+                        return _lastMemoryInfo;
+                    }
+
+                    var totalMemory = (long)_computerInfo.TotalPhysicalMemory;
+                    var availableMemory = (long)_computerInfo.AvailablePhysicalMemory;
+                    var usagePercent = totalMemory == 0 ? 0f : (float)(100.0 * (totalMemory - availableMemory) / totalMemory);
+
+                    _lastMemoryInfo = (totalMemory, availableMemory, usagePercent);
+                    _lastMemoryTime = now;
+
                     return _lastMemoryInfo;
                 }
-
-                var computerInfo = new ComputerInfo();
-                var totalMemory = (long)computerInfo.TotalPhysicalMemory;
-                var availableMemory = (long)computerInfo.AvailablePhysicalMemory;
-                var usagePercent = totalMemory == 0 ? 0f : (float)(100.0 * (totalMemory - availableMemory) / totalMemory);
-
-                _lastMemoryInfo = (totalMemory, availableMemory, usagePercent);
-                _lastMemoryTime = now;
-
-                return _lastMemoryInfo;
-            }
-            catch
-            {
-                return (0, 0, 0f);
+                catch
+                {
+                    return (0, 0, 0f);
+                }
             }
         }
 
         /// <summary>
-        /// Gets application-specific memory information
+        /// Gets application-specific memory information.
+        /// Thread-safe via lock on _appMemoryLock.
         /// </summary>
+        private static readonly object _appMemoryLock = new();
         private static DateTime _lastAppMemoryTime = DateTime.MinValue;
         private static (long workingSet, long managedMemory, float systemPercent) _lastAppMemoryInfo;
         private static readonly TimeSpan _appMemoryUpdateInterval = TimeSpan.FromSeconds(2);
 
         public static (long workingSetBytes, long managedMemoryBytes, float systemUsagePercent) GetApplicationMemoryInfo()
         {
-            try
+            lock (_appMemoryLock)
             {
-                var now = DateTime.UtcNow;
-                if (now - _lastAppMemoryTime < _appMemoryUpdateInterval)
+                try
                 {
+                    var now = DateTime.UtcNow;
+                    if (now - _lastAppMemoryTime < _appMemoryUpdateInterval)
+                    {
+                        return _lastAppMemoryInfo;
+                    }
+
+                    using var process = Process.GetCurrentProcess();
+                    var workingSet = process.WorkingSet64;
+                    var managedMemory = GC.GetTotalMemory(false);
+
+                    var totalSystemMemory = (long)_computerInfo.TotalPhysicalMemory;
+                    var systemUsagePercent = totalSystemMemory == 0 ? 0f : (float)(100.0 * workingSet / totalSystemMemory);
+
+                    _lastAppMemoryInfo = (workingSet, managedMemory, systemUsagePercent);
+                    _lastAppMemoryTime = now;
+
                     return _lastAppMemoryInfo;
                 }
-
-                using var process = Process.GetCurrentProcess();
-                var workingSet = process.WorkingSet64;
-                var managedMemory = GC.GetTotalMemory(false);
-
-                var computerInfo = new ComputerInfo();
-                var totalSystemMemory = (long)computerInfo.TotalPhysicalMemory;
-                var systemUsagePercent = totalSystemMemory == 0 ? 0f : (float)(100.0 * workingSet / totalSystemMemory);
-
-                _lastAppMemoryInfo = (workingSet, managedMemory, systemUsagePercent);
-                _lastAppMemoryTime = now;
-
-                return _lastAppMemoryInfo;
-            }
-            catch
-            {
-                return (0, 0, 0f);
+                catch
+                {
+                    return (0, 0, 0f);
+                }
             }
         }
     }

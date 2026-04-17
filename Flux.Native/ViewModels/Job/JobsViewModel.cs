@@ -56,8 +56,9 @@ public partial class JobsViewModel : ViewModelBase, IDisposable
         this.jobOrchestrator = jobOrchestrator ?? throw new ArgumentNullException(nameof(jobOrchestrator));
         this.hotkeyService = hotkeyService ?? throw new ArgumentNullException(nameof(hotkeyService));
 
-        RefreshJobsAsync().GetAwaiter().GetResult();
-        timer = new Timer(_ => _ = RefreshJobsAsync(), null, 2000, 2000);
+        // Start the timer which will trigger the first refresh after 200ms,
+        // then every 2 seconds. Avoids blocking the UI thread in the constructor.
+        timer = new Timer(_ => _ = RefreshJobsAsync(), null, 200, 2000);
     }
 
     public async Task<JobViewModel> CreateJobAsync(JobOptions options)
@@ -124,12 +125,54 @@ public partial class JobsViewModel : ViewModelBase, IDisposable
             .OrderBy(static job => job.Id)
             .ToList();
 
-        RunOnUiThread(() =>
+        RunOnUiThread(() => SyncCollection(JobsCollection, filteredJobs));
+    }
+
+    /// <summary>
+    /// Syncs an ObservableCollection to match a target list using diff-based updates.
+    /// Only adds/removes items that changed, avoiding N+1 CollectionChanged events.
+    /// </summary>
+    private static void SyncCollection<T>(ObservableCollection<T> collection, List<T> target) where T : notnull
+    {
+        var i = 0;
+        while (i < Math.Min(collection.Count, target.Count))
         {
-            JobsCollection.Clear();
-            foreach (var job in filteredJobs)
-                JobsCollection.Add(job);
-        });
+            if (!EqualityComparer<T>.Default.Equals(collection[i], target[i]))
+            {
+                // Check if target[i] is further ahead (items were removed)
+                var existingIndex = collection.IndexOf(target[i]);
+                if (existingIndex >= 0)
+                {
+                    // Remove items before it
+                    while (i < existingIndex)
+                    {
+                        collection.RemoveAt(i);
+                        existingIndex--;
+                    }
+                }
+                else
+                {
+                    collection.Insert(i, target[i]);
+                    i++;
+                }
+            }
+            else
+            {
+                i++;
+            }
+        }
+
+        // Remove trailing extras
+        while (collection.Count > target.Count)
+        {
+            collection.RemoveAt(collection.Count - 1);
+        }
+
+        // Add remaining new items
+        while (collection.Count < target.Count)
+        {
+            collection.Add(target[collection.Count]);
+        }
     }
 
     private bool JobMatchesSearch(DesktopJobListItemDto job)

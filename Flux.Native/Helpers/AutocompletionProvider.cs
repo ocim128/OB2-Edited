@@ -31,8 +31,8 @@ namespace Flux.Native.Helpers
             }
         }
 
-        public static List<Snippet> GetSnippets()
-            => snippets;
+        public static IReadOnlyList<Snippet> GetSnippets()
+            => snippets.AsReadOnly();
     }
 
     public struct Snippet

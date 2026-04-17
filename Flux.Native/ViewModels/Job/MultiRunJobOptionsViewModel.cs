@@ -219,7 +219,7 @@ public class MultiRunJobOptionsViewModel : ViewModelBase
         if (Options.DataPool is WordlistDataPoolOptions wdpo)
         {
             var record = await recordRepo.GetAll()
-                .FirstOrDefaultAsync(r => r.ConfigId == Options.ConfigId && r.WordlistId == wdpo.WordlistId);
+                .FirstOrDefaultAsync(r => r.ConfigId == Options.ConfigId && r.WordlistId == wdpo.WordlistId).ConfigureAwait(false);
 
             Options.Skip = record?.Checkpoint ?? 0;
             RefreshConfigurationFields();

@@ -14,6 +14,13 @@ internal sealed class UpdateDownloader
 {
     private const string UserAgent = "Flux-Native-Updater/1.0";
 
+    private static readonly Lazy<HttpClient> SharedClient = new(() =>
+    {
+        var client = new HttpClient();
+        client.DefaultRequestHeaders.UserAgent.ParseAdd(UserAgent);
+        return client;
+    });
+
     public UpdateAssetSelection FindSuitableAsset(UpdateAsset[] assets)
     {
         foreach (var asset in assets)
@@ -117,16 +124,21 @@ internal sealed class UpdateDownloader
             return expectedSize;
         }
 
-        using var httpClient = new HttpClient();
-        httpClient.DefaultRequestHeaders.UserAgent.ParseAdd(UserAgent);
-
+        var httpClient = SharedClient.Value;
         using var response = await httpClient.SendAsync(new HttpRequestMessage(HttpMethod.Head, url)).ConfigureAwait(false);
         return response.Content.Headers.ContentLength ?? 0;
     }
 
+    private static readonly Lazy<HttpClient> DownloadClient = new(() =>
+    {
+        var client = new HttpClient { Timeout = TimeSpan.FromMinutes(10) };
+        client.DefaultRequestHeaders.UserAgent.ParseAdd(UserAgent);
+        return client;
+    });
+
     private static async Task DownloadFileWithProgressAsync(string url, string destination, IUpdateProgress progressUi, long expectedSize, CancellationToken cancellationToken)
     {
-        using var httpClient = new HttpClient { Timeout = TimeSpan.FromMinutes(10) };
+        var httpClient = DownloadClient.Value;
         using var response = await httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
 

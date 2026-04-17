@@ -167,7 +167,7 @@ namespace Flux.Native.ViewModels.Data;
             try
             {
                 System.Diagnostics.Debug.WriteLine("ProxiesViewModel: Starting initialization");
-                await RefreshGroupsAsync();
+                await RefreshGroupsAsync().ConfigureAwait(false);
                 initialized = true;
                 System.Diagnostics.Debug.WriteLine("ProxiesViewModel: Initialization completed successfully");
             }
@@ -201,10 +201,10 @@ namespace Flux.Native.ViewModels.Data;
     public async Task RefreshGroupsAsync()
     {
         SelectedGroupId = allGroup.Id;
-        var entities = await proxyGroupRepo.GetAll().ToListAsync();
+        var entities = await proxyGroupRepo.GetAll().ToListAsync().ConfigureAwait(false);
         ProxyGroupsCollection = new ObservableCollection<ProxyGroupEntity>(new ProxyGroupEntity[] { allGroup }.Concat(entities));
 
-        await RefreshListAsync();
+        await RefreshListAsync().ConfigureAwait(false);
     }
 
     public void HookFilters()
@@ -236,8 +236,8 @@ namespace Flux.Native.ViewModels.Data;
         {
             System.Diagnostics.Debug.WriteLine("ProxiesViewModel: Starting RefreshListAsync");
             var items = SelectedGroup == allGroup
-                ? await proxyRepo.GetAll().ToListAsync()
-                : await proxyRepo.GetAll().Include(p => p.Group).Where(p => p.Group.Id == SelectedGroup.Id).ToListAsync();
+                ? await proxyRepo.GetAll().ToListAsync().ConfigureAwait(false)
+                : await proxyRepo.GetAll().Include(p => p.Group).Where(p => p.Group.Id == SelectedGroup.Id).ToListAsync().ConfigureAwait(false);
 
             System.Diagnostics.Debug.WriteLine($"ProxiesViewModel: Loaded {items.Count} proxies from repository");
             

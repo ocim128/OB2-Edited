@@ -108,7 +108,10 @@ public class NavigationService : INavigationService
         }
 
         // Update ViewModel if the page supports it (consistent with original CreateAndNavigateToPage)
-        UpdatePageViewModel(page);
+        if (page is IUpdatablePage updatable)
+        {
+            updatable.UpdateViewModel();
+        }
 
         // Perform the navigation
         CurrentPage = page;
@@ -150,11 +153,11 @@ public class NavigationService : INavigationService
         if (_sharedConfigEditor == null)
         {
             _sharedConfigEditor = _pageFactory.CreateConfigEditorPage();
+            SyncConfigEditorCache(_sharedConfigEditor);
         }
         return _sharedConfigEditor;
     }
 
-    // Helper to sync cache if we use shared instance
     private void SyncConfigEditorCache(ConfigEditor editor)
     {
         _pageCache[MainWindowPage.ConfigStacker] = editor;
@@ -180,12 +183,4 @@ public class NavigationService : INavigationService
         };
     }
 
-    private void UpdatePageViewModel(Page page)
-    {
-        // Reflection-based update as seen in original code, 
-        // or we could define an interface IViewModelUpdater { void UpdateViewModel(); } on pages.
-        // For now, stick to reflection to avoid touching all page classes.
-        var method = page.GetType().GetMethod("UpdateViewModel");
-        method?.Invoke(page, null);
-    }
 }

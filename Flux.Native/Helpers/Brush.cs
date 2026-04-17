@@ -5,15 +5,24 @@ namespace Flux.Native.Helpers
 {
     public static class Brush
     {
+        private static readonly Color FallbackColor = Colors.White;
+
         public static Color GetColor(string propertyName)
         {
             try
             {
-                return ((SolidColorBrush)Application.Current.Resources[propertyName]).Color; 
+                return ((SolidColorBrush)Application.Current.Resources[propertyName]).Color;
             }
             catch
             {
-                return ((SolidColorBrush)Application.Current.Resources["ForegroundMain"]).Color;
+                try
+                {
+                    return ((SolidColorBrush)Application.Current.Resources["ForegroundMain"]).Color;
+                }
+                catch
+                {
+                    return FallbackColor;
+                }
             }
         }
 
@@ -25,12 +34,25 @@ namespace Flux.Native.Helpers
             }
             catch
             {
-                return (SolidColorBrush)Application.Current.Resources["ForegroundMain"];
+                try
+                {
+                    return (SolidColorBrush)Application.Current.Resources["ForegroundMain"];
+                }
+                catch
+                {
+                    var fallback = new SolidColorBrush(FallbackColor);
+                    fallback.Freeze();
+                    return fallback;
+                }
             }
         }
 
         public static SolidColorBrush FromHex(string hex)
-            => new((Color)ColorConverter.ConvertFromString(hex));
+        {
+            var brush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(hex));
+            brush.Freeze();
+            return brush;
+        }
 
         public static void SetAppColor(string resourceName, string color)
         {

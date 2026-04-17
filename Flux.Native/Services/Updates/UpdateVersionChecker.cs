@@ -12,9 +12,16 @@ internal sealed class UpdateVersionChecker
     private const string LatestReleaseUrl = "https://api.github.com/repos/ocim128/OB2-Edited/releases/latest";
     private const string UserAgent = "Flux-Native-Updater/1.0";
 
+    private static readonly Lazy<HttpClient> SharedClient = new(() =>
+    {
+        var client = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
+        client.DefaultRequestHeaders.UserAgent.ParseAdd(UserAgent);
+        return client;
+    });
+
     public async Task<AvailableUpdateInfo?> CheckForUpdateAsync()
     {
-        using var httpClient = CreateClient(TimeSpan.FromSeconds(30));
+        var httpClient = SharedClient.Value;
         using var response = await GetWithRetryAsync(httpClient, LatestReleaseUrl).ConfigureAwait(false);
 
         if (!response.IsSuccessStatusCode)
@@ -45,13 +52,6 @@ internal sealed class UpdateVersionChecker
             LatestVersion = latestVersion,
             ReleaseInfo = releaseInfo
         };
-    }
-
-    private static HttpClient CreateClient(TimeSpan timeout)
-    {
-        var httpClient = new HttpClient { Timeout = timeout };
-        httpClient.DefaultRequestHeaders.UserAgent.ParseAdd(UserAgent);
-        return httpClient;
     }
 
     private static async Task<HttpResponseMessage> GetWithRetryAsync(HttpClient httpClient, string url, int attempts = 3)

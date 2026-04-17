@@ -148,7 +148,7 @@ namespace Flux.Native.ViewModels.Pages
                 return;
             }
 
-            await FirefoxTool.CleanupAsync();
+            await FirefoxTool.CleanupAsync().ConfigureAwait(false);
             Dispose();
         }
 

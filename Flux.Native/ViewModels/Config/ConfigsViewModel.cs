@@ -119,7 +119,7 @@ namespace Flux.Native.ViewModels.Configs
 
         public async Task ImportConfigFromFileAsync(string path)
         {
-            var config = await ConfigPacker.UnpackAsync(File.OpenRead(path));
+            var config = await ConfigPacker.UnpackAsync(File.OpenRead(path)).ConfigureAwait(false);
             configService.AddConfig(config);
             ConfigsCollection.Add(new ConfigViewModel(config));
         }
@@ -135,13 +135,13 @@ namespace Flux.Native.ViewModels.Configs
                 filePath = FileUtils.GetFirstAvailableFileName(filePath);
             }
 
-            var newConfig = await configRepo.CreateAsync(Path.GetFileNameWithoutExtension(filePath));
+            var newConfig = await configRepo.CreateAsync(Path.GetFileNameWithoutExtension(filePath)).ConfigureAwait(false);
             newConfig.Metadata.Name = dto.Name;
             newConfig.Metadata.Category = dto.Category;
             newConfig.Metadata.Author = dto.Author;
 
             var newConfigVM = new ConfigViewModel(newConfig);
-            await Save(newConfigVM);
+            await Save(newConfigVM).ConfigureAwait(false);
 
             // Add it to the observable collection
             ConfigsCollection.Insert(0, newConfigVM);
@@ -176,7 +176,7 @@ namespace Flux.Native.ViewModels.Configs
         {
             SelectedConfig = null;
             HoveredConfig = null;
-            await configService.ReloadConfigsAsync();
+            await configService.ReloadConfigsAsync().ConfigureAwait(false);
             CreateCollection();
         }
 
@@ -219,8 +219,8 @@ namespace Flux.Native.ViewModels.Configs
             view.Filter = ConfigsFilter;
         }
 
-        private bool ConfigsFilter(object item) => (item as ConfigViewModel).Config
-            .Metadata.Name.Contains(searchString, StringComparison.OrdinalIgnoreCase);
+        private bool ConfigsFilter(object item) => (item as ConfigViewModel)?.Config
+            ?.Metadata.Name.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true;
     } // Closing ConfigsViewModel class
 
     public class ConfigViewModel : ViewModelBase

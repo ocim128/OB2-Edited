@@ -147,7 +147,7 @@ public class ProxyCheckJobViewerViewModel : ViewModelBase, IDisposable
         {
             // TODO: Also edit the job options! So the number of bots is persisted
 
-            await ProxyCheckJob.ChangeBots(newValue);
+            await ProxyCheckJob.ChangeBots(newValue).ConfigureAwait(false);
             ProxyCheckJob.Bots = newValue;
             RefreshJobSnapshot();
         }

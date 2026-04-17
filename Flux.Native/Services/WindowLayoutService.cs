@@ -1,9 +1,9 @@
 using Flux.Core.Services;
 using Flux.Native.Helpers;
 using System;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Threading;
 
 namespace Flux.Native.Services;
 
@@ -18,12 +18,18 @@ public interface IWindowLayoutService
 public class WindowLayoutService : IWindowLayoutService
 {
     private readonly FluxSettingsService _settingsService;
+    private readonly DispatcherTimer _saveDebounceTimer;
     private System.Windows.Window _window;
     private FrameworkElement _rootElement;
 
     public WindowLayoutService(FluxSettingsService settingsService)
     {
         _settingsService = settingsService;
+        _saveDebounceTimer = new DispatcherTimer
+        {
+            Interval = TimeSpan.FromMilliseconds(500)
+        };
+        _saveDebounceTimer.Tick += OnDebouncedSave;
     }
 
     public void Initialize(System.Windows.Window window, FrameworkElement rootElement)
@@ -34,11 +40,11 @@ public class WindowLayoutService : IWindowLayoutService
         _window.SizeChanged += (s, e) => 
         {
             UpdateResponsiveLayout();
-            SaveWindowState();
+            ScheduleSave();
         };
 
-        _window.LocationChanged += (s, e) => SaveWindowState();
-        _window.StateChanged += (s, e) => SaveWindowState();
+        _window.LocationChanged += (s, e) => ScheduleSave();
+        _window.StateChanged += (s, e) => ScheduleSave();
     }
 
     public void RestoreWindowState()
@@ -110,10 +116,14 @@ public class WindowLayoutService : IWindowLayoutService
         }
     }
 
+    /// <summary>
+    /// Captures the current window state into settings and schedules a debounced save.
+    /// Multiple rapid calls (during resize/drag) are coalesced into a single save.
+    /// </summary>
     public void SaveWindowState()
     {
         if (_window == null) return;
-        
+
         try
         {
             var customization = _settingsService.Settings.CustomizationSettings;
@@ -129,12 +139,24 @@ public class WindowLayoutService : IWindowLayoutService
                 }
 
                 customization.WindowState = (int)_window.WindowState;
-                _ = Task.Run(() => _settingsService.SaveAsync());
+                ScheduleSave();
             }
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Error saving window state: {ex.Message}");
         }
+    }
+
+    private void ScheduleSave()
+    {
+        _saveDebounceTimer.Stop();
+        _saveDebounceTimer.Start();
+    }
+
+    private void OnDebouncedSave(object sender, EventArgs e)
+    {
+        _saveDebounceTimer.Stop();
+        _ = _settingsService.SaveAsync();
     }
 }

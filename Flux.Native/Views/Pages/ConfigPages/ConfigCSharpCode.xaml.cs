@@ -18,12 +18,14 @@ using Flux.Native.Enums;
 using Flux.Native.Services.Navigation;
 using Flux.Native.ViewModels.Base;
 
+using Flux.Native.Services;
+
 namespace Flux.Native.Views.Pages.Configs
 {
     /// <summary>
     /// Interaction logic for ConfigCSharpCode.xaml
     /// </summary>
-    public partial class ConfigCSharpCode : Page
+    public partial class ConfigCSharpCode : Page, IUpdatablePage
     {
         private readonly ConfigCSharpCodeViewModel vm;
         private readonly ConfigService configService;

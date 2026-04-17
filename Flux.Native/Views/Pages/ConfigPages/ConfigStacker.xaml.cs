@@ -14,7 +14,7 @@ using RuriLib.Models.Configs;
 
 namespace Flux.Native.Views.Pages.Configs;
 
-public partial class ConfigStacker : Page
+public partial class ConfigStacker : Page, IUpdatablePage
 {
     private readonly ConfigService configService;
     private readonly ConfigStackerViewModel vm;

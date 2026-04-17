@@ -405,6 +405,9 @@ namespace Flux.Native.Services
             return dirs;
         }
 
+        private System.Windows.Media.MediaPlayer? _popSoundPlayer;
+        private System.Windows.Threading.DispatcherTimer? _popSoundCleanupTimer;
+
         private void PlayPopSound()
         {
             try
@@ -420,38 +423,45 @@ namespace Flux.Native.Services
 
                 if (File.Exists(soundPath))
                 {
-                    // Use MediaPlayer in a separate thread to avoid blocking
-                    _ = Task.Run(() =>
+                    // Use MediaPlayer on the dispatcher thread
+                    try
                     {
-                        try
+                        Application.Current.Dispatcher.BeginInvoke(new Action(() =>
                         {
-                            Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+                            // Reuse or create the player
+                            if (_popSoundPlayer == null)
                             {
-                                var player = new System.Windows.Media.MediaPlayer();
-                                player.Open(new Uri(soundPath));
-                                player.Volume = 0.7; // Set reasonable volume
-                                player.Play();
+                                _popSoundPlayer = new System.Windows.Media.MediaPlayer();
+                                _popSoundPlayer.Volume = 0.7;
+                            }
 
-                                // Clean up after a reasonable time
-                                var timer = new System.Windows.Threading.DispatcherTimer
+                            _popSoundPlayer.Open(new Uri(soundPath));
+                            _popSoundPlayer.Play();
+
+                            // Reuse or create the cleanup timer
+                            if (_popSoundCleanupTimer == null)
+                            {
+                                _popSoundCleanupTimer = new System.Windows.Threading.DispatcherTimer
                                 {
                                     Interval = TimeSpan.FromSeconds(3)
                                 };
-                                timer.Tick += (s, e) =>
+                                _popSoundCleanupTimer.Tick += (s, e) =>
                                 {
-                                    timer.Stop();
-                                    player.Close();
+                                    _popSoundCleanupTimer.Stop();
+                                    _popSoundPlayer?.Close();
+                                    _popSoundPlayer = null;
                                 };
-                                timer.Start();
-                            }));
-                        }
-                        catch (Exception ex)
-                        {
-                            Debug.WriteLine($"MediaPlayer failed: {ex.Message}");
-                            // Fallback to system sound
-                            SystemSounds.Asterisk.Play();
-                        }
-                    });
+                            }
+
+                            _popSoundCleanupTimer.Start();
+                        }));
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"MediaPlayer failed: {ex.Message}");
+                        // Fallback to system sound
+                        SystemSounds.Asterisk.Play();
+                    }
                 }
                 else
                 {
@@ -521,6 +531,8 @@ namespace Flux.Native.Services
             {
                 IsEnabled = false;
                 hwndSource?.RemoveHook(WndProc);
+                _popSoundCleanupTimer?.Stop();
+                _popSoundPlayer?.Close();
                 disposed = true;
             }
         }

@@ -5,13 +5,14 @@ using System;
 using System.Windows;
 using System.Windows.Controls;
 
+using Flux.Native.Services;
 
 namespace Flux.Native.Views.Pages.Configs
 {
     /// <summary>
     /// Interaction logic for ConfigMetadata.xaml
     /// </summary>
-    public partial class ConfigMetadata : Page
+    public partial class ConfigMetadata : Page, IUpdatablePage
     {
         private readonly ConfigMetadataViewModel vm;
 

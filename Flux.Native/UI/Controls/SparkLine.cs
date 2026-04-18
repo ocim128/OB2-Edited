@@ -21,11 +21,11 @@ public class SparkLine : Canvas
 
     public static readonly DependencyProperty LineColorProperty =
         DependencyProperty.Register(nameof(LineColor), typeof(Brush), typeof(SparkLine),
-            new PropertyMetadata(new SolidColorBrush(Color.FromRgb(16, 185, 129)), OnLineColorChanged));
+            new PropertyMetadata(new SolidColorBrush(Color.FromRgb(59, 130, 246)), OnLineColorChanged));
 
     public static readonly DependencyProperty FillColorProperty =
         DependencyProperty.Register(nameof(FillColor), typeof(Brush), typeof(SparkLine),
-            new PropertyMetadata(new SolidColorBrush(Color.FromArgb(40, 16, 185, 129)), OnFillColorChanged));
+            new PropertyMetadata(new SolidColorBrush(Color.FromArgb(48, 59, 130, 246)), OnFillColorChanged));
 
     public static readonly DependencyProperty LineThicknessProperty =
         DependencyProperty.Register(nameof(LineThickness), typeof(double), typeof(SparkLine),

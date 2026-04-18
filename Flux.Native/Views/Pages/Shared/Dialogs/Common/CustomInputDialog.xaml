@@ -8,46 +8,82 @@
       mc:Ignorable="d" 
       d:DesignHeight="450" d:DesignWidth="800"
       MinWidth="300"
-      Background="{DynamicResource BackgroundSecondary}"
-      Title="Choice">
+      Background="Transparent"
+      Title="Input">
 
-    <Border Padding="20">
-        <StackPanel 
-        MaxWidth="600"
-        HorizontalAlignment="Center">
-            
-            <TextBlock
+    <Border Background="{DynamicResource Modern.BackgroundSecondary}" 
+            CornerRadius="8" 
+            BorderBrush="{DynamicResource Modern.BorderMain}" 
+            BorderThickness="1"
+            MinWidth="500"
+            MaxWidth="700"
+            MinHeight="200">
+        <Grid Margin="20">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="auto"/>
+                <RowDefinition Height="auto"/>
+                <RowDefinition Height="auto"/>
+                <RowDefinition Height="auto"/>
+                <RowDefinition Height="auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Title -->
+            <TextBlock Grid.Row="0" 
+                       Text="Input Required"
+                       FontSize="16" 
+                       FontWeight="SemiBold" 
+                       Foreground="{DynamicResource Modern.ForegroundMain}" 
+                       Margin="0,0,0,15"
+                       HorizontalAlignment="Center"/>
+
+            <!-- Icon -->
+            <iconPacks:PackIconMaterial Grid.Row="1"
+                                        Kind="TextBox"
+                                        Width="48"
+                                        Height="48"
+                                        Foreground="{DynamicResource Modern.ThemeMain}"
+                                        HorizontalAlignment="Center"
+                                        Margin="0,0,0,20"/>
+
+            <!-- Question -->
+            <TextBlock Grid.Row="2"
                 x:Name="question"
-                Margin="0 20 0 20"
-                FontSize="14"
+                FontSize="13"
                 Text="Question?"
                 TextWrapping="Wrap"
                 TextAlignment="Center"
                 HorizontalAlignment="Center"
-                Foreground="Gainsboro"
-                />
+                Foreground="{DynamicResource Modern.ForegroundSecondary}"
+                Margin="0,0,0,15"
+                LineHeight="18"/>
 
-            <ComboBox
+            <!-- Input -->
+            <ComboBox Grid.Row="3"
                 IsEditable="True"
-                Width="200"
+                Width="250"
                 x:Name="answerComboBox"
                 Style="{StaticResource CleanComboBox}"
-                />
+                HorizontalAlignment="Center"/>
 
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+            <!-- Buttons -->
+            <StackPanel Grid.Row="4" 
+                        Orientation="Horizontal" 
+                        HorizontalAlignment="Center"
+                        Margin="0,20,0,0">
+                
+                <Button Click="Cancel_Click"
+                    Width="100"
+                    Margin="0,0,10,0"
+                    Content="Cancel"
+                    Style="{StaticResource StyledButton}"/>
+
                 <Button Click="Ok"
                     Width="100"
-                    Margin="0 15 0 0" Style="{StaticResource StyledSuccessButton}">
-                    <StackPanel Orientation="Horizontal">
-                        <iconPacks:PackIconOcticons Kind="Check" />
-                        <TextBlock 
-                        VerticalAlignment="Center" 
-                        Margin="5 0">Ok</TextBlock>
-                    </StackPanel>
-                </Button>
+                    Content="Ok"
+                    Style="{StaticResource StyledPrimaryButton}"/>
             </StackPanel>
 
-        </StackPanel>
+        </Grid>
     </Border>
 
 </Page>

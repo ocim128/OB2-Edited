@@ -38,5 +38,10 @@ namespace Flux.Native.Views.Dialogs.Job
 
             ((MainDialog)Parent).Close();
         }
+
+        private void Cancel(object sender, RoutedEventArgs e)
+        {
+            ((MainDialog)Parent).Close();
+        }
     }
 }

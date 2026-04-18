@@ -9,9 +9,9 @@
       d:DesignHeight="450" d:DesignWidth="800"
       Title="CreateJobDialog">
 
-    <Border Background="{DynamicResource BackgroundSecondary}" 
+    <Border Background="{DynamicResource Modern.BackgroundSecondary}" 
             CornerRadius="12" 
-            BorderBrush="{DynamicResource BorderLight}" 
+            BorderBrush="{DynamicResource Modern.BorderSecondary}" 
             BorderThickness="1"
             MinWidth="460"
             MaxWidth="520">
@@ -37,7 +37,7 @@
                 <TextBlock Text="Choose the type of job you want to create"
                            FontFamily="Segoe UI"
                            FontSize="13"
-                           Foreground="#94A3B8"
+                           Foreground="{DynamicResource Modern.ForegroundMuted}"
                            FontWeight="Normal"/>
             </StackPanel>
 
@@ -56,8 +56,8 @@
                         <Style TargetType="Border">
                             <Style.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter Property="BorderBrush" Value="#3B82F6"/>
-                                    <Setter Property="Background" Value="#1E293B"/>
+                                    <Setter Property="BorderBrush" Value="{DynamicResource Modern.BorderFocus}"/>
+                                    <Setter Property="Background" Value="{DynamicResource Modern.BackgroundHover}"/>
                                 </Trigger>
                             </Style.Triggers>
                         </Style>
@@ -73,7 +73,7 @@
                         <Ellipse Grid.Column="0" 
                                  Width="10" 
                                  Height="10" 
-                                 Fill="#10B981" 
+                                 Fill="{DynamicResource Modern.Success}" 
                                  VerticalAlignment="Center"
                                  Margin="0,0,12,0"/>
                         
@@ -88,7 +88,7 @@
                             <TextBlock Text="Run configs against wordlists to find valid credentials" 
                                        FontFamily="Segoe UI"
                                        FontSize="12" 
-                                       Foreground="#94A3B8"
+                                       Foreground="{DynamicResource Modern.ForegroundMuted}"
                                        TextWrapping="Wrap"/>
                         </StackPanel>
                     </Grid>
@@ -105,8 +105,8 @@
                         <Style TargetType="Border">
                             <Style.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter Property="BorderBrush" Value="#3B82F6"/>
-                                    <Setter Property="Background" Value="#1E293B"/>
+                                    <Setter Property="BorderBrush" Value="{DynamicResource Modern.BorderFocus}"/>
+                                    <Setter Property="Background" Value="{DynamicResource Modern.BackgroundHover}"/>
                                 </Trigger>
                             </Style.Triggers>
                         </Style>
@@ -122,7 +122,7 @@
                         <Ellipse Grid.Column="0" 
                                  Width="10" 
                                  Height="10" 
-                                 Fill="#3B82F6" 
+                                 Fill="{DynamicResource Modern.ThemeMain}" 
                                  VerticalAlignment="Center"
                                  Margin="0,0,12,0"/>
                         
@@ -137,7 +137,7 @@
                             <TextBlock Text="Test proxy lists to verify they are working and alive" 
                                        FontFamily="Segoe UI"
                                        FontSize="12" 
-                                       Foreground="#94A3B8"
+                                       Foreground="{DynamicResource Modern.ForegroundMuted}"
                                        TextWrapping="Wrap"/>
                         </StackPanel>
                     </Grid>

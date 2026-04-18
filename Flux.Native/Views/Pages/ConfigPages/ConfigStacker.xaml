@@ -11,7 +11,7 @@
       Focusable="True"
       Title="ConfigStacker">
 
-    <Grid Margin="12" UseLayoutRounding="True" SnapsToDevicePixels="True">
+    <Grid Margin="20" UseLayoutRounding="True" SnapsToDevicePixels="True">
         <Grid.ColumnDefinitions>
             <ColumnDefinition x:Name="BlockListColumn" Width="220" MinWidth="220" MaxWidth="360" />
             <ColumnDefinition x:Name="StackerSplitterColumn" Width="10" />
@@ -26,9 +26,24 @@
                       Width="8"
                       HorizontalAlignment="Center"
                       VerticalAlignment="Stretch"
-                      Background="Transparent"
                       ShowsPreview="True"
-                      ResizeBehavior="PreviousAndNext" />
+                      ResizeBehavior="PreviousAndNext">
+            <GridSplitter.Template>
+                <ControlTemplate TargetType="{x:Type GridSplitter}">
+                    <Border Background="{DynamicResource Modern.BorderSecondary}"
+                            Opacity="0.5"
+                            CornerRadius="2">
+                        <StackPanel VerticalAlignment="Center"
+                                    HorizontalAlignment="Center"
+                                    Orientation="Vertical">
+                            <Ellipse Width="3" Height="3" Margin="0,1" Fill="{DynamicResource Modern.TextTertiary}" />
+                            <Ellipse Width="3" Height="3" Margin="0,1" Fill="{DynamicResource Modern.TextTertiary}" />
+                            <Ellipse Width="3" Height="3" Margin="0,1" Fill="{DynamicResource Modern.TextTertiary}" />
+                        </StackPanel>
+                    </Border>
+                </ControlTemplate>
+            </GridSplitter.Template>
+        </GridSplitter>
 
         <controls:ConfigStackerInspectorControl x:Name="InspectorControl"
                                                 Grid.Column="2"

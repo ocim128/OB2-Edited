@@ -120,6 +120,27 @@
     <SolidColorBrush x:Key="Modern.PanelDark" Color="#1C2030" po:Freeze="False" />
     <SolidColorBrush x:Key="Modern.PanelDarkSecondary" Color="#1B1E2B" po:Freeze="False" />
     
+    <!-- ================================================================ -->
+    <!-- DARK PANEL (BotLog / terminal-style dark surfaces) -->
+    <!-- ================================================================ -->
+    <SolidColorBrush x:Key="Modern.BotLogBackground" Color="#0F1419" po:Freeze="False" />
+    <SolidColorBrush x:Key="Modern.BotLogPanel" Color="#1C2433" po:Freeze="False" />
+    <SolidColorBrush x:Key="Modern.BotLogTerminal" Color="#161616" po:Freeze="False" />
+    <SolidColorBrush x:Key="Modern.BotLogInputBackground" Color="#121B29" po:Freeze="False" />
+    <SolidColorBrush x:Key="Modern.BotLogBorder" Color="#27324A" po:Freeze="False" />
+    <SolidColorBrush x:Key="Modern.BotLogInputBorder" Color="#303D55" po:Freeze="False" />
+    <SolidColorBrush x:Key="Modern.DarkBorder" Color="#374151" po:Freeze="False" />
+    <SolidColorBrush x:Key="Modern.DarkFocusBorder" Color="#4C72FF" po:Freeze="False" />
+    <SolidColorBrush x:Key="Modern.DarkFocusShadow" Color="#81A1FF" po:Freeze="False" />
+    <SolidColorBrush x:Key="Modern.DarkHoverBackground" Color="#4B5563" po:Freeze="False" />
+    <SolidColorBrush x:Key="Modern.InfoLight" Color="#60A5FA" po:Freeze="False" />
+    <SolidColorBrush x:Key="Modern.ForegroundOnDark" Color="#F8FAFC" po:Freeze="False" />
+    <SolidColorBrush x:Key="Modern.DarkSeparator" Color="#374151" po:Freeze="False" />
+    <SolidColorBrush x:Key="Modern.DarkTextMuted" Color="#9CA3AF" po:Freeze="False" />
+    <SolidColorBrush x:Key="Modern.SearchInputBackground" Color="#0E1726" po:Freeze="False" />
+    <SolidColorBrush x:Key="Modern.SearchHoverBackground" Color="#374151" po:Freeze="False" />
+    <SolidColorBrush x:Key="Modern.MatchInfoBackground" Color="#1F2A3D" po:Freeze="False" />
+    
     <!-- Dialog gradient backgrounds -->
     <LinearGradientBrush x:Key="Modern.Gradient.DialogBackground" StartPoint="0,0" EndPoint="0,1">
         <GradientStop Color="#121520" Offset="0"/>

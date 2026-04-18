@@ -9,7 +9,7 @@
       mc:Ignorable="d"
       d:DesignHeight="700" d:DesignWidth="950"
       Title="Bot Log Viewer"
-      Background="#0F1419">
+      Background="{DynamicResource Modern.BotLogBackground}">
 
     <Page.Resources>
         <!-- Modern Search TextBox -->
@@ -21,12 +21,12 @@
             <Setter Property="FontSize" Value="13" />
             <Setter Property="FontFamily" Value="Segoe UI" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
-            <Setter Property="Background" Value="#0E1726" />
-            <Setter Property="Foreground" Value="#F8FAFC" />
-            <Setter Property="BorderBrush" Value="#374151" />
+            <Setter Property="Background" Value="{DynamicResource Modern.SearchInputBackground}" />
+            <Setter Property="Foreground" Value="{DynamicResource Modern.ForegroundOnDark}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Modern.DarkBorder}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CaretBrush" Value="#F8FAFC" />
-            <Setter Property="SelectionBrush" Value="#81A1FF" />
+            <Setter Property="CaretBrush" Value="{DynamicResource Modern.ForegroundOnDark}" />
+            <Setter Property="SelectionBrush" Value="{DynamicResource Modern.DarkFocusShadow}" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="TextBox">
@@ -42,7 +42,7 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsFocused" Value="True">
-                                <Setter Property="BorderBrush" Value="#4C72FF" />
+                                <Setter Property="BorderBrush" Value="{DynamicResource Modern.DarkFocusBorder}" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -60,9 +60,9 @@
             <Setter Property="FontFamily" Value="Segoe UI" />
             <Setter Property="HorizontalContentAlignment" Value="Center" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
-            <Setter Property="Background" Value="#1F2937" />
-            <Setter Property="Foreground" Value="#F8FAFC" />
-            <Setter Property="BorderBrush" Value="#374151" />
+            <Setter Property="Background" Value="{DynamicResource Modern.DialogBackground}" />
+            <Setter Property="Foreground" Value="{DynamicResource Modern.ForegroundOnDark}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Modern.DarkBorder}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="Template">
@@ -79,10 +79,10 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="#374151" />
+                                <Setter TargetName="border" Property="Background" Value="{DynamicResource Modern.SearchHoverBackground}" />
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="#4B5563" />
+                                <Setter TargetName="border" Property="Background" Value="{DynamicResource Modern.DarkHoverBackground}" />
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter Property="Opacity" Value="0.5" />
@@ -97,9 +97,9 @@
         <Style x:Key="BotLogToggleButton" TargetType="ToggleButton">
             <Setter Property="MinWidth" Value="32" />
             <Setter Property="MinHeight" Value="32" />
-            <Setter Property="Background" Value="#1F2937" />
-            <Setter Property="Foreground" Value="#F8FAFC" />
-            <Setter Property="BorderBrush" Value="#374151" />
+            <Setter Property="Background" Value="{DynamicResource Modern.DialogBackground}" />
+            <Setter Property="Foreground" Value="{DynamicResource Modern.TextMutedLight}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Modern.DarkBorder}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="Template">
@@ -116,8 +116,8 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="#059669" />
-                                <Setter TargetName="border" Property="BorderBrush" Value="#10B981" />
+                                <Setter TargetName="border" Property="Background" Value="{DynamicResource Modern.Success}" />
+                                <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource Modern.Success}" />
                             </Trigger>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="border" Property="Opacity" Value="0.9" />
@@ -154,11 +154,11 @@
                     <iconPacks:PackIconRadixIcons Kind="ActivityLog"
                                                    Width="20"
                                                    Height="20"
-                                                   Foreground="#60A5FA"
+                                                   Foreground="{DynamicResource Modern.InfoLight}"
                                                    VerticalAlignment="Center"
                                                    Margin="0,0,10,0"/>
                     <TextBlock Text="Bot Log Viewer"
-                               Foreground="#F8FAFC"
+                               Foreground="{DynamicResource Modern.TextMutedLight}"
                                FontFamily="Segoe UI"
                                FontSize="18"
                                FontWeight="SemiBold"
@@ -167,17 +167,17 @@
                 
                 <!-- Log Stats -->
                 <Border Grid.Column="1"
-                        Background="#1F2937"
+                        Background="{DynamicResource Modern.DialogBackground}"
                         CornerRadius="8"
                         Padding="12,6">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="Entries: "
-                                   Foreground="#9CA3AF"
+                                   Foreground="{DynamicResource Modern.TextMuted}"
                                    FontFamily="Segoe UI"
                                    FontSize="12"
                                    VerticalAlignment="Center"/>
                         <TextBlock Text="{Binding EntryCount}"
-                                   Foreground="#10B981"
+                                   Foreground="{DynamicResource Modern.Success}"
                                    FontFamily="Segoe UI"
                                    FontSize="12"
                                    FontWeight="SemiBold"
@@ -189,11 +189,11 @@
         
         <!-- Toolbar Section -->
         <Border Grid.Row="1" 
-                Background="#1C2433"
+                Background="{DynamicResource Modern.BotLogPanel}"
                 CornerRadius="10"
                 Padding="12"
                 Margin="0,0,0,12"
-                BorderBrush="#27324A"
+                BorderBrush="{DynamicResource Modern.BotLogBorder}"
                 BorderThickness="1">
             <Grid>
                 <Grid.ColumnDefinitions>
@@ -228,11 +228,11 @@
                     </ToggleButton>
                     
                     <!-- Separator -->
-                    <Border Width="1" Background="#374151" Margin="8,0,16,0"/>
+                    <Border Width="1" Background="{DynamicResource Modern.DarkBorder}" Margin="8,0,16,0"/>
                     
                     <!-- Font Size Controls -->
                     <TextBlock Text="Font:"
-                               Foreground="#9CA3AF"
+                               Foreground="{DynamicResource Modern.TextMuted}"
                                FontFamily="Segoe UI"
                                FontSize="11"
                                VerticalAlignment="Center"
@@ -246,7 +246,7 @@
                     </Button>
                     <TextBlock x:Name="fontSizeDisplay"
                                Text="13"
-                               Foreground="#F8FAFC"
+                               Foreground="{DynamicResource Modern.TextMutedLight}"
                                FontFamily="Segoe UI"
                                FontSize="11"
                                FontWeight="Medium"
@@ -303,9 +303,9 @@
         
         <!-- Main Log Content -->
         <Border Grid.Row="2"
-                Background="#161616"
+                Background="{DynamicResource Modern.BotLogTerminal}"
                 CornerRadius="10"
-                BorderBrush="#27324A"
+                BorderBrush="{DynamicResource Modern.BotLogBorder}"
                 BorderThickness="1"
                 Margin="0,0,0,12">
             <avalonEdit:TextEditor x:Name="logRTB"
@@ -323,10 +323,10 @@
         
         <!-- Search Controls -->
         <Border Grid.Row="3"
-                Background="#1C2433"
+                Background="{DynamicResource Modern.BotLogPanel}"
                 CornerRadius="10"
                 Padding="14,12"
-                BorderBrush="#27324A"
+                BorderBrush="{DynamicResource Modern.BotLogBorder}"
                 BorderThickness="1">
             <Grid>
                 <Grid.ColumnDefinitions>
@@ -352,8 +352,8 @@
                 <Button Grid.Column="1"
                         Style="{StaticResource BotLogToolbarButton}"
                         Click="Search"
-                        Background="#059669"
-                        BorderBrush="#10B981"
+                        Background="{DynamicResource Modern.Success}"
+                        BorderBrush="{DynamicResource Modern.Success}"
                         Padding="14,8"
                         Margin="10,0,0,0"
                         ToolTip="Search (Enter)">
@@ -370,10 +370,10 @@
                 
                 <!-- Navigation Buttons -->
                 <Border Grid.Column="2"
-                        Background="#121b29"
+                        Background="{DynamicResource Modern.BotLogInputBackground}"
                         CornerRadius="8"
                         Padding="4"
-                        BorderBrush="#27324A"
+                        BorderBrush="{DynamicResource Modern.BotLogBorder}"
                         BorderThickness="1"
                         Margin="16,0,0,0">
                     <StackPanel Orientation="Horizontal">
@@ -403,14 +403,14 @@
                 <!-- Match Info Display -->
                 <Border Grid.Column="3"
                         Margin="12,0,0,0"
-                        Background="#1f2a3d"
+                        Background="{DynamicResource Modern.BotLogPanel}"
                         CornerRadius="6"
                         Padding="14,8"
-                        BorderBrush="#303d55"
+                        BorderBrush="{DynamicResource Modern.BotLogInputBorder}"
                         BorderThickness="1"
                         MinWidth="90">
                     <TextBlock Text="{Binding MatchInfo}"
-                               Foreground="#10B981"
+                               Foreground="{DynamicResource Modern.Success}"
                                FontFamily="Segoe UI"
                                FontSize="12"
                                FontWeight="SemiBold"

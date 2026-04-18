@@ -33,5 +33,10 @@ namespace Flux.Native.Views.Dialogs.Common
             onAnswer(answerComboBox.Text);
             UIHelpers.CloseParentDialog(this);
         }
+
+        private void Cancel_Click(object sender, RoutedEventArgs e)
+        {
+            UIHelpers.CloseParentDialog(this);
+        }
     }
 }

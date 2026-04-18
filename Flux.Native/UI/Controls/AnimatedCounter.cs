@@ -14,7 +14,6 @@ public class AnimatedCounter : Control
 {
     private TextBlock _textBlock;
     private double _currentDisplayValue;
-    private readonly Storyboard _storyboard;
     private bool _isAnimating;
 
     public static readonly DependencyProperty ValueProperty =
@@ -85,12 +84,11 @@ public class AnimatedCounter : Control
 
     public AnimatedCounter()
     {
-        _storyboard = new Storyboard();
-
         // Create a simple template
         var factory = new FrameworkElementFactory(typeof(TextBlock));
         factory.SetValue(TextBlock.HorizontalAlignmentProperty, HorizontalAlignment.Center);
         factory.SetValue(TextBlock.VerticalAlignmentProperty, VerticalAlignment.Center);
+        factory.SetValue(TextBlock.FontFamilyProperty, new FontFamily("Segoe UI"));
         factory.SetBinding(TextBlock.ForegroundProperty, new System.Windows.Data.Binding(nameof(TextColor)) { Source = this });
         factory.SetBinding(TextBlock.FontSizeProperty, new System.Windows.Data.Binding(nameof(TextSize)) { Source = this });
         factory.SetBinding(TextBlock.FontWeightProperty, new System.Windows.Data.Binding(nameof(TextWeight)) { Source = this });
@@ -155,13 +153,11 @@ public class AnimatedCounter : Control
 
         if (_isAnimating)
         {
-            // If already animating, just update the target
-            _storyboard.Stop();
+            // If already animating, just update the target by re-subscribing below
         }
 
         _isAnimating = true;
         var startValue = _currentDisplayValue;
-        var diff = targetValue - startValue;
 
         // Use CompositionTarget.Rendering for smooth animation
         var startTime = DateTime.Now;

@@ -103,15 +103,6 @@ public sealed class DebuggerUIState
     }
 
     /// <summary>
-    /// Restores the captured state after exiting focus mode.
-    /// </summary>
-    public void RestoreStateFromFocusMode()
-    {
-        // Note: Actual UI updates are handled by the caller
-        // This method provides the stored values for restoration
-    }
-
-    /// <summary>
     /// Resets all state to defaults.
     /// </summary>
     public void Reset()

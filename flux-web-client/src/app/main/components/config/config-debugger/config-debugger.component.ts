@@ -119,9 +119,13 @@ export class ConfigDebuggerComponent implements OnInit, OnDestroy {
 
   onNewState() {
     // When we get the debugger state, we can start listening to
-    // new messages
-    // TODO: Handle the case where other messages arrive before
-    // the state message
+    // new messages. Unsubscribe previous subscriptions first to prevent
+    // leaks on reconnect (withAutomaticReconnect can trigger this again).
+    this.logsSubscription?.unsubscribe();
+    this.variablesSubscription?.unsubscribe();
+    this.statusSubscription?.unsubscribe();
+    this.errorSubscription?.unsubscribe();
+
     this.logsSubscription = this.debuggerHubService.logs$.subscribe((msg) => {
       if (msg === null || msg === undefined) {
         return;

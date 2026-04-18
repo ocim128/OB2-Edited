@@ -12,6 +12,19 @@ namespace Flux.Native.Views.Pages.Shared;
 /// </summary>
 public sealed class DebuggerUIManager
 {
+    #region Static Brushes (frozen for WPF thread-safety and zero alloc)
+    private static readonly Brush ToggleActiveBrush = CreateFrozenBrush(220, 38, 38);   // Red #DC2626
+    private static readonly Brush OptionsAccentBrush = CreateFrozenBrush(124, 58, 237); // Purple #7C3AED
+    private static readonly Brush SuccessAccentBrush = CreateFrozenBrush(5, 150, 105);  // Green #059669
+    private static readonly Brush WarningAccentBrush = CreateFrozenBrush(245, 158, 11); // Amber #F59E0B
+
+    private static Brush CreateFrozenBrush(byte r, byte g, byte b)
+    {
+        var brush = new SolidColorBrush(Color.FromRgb(r, g, b));
+        brush.Freeze();
+        return brush;
+    }
+    #endregion
     #region Private Fields
     private readonly DebuggerUIState _state;
     private readonly Func<MainWindow?> _getMainWindow;
@@ -74,13 +87,13 @@ public sealed class DebuggerUIManager
         {
             if (_page.OptionsToggleIcon != null) _page.OptionsToggleIcon.Kind = PackIconUniconsKind.EyeSlash;
             label.Text = "Hide Options";
-            _page.OptionsToggleButton.Background = new SolidColorBrush(Color.FromRgb(220, 38, 38));
+            _page.OptionsToggleButton.Background = ToggleActiveBrush;
         }
         else
         {
             if (_page.OptionsToggleIcon != null) _page.OptionsToggleIcon.Kind = PackIconUniconsKind.Eye;
             label.Text = "Show Options";
-            _page.OptionsToggleButton.Background = new SolidColorBrush(Color.FromRgb(124, 58, 237));
+            _page.OptionsToggleButton.Background = OptionsAccentBrush;
         }
     }
     #endregion
@@ -129,13 +142,13 @@ public sealed class DebuggerUIManager
         {
             if (_page.TabToggleIcon != null) _page.TabToggleIcon.Kind = PackIconUniconsKind.EyeSlash;
             label.Text = "Hide UI";
-            _page.TabToggleButton.Background = new SolidColorBrush(Color.FromRgb(220, 38, 38));
+            _page.TabToggleButton.Background = ToggleActiveBrush;
         }
         else
         {
             if (_page.TabToggleIcon != null) _page.TabToggleIcon.Kind = PackIconUniconsKind.Eye;
             label.Text = "Show UI";
-            _page.TabToggleButton.Background = new SolidColorBrush(Color.FromRgb(5, 150, 105));
+            _page.TabToggleButton.Background = SuccessAccentBrush;
         }
     }
     #endregion
@@ -193,13 +206,13 @@ public sealed class DebuggerUIManager
         {
             if (_page.StackerToggleIcon != null) _page.StackerToggleIcon.Kind = PackIconUniconsKind.EyeSlash;
             label.Text = "Hide Stacker";
-            _page.StackerToggleButton.Background = new SolidColorBrush(Color.FromRgb(220, 38, 38));
+            _page.StackerToggleButton.Background = ToggleActiveBrush;
         }
         else
         {
             if (_page.StackerToggleIcon != null) _page.StackerToggleIcon.Kind = PackIconUniconsKind.Eye;
             label.Text = "Show Stacker";
-            _page.StackerToggleButton.Background = new SolidColorBrush(Color.FromRgb(5, 150, 105));
+            _page.StackerToggleButton.Background = SuccessAccentBrush;
         }
     }
     #endregion
@@ -353,13 +366,13 @@ public sealed class DebuggerUIManager
         {
             if (_page?.FocusModeIcon != null) _page.FocusModeIcon.Kind = PackIconUniconsKind.EyeSlash;
             if (_page?.FocusModeText != null) _page.FocusModeText.Text = "Exit Focus";
-            if (_page?.FocusModeButton != null) _page.FocusModeButton.Background = new SolidColorBrush(Color.FromRgb(220, 38, 38));
+            if (_page?.FocusModeButton != null) _page.FocusModeButton.Background = ToggleActiveBrush;
         }
         else
         {
             if (_page?.FocusModeIcon != null) _page.FocusModeIcon.Kind = PackIconUniconsKind.Crosshair;
             if (_page?.FocusModeText != null) _page.FocusModeText.Text = "Focus Mode";
-            if (_page?.FocusModeButton != null) _page.FocusModeButton.Background = new SolidColorBrush(Color.FromRgb(245, 158, 11));
+            if (_page?.FocusModeButton != null) _page.FocusModeButton.Background = WarningAccentBrush;
         }
     }
     #endregion

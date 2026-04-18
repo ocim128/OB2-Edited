@@ -318,6 +318,9 @@ public class DebuggerViewModel : ViewModelBase
             StepByStep = StepByStep
         };
 
+        // Dispose the previous debugger (closes browsers, unhooks events)
+        debugger?.Dispose();
+
         debugger = new ConfigDebugger(configService.SelectedConfig, options, logger)
         {
             PluginRepo = pluginRepo,

@@ -102,11 +102,7 @@ public partial class ConfigDebugger : IDisposable
             return Task.CompletedTask;
         }
 
-        return Task.Run(() =>
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            _ = PrepareScripts(config, stepByStep, pluginRepo);
-        }, cancellationToken);
+        return PrepareScriptsAsync(config, stepByStep, pluginRepo, cancellationToken);
     }
 
     public async Task Run()
@@ -114,8 +110,7 @@ public partial class ConfigDebugger : IDisposable
         // Offload CPU-intensive transpilation and compilation to a background thread
         // This prevents the UI thread from hanging during initialization
         var prepareSw = Stopwatch.StartNew();
-        var preparedScripts = await Task.Run(
-            () => PrepareScripts(Config, Options.StepByStep, PluginRepo)).ConfigureAwait(false);
+        var preparedScripts = await PrepareScriptsAsync(Config, Options.StepByStep, PluginRepo).ConfigureAwait(false);
         prepareSw.Stop();
 
         var script = preparedScripts.Script;
@@ -359,18 +354,18 @@ public partial class ConfigDebugger : IDisposable
         // GC.SuppressFinalize(this);
     }
 
-    private static ScriptPreparationResult PrepareScripts(
-        Config config, bool stepByStep, PluginRepository pluginRepo)
+    private static async Task<ScriptPreparationResult> PrepareScriptsAsync(
+        Config config, bool stepByStep, PluginRepository pluginRepo, CancellationToken cancellationToken = default)
     {
         var (transpiledScript, transpiledStartupScript) = GetTranspiledScripts(config, stepByStep);
-        return _scriptPreparation
+        return await _scriptPreparation
             .PrepareAsync(
                 config,
                 pluginRepo,
                 stepByStep: stepByStep,
+                cancellationToken: cancellationToken,
                 preparedSources: new PreparedScriptSources(transpiledScript, transpiledStartupScript))
-            .GetAwaiter()
-            .GetResult();
+            .ConfigureAwait(false);
     }
 
     private static (string mainScript, string startupScript) GetTranspiledScripts(Config config, bool stepByStep)

@@ -74,14 +74,21 @@ public class ConfigDebuggerHub : AuthorizedHub
     [HubMethodName("stop")]
     public async Task StopAsync()
     {
-        var debugger = _debuggerService.TryGet(GetConfigId()!)!;
+        var debugger = _debuggerService.TryGet(GetConfigId()!);
+
+        if (debugger is null)
+        {
+            await Clients.Caller.SendAsync(
+                CommonMethods.Error,
+                new ErrorMessage { Type = "Invalid operation", Message = "No debugger session found" });
+            return;
+        }
 
         if (debugger.Status is ConfigDebuggerStatus.Idle)
         {
             await Clients.Caller.SendAsync(
                 CommonMethods.Error,
                 new ErrorMessage { Type = "Invalid operation", Message = "The debugger is not running" });
-
             return;
         }
 
@@ -94,7 +101,15 @@ public class ConfigDebuggerHub : AuthorizedHub
     [HubMethodName("takeStep")]
     public async Task TakeStepAsync()
     {
-        var debugger = _debuggerService.TryGet(GetConfigId()!)!;
+        var debugger = _debuggerService.TryGet(GetConfigId()!);
+
+        if (debugger is null)
+        {
+            await Clients.Caller.SendAsync(
+                CommonMethods.Error,
+                new ErrorMessage { Type = "Invalid operation", Message = "No debugger session found" });
+            return;
+        }
 
         if (!debugger.Options.StepByStep)
         {

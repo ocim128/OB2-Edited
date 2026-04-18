@@ -11,6 +11,7 @@ using RuriLib.Models.Variables;
 using RuriLib.Providers.RandomNumbers;
 using RuriLib.Providers.UserAgents;
 using RuriLib.Services;
+using System.Collections.Concurrent;
 
 namespace Flux.Web.Services;
 
@@ -23,10 +24,10 @@ public sealed class ConfigDebuggerService : IDisposable
     private readonly ConfigService _configService;
 
     // Maps debuggers to connections
-    private readonly Dictionary<ConfigDebugger, List<string>> _connections = new();
+    private readonly ConcurrentDictionary<ConfigDebugger, List<string>> _connections = new();
 
     // Maps config IDs to debuggers
-    private readonly Dictionary<string, ConfigDebugger> _debuggers = new();
+    private readonly ConcurrentDictionary<string, ConfigDebugger> _debuggers = new();
     private readonly IHubContext<ConfigDebuggerHub> _hub;
     private readonly ILogger<ConfigDebuggerService> _logger;
 
@@ -78,20 +79,25 @@ public sealed class ConfigDebuggerService : IDisposable
     public void RegisterConnection(string connectionId, string configId)
     {
         // If we don't already have a debugger for this config, create one
-        if (!_debuggers.TryGetValue(configId, out var debugger))
+        var config = _configService.Configs.FirstOrDefault(c => c.Id == configId);
+        if (config is null) return;
+
+        var debugger = _debuggers.GetOrAdd(configId, _ =>
         {
-            var config = _configService.Configs.FirstOrDefault(c => c.Id == configId);
-            debugger = new ConfigDebugger(config);
-            _debuggers[configId] = debugger;
-            _connections[debugger] = [];
+            var dbg = new ConfigDebugger(config);
+            _connections[dbg] = [];
 
             // Hook the event handlers to the newly created debugger
-            debugger.NewLogEntry += _onNewLog;
-            debugger.StatusChanged += _onStatusChanged;
-        }
+            dbg.NewLogEntry += _onNewLog;
+            dbg.StatusChanged += _onStatusChanged;
+            return dbg;
+        });
 
         // Add the connection to the list
-        _connections[debugger].Add(connectionId);
+        lock (_connections.GetOrAdd(debugger, _ => new List<string>()))
+        {
+            _connections[debugger].Add(connectionId);
+        }
 
         _logger.LogDebug("Registered new connection {ConnectionId} for debugger of config {ConfigId}",
             connectionId, configId);
@@ -104,7 +110,13 @@ public sealed class ConfigDebuggerService : IDisposable
     {
         if (_debuggers.TryGetValue(configId, out var debugger))
         {
-            _connections[debugger].Remove(connectionId);
+            if (_connections.TryGetValue(debugger, out var connections))
+            {
+                lock (connections)
+                {
+                    connections.Remove(connectionId);
+                }
+            }
         }
 
         _logger.LogDebug("Unregistered connection {ConnectionId} for debugger of config {ConfigId}",
@@ -116,8 +128,12 @@ public sealed class ConfigDebuggerService : IDisposable
         var message = new DbgNewLogMessage { NewMessage = e };
 
         var debugger = sender as ConfigDebugger;
+        if (debugger is null || !_connections.TryGetValue(debugger, out var connections)) return;
 
-        await _hub.Clients.Clients(_connections[debugger!]).SendAsync(
+        List<string> snapshot;
+        lock (connections) { snapshot = [..connections]; }
+
+        await _hub.Clients.Clients(snapshot).SendAsync(
             ConfigDebuggerMethods.NewLogEntry, message);
     }
 
@@ -126,18 +142,22 @@ public sealed class ConfigDebuggerService : IDisposable
         var message = new DbgStatusChangedMessage { NewStatus = e };
 
         var debugger = sender as ConfigDebugger;
+        if (debugger is null || !_connections.TryGetValue(debugger, out var connections)) return;
 
-        await _hub.Clients.Clients(_connections[debugger!]).SendAsync(
+        List<string> snapshot;
+        lock (connections) { snapshot = [..connections]; }
+
+        await _hub.Clients.Clients(snapshot).SendAsync(
             ConfigDebuggerMethods.StatusChanged, message);
 
         // Right now, only when the status goes back to idle, we
         // update the variables.
         // Note: In the future it would be nice to update them more often.
         var varMessage = new DbgVariablesChangedMessage {
-            Variables = (sender as ConfigDebugger)!.Variables.Select(MapVariable)
+            Variables = debugger.Variables.Select(MapVariable)
         };
 
-        await _hub.Clients.Clients(_connections[debugger!]).SendAsync(
+        await _hub.Clients.Clients(snapshot).SendAsync(
             ConfigDebuggerMethods.VariablesChanged, varMessage);
     }
 
@@ -197,8 +217,13 @@ public sealed class ConfigDebuggerService : IDisposable
                     Type = ex.GetType().Name, Message = ex.Message, StackTrace = ex.ToString()
                 };
 
-                await _hub.Clients.Clients(_connections[debugger])
-                    .SendAsync(CommonMethods.Error, message);
+                if (_connections.TryGetValue(debugger, out var connections))
+                {
+                    List<string> snapshot;
+                    lock (connections) { snapshot = [..connections]; }
+                    await _hub.Clients.Clients(snapshot)
+                        .SendAsync(CommonMethods.Error, message);
+                }
             }
         });
     }
@@ -248,7 +273,7 @@ public sealed class ConfigDebuggerService : IDisposable
                     "The debugger status is not idle, so it cannot be started");
             }
 
-            _debuggers.Remove(config.Id);
+            _debuggers.TryRemove(config.Id, out _);
 
             // This will also remove all the event listeners
             existing.Dispose();
@@ -265,10 +290,9 @@ public sealed class ConfigDebuggerService : IDisposable
         _debuggers[config.Id] = debugger;
 
         // Transfer the connections from the old debugger to the new one
-        if (existing is not null && _connections.TryGetValue(existing, out var connections))
+        if (existing is not null && _connections.TryRemove(existing, out var oldConnections))
         {
-            _connections[debugger] = connections;
-            _connections.Remove(existing);
+            _connections[debugger] = oldConnections;
         }
         else
         {

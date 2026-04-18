@@ -14,6 +14,13 @@ namespace Flux.Native.ViewModels.Configs
 {
     public class ConfigMetadataViewModel(ConfigService configService) : ViewModelBase
     {
+        private static readonly Lazy<HttpClient> SharedClient = new(() =>
+        {
+            var client = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("Flux-Native/1.0");
+            return client;
+        });
+
         private Config Config => configService.SelectedConfig;
 
         public string Name
@@ -59,9 +66,8 @@ namespace Flux.Native.ViewModels.Configs
 
         public async Task SetIconFromUrlAsync(string url)
         {
-            using var client = new HttpClient();
-            using var response = await client.GetAsync(url);
-            var bytes = ImageEditor.ToCompatibleFormat(await response.Content.ReadAsByteArrayAsync());
+            using var response = await SharedClient.Value.GetAsync(url).ConfigureAwait(false);
+            var bytes = ImageEditor.ToCompatibleFormat(await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false));
 
             var base64 = Convert.ToBase64String(bytes);
             Config.Metadata.Base64Image = base64;

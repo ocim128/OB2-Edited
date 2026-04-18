@@ -18,6 +18,7 @@ namespace Flux.Native.Utils
         private static DateTime _lastGcTime = DateTime.MinValue;
         private static readonly TimeSpan _minGcInterval = TimeSpan.FromSeconds(30);
         private static readonly ComputerInfo _computerInfo = new();
+        private static readonly Process CurrentProcess = Process.GetCurrentProcess();
 
         /// <summary>
         /// Applies garbage collection optimizations for low-spec systems
@@ -82,8 +83,7 @@ namespace Flux.Native.Utils
         {
             try
             {
-                using var process = Process.GetCurrentProcess();
-                var workingSet = process.WorkingSet64;
+                var workingSet = CurrentProcess.WorkingSet64;
                 var managedMemory = GC.GetTotalMemory(false);
 
                 return (workingSet, managedMemory);
@@ -148,8 +148,7 @@ namespace Flux.Native.Utils
                         return _lastCpuUsage;
                     }
 
-                    using var process = Process.GetCurrentProcess();
-                    var currentTotalProcessorTime = process.TotalProcessorTime;
+                    var currentTotalProcessorTime = CurrentProcess.TotalProcessorTime;
 
                     if (_lastCpuTime != DateTime.MinValue)
                     {
@@ -232,8 +231,7 @@ namespace Flux.Native.Utils
                         return _lastAppMemoryInfo;
                     }
 
-                    using var process = Process.GetCurrentProcess();
-                    var workingSet = process.WorkingSet64;
+                    var workingSet = CurrentProcess.WorkingSet64;
                     var managedMemory = GC.GetTotalMemory(false);
 
                     var totalSystemMemory = (long)_computerInfo.TotalPhysicalMemory;
@@ -247,6 +245,38 @@ namespace Flux.Native.Utils
                 catch
                 {
                     return (0, 0, 0f);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets the current thread count with throttled updates.
+        /// Thread-safe via lock on _threadCountLock.
+        /// </summary>
+        private static readonly object _threadCountLock = new();
+        private static DateTime _lastThreadCountTime = DateTime.MinValue;
+        private static int _lastThreadCount;
+        private static readonly TimeSpan _threadCountUpdateInterval = TimeSpan.FromSeconds(2);
+
+        public static int GetThreadCount()
+        {
+            lock (_threadCountLock)
+            {
+                try
+                {
+                    var now = DateTime.UtcNow;
+                    if (now - _lastThreadCountTime < _threadCountUpdateInterval)
+                    {
+                        return _lastThreadCount;
+                    }
+
+                    _lastThreadCount = CurrentProcess.Threads.Count;
+                    _lastThreadCountTime = now;
+                    return _lastThreadCount;
+                }
+                catch
+                {
+                    return _lastThreadCount;
                 }
             }
         }

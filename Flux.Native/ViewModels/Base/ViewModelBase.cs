@@ -37,6 +37,8 @@ namespace Flux.Native.ViewModels.Base
 
         /// <summary>
         /// Calls OnPropertyChanged on all public properties of this class.
+        /// Uses reflection to enumerate properties; prefer overriding this method
+        /// with explicit OnPropertyChanged calls in hot paths or large ViewModels.
         /// </summary>
         public virtual void UpdateViewModel()
         {

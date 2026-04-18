@@ -120,9 +120,9 @@ namespace Flux.Native.Controls
                         s.Value = Base64Converter.ToByteArray(value);
                         hexValue = HexConverter.ToHexString(s.Value);
                     }
-                    catch
+                    catch (Exception ex)
                     {
-                        
+                        System.Diagnostics.Debug.WriteLine($"[ByteArraySetting] Failed to parse Base64 value: {ex.Message}");
                     }
                 }
                 else
@@ -151,9 +151,9 @@ namespace Flux.Native.Controls
                         s.Value = HexConverter.ToByteArray(value, false);
                         b64Value = Base64Converter.ToBase64String(s.Value);
                     }
-                    catch
+                    catch (Exception ex)
                     {
-                        
+                        System.Diagnostics.Debug.WriteLine($"[ByteArraySetting] Failed to parse Hex value: {ex.Message}");
                     }
                 }
                 else

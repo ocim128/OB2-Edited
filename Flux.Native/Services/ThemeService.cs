@@ -321,8 +321,9 @@ namespace Flux.Native.Services
                 var color = (Color)ColorConverter.ConvertFromString(value.Trim());
                 return $"#{color.R:X2}{color.G:X2}{color.B:X2}";
             }
-            catch
+            catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"[ThemeService] Failed to parse color value '{value}': {ex.Message}");
                 return value.Trim().ToUpperInvariant();
             }
         }

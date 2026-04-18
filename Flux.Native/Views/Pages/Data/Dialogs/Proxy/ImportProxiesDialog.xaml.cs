@@ -7,6 +7,7 @@ using RuriLib.Models.Proxies;
 using System;
 using System.IO;
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -19,6 +20,13 @@ namespace Flux.Native.Views.Dialogs.Proxy
     /// </summary>
     public partial class ImportProxiesDialog : Page
     {
+        private static readonly Lazy<HttpClient> SharedClient = new(() =>
+        {
+            var client = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("Flux-Native/1.0");
+            return client;
+        });
+
         private readonly object caller;
 
         public ImportProxiesDialog(object caller)
@@ -72,14 +80,11 @@ namespace Flux.Native.Views.Dialogs.Proxy
 
         private async Task ImportFromUrlAsync(string url)
         {
-            using var client = new HttpClient();
-            using var request = new HttpRequestMessage();
+            using var request = new HttpRequestMessage(HttpMethod.Get, url);
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
 
-            request.RequestUri = new Uri(url);
-            request.Headers.TryAddWithoutValidation("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.116 Safari/537.36");
-
-            using var response = await client.SendAsync(request);
-            var text = await response.Content.ReadAsStringAsync();
+            using var response = await SharedClient.Value.SendAsync(request, cts.Token).ConfigureAwait(false);
+            var text = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
             await ReturnLinesAsync(text);
         }
 

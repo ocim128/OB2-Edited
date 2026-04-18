@@ -491,7 +491,7 @@ public class WordlistDataPoolOptionsViewModel : DataPoolOptionsViewModel
 
         if (options.WordlistId != -1)
         {
-            wordlist = wordlistRepo.GetAsync(options.WordlistId).GetAwaiter().GetResult();
+            wordlist = Task.Run(() => wordlistRepo.GetAsync(options.WordlistId)).GetAwaiter().GetResult();
         }
 
         if (wordlist is null)

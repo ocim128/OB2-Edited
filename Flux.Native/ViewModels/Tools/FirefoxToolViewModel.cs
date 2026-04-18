@@ -227,7 +227,8 @@ public sealed class FirefoxToolViewModel : ToolCardViewModelBase, IDisposable
 
     public void Dispose()
     {
-        try { CleanupAsync().GetAwaiter().GetResult(); } catch { }
+        try { Task.Run(() => CleanupAsync()).GetAwaiter().GetResult(); }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Firefox cleanup failed: {ex.Message}"); }
     }
 
     private void RegisterZipProfile(LaunchedZipProfile profile)
@@ -296,8 +297,9 @@ public sealed class FirefoxToolViewModel : ToolCardViewModelBase, IDisposable
                 await profile.Context.CloseAsync();
             }
         }
-        catch
+        catch (Exception ex)
         {
+            System.Diagnostics.Debug.WriteLine($"[FirefoxTool] Failed to close zip profile context: {ex.Message}");
         }
 
         TryDeleteDirectory(profile.ProfilePath);

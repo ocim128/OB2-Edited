@@ -1,5 +1,6 @@
 using Flux.Native.Services;
 using Flux.Native.ViewModels;
+using System;
 using System.Net.Http;
 using System.Windows.Controls;
 using Flux.Native.ViewModels.Base;
@@ -22,6 +23,13 @@ namespace Flux.Native.Views.Dialogs.Updates
 
         public class ChangelogViewModel : ViewModelBase
         {
+            private static readonly Lazy<HttpClient> SharedClient = new(() =>
+            {
+                var client = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
+                client.DefaultRequestHeaders.UserAgent.ParseAdd("Flux-Native/1.0");
+                return client;
+            });
+
             private string text = "Loading...";
             public string Text
             {
@@ -43,13 +51,10 @@ namespace Flux.Native.Views.Dialogs.Updates
                 // Get current version from assembly
                 var currentVersion = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "0.2.2";
 
-                using var client = new HttpClient();
-                client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:84.0) Gecko/20100101 Firefox/84.0");
-
                 try
                 {
-                    var response = await client.GetAsync($"https://raw.githubusercontent.com/openbullet/Flux/master/Changelog/{currentVersion}.md");
-                    Text = await response.Content.ReadAsStringAsync();
+                    using var response = await SharedClient.Value.GetAsync($"https://raw.githubusercontent.com/openbullet/Flux/master/Changelog/{currentVersion}.md").ConfigureAwait(false);
+                    Text = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                 }
                 catch
                 {

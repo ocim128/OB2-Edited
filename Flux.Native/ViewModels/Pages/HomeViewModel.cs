@@ -238,31 +238,6 @@ public class HomeViewModel : ViewModelBase, IDisposable
     {
         try
         {
-            if (_refreshOptions.IsLowSpecMode)
-            {
-                return await Task.Run(() =>
-                {
-                    using var process = Process.GetCurrentProcess();
-                    var startTime = DateTime.UtcNow;
-                    var startCpuUsage = process.TotalProcessorTime;
-
-                    Thread.Sleep(100);
-
-                    var endTime = DateTime.UtcNow;
-                    var endCpuUsage = process.TotalProcessorTime;
-                    var cpuUsedMs = (endCpuUsage - startCpuUsage).TotalMilliseconds;
-                    var totalMsPassed = (endTime - startTime).TotalMilliseconds;
-
-                    if (totalMsPassed <= 0)
-                    {
-                        return 0.0;
-                    }
-
-                    var cpuUsageTotal = cpuUsedMs / (Environment.ProcessorCount * totalMsPassed);
-                    return Math.Min(cpuUsageTotal * 100.0, 100.0);
-                }).ConfigureAwait(false);
-            }
-
             return await Task.Run(() => (double)MemoryManager.GetSystemCpuUsage()).ConfigureAwait(false);
         }
         catch (Exception ex)
@@ -290,15 +265,7 @@ public class HomeViewModel : ViewModelBase, IDisposable
 
     private void UpdateThreadCount()
     {
-        try
-        {
-            using var process = Process.GetCurrentProcess();
-            ThreadCount = process.Threads.Count;
-        }
-        catch
-        {
-            ThreadCount = 0;
-        }
+        ThreadCount = MemoryManager.GetThreadCount();
     }
 
     private static string FormatNumber(long number)

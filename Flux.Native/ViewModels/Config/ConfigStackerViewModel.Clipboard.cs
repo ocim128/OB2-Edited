@@ -51,8 +51,9 @@ public partial class ConfigStackerViewModel
                 var loliCode = block.ToLC(true);
                 return block is not LoliCodeBlockInstance ? $"BLOCK:{block.Id}\n{loliCode}ENDBLOCK" : loliCode;
             }
-            catch
+            catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"[ConfigStacker] Failed to convert block to LoliCode: {ex.Message}");
                 return string.Empty;
             }
         }
@@ -340,8 +341,9 @@ public partial class ConfigStackerViewModel
                 ? ParseBlockFromBlockIdFormat(lines)
                 : ParseBlockFromFallbackFormat(lines);
         }
-        catch
+        catch (Exception ex)
         {
+            System.Diagnostics.Debug.WriteLine($"[ConfigStacker] Failed to parse block from clipboard: {ex.Message}");
             return null;
         }
     }
@@ -377,8 +379,9 @@ public partial class ConfigStackerViewModel
             block.FromLC(ref contentScript, ref lineNumber);
             return block;
         }
-        catch
+        catch (Exception ex)
         {
+            System.Diagnostics.Debug.WriteLine($"[ConfigStacker] Failed to parse block from BLOCK format (id='{blockId}'): {ex.Message}");
             return null;
         }
     }
@@ -448,14 +451,16 @@ public partial class ConfigStackerViewModel
 
             return BlockFactory.GetBlock<BlockInstance>(blockId);
         }
-        catch
+        catch (Exception ex)
         {
+            System.Diagnostics.Debug.WriteLine($"[ConfigStacker] Failed to create block '{blockType}': {ex.Message}");
             try
             {
                 return BlockFactory.GetBlock<AutoBlockInstance>(blockType);
             }
-            catch
+            catch (Exception ex2)
             {
+                System.Diagnostics.Debug.WriteLine($"[ConfigStacker] Failed to create auto block '{blockType}': {ex2.Message}");
                 return null;
             }
         }
@@ -534,8 +539,9 @@ public partial class ConfigStackerViewModel
             block.Label = text.Length > 50 ? text[..50] + "..." : text;
             return block;
         }
-        catch
+        catch (Exception ex)
         {
+            System.Diagnostics.Debug.WriteLine($"[ConfigStacker] Failed to create block from text: {ex.Message}");
             return null;
         }
     }

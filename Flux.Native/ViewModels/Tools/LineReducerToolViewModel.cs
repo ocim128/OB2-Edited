@@ -187,8 +187,9 @@ public sealed class LineReducerToolViewModel : ToolCardViewModelBase, IDisposabl
             {
                 normalizedPath = Path.GetFullPath(fileName);
             }
-            catch
+            catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"[LineReducer] Failed to normalize path '{fileName}': {ex.Message}");
                 skipped++;
                 continue;
             }
@@ -217,8 +218,9 @@ public sealed class LineReducerToolViewModel : ToolCardViewModelBase, IDisposabl
                 CompareFiles.Add(new LineReducerCompareFile(info.FullName, info.Length));
                 added++;
             }
-            catch
+            catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"[LineReducer] Failed to add compare file '{normalizedPath}': {ex.Message}");
                 skipped++;
             }
         }
@@ -579,8 +581,9 @@ public sealed class LineReducerToolViewModel : ToolCardViewModelBase, IDisposabl
             var info = new FileInfo(path);
             return info.Exists ? info.Length : 0;
         }
-        catch
+        catch (Exception ex)
         {
+            System.Diagnostics.Debug.WriteLine($"[LineReducer] Failed to get file length for '{path}': {ex.Message}");
             return 0;
         }
     }
@@ -596,8 +599,9 @@ public sealed class LineReducerToolViewModel : ToolCardViewModelBase, IDisposabl
         {
             File.Delete(path);
         }
-        catch
+        catch (Exception ex)
         {
+            System.Diagnostics.Debug.WriteLine($"[LineReducer] Failed to delete file '{path}': {ex.Message}");
         }
     }
 
@@ -629,8 +633,9 @@ public sealed class LineReducerToolViewModel : ToolCardViewModelBase, IDisposabl
                 previous = current;
             }
         }
-        catch
+        catch (Exception ex)
         {
+            System.Diagnostics.Debug.WriteLine($"[LineReducer] Failed to detect newline for '{path}': {ex.Message}");
             return Environment.NewLine;
         }
     }
@@ -647,8 +652,9 @@ public sealed class LineReducerToolViewModel : ToolCardViewModelBase, IDisposabl
 
             return encoding ?? Utf8NoBomEncoding;
         }
-        catch
+        catch (Exception ex)
         {
+            System.Diagnostics.Debug.WriteLine($"[LineReducer] Failed to determine output encoding: {ex.Message}");
             return Utf8NoBomEncoding;
         }
     }

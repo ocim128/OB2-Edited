@@ -132,8 +132,9 @@ internal sealed class UpdateInstaller
             {
                 Directory.Delete(extractPath, true);
             }
-            catch
+            catch (Exception ex)
             {
+                Debug.WriteLine($"[UpdateInstaller] Failed to delete existing extract directory '{extractPath}': {ex.Message}");
                 extractPath = Path.Combine(tempDir, $"extracted_{DateTime.Now.Ticks}");
             }
         }

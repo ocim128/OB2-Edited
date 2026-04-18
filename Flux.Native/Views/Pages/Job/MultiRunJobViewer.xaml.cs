@@ -259,11 +259,12 @@ public partial class MultiRunJobViewer : Page
         private void ColumnHeaderClicked(object sender, RoutedEventArgs e)
         {
             var column = sender as GridViewColumnHeader;
-            var sortBy = column.Tag.ToString();
+            if (column?.Tag is not string sortBy) return;
 
             if (listViewSortCol != null)
             {
-                AdornerLayer.GetAdornerLayer(listViewSortCol).Remove(listViewSortAdorner);
+                var oldLayer = AdornerLayer.GetAdornerLayer(listViewSortCol);
+                if (oldLayer != null) oldLayer.Remove(listViewSortAdorner);
                 botsListView.Items.SortDescriptions.Clear();
             }
 
@@ -276,7 +277,8 @@ public partial class MultiRunJobViewer : Page
 
             listViewSortCol = column;
             listViewSortAdorner = new SortAdorner(listViewSortCol, newDir);
-            AdornerLayer.GetAdornerLayer(listViewSortCol).Add(listViewSortAdorner);
+            var layer = AdornerLayer.GetAdornerLayer(listViewSortCol);
+            if (layer != null) layer.Add(listViewSortAdorner);
             botsListView.Items.SortDescriptions.Add(new SortDescription(sortBy, newDir));
         }
 
@@ -344,12 +346,14 @@ public partial class MultiRunJobViewer : Page
 
         private static SolidColorBrush GetThemeBrush(string key, Color fallback)
         {
-            if (Application.Current?.Resources[key] is SolidColorBrush brush)
+            if (Application.Current?.Resources[key] is SolidColorBrush existingBrush)
             {
-                return brush;
+                return existingBrush;
             }
 
-            return new SolidColorBrush(fallback);
+            var fallbackBrush = new SolidColorBrush(fallback);
+            fallbackBrush.Freeze();
+            return fallbackBrush;
         }
 
         private static void SelectListViewItemUnderMouse(ListView listView, MouseButtonEventArgs e)

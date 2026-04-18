@@ -34,7 +34,7 @@ namespace Flux.Native.Views.Pages.Data
         {
             this.vm = vm;
             DataContext = this.vm;
-            _ = this.vm.InitializeAsync();
+            _ = this.vm.InitializeAsync().ContinueWith(t => { if (t.Exception != null) System.Diagnostics.Debug.WriteLine($"InitializeAsync failed: {t.Exception.InnerException?.Message}"); }, TaskContinuationOptions.OnlyOnFaulted);
 
             InitializeComponent();
             env = rlSettingsService.Environment;
@@ -149,11 +149,12 @@ namespace Flux.Native.Views.Pages.Data
         private void ColumnHeaderClicked(object sender, RoutedEventArgs e)
         {
             var column = sender as GridViewColumnHeader;
-            var sortBy = column.Tag.ToString();
+            if (column?.Tag is not string sortBy) return;
 
             if (listViewSortCol != null)
             {
-                AdornerLayer.GetAdornerLayer(listViewSortCol).Remove(listViewSortAdorner);
+                var oldLayer = AdornerLayer.GetAdornerLayer(listViewSortCol);
+                if (oldLayer != null) oldLayer.Remove(listViewSortAdorner);
                 wordlistListView.Items.SortDescriptions.Clear();
             }
 
@@ -166,7 +167,8 @@ namespace Flux.Native.Views.Pages.Data
 
             listViewSortCol = column;
             listViewSortAdorner = new SortAdorner(listViewSortCol, newDir);
-            AdornerLayer.GetAdornerLayer(listViewSortCol).Add(listViewSortAdorner);
+            var layer = AdornerLayer.GetAdornerLayer(listViewSortCol);
+            if (layer != null) layer.Add(listViewSortAdorner);
             wordlistListView.Items.SortDescriptions.Add(new SortDescription(sortBy, newDir));
         }
 

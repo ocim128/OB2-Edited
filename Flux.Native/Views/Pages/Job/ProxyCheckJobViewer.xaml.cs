@@ -52,7 +52,7 @@ public partial class ProxyCheckJobViewer : Page
         {
             await Alert.SafeExecuteAsync(async () =>
             {
-                Application.Current.Dispatcher.Invoke(() => jobLog.Clear());
+                jobLog.Clear();
                 jobLog.BufferSize = fluxSettingsService.Settings.GeneralSettings.LogBufferSize;
                 await vm.Start();
             }, "starting proxy check job");

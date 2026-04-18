@@ -57,8 +57,15 @@ public partial class Jobs : Page
             var jobOptions = snapshot.Options;
             Action<JobOptions> onAccept = async options =>
             {
-                jobVM = await vm.EditJobAsync(jobVM.Id, options);
-                navigationHandler.DisplayJob(jobVM);
+                try
+                {
+                    jobVM = await vm.EditJobAsync(jobVM.Id, options);
+                    navigationHandler.DisplayJob(jobVM);
+                }
+                catch (Exception ex)
+                {
+                    Alert.Exception(ex);
+                }
             };
 
             if (snapshot.JobType is JobType.MultiRun)
@@ -86,7 +93,7 @@ public partial class Jobs : Page
     {
         try
         {
-            var jobVM = (JobViewModel)(sender as Button).Tag;
+            var jobVM = UIHelpers.GetButtonTag<JobViewModel>(sender);
             var snapshot = await vm.GetJobOptionsAsync(jobVM.Id, clone: true);
             if (snapshot is null)
             {
@@ -95,8 +102,15 @@ public partial class Jobs : Page
 
             Action<JobOptions> onAccept = async options =>
             {
-                var cloned = await vm.CreateJobAsync(options);
-                navigationHandler.DisplayJob(cloned);
+                try
+                {
+                    var cloned = await vm.CreateJobAsync(options);
+                    navigationHandler.DisplayJob(cloned);
+                }
+                catch (Exception ex)
+                {
+                    Alert.Exception(ex);
+                }
             };
 
             if (snapshot.JobType is JobType.MultiRun)

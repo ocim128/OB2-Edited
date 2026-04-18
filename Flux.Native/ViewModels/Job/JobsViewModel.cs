@@ -65,7 +65,7 @@ public partial class JobsViewModel : ViewModelBase, IDisposable
     {
         var jobId = await jobOrchestrator.CreateJobAsync(options).ConfigureAwait(false);
         await RefreshJobsAsync().ConfigureAwait(false);
-        return JobsCollection.First(job => job.Id == jobId);
+        return JobsCollection.FirstOrDefault(job => job.Id == jobId) ?? throw new InvalidOperationException($"Job {jobId} not found after refresh");
     }
 
     public Task<JobOptionsSnapshotDto?> GetJobOptionsAsync(int jobId, bool clone = false)
@@ -77,7 +77,7 @@ public partial class JobsViewModel : ViewModelBase, IDisposable
             ?? throw new InvalidOperationException($"Job {jobId} could not be updated");
 
         await RefreshJobsAsync().ConfigureAwait(false);
-        return JobsCollection.First(job => job.Id == updatedJobId);
+        return JobsCollection.FirstOrDefault(job => job.Id == updatedJobId) ?? throw new InvalidOperationException($"Job {updatedJobId} not found after refresh");
     }
 
     public async Task RemoveAllAsync()

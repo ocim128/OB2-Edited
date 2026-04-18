@@ -11,9 +11,12 @@ namespace Flux.Native.Helpers
     public static class AutocompletionProvider
     {
         private static List<Snippet> snippets = new();
+        private static bool _initialized;
 
         public static void Init()
         {
+            if (_initialized) return;
+
             // Block snippets
             foreach (var id in Globals.DescriptorsRepository.Descriptors.Keys)
             {
@@ -29,17 +32,19 @@ namespace Flux.Native.Helpers
                     snippets.Add(new Snippet(snippet.Name, snippet.Body, snippet.Description));
                 }
             }
+
+            _initialized = true;
         }
 
         public static IReadOnlyList<Snippet> GetSnippets()
             => snippets.AsReadOnly();
     }
 
-    public struct Snippet
+    public readonly struct Snippet
     {
-        public string Id { get; set; }
-        public string Body { get; set; }
-        public string Description { get; set; }
+        public string Id { get; init; }
+        public string Body { get; init; }
+        public string Description { get; init; }
 
         public Snippet(string id, string body, string description)
         {

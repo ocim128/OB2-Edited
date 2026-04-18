@@ -168,10 +168,10 @@ namespace Flux.Native.Views.Dialogs.Job
 
         public string ProxyGroup
         {
-            get => Options.GroupId == -1 ? "All" : proxyGroups.First(g => g.Id == Options.GroupId).Name;
+            get => Options.GroupId == -1 ? "All" : proxyGroups.FirstOrDefault(g => g.Id == Options.GroupId)?.Name ?? "All";
             set
             {
-                Options.GroupId = value == "All" ? -1 : proxyGroups.First(g => g.Name == value).Id;
+                Options.GroupId = value == "All" ? -1 : (proxyGroups.FirstOrDefault(g => g.Name == value)?.Id ?? -1);
                 OnPropertyChanged();
             }
         }

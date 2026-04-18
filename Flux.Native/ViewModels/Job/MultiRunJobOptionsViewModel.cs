@@ -491,7 +491,7 @@ public class WordlistDataPoolOptionsViewModel : DataPoolOptionsViewModel
 
         if (options.WordlistId != -1)
         {
-            wordlist = wordlistRepo.GetAsync(options.WordlistId).Result;
+            wordlist = wordlistRepo.GetAsync(options.WordlistId).GetAwaiter().GetResult();
         }
 
         if (wordlist is null)
@@ -686,10 +686,10 @@ public class GroupProxySourceOptionsViewModel : ProxySourceOptionsViewModel
 
     public string GroupName
     {
-        get => GroupOptions.GroupId == -1 ? "All" : proxyGroups.First(g => g.Id == GroupOptions.GroupId).Name;
+        get => GroupOptions.GroupId == -1 ? "All" : proxyGroups.FirstOrDefault(g => g.Id == GroupOptions.GroupId)?.Name ?? "All";
         set
         {
-            GroupOptions.GroupId = value == "All" ? -1 : proxyGroups.First(g => g.Name == value).Id;
+            GroupOptions.GroupId = value == "All" ? -1 : (proxyGroups.FirstOrDefault(g => g.Name == value)?.Id ?? -1);
             OnPropertyChanged();
         }
     }

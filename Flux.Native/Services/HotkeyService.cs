@@ -557,9 +557,10 @@ namespace Flux.Native.Services
             ShowInTaskbar = false;
             ShowActivated = false;
 
-            // Position in bottom-right corner
-            Left = SystemParameters.PrimaryScreenWidth - Width - 30;
-            Top = SystemParameters.PrimaryScreenHeight - Height - 50;
+            // Position in bottom-right corner of the working area
+            var workArea = SystemParameters.WorkArea;
+            Left = workArea.Right - Width - 30;
+            Top = workArea.Bottom - Height - 50;
 
             // Use the shared ModernNotificationWindow style from App.xaml
             var mainBorder = new Border();

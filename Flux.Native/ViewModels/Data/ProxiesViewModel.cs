@@ -52,7 +52,7 @@ namespace Flux.Native.ViewModels.Data;
         get => SelectedGroup.Id;
         set
         {
-            SelectedGroup = proxyGroupsCollection.First(g => g.Id == value);
+            SelectedGroup = proxyGroupsCollection.FirstOrDefault(g => g.Id == value) ?? allGroup;
             OnPropertyChanged();
             _ = RefreshListAsync();
         }

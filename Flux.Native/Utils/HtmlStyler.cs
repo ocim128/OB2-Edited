@@ -1,3 +1,4 @@
+using System;
 using System.Text;
 
 namespace Flux.Native.Utils
@@ -17,6 +18,7 @@ namespace Flux.Native.Utils
 
         public HtmlStyler WithStyle(string name, string value)
         {
+            if (finalized) throw new InvalidOperationException("Cannot add styles after ToString() has been called.");
             sb.Append($"{name}: {value}; ");
             return this;
         }

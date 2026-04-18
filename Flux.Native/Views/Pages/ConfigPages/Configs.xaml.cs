@@ -252,11 +252,13 @@ namespace Flux.Native.Views.Pages.Configs
         private void ColumnHeaderClicked(object sender, RoutedEventArgs e)
         {
             var column = sender as GridViewColumnHeader;
-            ListViewSortBy = column.Tag.ToString();
+            if (column?.Tag is not string sortBy) return;
+            ListViewSortBy = sortBy;
 
             if (listViewSortCol != null)
             {
-                AdornerLayer.GetAdornerLayer(listViewSortCol).Remove(listViewSortAdorner);
+                var oldLayer = AdornerLayer.GetAdornerLayer(listViewSortCol);
+                if (oldLayer != null) oldLayer.Remove(listViewSortAdorner);
                 configsListView.Items.SortDescriptions.Clear();
             }
 
@@ -266,7 +268,8 @@ namespace Flux.Native.Views.Pages.Configs
 
             listViewSortCol = column;
             listViewSortAdorner = new SortAdorner(listViewSortCol, ListViewSortDir);
-            AdornerLayer.GetAdornerLayer(listViewSortCol).Add(listViewSortAdorner);
+            var layer = AdornerLayer.GetAdornerLayer(listViewSortCol);
+            if (layer != null) layer.Add(listViewSortAdorner);
             configsListView.Items.SortDescriptions.Add(new SortDescription(ListViewSortBy, ListViewSortDir));
         }
 

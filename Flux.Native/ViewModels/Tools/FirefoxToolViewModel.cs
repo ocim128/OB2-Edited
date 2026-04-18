@@ -227,6 +227,7 @@ public sealed class FirefoxToolViewModel : ToolCardViewModelBase, IDisposable
 
     public void Dispose()
     {
+        try { CleanupAsync().GetAwaiter().GetResult(); } catch { }
     }
 
     private void RegisterZipProfile(LaunchedZipProfile profile)

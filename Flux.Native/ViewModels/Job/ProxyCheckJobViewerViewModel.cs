@@ -53,7 +53,7 @@ public class ProxyCheckJobViewerViewModel : ViewModelBase, IDisposable
         public ProxyCheckJobViewerViewModel(ProxyCheckJobViewModel jobVM, JobManagerService jobManager)
         {
             Job = jobVM;
-            proxyCheckJob = jobManager.Jobs.OfType<ProxyCheckJob>().First(job => job.Id == jobVM.Id);
+            proxyCheckJob = jobManager.Jobs.OfType<ProxyCheckJob>().FirstOrDefault(job => job.Id == jobVM.Id) ?? throw new InvalidOperationException($"ProxyCheckJob with ID {jobVM.Id} not found");
             RefreshJobSnapshot();
 
             #region Bind events and timers

@@ -43,15 +43,24 @@ public partial class OBSettings : Page
 
     private void AddProxyCheckTarget(object sender, RoutedEventArgs e) => vm.AddProxyCheckTarget();
     private void RemoveProxyCheckTarget(object sender, RoutedEventArgs e)
-        => vm.RemoveProxyCheckTarget((ProxyCheckTarget)(sender as Button).Tag);
+    {
+        if ((sender as Button)?.Tag is ProxyCheckTarget pct)
+            vm.RemoveProxyCheckTarget(pct);
+    }
 
     private void AddCustomSnippet(object sender, RoutedEventArgs e) => vm.AddCustomSnippet();
     private void RemoveCustomSnippet(object sender, RoutedEventArgs e)
-        => vm.RemoveCustomSnippet((CustomSnippet)(sender as Button).Tag);
+    {
+        if ((sender as Button)?.Tag is CustomSnippet cs)
+            vm.RemoveCustomSnippet(cs);
+    }
 
     private void AddRemoteConfigsEndpoint(object sender, RoutedEventArgs e) => vm.AddRemoteConfigsEndpoint();
     private void RemoveRemoteConfigsEndpoint(object sender, RoutedEventArgs e)
-        => vm.RemoveRemoteConfigsEndpoint((RemoteConfigsEndpoint)(sender as Button).Tag);
+    {
+        if ((sender as Button)?.Tag is RemoteConfigsEndpoint rce)
+            vm.RemoveRemoteConfigsEndpoint(rce);
+    }
 
     private void ChooseBackgroundImage(object sender, RoutedEventArgs e)
     {

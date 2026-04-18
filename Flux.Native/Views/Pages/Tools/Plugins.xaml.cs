@@ -42,7 +42,7 @@ namespace Flux.Native.Views.Pages.Tools
             }
         }
 
-        private void RemovePlugin(object sender, RoutedEventArgs e) => vm.Delete((PluginInfo)(sender as Button).Tag);
+        private void RemovePlugin(object sender, RoutedEventArgs e) { if ((sender as Button)?.Tag is PluginInfo info) vm.Delete(info); }
     }
 }
 

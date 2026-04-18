@@ -6,7 +6,7 @@ using Flux.Native.ViewModels.Base;
 
 namespace Flux.Native.ViewModels.Configs;
 
-public partial class ConfigStackerViewModel : ViewModelBase
+public partial class ConfigStackerViewModel : ViewModelBase, IDisposable
 {
     private readonly ConfigService configService;
     private readonly ConfigStackerState state = new();
@@ -45,4 +45,6 @@ public partial class ConfigStackerViewModel : ViewModelBase
         Inspector = new ConfigStackerInspectorViewModel();
         InitializeTooling();
     }
+
+    public void Dispose() => searchDebouncer.Dispose();
 }

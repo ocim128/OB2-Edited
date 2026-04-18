@@ -39,7 +39,7 @@ namespace Flux.Native.Utils
 
             var stack = configService.SelectedConfig.Stack;
 
-            var blockVariables = new List<string>();
+            var blockVariables = new HashSet<string>();
             foreach (var block in stack)
             {
                 // If it's the current block, stop here (we don't want to add variables from this or the next blocks)
@@ -58,9 +58,10 @@ namespace Flux.Native.Utils
             }
 
             // Final order: block variables (closest to current block first), then wordlist slices, then defaults
-            blockVariables.Reverse();
-            var result = new List<string>(blockVariables.Count + prefix.Count + suggestions.Count);
-            result.AddRange(blockVariables);
+            var blockVariablesList = blockVariables.ToList();
+            blockVariablesList.Reverse();
+            var result = new List<string>(blockVariablesList.Count + prefix.Count + suggestions.Count);
+            result.AddRange(blockVariablesList);
             result.AddRange(prefix);
             result.AddRange(suggestions);
             return result;

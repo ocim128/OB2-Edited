@@ -210,7 +210,7 @@ namespace Flux.Native.ViewModels.Configs
                 .Select(c => new ConfigViewModel(c));
 
             ConfigsCollection = new ObservableCollection<ConfigViewModel>(viewModels);
-            Application.Current.Dispatcher.Invoke(() => HookFilters());
+            Application.Current.Dispatcher.BeginInvoke(() => HookFilters());
         }
 
         private void HookFilters()

@@ -262,7 +262,7 @@ public class DebuggerViewModel : ViewModelBase
         this.rngProvider = rngProvider ?? throw new ArgumentNullException(nameof(rngProvider));
         pluginRepo = pluginRepository ?? throw new ArgumentNullException(nameof(pluginRepository));
 
-        WordlistType = WordlistTypes.First();
+        WordlistType = WordlistTypes.FirstOrDefault() ?? string.Empty;
         wordlistType = WordlistType; // Initialize backing field to avoid warning
 
         this.configService.OnConfigSelected += (_, config) => QueuePrewarm(config);

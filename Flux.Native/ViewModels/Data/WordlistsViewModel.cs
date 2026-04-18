@@ -67,7 +67,7 @@ namespace Flux.Native.ViewModels.Data;
 
     private bool WordlistsFilter(object item) => (item as WordlistEntity)?.Name?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true;
 
-    public WordlistEntity GetWordlistByName(string name) => WordlistsCollection.First(w => w.Name == name);
+    public WordlistEntity? GetWordlistByName(string name) => WordlistsCollection.FirstOrDefault(w => w.Name == name);
 
     public Task AddAsync(WordlistEntity wordlist)
     {

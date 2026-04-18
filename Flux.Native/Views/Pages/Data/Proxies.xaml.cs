@@ -42,7 +42,7 @@ public partial class Proxies : Page, IUpdatablePage
             DataContext = this.vm;
             
             System.Diagnostics.Debug.WriteLine("Proxies: Initializing ViewModel");
-            _ = this.vm.InitializeAsync();
+            _ = this.vm.InitializeAsync().ContinueWith(t => { if (t.Exception != null) System.Diagnostics.Debug.WriteLine($"InitializeAsync failed: {t.Exception.InnerException?.Message}"); }, TaskContinuationOptions.OnlyOnFaulted);
 
             InitializeComponent();
             System.Diagnostics.Debug.WriteLine("Proxies: Page construction completed successfully");
@@ -274,11 +274,12 @@ public partial class Proxies : Page, IUpdatablePage
     private void ColumnHeaderClicked(object sender, RoutedEventArgs e)
     {
         var column = sender as GridViewColumnHeader;
-        var sortBy = column.Tag.ToString();
+        if (column?.Tag is not string sortBy) return;
 
         if (listViewSortCol != null)
         {
-            AdornerLayer.GetAdornerLayer(listViewSortCol).Remove(listViewSortAdorner);
+            var oldLayer = AdornerLayer.GetAdornerLayer(listViewSortCol);
+            if (oldLayer != null) oldLayer.Remove(listViewSortAdorner);
             proxiesListView.Items.SortDescriptions.Clear();
         }
 
@@ -291,7 +292,8 @@ public partial class Proxies : Page, IUpdatablePage
 
         listViewSortCol = column;
         listViewSortAdorner = new SortAdorner(listViewSortCol, newDir);
-        AdornerLayer.GetAdornerLayer(listViewSortCol).Add(listViewSortAdorner);
+        var layer = AdornerLayer.GetAdornerLayer(listViewSortCol);
+        if (layer != null) layer.Add(listViewSortAdorner);
         proxiesListView.Items.SortDescriptions.Add(new SortDescription(sortBy, newDir));
     }
 
@@ -301,31 +303,8 @@ public partial class Proxies : Page, IUpdatablePage
 
     private void ProxyListViewDrop(object sender, DragEventArgs e)
     {
-        if (e.Data.GetDataPresent(DataFormats.FileDrop))
-        {
-            var files = (string[])e.Data.GetData(DataFormats.FileDrop);
-
-            foreach (var file in files.Where(static f => f.EndsWith(".txt")))
-            {
-                var lines = File.ReadAllLines(file);
-                var dto = new ProxiesForImportDto { Lines = lines };
-
-                if (file.Contains("socks4a", StringComparison.OrdinalIgnoreCase))
-                {
-                    dto.DefaultType = ProxyType.Socks4a;
-                }
-                else if (file.Contains("socks4", StringComparison.OrdinalIgnoreCase))
-                {
-                    dto.DefaultType = ProxyType.Socks4;
-                }
-                else
-                {
-                    dto.DefaultType = file.Contains("socks5", StringComparison.OrdinalIgnoreCase) ? ProxyType.Socks5 : ProxyType.Http;
-                }
-                // Call AddProxies to add the proxies from the dropped file
-                // await AddProxies(dto); // Uncomment and make AddProxies async Task if needed
-            }
-        }
+        // Drag-drop proxy import is not yet implemented.
+        // The XAML AllowDrop handler is kept for future use.
     }
 
     private void ItemRightClick(object sender, MouseButtonEventArgs e)

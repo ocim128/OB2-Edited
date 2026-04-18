@@ -111,7 +111,7 @@
                 </Button>
                     
                     <!-- Search Section -->
-                    <Border Background="{DynamicResource BackgroundInput}" CornerRadius="8" Padding="12,8" Margin="0,0,8,0">
+                    <Border Background="{DynamicResource Modern.BackgroundInput}" CornerRadius="8" Padding="12,8" Margin="0,0,8,0">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                             <TextBox x:Name="filterTextbox" 
                                      Text="{Binding SearchString, UpdateSourceTrigger=PropertyChanged}" 
@@ -376,8 +376,8 @@
                           Text="Configuration Information"
                           FontWeight="SemiBold"
                           Foreground="{DynamicResource Modern.ThemeMain}"
-                          FontSize="9"
-                          Margin="0,0,0,2"/>
+                          FontSize="12"
+                          Margin="0,0,0,4"/>
                 <!-- Single-scroll inside the info pane -->
                 <ScrollViewer Grid.Row="1"
                               VerticalScrollBarVisibility="Auto"
@@ -387,7 +387,7 @@
                               SnapsToDevicePixels="True">
                     <uc:MarkdownViewer
                         MarkdownText="{Binding HoveredConfig.Readme}"
-                        FontSize="8"
+                        FontSize="11"
                         Background="Transparent"/>
                 </ScrollViewer>
             </Grid>

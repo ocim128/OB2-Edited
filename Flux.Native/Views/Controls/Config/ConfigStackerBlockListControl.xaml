@@ -56,7 +56,7 @@
                             Background="{StaticResource Modern.Success}"
                             Foreground="{StaticResource Modern.TextOnAccent}"
                             ToolTip="Add a new block"
-                            mah:ControlsHelper.CornerRadius="10"
+                            mah:ControlsHelper.CornerRadius="8"
                             Click="AddBlock">
                         <iconPacks:PackIconMaterialDesign Kind="Add" Width="18" Height="18" />
                     </Button>

@@ -11,7 +11,7 @@
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
     </UserControl.Resources>
     
-    <Border Style="{StaticResource SectionCard}" Margin="0,0,8,12">
+    <Border Style="{StaticResource SectionCard}" Margin="0,0,0,12">
         <StackPanel>
             <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
                 <ContentControl Style="{StaticResource Icon.Size16}"
@@ -22,13 +22,13 @@
                     <TextBlock Text="Configuration" Style="{StaticResource SectionHeaderTextStyle}"/>
                     <TextBlock Text="Pick the config to run and tweak how the job behaves."
                                FontSize="10"
-                               Foreground="#CCFFFFFF"/>
+                               Foreground="{DynamicResource Modern.TextMutedOnDark}"/>
                 </StackPanel>
             </StackPanel>
             
             <!-- Config Display -->
-            <Border Background="#1C2030" CornerRadius="8" Padding="10" Margin="0,0,0,12"
-                    BorderBrush="#22FFFFFF" BorderThickness="1"
+            <Border Background="{DynamicResource Modern.PanelDark}" CornerRadius="8" Padding="10" Margin="0,0,0,12"
+                    BorderBrush="{DynamicResource Modern.OverlayLight}" BorderThickness="1"
                     Visibility="{Binding IsConfigSelected, Converter={StaticResource ResourceKey=BoolToVis}}">
                 <Grid>
                     <Grid.ColumnDefinitions>

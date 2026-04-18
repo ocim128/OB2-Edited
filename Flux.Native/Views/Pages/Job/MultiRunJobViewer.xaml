@@ -25,7 +25,7 @@
         
         <!-- FLUENT DESIGN COLOR RESOURCES - References handled directly in usage -->
         <!-- FLUENT DESIGN TYPOGRAPHY -->
-        <Style x:Key="HeaderTextStyle" TargetType="TextBlock">
+        <Style x:Key="JobHeaderTextStyle" TargetType="TextBlock">
             <Setter Property="FontFamily" Value="Segoe UI"/>
             <Setter Property="FontSize" Value="15"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
@@ -36,7 +36,7 @@
             <Setter Property="TextOptions.TextRenderingMode" Value="ClearType"/>
         </Style>
         
-        <Style x:Key="SubHeaderTextStyle" TargetType="TextBlock">
+        <Style x:Key="JobSubHeaderTextStyle" TargetType="TextBlock">
             <Setter Property="FontFamily" Value="Segoe UI"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="FontWeight" Value="Medium"/>
@@ -47,13 +47,13 @@
             <Setter Property="TextOptions.TextRenderingMode" Value="ClearType"/>
         </Style>
         
-        <Style x:Key="BodyTextStyle" TargetType="TextBlock">
+        <Style x:Key="JobBodyTextStyle" TargetType="TextBlock">
             <Setter Property="FontFamily" Value="Segoe UI"/>
             <Setter Property="FontSize" Value="11"/>
             <Setter Property="Foreground" Value="{DynamicResource Modern.TextSecondary}"/>
         </Style>
         
-        <Style x:Key="CaptionTextStyle" TargetType="TextBlock">
+        <Style x:Key="JobCaptionTextStyle" TargetType="TextBlock">
             <Setter Property="FontFamily" Value="Segoe UI"/>
             <Setter Property="FontSize" Value="10"/>
             <Setter Property="Foreground" Value="{DynamicResource Modern.TextSecondary}"/>
@@ -73,7 +73,7 @@
         </Style>
 
         <!-- PERFORMANCE-OPTIMIZED SCROLL BAR -->
-        <Style x:Key="ModernScrollBar" TargetType="{x:Type ScrollBar}">
+        <Style x:Key="JobScrollBar" TargetType="{x:Type ScrollBar}">
             <Setter Property="Background" Value="{DynamicResource Modern.BackgroundDarkTertiary}"/>
             <Setter Property="Width" Value="8"/>
             <Setter Property="BorderThickness" Value="0"/>
@@ -221,10 +221,10 @@
                         <!-- Config Name & Author -->
                         <StackPanel Margin="0,0,0,4">
                             <TextBlock Text="{Binding ConfigName}"
-                                       Style="{StaticResource HeaderTextStyle}"
+Style="{StaticResource JobCaptionTextStyle}"
                                        Margin="0,0,0,2"/>
                             <TextBlock Text="{Binding ConfigAuthor}"
-                                       Style="{StaticResource CaptionTextStyle}"
+Style="{StaticResource JobCaptionTextStyle}"
                                        FontStyle="Italic"/>
                         </StackPanel>
                         

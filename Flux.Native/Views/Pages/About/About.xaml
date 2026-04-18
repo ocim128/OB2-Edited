@@ -17,12 +17,12 @@
 
         <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" 
                      CanContentScroll="False" PanningMode="VerticalOnly">
-            <Border Style="{StaticResource StandardCardStyle}" Background="#C0353535">
+            <Border Style="{StaticResource StandardCardStyle}" Background="{DynamicResource Modern.BackgroundSecondary}">
                 <StackPanel>
                     <TextBlock Style="{StaticResource BodyTextStyle}" TextWrapping="Wrap">
                         
                         <!-- Main Introduction -->
-                        <Run FontSize="24" FontWeight="Bold" Foreground="#4FC3F7">🤖 Welcome to Flux!</Run>
+                        <Run FontSize="24" FontWeight="Bold" Foreground="{DynamicResource Modern.Info}">🤖 Welcome to Flux!</Run>
                         <LineBreak/><LineBreak/>
                         
                         <Italic>Your friendly neighborhood automation companion!</Italic> 🏠
@@ -48,7 +48,7 @@
                         <LineBreak/><LineBreak/>
                         
                         <!-- Fun Features -->
-                        <Run FontWeight="Bold" Foreground="#81C784">Why You'll Love It:</Run> 💚
+                        <Run FontWeight="Bold" Foreground="{DynamicResource Modern.Success}">Why You'll Love It:</Run> 💚
                         <LineBreak/>
                         ✅ <Bold>Blazing Fast</Bold> - Powered by .NET 8 (faster than your morning espresso!)
                         <LineBreak/>
@@ -60,7 +60,7 @@
                         <LineBreak/><LineBreak/>
                         
                         <!-- Important Notice -->
-                        <Run FontWeight="Bold" Foreground="#F44336" FontSize="16">⚠️ SUPER IMPORTANT LEGAL STUFF! ⚠️</Run>
+                        <Run FontWeight="Bold" Foreground="{DynamicResource Modern.Error}" FontSize="16">⚠️ SUPER IMPORTANT LEGAL STUFF! ⚠️</Run>
                         <LineBreak/>
                         <Span Foreground="{DynamicResource ForegroundBad}">
                             Use your powers wisely, young padawan! 🧙‍♂️ Only test on websites you own or have explicit permission to test. 
@@ -70,7 +70,7 @@
                         <LineBreak/><LineBreak/>
                         
                         <!-- Credits -->
-                        <Run FontWeight="Bold" Foreground="#FFC107">🎉 The Awesome Humans Behind This Magic:</Run>
+                        <Run FontWeight="Bold" Foreground="{DynamicResource Modern.Warning}">🎉 The Awesome Humans Behind This Magic:</Run>
                         <LineBreak/>
                         🎨 <Bold>Created by</Bold>: <Span Foreground="LightPink">Ruri</Span> (The mastermind!)
                         <LineBreak/>
@@ -82,7 +82,7 @@
                         <LineBreak/><LineBreak/>
                         
                         <!-- Final Message -->
-                        <Run FontWeight="Bold" Foreground="#9C27B0">🚀 Ready to Automate Your World?</Run>
+                        <Run FontWeight="Bold" Foreground="{DynamicResource Modern.ThemeAccent}">🚀 Ready to Automate Your World?</Run>
                         <LineBreak/>
                         Whether you're a seasoned pro or just starting your automation journey, Flux is here to make your digital life easier, 
                         faster, and a whole lot more fun! Remember: with great power comes great responsibility (and hopefully great results)! 
@@ -94,13 +94,13 @@
                         </Span>
                         <LineBreak/><LineBreak/>
                         
-                        <Run FontStyle="Italic" Foreground="#607D8B">Happy Automating! 🎊</Run>
+                        <Run FontStyle="Italic" Foreground="{DynamicResource Modern.ForegroundMuted}">Happy Automating! 🎊</Run>
                     </TextBlock>
                 </StackPanel>
             </Border>
         </ScrollViewer>
 
-        <Border Grid.Row="1" Style="{StaticResource CompactCardStyle}" Background="#80404040" Margin="0,16,0,0">
+        <Border Grid.Row="1" Style="{StaticResource CompactCardStyle}" Background="{DynamicResource Modern.BackgroundTertiary}" Margin="0,16,0,0">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                 <Button x:Name="licenseButton" Style="{StaticResource StyledButton}" Click="OpenLicense" Margin="0,0,8,0">
                     <StackPanel Orientation="Horizontal">

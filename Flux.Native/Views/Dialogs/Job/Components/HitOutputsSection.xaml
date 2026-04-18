@@ -22,12 +22,12 @@
                                Text="Database:" 
                                VerticalAlignment="Center" 
                                FontSize="10" 
-                               Foreground="#FFB0B0B0"/>
+                               Foreground="{DynamicResource Modern.TextMuted}"/>
                     <TextBlock Grid.Column="1" 
                                Text="No settings required" 
                                VerticalAlignment="Center" 
                                FontSize="10" 
-                               Foreground="#FFCCCCCC"/>
+                               Foreground="{DynamicResource Modern.TextMutedLight}"/>
                     <Button Tag="{Binding}" Grid.Column="2" 
                             Click="RemoveHitOutput" 
                             Style="{StaticResource StyledDangerButton}"
@@ -50,7 +50,7 @@
                                Text="File System:" 
                                VerticalAlignment="Center" 
                                FontSize="10" 
-                               Foreground="#FFB0B0B0"/>
+                               Foreground="{DynamicResource Modern.TextMuted}"/>
                     <TextBox Grid.Column="1"
                              Text="{Binding BaseDir}" 
                              FontSize="10"
@@ -79,7 +79,7 @@
                                    Text="Discord:" 
                                    VerticalAlignment="Center"
                                    FontSize="10" 
-                                   Foreground="#FFB0B0B0"/>
+                                   Foreground="{DynamicResource Modern.TextMuted}"/>
                         <TextBox Grid.Column="1"
                                  Text="{Binding Webhook}" 
                                  FontSize="10"
@@ -132,7 +132,7 @@
                                    Text="Telegram:" 
                                    VerticalAlignment="Center" 
                                    FontSize="10" 
-                                   Foreground="#FFB0B0B0"/>
+                                   Foreground="{DynamicResource Modern.TextMuted}"/>
                         <TextBox Grid.Column="1"
                                  Text="{Binding ApiServer}" 
                                  FontSize="10"
@@ -189,7 +189,7 @@
                                Text="Webhook:" 
                                VerticalAlignment="Center"
                                FontSize="10" 
-                               Foreground="#FFB0B0B0"/>
+                               Foreground="{DynamicResource Modern.TextMuted}"/>
                     <TextBox Grid.Column="1"
                              Text="{Binding Url}" 
                              FontSize="10"
@@ -218,7 +218,7 @@
         </DataTemplate>
     </UserControl.Resources>
 
-    <Border Style="{StaticResource SectionCard}">
+    <Border Style="{StaticResource SectionCard}" Margin="0,0,0,12">
         <StackPanel>
             <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
                 <ContentControl Style="{StaticResource Icon.Size16}"
@@ -229,7 +229,7 @@
                     <TextBlock Text="Hit Outputs" Style="{StaticResource SectionHeaderTextStyle}"/>
                     <TextBlock Text="Route results wherever you need them. Combine multiple outputs if required."
                                FontSize="10"
-                               Foreground="#CCFFFFFF"/>
+                               Foreground="{DynamicResource Modern.TextMutedOnDark}"/>
                 </StackPanel>
             </StackPanel>
             <!-- Hit Output Buttons -->
@@ -277,10 +277,10 @@
             </WrapPanel>
             
             <!-- Hit Outputs List -->
-            <Border Background="#1B1E2B"
+            <Border Background="{DynamicResource Modern.PanelDarkSecondary}"
                     CornerRadius="10"
                     Padding="0"
-                    BorderBrush="#22FFFFFF"
+                    BorderBrush="{DynamicResource Modern.OverlayLight}"
                     BorderThickness="1">
                 <ScrollViewer Height="110" 
                               HorizontalScrollBarVisibility="Disabled"

@@ -12,7 +12,7 @@
         <!-- DataTemplates for each DataPool type -->
         <DataTemplate DataType="{x:Type local:WordlistDataPoolOptionsViewModel}">
             <StackPanel>
-                <Border Background="#FF333333" CornerRadius="4" Padding="8" Margin="0,0,0,8"
+                <Border Background="{DynamicResource Modern.PanelDark}" CornerRadius="4" Padding="8" Margin="0,0,0,8"
                        Visibility="{Binding HasWordlist, Converter={StaticResource ResourceKey=BoolToVis}}">
                     <TextBlock Text="{Binding Info}" FontSize="10" Foreground="White" TextWrapping="Wrap"/>
                 </Border>
@@ -49,7 +49,7 @@
                     <ColumnDefinition Width="auto" />
                     <ColumnDefinition Width="auto" />
                 </Grid.ColumnDefinitions>
-                <Label VerticalAlignment="Center" Grid.Column="0" FontSize="10" Foreground="#FFB0B0B0">File name</Label>
+                <Label VerticalAlignment="Center" Grid.Column="0" FontSize="10" Foreground="{DynamicResource Modern.TextMuted}">File name</Label>
                 <TextBox Grid.Column="1" Text="{Binding FileName, Mode=TwoWay}" Margin="5,0"/>
                 <Button Tag="{Binding}" Grid.Column="2" 
                         Click="SelectFileForDataPool" 
@@ -79,13 +79,13 @@
                 </Grid.ColumnDefinitions>
                 
                 <!-- Range inputs omitted for brevity in snippet, copying full content logic -->
-                <Label Grid.Column="0" VerticalAlignment="Center" FontSize="10" Foreground="#FFB0B0B0">Start</Label>
+                <Label Grid.Column="0" VerticalAlignment="Center" FontSize="10" Foreground="{DynamicResource Modern.TextMuted}">Start</Label>
                 <TextBox Grid.Column="1" Text="{Binding Start}" Margin="4,0"/>
                 
-                <Label Grid.Column="2" VerticalAlignment="Center" FontSize="10" Foreground="#FFB0B0B0">Amount</Label>
+                <Label Grid.Column="2" VerticalAlignment="Center" FontSize="10" Foreground="{DynamicResource Modern.TextMuted}">Amount</Label>
                 <TextBox Grid.Column="3" Text="{Binding Amount}" Margin="4,0"/>
                 
-                <Label Grid.Column="4" VerticalAlignment="Center" FontSize="10" Foreground="#FFB0B0B0">Step</Label>
+                <Label Grid.Column="4" VerticalAlignment="Center" FontSize="10" Foreground="{DynamicResource Modern.TextMuted}">Step</Label>
                 <TextBox Grid.Column="5" Text="{Binding Step}" Margin="4,0"/>
                 
                 <CheckBox Grid.Column="6" Content="Pad" IsChecked="{Binding Pad}" VerticalAlignment="Center" Margin="5,0"/>
@@ -104,16 +104,16 @@
                     <ColumnDefinition Width="auto" />
                     <ColumnDefinition Width="auto" />
                 </Grid.ColumnDefinitions>
-                <Label Grid.Column="0" VerticalAlignment="Center" FontSize="10" Foreground="#FFB0B0B0">CharSet</Label>
+                <Label Grid.Column="0" VerticalAlignment="Center" FontSize="10" Foreground="{DynamicResource Modern.TextMuted}">CharSet</Label>
                 <TextBox Grid.Column="1" Text="{Binding CharSet}" Margin="4,0"/>
                 
-                <Label Grid.Column="2" VerticalAlignment="Center" FontSize="10" Foreground="#FFB0B0B0" Margin="4,0,0,0">Length</Label>
+                <Label Grid.Column="2" VerticalAlignment="Center" FontSize="10" Foreground="{DynamicResource Modern.TextMuted}" Margin="4,0,0,0">Length</Label>
                 <TextBox Grid.Column="3" Text="{Binding Length}" Width="40"/>
             </Grid>
         </DataTemplate>
         <DataTemplate DataType="{x:Type local:InfiniteDataPoolOptionsViewModel}">
             <StackPanel Orientation="Horizontal">
-                <Label VerticalAlignment="Center" FontSize="10" Foreground="#FFB0B0B0">Wordlist Type</Label>
+                <Label VerticalAlignment="Center" FontSize="10" Foreground="{DynamicResource Modern.TextMuted}">Wordlist Type</Label>
                 <ComboBox Margin="5,0,0,0"
                           ItemsSource="{Binding DataContext.WordlistTypes, RelativeSource={RelativeSource AncestorType=ContentControl}}"
                           SelectedValue="{Binding WordlistType}"
@@ -122,7 +122,7 @@
         </DataTemplate>
     </UserControl.Resources>
 
-    <Border Style="{StaticResource SectionCard}" Margin="8,0,0,12">
+    <Border Style="{StaticResource SectionCard}" Margin="0,0,0,12">
         <StackPanel>
             <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
                 <ContentControl Style="{StaticResource Icon.Size16}"
@@ -133,7 +133,7 @@
                     <TextBlock Text="Data Pool" Style="{StaticResource SectionHeaderTextStyle}"/>
                     <TextBlock Text="Select what data to test and configure the pool source."
                                FontSize="10"
-                               Foreground="#CCFFFFFF"/>
+                               Foreground="{DynamicResource Modern.TextMutedOnDark}"/>
                 </StackPanel>
             </StackPanel>
             

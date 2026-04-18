@@ -65,10 +65,10 @@
             <Setter Property="Background" Value="{DynamicResource Modern.Success}"/>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="{DynamicResource Modern.Success}"/>
+                    <Setter Property="Background" Value="{DynamicResource Modern.SuccessHover}"/>
                 </Trigger>
                 <Trigger Property="IsPressed" Value="True">
-                    <Setter Property="Background" Value="{DynamicResource Modern.Success}"/>
+                    <Setter Property="Background" Value="{DynamicResource Modern.SuccessPressed}"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -78,10 +78,10 @@
             <Setter Property="Background" Value="{DynamicResource Modern.Error}"/>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="{DynamicResource Modern.Error}"/>
+                    <Setter Property="Background" Value="{DynamicResource Modern.ErrorHover}"/>
                 </Trigger>
                 <Trigger Property="IsPressed" Value="True">
-                    <Setter Property="Background" Value="{DynamicResource Modern.Error}"/>
+                    <Setter Property="Background" Value="{DynamicResource Modern.ErrorPressed}"/>
                 </Trigger>
             </Style.Triggers>
         </Style>

@@ -37,13 +37,13 @@
                     <ColumnDefinition Width="auto"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
-                <ContentControl Content="{StaticResource Icon.Cog}" Width="18" Height="18" Foreground="#FF1E90FF" VerticalAlignment="Center"/>
+                <ContentControl Content="{StaticResource Icon.Cog}" Width="18" Height="18" Foreground="{DynamicResource Modern.ThemeMain}" VerticalAlignment="Center"/>
                 <StackPanel Grid.Column="1" Margin="8,0,0,0">
                     <TextBlock Text="Job Configuration" FontSize="14" FontWeight="SemiBold" 
                                Foreground="White" />
                     <TextBlock Text="Review the essentials on the left, data sources and outputs on the right."
                                FontSize="10"
-                               Foreground="#CCFFFFFF"
+                               Foreground="{DynamicResource Modern.TextMutedOnDark}"
                                Margin="0,2,0,0"/>
                 </StackPanel>
             </Grid>
@@ -72,18 +72,14 @@
                     <components:StartConditionSection Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" />
 
                     <!-- Config Selection Section -->
-                    <!-- Config Selection Section -->
                     <components:ConfigSelectionSection Grid.Row="1" Grid.Column="0" />
 
-                    <!-- Data Pool Section -->
                     <!-- Data Pool Section -->
                     <components:DataPoolSection Grid.Row="1" Grid.Column="1" />
 
                     <!-- Proxy Sources Section -->
-                    <!-- Proxy Sources Section -->
                     <components:ProxySourcesSection Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" />
 
-                    <!-- Hit Outputs Section -->
                     <!-- Hit Outputs Section -->
                     <components:HitOutputsSection Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" />
                 </Grid>
@@ -100,9 +96,9 @@
                     <!-- Status/Info Area -->
                     <StackPanel Grid.Column="0">
                         <TextBlock Text="Review your selections before saving." 
-                                   FontSize="10" Foreground="#FFB0B0B0"/>
+                                   FontSize="10" Foreground="{DynamicResource Modern.TextMuted}"/>
                         <TextBlock Text="Changes are applied immediately once you press Save Configuration."
-                                   FontSize="9" Foreground="#99FFFFFF" Margin="0,2,0,0"/>
+                                   FontSize="9" Foreground="{DynamicResource Modern.TextMutedOnDark}" Margin="0,2,0,0"/>
                     </StackPanel>
                     
                     <!-- Action Buttons -->

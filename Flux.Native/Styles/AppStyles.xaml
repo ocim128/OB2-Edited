@@ -158,7 +158,7 @@
     <Style x:Key="BaseTextBox" TargetType="{x:Type TextBox}" BasedOn="{StaticResource MahApps.Styles.TextBox}">
         <Setter Property="Background" Value="{DynamicResource BackgroundInput}"/>
         <Setter Property="Foreground" Value="{DynamicResource ForegroundInput}"/>
-        <Setter Property="FontFamily" Value="Consolas"/>
+        <Setter Property="FontFamily" Value="Segoe UI"/>
         <Setter Property="VerticalContentAlignment" Value="Center"/>
         <Setter Property="UseLayoutRounding" Value="False"/>
         <Setter Property="SnapsToDevicePixels" Value="False"/>
@@ -237,7 +237,7 @@
     <Style x:Key="BaseComboBoxItem" TargetType="{x:Type ComboBoxItem}" BasedOn="{StaticResource MahApps.Styles.ComboBoxItem}">
         <Setter Property="Foreground" Value="{DynamicResource ForegroundInput}"/>
         <Setter Property="Background" Value="{DynamicResource BackgroundInput}"/>
-        <Setter Property="FontFamily" Value="Consolas"/>
+        <Setter Property="FontFamily" Value="Segoe UI"/>
     </Style>
     <Style TargetType="{x:Type ComboBoxItem}" BasedOn="{StaticResource BaseComboBoxItem}"/>
 
@@ -587,7 +587,7 @@
     <Style x:Key="BaseComboBox" TargetType="ComboBox" BasedOn="{StaticResource MahApps.Styles.ComboBox}">
         <Setter Property="Foreground" Value="{DynamicResource ForegroundInput}"/>
         <Setter Property="Background" Value="{DynamicResource BackgroundInput}"/>
-        <Setter Property="FontFamily" Value="Consolas"/>
+        <Setter Property="FontFamily" Value="Segoe UI"/>
     </Style>
 
     <!-- Implicit ComboBox uses base -->

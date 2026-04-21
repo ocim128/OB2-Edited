@@ -43,6 +43,14 @@ namespace RuriLib.Helpers.Playwright
 
         private static readonly string[] FirefoxIncompatibleFlags = { "--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage" };
 
+        private static readonly string[] ChromiumStealthFlags =
+        {
+            "--disable-blink-features=AutomationControlled",
+            "--disable-features=AutomationControlled",
+            "--disable-infobars",
+            "--disable-automation"
+        };
+
         /// <summary>
         /// Makes sure sandbox-disabling flags are always present.
         /// </summary>
@@ -89,6 +97,35 @@ namespace RuriLib.Helpers.Playwright
                 foreach (var flag in NonWindowsSandboxFlags)
                 {
                     yield return flag;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Adds Chromium stealth flags that prevent navigator.webdriver and automation detection.
+        /// </summary>
+        public static void EnsureStealthFlags(ICollection<string> args, PlaywrightBrowserType browserType)
+        {
+            if (args == null || browserType != PlaywrightBrowserType.Chromium)
+            {
+                return;
+            }
+
+            foreach (var flag in ChromiumStealthFlags)
+            {
+                if (string.IsNullOrWhiteSpace(flag))
+                {
+                    continue;
+                }
+
+                var normalizedFlag = flag.Trim();
+                var hasFlag = args.Any(arg =>
+                    !string.IsNullOrWhiteSpace(arg) &&
+                    string.Equals(arg.Trim(), normalizedFlag, StringComparison.OrdinalIgnoreCase));
+
+                if (!hasFlag)
+                {
+                    args.Add(normalizedFlag);
                 }
             }
         }

@@ -59,6 +59,7 @@ namespace RuriLib.Blocks.Playwright.Browser
             // Prepare launch arguments
             PlaywrightLaunchConfigurator.StripIncompatibleFlags(args, config.BrowserType);
             PlaywrightLaunchConfigurator.EnsureSandboxFlags(args, config.BrowserType);
+            PlaywrightLaunchConfigurator.EnsureStealthFlags(args, config.BrowserType);
             config.ExtraArgs = args.ToArray();
 
             // Resolve executable and timeout
@@ -199,6 +200,12 @@ namespace RuriLib.Blocks.Playwright.Browser
             }
 
             PlaywrightHelpers.SetPage(data, page);
+
+            // Apply CDP-level stealth on new Chromium pages
+            if (browserType == PlaywrightBrowserType.Chromium)
+            {
+                await ApplyChromiumCdpStealthAsync(page, data);
+            }
         }
 
         [Block("Closes the current page", name = "Close Page")]

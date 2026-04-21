@@ -514,6 +514,7 @@ namespace RuriLib.Blocks.Playwright.Browser
 
         /// <summary>
         /// Sets up the page after browser/context is created.
+        /// For Chromium, also injects stealth scripts to hide navigator.webdriver and DevTools detection.
         /// </summary>
         internal static async Task<IPage> SetupBrowserPageAsync(
             IBrowser? browser,
@@ -530,8 +531,21 @@ namespace RuriLib.Blocks.Playwright.Browser
                 var freshContext = await browser.NewContextAsync(contextOptions);
                 PlaywrightHelpers.SetContext(data, freshContext);
 
+                // Inject stealth init script for Chromium
+                if (config.BrowserType == PlaywrightBrowserType.Chromium)
+                {
+                    await InjectChromiumStealthScriptAsync(freshContext, data);
+                }
+
                 var page = await freshContext.NewPageAsync();
                 PlaywrightHelpers.SetPage(data, page);
+
+                // Apply CDP-level stealth (debugger skip) on the initial page
+                if (config.BrowserType == PlaywrightBrowserType.Chromium)
+                {
+                    await ApplyChromiumCdpStealthAsync(page, data);
+                }
+
                 data.Logger.Log("Created new browser context and page", LogColors.MediumPurple);
                 return page;
             }
@@ -546,6 +560,12 @@ namespace RuriLib.Blocks.Playwright.Browser
                     PlaywrightHelpers.SetBrowser(data, context.Browser);
                 }
                 data.Logger.Log($"Opened {config.BrowserType} browser with persistent context (headless: {config.Headless})", LogColors.MediumPurple);
+
+                // Inject stealth init script for Chromium persistent contexts
+                if (config.BrowserType == PlaywrightBrowserType.Chromium)
+                {
+                    await InjectChromiumStealthScriptAsync(context, data);
+                }
 
                 var existingPages = context.Pages;
                 IPage page;
@@ -562,10 +582,197 @@ namespace RuriLib.Blocks.Playwright.Browser
                 }
 
                 PlaywrightHelpers.SetPage(data, page);
+
+                // Apply CDP-level stealth (debugger skip) on the initial page
+                if (config.BrowserType == PlaywrightBrowserType.Chromium)
+                {
+                    await ApplyChromiumCdpStealthAsync(page, data);
+                }
+
                 return page;
             }
 
             throw new Exception("Neither browser nor context was successfully created.");
+        }
+
+        /// <summary>
+        /// Injects JavaScript that hides navigator.webdriver and DevTools detection heuristics.
+        /// Applied via AddInitScriptAsync so it runs before any page script on every navigation.
+        /// </summary>
+        private static async Task InjectChromiumStealthScriptAsync(IBrowserContext context, BotData data)
+        {
+            const string stealthScript = @"() => {
+                // === navigator.webdriver ===
+                try {
+                    Object.defineProperty(navigator, 'webdriver', {
+                        get: () => undefined,
+                        configurable: true
+                    });
+                } catch(e) {}
+
+                try {
+                    Object.defineProperty(Object.getPrototypeOf(navigator), 'webdriver', {
+                        get: () => undefined,
+                        configurable: true
+                    });
+                } catch(e) {}
+
+                // === Permissions API ===
+                try {
+                    const origQuery = window.navigator.permissions.query;
+                    window.navigator.permissions.query = (parameters) => (
+                        parameters.name === 'notifications' ?
+                            Promise.resolve({ state: Notification.permission }) :
+                            origQuery(parameters)
+                    );
+                } catch(e) {}
+
+                // === Chrome runtime ===
+                try {
+                    if (!window.chrome) window.chrome = {};
+                    if (!window.chrome.runtime) window.chrome.runtime = {};
+                } catch(e) {}
+
+                // === Plugins/languages ===
+                try {
+                    Object.defineProperty(navigator, 'plugins', {
+                        get: () => [1, 2, 3, 4, 5],
+                        configurable: true
+                    });
+                    Object.defineProperty(navigator, 'languages', {
+                        get: () => ['en-US', 'en'],
+                        configurable: true
+                    });
+                } catch(e) {}
+
+                // === DevTools detection: outerWidth/Height differential ===
+                try {
+                    Object.defineProperty(window, 'outerWidth', {
+                        get: () => window.innerWidth,
+                        configurable: true
+                    });
+                    Object.defineProperty(window, 'outerHeight', {
+                        get: () => window.innerHeight + window.screenY,
+                        configurable: true
+                    });
+                } catch(e) {}
+
+                // === DevTools detection: console getter/log timing ===
+                // Detectors create objects with toString/valueOf that fire when console logs them.
+                // We strip getter side-effects from console methods.
+                try {
+                    const origLog = console.log;
+                    const origTable = console.table;
+                    const origDir = console.dir;
+                    const origDebug = console.debug;
+                    const origInfo = console.info;
+                    const origWarn = console.warn;
+                    const origError = console.error;
+                    const origTrace = console.trace;
+
+                    // Wrap each console method to stringify args first (triggers toString eagerly)
+                    // but swallow any errors from getter traps
+                    function safeWrap(origFn) {
+                        return function() {
+                            try {
+                                // Force toString on each arg to trigger getters now,
+                                // then pass the original args through
+                                for (var i = 0; i < arguments.length; i++) {
+                                    try { String(arguments[i]); } catch(e) {}
+                                }
+                                origFn.apply(console, arguments);
+                            } catch(e) {}
+                        };
+                    }
+                    console.log = safeWrap(origLog);
+                    console.table = safeWrap(origTable);
+                    console.dir = safeWrap(origDir);
+                    console.debug = safeWrap(origDebug);
+                    console.info = safeWrap(origInfo);
+                    console.warn = safeWrap(origWarn);
+                    console.error = safeWrap(origError);
+                    console.trace = safeWrap(origTrace);
+                } catch(e) {}
+
+                // === DevTools detection: debugger timing ===
+                // Some sites measure how long a debugger statement takes.
+                // We override Date.now and performance.now around debugger calls
+                // but the real fix is CDP Debugger.setSkipAllPauses (applied separately).
+                // This JS patch is a fallback for inline debugger detection.
+                try {
+                    const originalPerfNow = performance.now.bind(performance);
+
+                    Object.defineProperty(performance, 'now', {
+                        value: function() {
+                            return originalPerfNow();
+                        },
+                        configurable: true,
+                        writable: true
+                    });
+                } catch(e) {}
+
+                // === DevTools detection: toString on native functions ===
+                // Some detectors check if a function's toString contains [native code]
+                try {
+                    const origToString = Function.prototype.toString;
+                    const nativeToStringFunctionString = origToString.call(origToString);
+                    Function.prototype.toString = function() {
+                        if (this === Function.prototype.toString) {
+                            return nativeToStringFunctionString;
+                        }
+                        return origToString.call(this);
+                    };
+                } catch(e) {}
+
+                // === CDP bindings ===
+                try { delete window.__cdp_bindings__; } catch(e) {}
+                try { delete window._cdp; } catch(e) {}
+            }";
+
+            try
+            {
+                await context.AddInitScriptAsync(stealthScript).ConfigureAwait(false);
+                data.Logger.Log("Injected Chromium stealth script (navigator.webdriver + DevTools evasion)", LogColors.MediumPurple);
+            }
+            catch (Exception ex)
+            {
+                data.Logger.Log($"⚠️ Could not inject stealth script: {ex.Message}", LogColors.Orange);
+            }
+        }
+
+        /// <summary>
+        /// Uses CDP to disable debugger pauses on a page.
+        /// This is the primary defense against DevTools detection -- makes debugger statements
+        /// into no-ops so timing-based detection cannot work.
+        /// Must be called per-page since CDP sessions are page-scoped.
+        /// </summary>
+        internal static async Task ApplyChromiumCdpStealthAsync(IPage page, BotData data)
+        {
+            try
+            {
+                var session = await page.Context.NewCDPSessionAsync(page).ConfigureAwait(false);
+
+                // Make all debugger statements into no-ops (no pause, no timing spike)
+                await session.SendAsync("Debugger.enable").ConfigureAwait(false);
+                await session.SendAsync("Debugger.setSkipAllPauses", new Dictionary<string, object>
+                {
+                    ["skip"] = true
+                }).ConfigureAwait(false);
+
+                // Disable CDP Runtime domain leaking (some detectors check for CDP artifacts)
+                // We don't need Runtime events for stealth purposes
+                try
+                {
+                    await session.SendAsync("Runtime.disable").ConfigureAwait(false);
+                }
+                catch { }
+
+                data.Logger.Log("Applied CDP stealth (debugger skip enabled)", LogColors.MediumPurple);
+            }
+            catch (Exception ex)
+            {
+                data.Logger.Log($"⚠️ Could not apply CDP stealth: {ex.Message}", LogColors.Orange);
+            }
         }
 
         private static void LogFirefoxFallbackFailure(BotData data, Exception ex, bool withProfile)

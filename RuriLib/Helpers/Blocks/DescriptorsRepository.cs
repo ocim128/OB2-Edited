@@ -134,7 +134,7 @@ namespace RuriLib.Helpers.Blocks
             return new AutoBlockDescriptor
             {
                 Id = method.Name,
-                Async = method.CustomAttributes.Any(a => a.AttributeType == typeof(AsyncStateMachineAttribute)),
+                Async = IsAsyncMethod(method),
                 Name = attribute.name ?? method.Name.ToReadableName(),
                 Description = attribute.description ?? string.Empty,
                 ExtraInfo = attribute.extraInfo ?? string.Empty,
@@ -161,6 +161,10 @@ namespace RuriLib.Helpers.Blocks
                 InstanceFactory = CreateAutoBlockInstanceFactory(method.Name)
             };
         }
+
+        private static bool IsAsyncMethod(MethodInfo method)
+            => typeof(Task).IsAssignableFrom(method.ReturnType)
+               || method.CustomAttributes.Any(a => a.AttributeType == typeof(AsyncStateMachineAttribute));
 
         private static string GetDefaultCategoryName(Type type)
         {

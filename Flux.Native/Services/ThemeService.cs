@@ -18,6 +18,7 @@ namespace Flux.Native.Services
         private static readonly IReadOnlyDictionary<string, string> LightModernPalette = new Dictionary<string, string>
         {
             ["Modern.ThemeMain"] = "#2563EB",
+            ["Modern.ThemeMainFill"] = "#302563EB",
             ["Modern.ThemeAccent"] = "#8B5CF6",
             ["Modern.ThemeSecondary"] = "#1D4ED8",
             ["Modern.BackgroundMain"] = "#F8FAFC",
@@ -51,6 +52,7 @@ namespace Flux.Native.Services
         private static readonly IReadOnlyDictionary<string, string> DarkModernPalette = new Dictionary<string, string>
         {
             ["Modern.ThemeMain"] = "#3B82F6",
+            ["Modern.ThemeMainFill"] = "#303B82F6",
             ["Modern.ThemeAccent"] = "#8B5CF6",
             ["Modern.ThemeSecondary"] = "#2563EB",
             ["Modern.BackgroundMain"] = "#0F172A",
@@ -231,6 +233,7 @@ namespace Flux.Native.Services
             Application.Current.Resources["Modern.ForegroundSecondary"] = AppBrush.FromHex("#F5F5F5");
             Application.Current.Resources["Modern.BorderFocus"] = AppBrush.FromHex("#FFFFFF");
             Application.Current.Resources["Modern.ThemeMain"] = AppBrush.FromHex("#FFD700");
+            Application.Current.Resources["Modern.ThemeMainFill"] = AppBrush.FromHex("#30FFD700");
 
             AppBrush.SetAppColor("BackgroundMain", "#000000");
             AppBrush.SetAppColor("BackgroundSecondary", "#111111");

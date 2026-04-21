@@ -14,7 +14,7 @@
             <StackPanel>
                 <Border Background="{DynamicResource Modern.PanelDark}" CornerRadius="4" Padding="8" Margin="0,0,0,8"
                        Visibility="{Binding HasWordlist, Converter={StaticResource ResourceKey=BoolToVis}}">
-                    <TextBlock Text="{Binding Info}" FontSize="10" Foreground="White" TextWrapping="Wrap"/>
+                    <TextBlock Text="{Binding Info}" FontSize="10" Foreground="{DynamicResource Modern.ForegroundMain}" TextWrapping="Wrap"/>
                 </Border>
                 <StackPanel Orientation="Horizontal">
                     <Button Click="SelectWordlist"
@@ -141,25 +141,25 @@
             <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
                 <RadioButton Content="Wordlist" x:Name="wordlistDataPoolButton"
                              IsChecked="{Binding WordlistDataPoolMode}"
-                             Foreground="White" FontSize="10" Margin="0,0,8,0"
+                             Foreground="{DynamicResource Modern.ForegroundMain}" FontSize="10" Margin="0,0,8,0"
                              Style="{DynamicResource MahApps.Styles.RadioButton}"/>
                 <RadioButton Content="File" x:Name="fileDataPoolButton"
                              IsChecked="{Binding FileDataPoolMode}"
-                             Foreground="White" FontSize="10" Margin="0,0,8,0"
+                             Foreground="{DynamicResource Modern.ForegroundMain}" FontSize="10" Margin="0,0,8,0"
                              Style="{DynamicResource MahApps.Styles.RadioButton}"/>
                 <RadioButton Content="Range" x:Name="rangeDataPoolButton"
                              IsChecked="{Binding RangeDataPoolMode}"
-                             Foreground="White" FontSize="10" Margin="0,0,8,0"
+                             Foreground="{DynamicResource Modern.ForegroundMain}" FontSize="10" Margin="0,0,8,0"
                              Style="{DynamicResource MahApps.Styles.RadioButton}"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
                 <RadioButton Content="Combinations" x:Name="combinationsDataPoolButton"
                              IsChecked="{Binding CombinationsDataPoolMode}"
-                             Foreground="White" FontSize="10" Margin="0,0,8,0"
+                             Foreground="{DynamicResource Modern.ForegroundMain}" FontSize="10" Margin="0,0,8,0"
                              Style="{DynamicResource MahApps.Styles.RadioButton}"/>
                 <RadioButton Content="Infinite" x:Name="infiniteDataPoolButton"
                              IsChecked="{Binding InfiniteDataPoolMode}"
-                             Foreground="White" FontSize="10"
+                             Foreground="{DynamicResource Modern.ForegroundMain}" FontSize="10"
                              Style="{DynamicResource MahApps.Styles.RadioButton}"/>
             </StackPanel>
 

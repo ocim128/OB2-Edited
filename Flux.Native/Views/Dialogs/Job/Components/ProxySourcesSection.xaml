@@ -168,13 +168,32 @@
                               Focusable="False"
                               PreviewMouseWheel="ChildScrollViewer_PreviewMouseWheel"
                               Style="{StaticResource ModernScrollViewer}">
-                    <ItemsControl ItemsSource="{Binding ProxySourcesCollection}">
-                        <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <StackPanel Orientation="Vertical"/>
-                            </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                    </ItemsControl>
+                    <Grid>
+                        <ItemsControl x:Name="proxySourcesList" ItemsSource="{Binding ProxySourcesCollection}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Vertical"/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                        </ItemsControl>
+                        <TextBlock Text="No proxy sources configured"
+                                   FontSize="11"
+                                   Foreground="{DynamicResource Modern.ForegroundMuted}"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   IsHitTestVisible="False">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ProxySourcesCollection.Count}" Value="0">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </Grid>
                 </ScrollViewer>
             </Border>
         </StackPanel>

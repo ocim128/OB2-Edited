@@ -102,14 +102,21 @@
                     </StackPanel>
                     
                     <!-- Action Buttons -->
-                    <Button Grid.Column="1" Click="Accept"
-                Style="{StaticResource StyledSuccessButton}"
-                            Padding="14,6" FontSize="11" FontWeight="SemiBold">
-                    <StackPanel Orientation="Horizontal">
-                            <ContentControl Content="{StaticResource Icon.Check}" Width="12" Height="12"/>
-                            <TextBlock Text="Save Configuration" VerticalAlignment="Center" Margin="5,0,0,0"/>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Click="Cancel"
+                                Style="{StaticResource StyledPrimaryButton}"
+                                Padding="14,6" FontSize="11" FontWeight="SemiBold" Margin="0,0,8,0">
+                            <TextBlock Text="Cancel" VerticalAlignment="Center"/>
+                        </Button>
+                        <Button Click="Accept"
+                                Style="{StaticResource StyledSuccessButton}"
+                                Padding="14,6" FontSize="11" FontWeight="SemiBold">
+                            <StackPanel Orientation="Horizontal">
+                                <ContentControl Content="{StaticResource Icon.Check}" Width="12" Height="12"/>
+                                <TextBlock Text="Save Configuration" VerticalAlignment="Center" Margin="5,0,0,0"/>
+                            </StackPanel>
+                        </Button>
                     </StackPanel>
-                </Button>
             </Grid>
         </Border>
         </Grid>

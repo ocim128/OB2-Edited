@@ -54,6 +54,9 @@
                             <Trigger Property="IsPressed" Value="True">
                                 <Setter Property="Background" Value="{DynamicResource Modern.ThemeSecondary}"/>
                             </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.4"/>
+                            </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
@@ -107,6 +110,9 @@
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
                                 <Setter Property="Opacity" Value="0.6"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.4"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -228,19 +234,45 @@
             </Grid>
         </Border>
 
-        <!-- Modern Job List Container with single-scroll pattern -->
-        <ScrollViewer
+        <!-- Empty state placeholder -->
+        <TextBlock Grid.Row="2"
+                   Text="No jobs yet. Click 'New Job' to get started!"
+                   FontSize="14"
+                   Foreground="{DynamicResource Modern.ForegroundMuted}"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center"
+                   Margin="0,40,0,0"
+                   IsHitTestVisible="False">
+            <TextBlock.Style>
+                <Style TargetType="TextBlock">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding JobsCollection.Count}" Value="0">
+                            <Setter Property="Visibility" Value="Visible"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </TextBlock.Style>
+        </TextBlock>
+
+        <!-- Modern Job List Container with proper virtualization -->
+        <ItemsControl
             Grid.Row="2"
-            HorizontalScrollBarVisibility="Disabled"
-            VerticalScrollBarVisibility="Auto"
-            Padding="0,0,8,0"
-            UseLayoutRounding="True"
-            SnapsToDevicePixels="True">
-            <ItemsControl
             ItemsSource="{Binding JobsCollection}"
             VirtualizingPanel.IsVirtualizing="True"
             VirtualizingPanel.VirtualizationMode="Recycling"
-            VirtualizingPanel.ScrollUnit="Pixel">
+            VirtualizingPanel.ScrollUnit="Pixel"
+            Padding="0,0,8,0">
+            <ItemsControl.Template>
+                <ControlTemplate TargetType="ItemsControl">
+                    <ScrollViewer CanContentScroll="True"
+                                  HorizontalScrollBarVisibility="Disabled"
+                                  VerticalScrollBarVisibility="Auto"
+                                  Focusable="False">
+                        <ItemsPresenter />
+                    </ScrollViewer>
+                </ControlTemplate>
+            </ItemsControl.Template>
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
                         <VirtualizingStackPanel Orientation="Vertical"/>
@@ -258,20 +290,12 @@
                                 x:Name="JobRowBorder"
                                 SnapsToDevicePixels="True"
                                 UseLayoutRounding="True">
-                            <Border.Effect>
-                                <DropShadowEffect Color="Black" BlurRadius="6" ShadowDepth="2" Opacity="0.1"/>
-                            </Border.Effect>
                             <Border.Style>
                                 <Style TargetType="Border">
                                     <Style.Triggers>
                                         <Trigger Property="IsMouseOver" Value="True">
                                             <Setter Property="Background" Value="{DynamicResource Modern.BackgroundElevated}"/>
                                             <Setter Property="BorderBrush" Value="{DynamicResource Modern.ThemeMain}"/>
-                                            <Setter Property="Effect">
-                                                <Setter.Value>
-                                                    <DropShadowEffect Color="#3B82F6" BlurRadius="8" ShadowDepth="0" Opacity="0.3"/>
-                                                </Setter.Value>
-                                            </Setter>
                                         </Trigger>
                                     </Style.Triggers>
                                 </Style>
@@ -443,20 +467,12 @@
                                 x:Name="JobRowBorder"
                                 SnapsToDevicePixels="True"
                                 UseLayoutRounding="True">
-                            <Border.Effect>
-                                <DropShadowEffect Color="Black" BlurRadius="6" ShadowDepth="2" Opacity="0.1"/>
-                            </Border.Effect>
                             <Border.Style>
                                 <Style TargetType="Border">
                                     <Style.Triggers>
                                         <Trigger Property="IsMouseOver" Value="True">
                                             <Setter Property="Background" Value="{DynamicResource Modern.BackgroundElevated}"/>
                                             <Setter Property="BorderBrush" Value="{DynamicResource Modern.Warning}"/>
-                                            <Setter Property="Effect">
-                                                <Setter.Value>
-                                                    <DropShadowEffect Color="#F59E0B" BlurRadius="8" ShadowDepth="0" Opacity="0.3"/>
-                                                </Setter.Value>
-                                            </Setter>
                                         </Trigger>
                                     </Style.Triggers>
                                 </Style>
@@ -511,7 +527,7 @@
 
                                 <!-- Modern Data Pool Display -->
                                 <StackPanel Grid.Column="2" VerticalAlignment="Center">
-                                    <TextBlock Text="{Binding StatusDisplayText}" 
+                                    <TextBlock Text="{Binding DataPoolDisplayInfo}" 
                                                FontSize="12" 
                                                Foreground="{DynamicResource Modern.ForegroundSecondary}" 
                                                TextTrimming="CharacterEllipsis"
@@ -557,7 +573,7 @@
 
                                 <!-- Modern Hits Counter -->
                                 <Border Grid.Column="6" Background="{DynamicResource Modern.Success}" CornerRadius="8" Padding="8,6" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                    <TextBlock Text="{Binding Working}" 
+                                    <TextBlock Text="{Binding DataHits}" 
                                                FontSize="12" 
                                                Foreground="{DynamicResource Modern.TextOnAccent}" 
                                                FontWeight="Bold"
@@ -566,7 +582,7 @@
 
                                 <!-- Modern Custom Counter -->
                                 <Border Grid.Column="7" Background="{DynamicResource Modern.Error}" CornerRadius="8" Padding="8,6" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                    <TextBlock Text="{Binding NotWorking}" 
+                                    <TextBlock Text="{Binding DataCustom}" 
                                                FontSize="12" 
                                                Foreground="{DynamicResource Modern.TextOnAccent}" 
                                                FontWeight="Bold"
@@ -618,7 +634,6 @@
                     </DataTemplate>
                 </ItemsControl.Resources>
             </ItemsControl>
-        </ScrollViewer>
 
     </Grid>
 </Page>

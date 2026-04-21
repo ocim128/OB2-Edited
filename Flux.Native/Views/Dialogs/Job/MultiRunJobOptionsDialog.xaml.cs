@@ -53,4 +53,6 @@ public partial class MultiRunJobOptionsDialog : Page
         onAccept?.Invoke(vm.Options);
         ((MainDialog)Parent).Close();
     }
+
+    private void Cancel(object sender, RoutedEventArgs e) => ((MainDialog)Parent).Close();
 }

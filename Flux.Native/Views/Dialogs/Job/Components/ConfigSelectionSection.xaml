@@ -38,7 +38,7 @@
                     <Image Grid.Column="0" Source="{Binding ConfigIcon}" Width="28" Height="28" 
                            VerticalAlignment="Center" Margin="0,0,8,0"/>
                     <TextBlock Grid.Column="1" Text="{Binding ConfigNameAndAuthor}" 
-                              FontSize="11" Foreground="White" VerticalAlignment="Center"
+                              FontSize="11" Foreground="{DynamicResource Modern.ForegroundMain}" VerticalAlignment="Center"
                               TextWrapping="Wrap"/>
                 </Grid>
             </Border>

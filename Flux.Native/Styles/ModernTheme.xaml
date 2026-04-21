@@ -11,6 +11,7 @@
 
     <!-- Modern Color Palette -->
     <SolidColorBrush x:Key="Modern.ThemeMain" Color="#2563EB" po:Freeze="False" />
+    <SolidColorBrush x:Key="Modern.ThemeMainFill" Color="#302563EB" po:Freeze="False" />
     <SolidColorBrush x:Key="Modern.ThemeAccent" Color="#8B5CF6" po:Freeze="False" />
     <SolidColorBrush x:Key="Modern.ThemeSecondary" Color="#1D4ED8" po:Freeze="False" />
     

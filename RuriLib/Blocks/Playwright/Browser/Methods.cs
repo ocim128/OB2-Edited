@@ -25,9 +25,8 @@ namespace RuriLib.Blocks.Playwright.Browser
         {
             data.Logger.LogHeader();
 
-            // Check if there is already an open browser
-            var oldBrowser = data.PlaywrightSession.Browser;
-            if (oldBrowser?.IsConnected == true)
+            // Check if there is already an open browser or persistent context
+            if (HasOpenPlaywrightSession(data))
             {
                 data.Logger.Log("The browser is already open, close it if you want to open a new browser", LogColors.MediumPurple);
                 return;
@@ -122,15 +121,15 @@ namespace RuriLib.Blocks.Playwright.Browser
             cleanupState?.SuppressBrowserDisconnect();
             cleanupState?.StopManualCloseWatcher();
 
-            if (context != null)
-            {
-                await context.CloseAsync();
-                data.Logger.Log("Closed the browser context", LogColors.MediumPurple);
-            }
-            else if (browser != null)
+            if (browser?.IsConnected == true)
             {
                 await browser.CloseAsync();
                 data.Logger.Log("Closed the browser", LogColors.MediumPurple);
+            }
+            else if (context != null)
+            {
+                await context.CloseAsync();
+                data.Logger.Log("Closed the browser context", LogColors.MediumPurple);
             }
             else
             {
@@ -191,6 +190,13 @@ namespace RuriLib.Blocks.Playwright.Browser
                 // This should rarely happen as Open Browser always creates a context
                 var newContext = await browser.NewContextAsync();
                 PlaywrightHelpers.SetContext(data, newContext);
+
+                // Apply stealth init script to the new context for Chromium
+                if (browserType == PlaywrightBrowserType.Chromium)
+                {
+                    await InjectChromiumStealthScriptAsync(newContext, data);
+                }
+
                 page = await newContext.NewPageAsync();
                 data.Logger.Log("Created new context for new page", LogColors.Yellow);
             }
@@ -302,6 +308,31 @@ namespace RuriLib.Blocks.Playwright.Browser
 
         private static void StoreBrowserRuntimeState(BotData data, PlaywrightBrowserType browserType, bool headless)
             => PlaywrightHelpers.SetBrowserRuntimeState(data, browserType, headless);
+
+        private static bool HasOpenPlaywrightSession(BotData data)
+        {
+            var browser = data.PlaywrightSession.Browser;
+            if (browser?.IsConnected == true)
+            {
+                return true;
+            }
+
+            var context = data.PlaywrightSession.Context;
+            if (context == null)
+            {
+                return false;
+            }
+
+            try
+            {
+                _ = context.Pages.Count;
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
 
     }
 }

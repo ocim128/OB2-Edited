@@ -220,13 +220,13 @@ public class BotData(Providers providers, ConfigSettings configSettings, IBotLog
                 return;
             }
 
-            if (PlaywrightSession.Context is not null)
-            {
-                PlaywrightSession.Context.CloseAsync().GetAwaiter().GetResult();
-            }
-            else if (PlaywrightSession.Browser is not null)
+            if (PlaywrightSession.Browser?.IsConnected == true)
             {
                 PlaywrightSession.Browser.CloseAsync().GetAwaiter().GetResult();
+            }
+            else if (PlaywrightSession.Context is not null)
+            {
+                PlaywrightSession.Context.CloseAsync().GetAwaiter().GetResult();
             }
         }
         catch

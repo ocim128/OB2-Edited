@@ -338,7 +338,15 @@ namespace RuriLib.Blocks.Playwright.Page
             data.Logger.LogHeader();
 
             var page = GetPage(data);
+            var userAgentOverrideScript =
+                $"Object.defineProperty(navigator, 'userAgent', {{ get: () => {JsonSerializer.Serialize(userAgent)}, configurable: true }});";
+
+            // Override the HTTP header for server-side UA checks
             await page.SetExtraHTTPHeadersAsync(new Dictionary<string, string> { { "User-Agent", userAgent } });
+
+            // Persist the JS-side override for future navigations, then update the current document immediately.
+            await page.AddInitScriptAsync(userAgentOverrideScript);
+            await page.EvaluateAsync(userAgentOverrideScript);
 
             data.Logger.Log($"Set user agent: {userAgent}", LogColors.MediumPurple);
         }

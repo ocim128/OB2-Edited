@@ -567,7 +567,12 @@ namespace RuriLib.Blocks.Playwright.Browser
                     await InjectChromiumStealthScriptAsync(context, data);
                 }
 
-                var existingPages = context.Pages;
+                var existingPages = context.Pages.Where(p => !p.IsClosed).ToList();
+                if (config.BrowserType == PlaywrightBrowserType.Chromium)
+                {
+                    existingPages = await CloseChromiumRuntimeDirectoryPagesAsync(context, existingPages, data).ConfigureAwait(false);
+                }
+
                 IPage page;
 
                 if (existingPages.Count > 0)
@@ -593,6 +598,75 @@ namespace RuriLib.Blocks.Playwright.Browser
             }
 
             throw new Exception("Neither browser nor context was successfully created.");
+        }
+
+        private static async Task<List<IPage>> CloseChromiumRuntimeDirectoryPagesAsync(
+            IBrowserContext context,
+            List<IPage> pages,
+            BotData data)
+        {
+            if (pages.Count == 0)
+            {
+                return pages;
+            }
+
+            var runtimePages = pages
+                .Where(p => IsManagedChromiumRuntimeDirectoryPage(p.Url))
+                .ToList();
+
+            if (runtimePages.Count == 0)
+            {
+                return pages;
+            }
+
+            foreach (var runtimePage in runtimePages)
+            {
+                try
+                {
+                    await runtimePage.CloseAsync().ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    data.Logger.Log($"Failed to close Chromium runtime tab '{runtimePage.Url}': {ex.Message}", LogColors.Orange);
+                }
+            }
+
+            data.Logger.Log($"Closed {runtimePages.Count} stray Chromium runtime tab(s) opened at startup", LogColors.Yellow);
+
+            return context.Pages
+                .Where(p => !p.IsClosed)
+                .ToList();
+        }
+
+        private static bool IsManagedChromiumRuntimeDirectoryPage(string? url)
+        {
+            if (string.IsNullOrWhiteSpace(url) || !Uri.TryCreate(url, UriKind.Absolute, out var uri) || !uri.IsFile)
+            {
+                return false;
+            }
+
+            var localPath = uri.LocalPath;
+            if (string.IsNullOrWhiteSpace(localPath) || !Directory.Exists(localPath))
+            {
+                return false;
+            }
+
+            var normalizedPath = Path.GetFullPath(localPath)
+                .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            var directoryName = Path.GetFileName(normalizedPath);
+            if (!directoryName.Equals("chrome-win", StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            var parentDirectory = Path.GetDirectoryName(normalizedPath);
+            if (string.IsNullOrWhiteSpace(parentDirectory))
+            {
+                return false;
+            }
+
+            var parentName = Path.GetFileName(parentDirectory);
+            return parentName.StartsWith("chromium-", StringComparison.OrdinalIgnoreCase);
         }
 
         /// <summary>
@@ -630,13 +704,56 @@ namespace RuriLib.Blocks.Playwright.Browser
                 // === Chrome runtime ===
                 try {
                     if (!window.chrome) window.chrome = {};
-                    if (!window.chrome.runtime) window.chrome.runtime = {};
+                    if (!window.chrome.runtime) {
+                        // Minimal but realistic surface: real Chrome has connect/sendMessage.
+                        // An empty {} is trivially detectable via Object.keys(chrome.runtime).length === 0.
+                        window.chrome.runtime = {
+                            connect: function() {
+                                return { onDisconnect: { addListener: function(){} }, onMessage: { addListener: function(){} }, postMessage: function(){}, disconnect: function(){} };
+                            },
+                            sendMessage: function() {},
+                            id: undefined
+                        };
+                    }
                 } catch(e) {}
 
                 // === Plugins/languages ===
                 try {
+                    // Build a realistic PluginArray mimic with standard Chrome PDF plugins.
+                    // The previous [1,2,3,4,5] fake was trivially detectable (numbers instead of Plugin objects,
+                    // missing .item()/.namedItem(), wrong typeof).
+                    var _pluginData = [
+                        { name: 'PDF Viewer', description: 'Portable Document Format', filename: 'internal-pdf-viewer' },
+                        { name: 'Chrome PDF Viewer', description: 'Portable Document Format', filename: 'internal-pdf-viewer' },
+                        { name: 'Chromium PDF Viewer', description: 'Portable Document Format', filename: 'internal-pdf-viewer' },
+                        { name: 'Microsoft Edge PDF Viewer', description: 'Portable Document Format', filename: 'internal-pdf-viewer' },
+                        { name: 'WebKit built-in PDF', description: 'Portable Document Format', filename: 'internal-pdf-viewer' }
+                    ];
+                    var _plugins = [];
+                    for (var pi = 0; pi < _pluginData.length; pi++) {
+                        var pd = _pluginData[pi];
+                        var mt = { type: 'application/pdf', suffixes: 'pdf', description: pd.description };
+                        var pl = Object.create(null);
+                        pl.name = pd.name;
+                        pl.filename = pd.filename;
+                        pl.description = pd.description;
+                        pl.length = 1;
+                        pl[0] = mt;
+                        pl.item = function(idx) { return this[idx]; };
+                        pl.namedItem = function() { return null; };
+                        _plugins.push(pl);
+                    }
+                    var _pluginArray = Object.create(null);
+                    _pluginArray.length = _plugins.length;
+                    _pluginArray.item = function(idx) { return _plugins[idx]; };
+                    _pluginArray.namedItem = function(name) {
+                        for (var ni = 0; ni < _plugins.length; ni++) { if (_plugins[ni].name === name) return _plugins[ni]; }
+                        return null;
+                    };
+                    _pluginArray.refresh = function() {};
+                    for (var pj = 0; pj < _plugins.length; pj++) { _pluginArray[pj] = _plugins[pj]; }
                     Object.defineProperty(navigator, 'plugins', {
-                        get: () => [1, 2, 3, 4, 5],
+                        get: () => _pluginArray,
                         configurable: true
                     });
                     Object.defineProperty(navigator, 'languages', {
@@ -646,13 +763,16 @@ namespace RuriLib.Blocks.Playwright.Browser
                 } catch(e) {}
 
                 // === DevTools detection: outerWidth/Height differential ===
+                // Detectors check outerHeight - innerHeight: if too large, DevTools is open.
+                // Real Chrome without DevTools: outerHeight - innerHeight ≈ 85px (title + tabs + address bar).
+                // Previous formula (innerHeight + screenY) was wrong — screenY is viewport position, not chrome height.
                 try {
                     Object.defineProperty(window, 'outerWidth', {
                         get: () => window.innerWidth,
                         configurable: true
                     });
                     Object.defineProperty(window, 'outerHeight', {
-                        get: () => window.innerHeight + window.screenY,
+                        get: () => window.innerHeight + 85,
                         configurable: true
                     });
                 } catch(e) {}
@@ -661,64 +781,58 @@ namespace RuriLib.Blocks.Playwright.Browser
                 // Detectors create objects with toString/valueOf that fire when console logs them.
                 // We strip getter side-effects from console methods.
                 try {
-                    const origLog = console.log;
-                    const origTable = console.table;
-                    const origDir = console.dir;
-                    const origDebug = console.debug;
-                    const origInfo = console.info;
-                    const origWarn = console.warn;
-                    const origError = console.error;
-                    const origTrace = console.trace;
+                    var _patchedFns = [];
+                    var origLog = console.log;
+                    var origTable = console.table;
+                    var origDir = console.dir;
+                    var origDebug = console.debug;
+                    var origInfo = console.info;
+                    var origWarn = console.warn;
+                    var origError = console.error;
+                    var origTrace = console.trace;
 
                     // Wrap each console method to stringify args first (triggers toString eagerly)
-                    // but swallow any errors from getter traps
-                    function safeWrap(origFn) {
-                        return function() {
+                    // but swallow any errors from getter traps. Track names for toString protection.
+                    function safeWrap(origFn, name) {
+                        var wrapped = function() {
                             try {
-                                // Force toString on each arg to trigger getters now,
-                                // then pass the original args through
                                 for (var i = 0; i < arguments.length; i++) {
                                     try { String(arguments[i]); } catch(e) {}
                                 }
                                 origFn.apply(console, arguments);
                             } catch(e) {}
                         };
+                        _patchedFns.push({ ref: wrapped, name: name });
+                        return wrapped;
                     }
-                    console.log = safeWrap(origLog);
-                    console.table = safeWrap(origTable);
-                    console.dir = safeWrap(origDir);
-                    console.debug = safeWrap(origDebug);
-                    console.info = safeWrap(origInfo);
-                    console.warn = safeWrap(origWarn);
-                    console.error = safeWrap(origError);
-                    console.trace = safeWrap(origTrace);
-                } catch(e) {}
-
-                // === DevTools detection: debugger timing ===
-                // Some sites measure how long a debugger statement takes.
-                // We override Date.now and performance.now around debugger calls
-                // but the real fix is CDP Debugger.setSkipAllPauses (applied separately).
-                // This JS patch is a fallback for inline debugger detection.
-                try {
-                    const originalPerfNow = performance.now.bind(performance);
-
-                    Object.defineProperty(performance, 'now', {
-                        value: function() {
-                            return originalPerfNow();
-                        },
-                        configurable: true,
-                        writable: true
-                    });
+                    console.log = safeWrap(origLog, 'log');
+                    console.table = safeWrap(origTable, 'table');
+                    console.dir = safeWrap(origDir, 'dir');
+                    console.debug = safeWrap(origDebug, 'debug');
+                    console.info = safeWrap(origInfo, 'info');
+                    console.warn = safeWrap(origWarn, 'warn');
+                    console.error = safeWrap(origError, 'error');
+                    console.trace = safeWrap(origTrace, 'trace');
                 } catch(e) {}
 
                 // === DevTools detection: toString on native functions ===
-                // Some detectors check if a function's toString contains [native code]
+                // Some detectors check if a function's toString contains [native code].
+                // Must also cover the console methods wrapped above — without this,
+                // console.log.toString() would leak wrapper source code.
                 try {
-                    const origToString = Function.prototype.toString;
-                    const nativeToStringFunctionString = origToString.call(origToString);
+                    var origToString = Function.prototype.toString;
+                    var nativeToStringFunctionString = origToString.call(origToString);
                     Function.prototype.toString = function() {
                         if (this === Function.prototype.toString) {
                             return nativeToStringFunctionString;
+                        }
+                        // Return native-looking string for patched console methods
+                        if (typeof _patchedFns !== 'undefined') {
+                            for (var i = 0; i < _patchedFns.length; i++) {
+                                if (this === _patchedFns[i].ref) {
+                                    return 'function ' + _patchedFns[i].name + '() { [native code] }';
+                                }
+                            }
                         }
                         return origToString.call(this);
                     };

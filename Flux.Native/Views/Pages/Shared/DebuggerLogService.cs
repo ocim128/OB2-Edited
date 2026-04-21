@@ -31,7 +31,6 @@ namespace Flux.Native.Views.Pages.Shared
 
         // State for block navigation
         private readonly List<int> _blockStartIndices = new();
-        private int _currentBlockIndex = -1;
 
         // Buffering
         private readonly ConcurrentQueue<BotLoggerEntry> _pendingLogs = new();
@@ -144,7 +143,6 @@ namespace Flux.Native.Views.Pages.Shared
             _searchMatches.Clear();
             _blockStartIndices.Clear();
             _currentMatchIndex = -1;
-            _currentBlockIndex = -1;
             _lastSearchText = string.Empty;
             
             _pendingLogs.Clear(); // Clear pending buffer too
@@ -257,14 +255,32 @@ namespace Flux.Native.Views.Pages.Shared
         #region Block Navigation
         public void NavigateToBlock(int direction)
         {
-            if (_blockStartIndices.Count == 0) return;
+            if (_blockStartIndices.Count == 0 || direction == 0) return;
 
-            _currentBlockIndex += direction;
-            
-            if (_currentBlockIndex < 0) _currentBlockIndex = 0;
-            if (_currentBlockIndex >= _blockStartIndices.Count) _currentBlockIndex = _blockStartIndices.Count - 1;
+            var currentOffset = Math.Clamp(_logRTB.CaretOffset, 0, _logRTB.Document.TextLength);
+            var index = _blockStartIndices.BinarySearch(currentOffset);
 
-            int offset = _blockStartIndices[_currentBlockIndex];
+            int targetIndex;
+
+            if (direction > 0)
+            {
+                targetIndex = index >= 0 ? index + 1 : ~index;
+                if (targetIndex >= _blockStartIndices.Count)
+                {
+                    targetIndex = _blockStartIndices.Count - 1;
+                }
+            }
+            else
+            {
+                targetIndex = index >= 0 ? index - 1 : ~index - 1;
+                if (targetIndex < 0)
+                {
+                    targetIndex = 0;
+                }
+            }
+
+            int offset = _blockStartIndices[targetIndex];
+            _logRTB.CaretOffset = offset;
             _logRTB.Select(offset, 0);
             var line = _logRTB.Document.GetLineByOffset(offset);
             _logRTB.ScrollToLine(line.LineNumber);

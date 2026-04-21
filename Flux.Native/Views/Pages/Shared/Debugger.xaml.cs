@@ -251,6 +251,14 @@ public partial class Debugger : Page
                 searchTextBox.Focus();
                 e.Handled = true;
                 break;
+            case Key.Up when Keyboard.Modifiers == ModifierKeys.Control:
+                _logService.NavigateToBlock(-1);
+                e.Handled = true;
+                break;
+            case Key.Down when Keyboard.Modifiers == ModifierKeys.Control:
+                _logService.NavigateToBlock(1);
+                e.Handled = true;
+                break;
             case Key.L when Keyboard.Modifiers == ModifierKeys.Control:
                 _viewModel.ClearLog();
                 e.Handled = true;

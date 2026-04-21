@@ -9,7 +9,7 @@
       d:DesignHeight="550" d:DesignWidth="780"
       Title="Readme">
 
-    <Grid>
+    <Grid Margin="16">
         <Grid.RowDefinitions>
             <RowDefinition Height="auto"/>
             <RowDefinition Height="*"/>
@@ -21,10 +21,13 @@
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
 
-        <Label
+        <TextBlock
             Grid.Row="0" Grid.Column="0"
+            Text="Readme"
+            FontWeight="SemiBold"
+            FontSize="14"
             Foreground="{DynamicResource ForegroundCustom}"
-            >Readme</Label>
+            Margin="0,0,0,8"/>
 
         <RichTextBox x:Name="readmeRTB" 
                              Background="{DynamicResource BackgroundSecondary}" 
@@ -32,7 +35,8 @@
                              FontFamily="Consolas"
                              VerticalAlignment="Stretch"
                              Grid.Row="1" Grid.Column="0"
-                             TextChanged="ReadmeChanged">
+                             TextChanged="ReadmeChanged"
+                             BorderBrush="{DynamicResource Modern.BorderMain}" BorderThickness="1" Padding="8">
             <RichTextBox.Resources>
                 <Style TargetType="{x:Type Paragraph}">
                     <Setter Property="Margin" Value="0"/>
@@ -45,13 +49,32 @@
             ResizeBehavior="PreviousAndNext"
             Grid.Column="1"
             Grid.RowSpan="2" 
-            Width="5"
-            VerticalAlignment="Stretch" />
+            Width="8"
+            VerticalAlignment="Stretch">
+            <GridSplitter.Template>
+                <ControlTemplate TargetType="GridSplitter">
+                    <Border Background="{DynamicResource Modern.BorderSecondary}"
+                            Opacity="0.5"
+                            CornerRadius="2">
+                        <StackPanel VerticalAlignment="Center"
+                                    HorizontalAlignment="Center"
+                                    Orientation="Vertical">
+                            <Ellipse Width="3" Height="3" Margin="0,1" Fill="{DynamicResource Modern.TextTertiary}" />
+                            <Ellipse Width="3" Height="3" Margin="0,1" Fill="{DynamicResource Modern.TextTertiary}" />
+                            <Ellipse Width="3" Height="3" Margin="0,1" Fill="{DynamicResource Modern.TextTertiary}" />
+                        </StackPanel>
+                    </Border>
+                </ControlTemplate>
+            </GridSplitter.Template>
+        </GridSplitter>
 
-        <Label
+        <TextBlock
             Grid.Row="0" Grid.Column="2"
+            Text="Preview (type something to update)"
+            FontWeight="SemiBold"
+            FontSize="14"
             Foreground="{DynamicResource ForegroundCustom}"
-            >Preview (type something to update)</Label>
+            Margin="0,0,0,8"/>
 
         <uc:MarkdownViewer 
             Grid.Row="1" Grid.Column="2"

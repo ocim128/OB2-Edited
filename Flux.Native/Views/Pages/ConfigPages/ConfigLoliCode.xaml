@@ -110,8 +110,6 @@
                 HorizontalAlignment="Stretch"
                 ShowLineNumbers="True"
                 WordWrap="{Binding WordWrap}"
-                MaxWidth="{Binding ActualWidth, ElementName=dockParent}"
-                MaxHeight="{Binding ActualHeight, ElementName=dockParent}"
                 AutomationProperties.Name="Startup LoliCode editor"
                 AutomationProperties.AutomationId="ConfigStartupEditor"/>
                 </Border>
@@ -129,8 +127,6 @@
             HorizontalAlignment="Stretch"
             ShowLineNumbers="True"
             WordWrap="{Binding WordWrap}"
-            MaxWidth="{Binding ActualWidth, ElementName=dockParent}"
-            MaxHeight="{Binding ActualHeight, ElementName=dockParent}"
             AutomationProperties.Name="Main LoliCode editor"
             AutomationProperties.AutomationId="ConfigMainEditor"/>
         </Border>

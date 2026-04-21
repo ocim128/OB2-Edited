@@ -107,7 +107,7 @@
                 <Button Click="Save" 
                     HorizontalAlignment="Stretch"
                     Style="{StaticResource ConsistentButton}"
-                    Background="{DynamicResource Modern.Error}" Foreground="{DynamicResource Modern.TextOnAccent}"
+                    Background="{DynamicResource Modern.Success}" Foreground="{DynamicResource Modern.TextOnAccent}"
                     Content="Save" Padding="12,6">
                     <Button.Tag>
                         <iconPacks:PackIconRemixIcon Kind="Save3Fill" Width="14" Height="14" Foreground="{DynamicResource Modern.TextOnAccent}"/>

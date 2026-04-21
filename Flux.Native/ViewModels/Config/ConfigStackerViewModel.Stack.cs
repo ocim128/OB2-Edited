@@ -131,7 +131,7 @@ public partial class ConfigStackerViewModel
 
         if (Stack != null)
         {
-            OriginalStack = new List<BlockViewModel>(Stack.Where(static b => b != null));
+            SyncOriginalStackFromStackIfUnfiltered();
         }
 
         SaveStack();
@@ -159,7 +159,7 @@ public partial class ConfigStackerViewModel
 
         if (Stack != null)
         {
-            OriginalStack = new List<BlockViewModel>(Stack.Where(static b => b != null));
+            SyncOriginalStackFromStackIfUnfiltered();
         }
 
         SaveStack();
@@ -347,19 +347,34 @@ public partial class ConfigStackerViewModel
 
     private void SaveStack()
     {
-        if (Stack != null)
+        // Always save from OriginalStack (full unfiltered list), never from
+        // the potentially-filtered Stack view. Some callers first sync
+        // OriginalStack from Stack (e.g. move operations when no filter is
+        // active), which is fine — those callers know the filter state.
+        configService.SelectedConfig.Stack = OriginalStack
+            .Where(static b => b?.Block != null)
+            .Select(static b => b.Block)
+            .ToList();
+    }
+
+    private void SyncOriginalStackFromStackIfUnfiltered()
+    {
+        // Only rebuild OriginalStack from the visual Stack when no search
+        // filter is active. During filtering, Stack is a subset and we must
+        // preserve the full OriginalStack.
+        if (string.IsNullOrWhiteSpace(state.SearchText))
         {
             OriginalStack = new List<BlockViewModel>(Stack.Where(static b => b != null));
-
-            configService.SelectedConfig.Stack = Stack
-                .Where(static b => b?.Block != null)
-                .Select(static b => b.Block)
-                .ToList();
         }
         else
         {
-            configService.SelectedConfig.Stack = [];
-            OriginalStack = [];
+            // Reorder OriginalStack to match the order of Stack items,
+            // preserving non-matching items at the end.
+            var orderedFromFilter = Stack.Where(static b => b != null).ToList();
+            var remaining = OriginalStack
+                .Where(b => b != null && !orderedFromFilter.Contains(b))
+                .ToList();
+            OriginalStack = [.. orderedFromFilter, .. remaining];
         }
     }
 }

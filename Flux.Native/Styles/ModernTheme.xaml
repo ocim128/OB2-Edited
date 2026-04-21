@@ -30,6 +30,7 @@
     <SolidColorBrush x:Key="Modern.ForegroundInput" Color="#0F172A" po:Freeze="False" />
     <SolidColorBrush x:Key="Modern.TextSecondary" Color="#64748B" po:Freeze="False" />
     <SolidColorBrush x:Key="Modern.TextOnAccent" Color="#FFFFFF" po:Freeze="False" />
+    <SolidColorBrush x:Key="Modern.TextTertiary" Color="#94A3B8" po:Freeze="False" />
     
     <!-- Semantic Colors -->
     <SolidColorBrush x:Key="Modern.Success" Color="#10B981" po:Freeze="False" />

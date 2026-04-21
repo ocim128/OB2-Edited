@@ -103,9 +103,7 @@
                 HorizontalAlignment="Stretch"
                 ShowLineNumbers="True"
                 IsReadOnly="True"
-                WordWrap="{Binding WordWrap}"
-                MaxWidth="{Binding ActualWidth, ElementName=dockParent}"
-                MaxHeight="{Binding ActualHeight, ElementName=dockParent}"/>
+                WordWrap="{Binding WordWrap}"/>
                 </Border>
         </Grid>
         </Border>
@@ -132,9 +130,7 @@
             HorizontalAlignment="Stretch"
             IsReadOnly="True"
             ShowLineNumbers="True"
-            WordWrap="{Binding WordWrap}"
-            MaxWidth="{Binding ActualWidth, ElementName=dockParent}"
-            MaxHeight="{Binding ActualHeight, ElementName=dockParent}"/>
+            WordWrap="{Binding WordWrap}"/>
                 </Border>
             </Grid>
         </Border>

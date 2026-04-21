@@ -9,7 +9,7 @@
       d:DesignHeight="450" d:DesignWidth="800"
       Title="TestDataRulesDialog">
 
-    <Grid Margin="5">
+    <Grid Margin="16">
         <Grid.RowDefinitions>
             <RowDefinition Height="auto" />
             <RowDefinition Height="auto" />
@@ -18,25 +18,34 @@
             <RowDefinition Height="auto" />
             <RowDefinition Height="auto" />
             <RowDefinition Height="auto" />
+            <RowDefinition Height="*" />
             <RowDefinition Height="auto" />
         </Grid.RowDefinitions>
 
-        <StackPanel Orientation="Horizontal" Grid.Row="0" VerticalAlignment="Center">
-            <Label FontWeight="Bold" Content="Wordlist Type:" />
-            <Label Content="{Binding WordlistType}" />
+        <TextBlock Grid.Row="0" Text="Test Data Rules" FontWeight="SemiBold" FontSize="16"
+                   Foreground="{DynamicResource Modern.ThemeMain}" Margin="0,0,0,16"/>
+
+        <StackPanel Orientation="Horizontal" Grid.Row="1" VerticalAlignment="Center" Margin="0,0,0,8">
+            <TextBlock FontWeight="SemiBold" Text="Wordlist Type: " 
+                       Foreground="{DynamicResource Modern.ForegroundMain}" VerticalAlignment="Center"/>
+            <TextBlock Text="{Binding WordlistType}" 
+                       Foreground="{DynamicResource Modern.ForegroundSecondary}" VerticalAlignment="Center"/>
         </StackPanel>
 
-        <StackPanel Orientation="Horizontal" Grid.Row="1" VerticalAlignment="Center">
-            <Label FontWeight="Bold"  Content="Regex Validation:" />
-            <iconPacks:PackIconForkAwesome Kind="{Binding RegexValidation.Icon}" Foreground="{Binding RegexValidation.Color}" VerticalAlignment="Center" />
-            <Label Content="{Binding RegexValidation.Result}" />
+        <StackPanel Orientation="Horizontal" Grid.Row="2" VerticalAlignment="Center" Margin="0,0,0,8">
+            <TextBlock FontWeight="SemiBold" Text="Regex Validation: "
+                       Foreground="{DynamicResource Modern.ForegroundMain}" VerticalAlignment="Center"/>
+            <iconPacks:PackIconForkAwesome Kind="{Binding RegexValidation.Icon}" Foreground="{Binding RegexValidation.Color}" VerticalAlignment="Center" Margin="0,0,4,0"/>
+            <TextBlock Text="{Binding RegexValidation.Result}" 
+                       Foreground="{DynamicResource Modern.ForegroundSecondary}" VerticalAlignment="Center"/>
         </StackPanel>
 
-        <Separator Grid.Row="2" Opacity="0.5" Margin="0 5 0 0" ></Separator>
-        
-        <Label FontWeight="Bold" Grid.Row="3" Content="Slices by separator:" />
+        <Separator Grid.Row="3" Margin="0,4,0,8" />
 
-        <ItemsControl ItemsSource="{Binding SlicesCollection}" Grid.Row="4">
+        <TextBlock Grid.Row="4" FontWeight="SemiBold" Text="Slices by separator:"
+                   Foreground="{DynamicResource Modern.ForegroundMain}" Margin="0,0,0,8"/>
+
+        <ItemsControl ItemsSource="{Binding SlicesCollection}" Grid.Row="5" Margin="0,0,0,8">
             <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate>
                     <StackPanel Orientation="Vertical"/>
@@ -44,17 +53,18 @@
             </ItemsControl.ItemsPanel>
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0 -5 0 -5">
-                        <Label Content="{Binding Name}"  />
-                        <Label Content="="  />
-                        <Label Content="{Binding Value}" />
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,2">
+                        <TextBlock Text="{Binding Name}" Foreground="{DynamicResource Modern.ForegroundMain}" FontWeight="Medium" Margin="0,0,4,0"/>
+                        <TextBlock Text="=" Foreground="{DynamicResource Modern.ForegroundMuted}" Margin="0,0,4,0"/>
+                        <TextBlock Text="{Binding Value}" Foreground="{DynamicResource Modern.ForegroundSecondary}"/>
                     </StackPanel>
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
         </ItemsControl>
-        <Separator Grid.Row="5" Opacity="0.5" Margin="0 5 0 0" ></Separator>
-        <Label FontWeight="Bold" Grid.Row="6" Content="Results:" />
-        <ScrollViewer MaxHeight="300" Grid.Row="7" Margin="5 0 0 0" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+
+        <Separator Grid.Row="6" Margin="0,4,0,8" />
+
+        <ScrollViewer MaxHeight="300" Grid.Row="7" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
             <ItemsControl ItemsSource="{Binding ResultsCollection}">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
@@ -63,13 +73,19 @@
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <iconPacks:PackIconForkAwesome Kind="{Binding Icon}" Foreground="{Binding Color}" VerticalAlignment="Center" />
-                            <Label Content="{Binding Text}"  />
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,2">
+                            <iconPacks:PackIconForkAwesome Kind="{Binding Icon}" Foreground="{Binding Color}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                            <TextBlock Text="{Binding Text}" Foreground="{DynamicResource Modern.ForegroundMain}"/>
                         </StackPanel>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
         </ScrollViewer>
+
+        <!-- Close Button -->
+        <Button Grid.Row="8" Content="Close" HorizontalAlignment="Right"
+                Style="{StaticResource StyledPrimaryButton}"
+                Margin="0,16,0,0" IsCancel="True"
+                Click="Close_Click"/>
     </Grid>
 </Page>

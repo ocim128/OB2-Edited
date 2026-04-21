@@ -47,6 +47,22 @@ public partial class ConfigStackerViewModel
             OriginalStack = new List<BlockViewModel>(Stack.Where(static b => b != null));
         }
 
+        // Clear selection on blocks that will be filtered out
+        if (!string.IsNullOrWhiteSpace(searchText))
+        {
+            var lowerSearchText = searchText.ToLowerInvariant();
+            foreach (var block in Stack.Where(static b => b != null))
+            {
+                var matchesLabel = block.Label.ToLowerInvariant().Contains(lowerSearchText);
+                var matchesType = block.Block?.Descriptor?.Name != null
+                    && block.Block.Descriptor.Name.ToLowerInvariant().Contains(lowerSearchText);
+                if (!matchesLabel && !matchesType && block.Selected)
+                {
+                    block.Selected = false;
+                }
+            }
+        }
+
         Stack.Clear();
 
         if (string.IsNullOrWhiteSpace(searchText))

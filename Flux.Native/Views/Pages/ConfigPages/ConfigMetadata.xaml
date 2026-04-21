@@ -9,67 +9,93 @@
       d:DesignHeight="550" d:DesignWidth="780"
       Title="Metadata">
 
-    <Grid>
-        <StackPanel>
-            <StackPanel Orientation="Horizontal" Margin="0 10 0 0">
-                <Label>Name</Label>
-                <TextBox Text="{Binding Name}" 
-                             Width="250"></TextBox>
-            </StackPanel>
-            <StackPanel Orientation="Horizontal" Margin="0 10 0 0">
-                <Label>Author</Label>
-                <TextBox Text="{Binding Author}" 
-                             Width="250"></TextBox>
-            </StackPanel>
-            <StackPanel Orientation="Horizontal" Margin="0 10 0 0">
-                <Label>Category</Label>
-                <TextBox Text="{Binding Category}" 
-                             Width="250"></TextBox>
-            </StackPanel>
-            <Label 
-                Margin="0 10"
-                Foreground="{DynamicResource ForegroundCustom}">Icon</Label>
-            <Image 
-                Source="{Binding Icon}"
-                Width="150"
-                Height="150"
-                HorizontalAlignment="Left"
-                Margin="5 0 0 0"/>
-            <StackPanel Orientation="Horizontal" Margin="0 10">
-                <Label>Select a new image from disk</Label>
-                <Button x:Name="openImageButton" 
-                    Grid.Column="2"
-                    Click="OpenIcon" 
-                    Style="{StaticResource StyledPrimaryButton}" >
-                    <StackPanel Orientation="Horizontal">
-                        <iconPacks:PackIconForkAwesome Kind="File" />
-                        <TextBlock VerticalAlignment="Center" Margin="5 0">Open</TextBlock>
-                    </StackPanel>
-                </Button>
-                <Label>or from a remote URL</Label>
-            </StackPanel>
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="auto"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="auto"/>
-                </Grid.ColumnDefinitions>
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Margin="16">
 
-                <Label Grid.Column="0">URL</Label>
-                <TextBox x:Name="urlTextbox" 
-                         Grid.Column="1"
-                         Margin="10 0"></TextBox>
-                <Button x:Name="downloadButton" 
-                Grid.Column="2"
-                Click="DownloadIcon" 
-                Style="{StaticResource StyledSuccessButton}" >
-                    <StackPanel Orientation="Horizontal">
-                        <iconPacks:PackIconForkAwesome Kind="Download" />
-                        <TextBlock VerticalAlignment="Center" Margin="5 0">Download</TextBlock>
+            <!-- Basic Info Card -->
+            <Border Background="{DynamicResource Modern.BackgroundSecondary}" CornerRadius="8" Padding="16" Margin="0,0,0,16"
+                    BorderBrush="{DynamicResource Modern.BorderSecondary}" BorderThickness="1">
+                <StackPanel>
+                    <TextBlock Text="Basic Information" FontWeight="SemiBold" FontSize="14"
+                               Foreground="{DynamicResource Modern.ThemeMain}" Margin="0,0,0,16"/>
+
+                    <Grid Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="120"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="Name" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource Modern.ForegroundMain}" FontWeight="Medium"/>
+                        <TextBox Grid.Column="1" Text="{Binding Name}" />
+                    </Grid>
+
+                    <Grid Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="120"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="Author" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource Modern.ForegroundMain}" FontWeight="Medium"/>
+                        <TextBox Grid.Column="1" Text="{Binding Author}" />
+                    </Grid>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="120"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="Category" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource Modern.ForegroundMain}" FontWeight="Medium"/>
+                        <TextBox Grid.Column="1" Text="{Binding Category}" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- Icon Card -->
+            <Border Background="{DynamicResource Modern.BackgroundSecondary}" CornerRadius="8" Padding="16" Margin="0,0,0,16"
+                    BorderBrush="{DynamicResource Modern.BorderSecondary}" BorderThickness="1">
+                <StackPanel>
+                    <TextBlock Text="Icon" FontWeight="SemiBold" FontSize="14"
+                               Foreground="{DynamicResource ForegroundCustom}" Margin="0,0,0,16"/>
+
+                    <Border Background="{DynamicResource Modern.BackgroundTertiary}" CornerRadius="8"
+                            Width="150" Height="150" HorizontalAlignment="Left" Margin="0,0,0,16">
+                        <Image Source="{Binding Icon}" Width="150" Height="150"
+                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                        <TextBlock Text="Select a new image from disk" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource Modern.ForegroundSecondary}" Margin="0,0,12,0"/>
+                        <Button x:Name="openImageButton" Click="OpenIcon" 
+                                Style="{StaticResource StyledPrimaryButton}">
+                            <StackPanel Orientation="Horizontal">
+                                <iconPacks:PackIconForkAwesome Kind="File" Width="14" Height="14"/>
+                                <TextBlock VerticalAlignment="Center" Margin="6,0,0,0">Open</TextBlock>
+                            </StackPanel>
+                        </Button>
                     </StackPanel>
-                </Button>
-            </Grid>
+
+                    <TextBlock Text="or from a remote URL" Margin="0,0,0,8"
+                               Foreground="{DynamicResource Modern.ForegroundSecondary}"/>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="urlTextbox" Grid.Column="0" Margin="0,0,8,0" />
+                        <Button x:Name="downloadButton" Grid.Column="1"
+                                Click="DownloadIcon" Style="{StaticResource StyledSuccessButton}">
+                            <StackPanel Orientation="Horizontal">
+                                <iconPacks:PackIconForkAwesome Kind="Download" Width="14" Height="14"/>
+                                <TextBlock VerticalAlignment="Center" Margin="6,0,0,0">Download</TextBlock>
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
         </StackPanel>
-    </Grid>
+    </ScrollViewer>
 </Page>
-

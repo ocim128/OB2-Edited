@@ -123,14 +123,7 @@
                                      VerticalAlignment="Center"
                                      TextChanged="UpdateSearch"
                                      Padding="8,6"/>
-                            <Button x:Name="searchButton"
-                                     Style="{StaticResource StyledPrimaryButton}">
-                                <StackPanel Orientation="Horizontal">
-                                    <iconPacks:PackIconMaterialDesign Kind="Search" Width="16" Height="16" Margin="0,0,4,0"/>
-                                    <TextBlock Text="Search" VerticalAlignment="Center" FontWeight="SemiBold"/>
-                                </StackPanel>
-                            </Button>
-            </StackPanel>
+                        </StackPanel>
                     </Border>
                 </WrapPanel>
 

@@ -55,6 +55,14 @@
                 </DataTrigger>
             </Style.Triggers>
         </Style>
+
+        <Style x:Key="DebuggerInlineTextBox" TargetType="TextBox" BasedOn="{StaticResource DebuggerSearchTextBox}">
+            <Setter Property="MinHeight" Value="34" />
+            <Setter Property="MinWidth" Value="140" />
+            <Setter Property="Padding" Value="12,5" />
+            <Setter Property="FontSize" Value="12.5" />
+            <Setter Property="mah:ControlsHelper.CornerRadius" Value="8" />
+        </Style>
     </Page.Resources>
     <Grid Margin="16,12,16,16"
           HorizontalAlignment="Center"
@@ -72,104 +80,105 @@
         <Border x:Name="DebuggerTogglesBorder"
                 Grid.Row="0"
                 Style="{StaticResource DebuggerSectionBorder}"
-                Padding="12"
+                Padding="12,10"
                 Margin="0,0,0,12">
             <WrapPanel HorizontalAlignment="Left">
-                <Button x:Name="TabToggleButton"
-                        Click="ToggleTabButtons"
-                        Style="{StaticResource DebuggerCommandButton}"
-                        MinWidth="120"
-                        Margin="0,0,8,0"
-                        Background="{StaticResource Modern.Success}"
-                        Foreground="{StaticResource Modern.TextOnAccent}"
-                        ToolTip="Toggle UI elements visibility"
-                        AutomationProperties.Name="Toggle debugger UI"
-                        AutomationProperties.AutomationId="DbgToggleUi">
-                    <StackPanel Orientation="Horizontal">
-                        <iconPacks:PackIconUnicons x:Name="TabToggleIcon"
-                                                   Kind="Eye"
-                                                   Width="14"
-                                                   Height="14"
-                                                   Margin="0,0,6,0" />
-                        <TextBlock Text="Show UI"
-                                   VerticalAlignment="Center"
-                                   FontWeight="SemiBold"
-                                   FontSize="11" />
-                    </StackPanel>
-                </Button>
-                <Button x:Name="OptionsToggleButton"
-                        Click="ToggleOptions"
-                        Style="{StaticResource DebuggerCommandButton}"
-                        MinWidth="130"
-                        Margin="0,0,8,0"
-                        Background="{StaticResource Modern.ThemeAccent}"
-                        Foreground="{StaticResource Modern.TextOnAccent}"
-                        ToolTip="Toggle options visibility"
-                        AutomationProperties.Name="Toggle options"
-                        AutomationProperties.AutomationId="DbgToggleOptions">
-                    <StackPanel Orientation="Horizontal">
-                        <iconPacks:PackIconUnicons x:Name="OptionsToggleIcon"
-                                                   Kind="Eye"
-                                                   Width="14"
-                                                   Height="14"
-                                                   Margin="0,0,6,0" />
-                        <TextBlock Text="Show Options"
-                                   VerticalAlignment="Center"
-                                   FontWeight="SemiBold"
-                                   FontSize="11" />
-                    </StackPanel>
-                </Button>
-                <Button x:Name="StackerToggleButton"
-                        Click="ToggleStacker"
-                        Style="{StaticResource DebuggerCommandButton}"
-                        MinWidth="130"
-                        Background="{StaticResource Modern.Success}"
-                        Foreground="{StaticResource Modern.TextOnAccent}"
-                        ToolTip="Toggle stacker visibility"
-                        AutomationProperties.Name="Toggle stacker"
-                        AutomationProperties.AutomationId="DbgToggleStacker">
-                    <StackPanel Orientation="Horizontal">
-                        <iconPacks:PackIconUnicons x:Name="StackerToggleIcon"
-                                                   Kind="Eye"
-                                                   Width="14"
-                                                   Height="14"
-                                                   Margin="0,0,6,0" />
-                        <TextBlock Text="Show Stacker"
-                                   VerticalAlignment="Center"
-                                   FontWeight="SemiBold"
-                                   FontSize="11" />
-                    </StackPanel>
-                </Button>
-                <Button x:Name="FocusModeButton"
-                        Click="ToggleFocusMode"
-                        Style="{StaticResource DebuggerCommandButton}"
-                        MinWidth="140"
-                        Margin="0,0,8,0"
-                        Background="{DynamicResource Modern.Warning}"
-                        Foreground="{StaticResource Modern.TextOnAccent}"
-                        ToolTip="Show only the essentials (block inspector, input &amp; log)"
-                        AutomationProperties.Name="Toggle focus mode"
-                        AutomationProperties.AutomationId="DbgToggleFocus">
-                    <StackPanel Orientation="Horizontal">
-                        <iconPacks:PackIconUnicons x:Name="FocusModeIcon"
-                                                   Kind="Crosshair"
-                                                   Width="14"
-                                                   Height="14"
-                                                   Margin="0,0,6,0" />
-                        <TextBlock x:Name="FocusModeText"
-                                   Text="Focus Mode"
-                                   VerticalAlignment="Center"
-                                   FontWeight="SemiBold"
-                                   FontSize="11" />
-                    </StackPanel>
-                </Button>
+                    <Button x:Name="TabToggleButton"
+                            Click="ToggleTabButtons"
+                            Style="{StaticResource DebuggerCommandButton}"
+                            MinWidth="120"
+                            Margin="0,0,8,0"
+                            Background="{StaticResource Modern.Success}"
+                            Foreground="{StaticResource Modern.TextOnAccent}"
+                            ToolTip="Toggle UI elements visibility"
+                            AutomationProperties.Name="Toggle debugger UI"
+                            AutomationProperties.AutomationId="DbgToggleUi">
+                        <StackPanel Orientation="Horizontal">
+                            <iconPacks:PackIconUnicons x:Name="TabToggleIcon"
+                                                       Kind="Eye"
+                                                       Width="14"
+                                                       Height="14"
+                                                       Margin="0,0,6,0" />
+                            <TextBlock Text="Show UI"
+                                       VerticalAlignment="Center"
+                                       FontWeight="SemiBold"
+                                       FontSize="11" />
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="OptionsToggleButton"
+                            Click="ToggleOptions"
+                            Style="{StaticResource DebuggerCommandButton}"
+                            MinWidth="130"
+                            Margin="0,0,8,0"
+                            Background="{StaticResource Modern.ThemeAccent}"
+                            Foreground="{StaticResource Modern.TextOnAccent}"
+                            ToolTip="Toggle options visibility"
+                            AutomationProperties.Name="Toggle options"
+                            AutomationProperties.AutomationId="DbgToggleOptions">
+                        <StackPanel Orientation="Horizontal">
+                            <iconPacks:PackIconUnicons x:Name="OptionsToggleIcon"
+                                                       Kind="Eye"
+                                                       Width="14"
+                                                       Height="14"
+                                                       Margin="0,0,6,0" />
+                            <TextBlock Text="Show Options"
+                                       VerticalAlignment="Center"
+                                       FontWeight="SemiBold"
+                                       FontSize="11" />
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="StackerToggleButton"
+                            Click="ToggleStacker"
+                            Style="{StaticResource DebuggerCommandButton}"
+                            MinWidth="130"
+                            Margin="0,0,8,0"
+                            Background="{StaticResource Modern.Success}"
+                            Foreground="{StaticResource Modern.TextOnAccent}"
+                            ToolTip="Toggle stacker visibility"
+                            AutomationProperties.Name="Toggle stacker"
+                            AutomationProperties.AutomationId="DbgToggleStacker">
+                        <StackPanel Orientation="Horizontal">
+                            <iconPacks:PackIconUnicons x:Name="StackerToggleIcon"
+                                                       Kind="Eye"
+                                                       Width="14"
+                                                       Height="14"
+                                                       Margin="0,0,6,0" />
+                            <TextBlock Text="Show Stacker"
+                                       VerticalAlignment="Center"
+                                       FontWeight="SemiBold"
+                                       FontSize="11" />
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="FocusModeButton"
+                            Click="ToggleFocusMode"
+                            Style="{StaticResource DebuggerCommandButton}"
+                            MinWidth="140"
+                            Margin="0,0,0,0"
+                            Background="{DynamicResource Modern.Warning}"
+                            Foreground="{StaticResource Modern.TextOnAccent}"
+                            ToolTip="Show only the essentials (block inspector, input &amp; log)"
+                            AutomationProperties.Name="Toggle focus mode"
+                            AutomationProperties.AutomationId="DbgToggleFocus">
+                        <StackPanel Orientation="Horizontal">
+                            <iconPacks:PackIconUnicons x:Name="FocusModeIcon"
+                                                       Kind="Crosshair"
+                                                       Width="14"
+                                                       Height="14"
+                                                       Margin="0,0,6,0" />
+                            <TextBlock x:Name="FocusModeText"
+                                       Text="Focus Mode"
+                                       VerticalAlignment="Center"
+                                       FontWeight="SemiBold"
+                                       FontSize="11" />
+                        </StackPanel>
+                    </Button>
             </WrapPanel>
         </Border>
         <!-- Configuration Panel -->
         <Border Grid.Row="1"
                 x:Name="ConfigurationPanel"
                 Style="{StaticResource DebuggerSectionBorder}"
-                Padding="16,12">
+                Padding="14,12">
             <Grid>
                 <Grid.Style>
                     <Style TargetType="Grid">
@@ -198,16 +207,13 @@
                     </Grid.ColumnDefinitions>
                     <!-- Input Data - Primary Focus - Enhanced to prevent text truncation -->
                     <StackPanel Grid.Column="0">
-                        <TextBlock Text="INPUT DATA"
-                                   Foreground="{DynamicResource Modern.ForegroundMuted}"
-                                   FontFamily="Segoe UI"
-                                   FontSize="15"
-                                   FontWeight="Medium"
-                                   Margin="0,0,0,6" />
+                        <TextBlock Text="Input Data"
+                                   Style="{StaticResource DebuggerSectionTitle}" />
                         <TextBox x:Name="inputDataTextBox" Text="{Binding TestData, UpdateSourceTrigger=PropertyChanged}"
-                                 Style="{StaticResource MatchingTextBox}"
-                                 MinHeight="38"
-                                 MaxHeight="38"
+                                 Style="{StaticResource DebuggerSearchTextBox}"
+                                 MinHeight="40"
+                                 MaxHeight="40"
+                                 Margin="0,4,0,0"
                                  AcceptsReturn="False"
                                  TextWrapping="NoWrap"
                                  VerticalScrollBarVisibility="Disabled"
@@ -218,135 +224,135 @@
                     <!-- Perfect Start Button -->
                     <StackPanel Grid.Column="2"
                                 VerticalAlignment="Bottom">
-                        <StackPanel.Style>
-                            <Style TargetType="StackPanel">
-                                <Setter Property="Orientation" Value="Horizontal" />
-                                <Setter Property="HorizontalAlignment" Value="Right" />
-                                <Setter Property="Margin" Value="0" />
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=Page}, Path=ActualWidth, Converter={StaticResource LessThanConverter}, ConverterParameter=900}"
-                                                 Value="True">
-                                        <Setter Property="Orientation" Value="Vertical" />
-                                        <Setter Property="HorizontalAlignment" Value="Stretch" />
-                                        <Setter Property="Margin" Value="0,12,0,0" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </StackPanel.Style>
-                        <Button x:Name="StartButton" Click="Start"
-                                Style="{StaticResource PerfectStartButton}"
-                                Visibility="{Binding CanStart, Converter={StaticResource BoolToVis}}"
-                                Width="80"
-                                Height="32"
-                                Margin="0,0,6,0"
-                                Padding="10,6"
-                                AutomationProperties.Name="Start debugging"
-                                AutomationProperties.AutomationId="DbgStart" />
-                        <Button x:Name="StopButton"
-                                Click="Stop"
-                                Style="{StaticResource PerfectStopButton}"
-                                Visibility="{Binding CanStop, Converter={StaticResource BoolToVis}}"
-                                Width="80"
-                                Height="32"
-                                Margin="0,0,6,0"
-                                Padding="10,6"
-                                AutomationProperties.Name="Stop debugging"
-                                AutomationProperties.AutomationId="DbgStop" />
-                        <Button x:Name="StepButton"
-                                Click="TakeStep"
-                                Style="{StaticResource StyledPrimaryButton}"
-                                Visibility="{Binding CanTakeStep, Converter={StaticResource BoolToVis}}"
-                                Width="75"
-                                Height="32"
-                                Margin="0,0,6,0"
-                                FontSize="11"
-                                AutomationProperties.Name="Step execution"
-                                AutomationProperties.AutomationId="DbgStep">
-                            <StackPanel Orientation="Horizontal">
-                                <iconPacks:PackIconEntypo Kind="ControllerPlay"
-                                                          Width="12"
-                                                          Height="12"
-                                                          Margin="0,0,4,0" />
-                                <TextBlock Text="Step"
-                                           VerticalAlignment="Center" />
-                            </StackPanel>
-                        </Button>
+                        <StackPanel>
+                            <StackPanel.Style>
+                                <Style TargetType="StackPanel">
+                                    <Setter Property="Orientation" Value="Horizontal" />
+                                    <Setter Property="HorizontalAlignment" Value="Right" />
+                                    <Setter Property="Margin" Value="0,0,0,2" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=Page}, Path=ActualWidth, Converter={StaticResource LessThanConverter}, ConverterParameter=900}"
+                                                     Value="True">
+                                            <Setter Property="Orientation" Value="Vertical" />
+                                            <Setter Property="HorizontalAlignment" Value="Stretch" />
+                                            <Setter Property="Margin" Value="0,12,0,0" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </StackPanel.Style>
+                            <Button x:Name="StartButton" Click="Start"
+                                    Style="{StaticResource PerfectStartButton}"
+                                    Visibility="{Binding CanStart, Converter={StaticResource BoolToVis}}"
+                                    Width="88"
+                                    Height="34"
+                                    Margin="0,0,8,0"
+                                    Padding="10,6"
+                                    AutomationProperties.Name="Start debugging"
+                                    AutomationProperties.AutomationId="DbgStart" />
+                            <Button x:Name="StopButton"
+                                    Click="Stop"
+                                    Style="{StaticResource PerfectStopButton}"
+                                    Visibility="{Binding CanStop, Converter={StaticResource BoolToVis}}"
+                                    Width="88"
+                                    Height="34"
+                                    Margin="0,0,8,0"
+                                    Padding="10,6"
+                                    AutomationProperties.Name="Stop debugging"
+                                    AutomationProperties.AutomationId="DbgStop" />
+                            <Button x:Name="StepButton"
+                                    Click="TakeStep"
+                                    Style="{StaticResource StyledPrimaryButton}"
+                                    Visibility="{Binding CanTakeStep, Converter={StaticResource BoolToVis}}"
+                                    Width="82"
+                                    Height="34"
+                                    Margin="0,0,0,0"
+                                    FontSize="11"
+                                    AutomationProperties.Name="Step execution"
+                                    AutomationProperties.AutomationId="DbgStep">
+                                <StackPanel Orientation="Horizontal">
+                                    <iconPacks:PackIconEntypo Kind="ControllerPlay"
+                                                              Width="12"
+                                                              Height="12"
+                                                              Margin="0,0,4,0" />
+                                    <TextBlock Text="Step"
+                                               VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
                     </StackPanel>
                 </Grid>
                 <!-- Secondary Options - Well Positioned -->
                 <Grid Grid.Row="2"
                       x:Name="SecondaryOptionsGrid"
-                      Visibility="Collapsed">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="24" />
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="12" />
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="24" />
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="12" />
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="24" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <!-- Collapsible Secondary Options Panel -->
-                    <ScrollViewer HorizontalScrollBarVisibility="Auto"
-                                  VerticalScrollBarVisibility="Disabled"
-                                  Grid.ColumnSpan="11"
-                                  MaxHeight="40"
-                                  CanContentScroll="True"
-                                  VirtualizingStackPanel.IsVirtualizing="True"
-                                  VirtualizingStackPanel.VirtualizationMode="Recycling">
-                        <StackPanel Orientation="Horizontal"
-                                    Margin="0,0,0,0">
-                            <!-- Square Step-by-Step Checkbox -->
-                            <CheckBox IsChecked="{Binding StepByStep}"
-                                      Style="{StaticResource SquareCheckBox}"
-                                      Content="Step-by-Step"
-                                      Margin="0,0,24,0" />
-                            <!-- Wordlist Type with Clean ComboBox -->
-                            <StackPanel Orientation="Horizontal"
-                                        Margin="0,0,24,0">
-                                <TextBlock Text="Type"
-                                           Foreground="{DynamicResource Modern.ForegroundMuted}"
-                                           FontFamily="Segoe UI"
-                                           FontSize="11"
-                                           VerticalAlignment="Center"
-                                           Margin="0,0,6,0"
-                                           Style="{StaticResource ResponsiveHideStyle}" />
-                                <ComboBox ItemsSource="{Binding WordlistTypes}"
-                                          SelectedItem="{Binding WordlistType}"
-                                          Style="{StaticResource CleanComboBox}"
-                                          Width="95"
-                                          MinHeight="34" />
-                            </StackPanel>
-                            <!-- Square Proxy Checkbox -->
-                            <CheckBox IsChecked="{Binding UseProxy}"
-                                      Style="{StaticResource SquareCheckBox}"
-                                      Content="Proxy"
-                                      Margin="0,0,12,0" />
-                            <!-- Proxy Configuration with Clean ComboBox -->
-                            <StackPanel Orientation="Horizontal"
-                                        IsEnabled="{Binding UseProxy}"
-                                        Margin="0,0,24,0">
+                      Visibility="Collapsed"
+                      Margin="0,6,0,0">
+                    <StackPanel>
+                        <WrapPanel>
+                            <Border Style="{StaticResource DebuggerCompactOptionGroup}">
+                                <StackPanel Orientation="Horizontal"
+                                            VerticalAlignment="Center">
+                                    <CheckBox IsChecked="{Binding StepByStep}"
+                                              Style="{StaticResource SquareCheckBox}"
+                                              Content=""
+                                              Margin="0,0,2,0" />
+                                    <TextBlock Text="Step-by-Step"
+                                               Style="{StaticResource DebuggerInlineLabel}"
+                                               VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Border>
+                            <Border Style="{StaticResource DebuggerCompactOptionGroup}">
+                                <StackPanel Orientation="Horizontal"
+                                            VerticalAlignment="Center">
+                                    <TextBlock Text="Type"
+                                               Style="{StaticResource DebuggerInlineLabel}"
+                                               VerticalAlignment="Center"
+                                               Margin="0,0,8,0" />
+                                    <ComboBox ItemsSource="{Binding WordlistTypes}"
+                                              SelectedItem="{Binding WordlistType}"
+                                              Style="{StaticResource CleanComboBox}"
+                                              Width="120"
+                                              MinHeight="34" />
+                                </StackPanel>
+                            </Border>
+                            <Border Style="{StaticResource DebuggerCompactOptionGroup}">
+                                <StackPanel Orientation="Horizontal"
+                                            VerticalAlignment="Center">
+                                    <CheckBox IsChecked="{Binding PersistLog}"
+                                              Style="{StaticResource SquareCheckBox}"
+                                              Content=""
+                                              Margin="0,0,2,0" />
+                                    <TextBlock Text="Persist Log"
+                                               Style="{StaticResource DebuggerInlineLabel}"
+                                               VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Border>
+                        </WrapPanel>
+                        <Border Style="{StaticResource DebuggerCompactOptionGroup}"
+                                Margin="0,0,0,0">
+                            <WrapPanel VerticalAlignment="Center">
+                                <StackPanel Orientation="Horizontal"
+                                            VerticalAlignment="Center"
+                                            Margin="0,0,12,0">
+                                    <CheckBox IsChecked="{Binding UseProxy}"
+                                              Style="{StaticResource SquareCheckBox}"
+                                              Content=""
+                                              Margin="0,0,2,0" />
+                                    <TextBlock Text="Use Proxy"
+                                               Style="{StaticResource DebuggerInlineLabel}"
+                                               VerticalAlignment="Center" />
+                                </StackPanel>
                                 <TextBox Text="{Binding TestProxy}"
-                                         Style="{StaticResource MatchingTextBox}"
-                                         Width="130"
-                                         MinHeight="38"
-                                         Margin="0,0,6,0" />
+                                         Style="{StaticResource DebuggerInlineTextBox}"
+                                         Width="180"
+                                         Margin="0,0,8,0" />
                                 <ComboBox ItemsSource="{Binding ProxyTypes}"
                                           SelectedItem="{Binding ProxyType}"
                                           Style="{StaticResource CleanComboBox}"
-                                          Width="75"
-                                          MinHeight="38" />
-                            </StackPanel>
-                            <!-- Square Persist Log Checkbox -->
-                            <CheckBox IsChecked="{Binding PersistLog}"
-                                      Style="{StaticResource SquareCheckBox}"
-                                      Content="Persist Log" />
-                        </StackPanel>
-                    </ScrollViewer>
+                                          Width="92"
+                                          MinHeight="34" />
+                            </WrapPanel>
+                        </Border>
+                    </StackPanel>
                     <!-- Triggers for responsive behavior -->
                     <Grid.Style>
                         <Style TargetType="Grid" BasedOn="{StaticResource ResponsiveHideStyle}" />

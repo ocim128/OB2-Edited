@@ -14,7 +14,8 @@
     <Style x:Key="SquareCheckBox" TargetType="CheckBox">
         <Setter Property="Foreground" Value="{DynamicResource Modern.ForegroundMain}" />
         <Setter Property="FontFamily" Value="Segoe UI" />
-        <Setter Property="FontSize" Value="12" />
+        <Setter Property="FontSize" Value="12.5" />
+        <Setter Property="FontWeight" Value="Medium" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
         <Setter Property="Template">
             <Setter.Value>
@@ -36,7 +37,11 @@
                                   Data="M 0,4 L 3,7 L 8,0"
                                   Visibility="Collapsed" />
                         </Border>
-                        <ContentPresenter VerticalAlignment="Center" />
+                        <AccessText Text="{TemplateBinding Content}"
+                                    VerticalAlignment="Center"
+                                    Foreground="{TemplateBinding Foreground}"
+                                    FontSize="{TemplateBinding FontSize}"
+                                    FontWeight="{TemplateBinding FontWeight}" />
                     </StackPanel>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsChecked" Value="True">
@@ -58,6 +63,29 @@
         <Setter Property="Padding" Value="12" />
         <Setter Property="UseLayoutRounding" Value="True" />
         <Setter Property="SnapsToDevicePixels" Value="True" />
+    </Style>
+
+    <Style x:Key="DebuggerSectionTitle" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{StaticResource Modern.ForegroundSecondary}" />
+        <Setter Property="FontFamily" Value="Segoe UI" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+
+    <Style x:Key="DebuggerInlineLabel" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{StaticResource Modern.ForegroundSecondary}" />
+        <Setter Property="FontFamily" Value="Segoe UI" />
+        <Setter Property="FontSize" Value="11.5" />
+        <Setter Property="FontWeight" Value="Medium" />
+    </Style>
+
+    <Style x:Key="DebuggerCompactOptionGroup" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource Modern.BackgroundMain}" />
+        <Setter Property="BorderBrush" Value="{StaticResource Modern.BorderSecondary}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="Padding" Value="8,6" />
+        <Setter Property="Margin" Value="0,0,6,6" />
     </Style>
 
     <Style x:Key="DebuggerToolbarButton" TargetType="Button" BasedOn="{StaticResource ModernButton}">

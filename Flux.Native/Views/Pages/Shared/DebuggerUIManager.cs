@@ -13,7 +13,7 @@ namespace Flux.Native.Views.Pages.Shared;
 public sealed class DebuggerUIManager
 {
     #region Static Brushes (frozen for WPF thread-safety and zero alloc)
-    private static readonly Brush ToggleActiveBrush = CreateFrozenBrush(220, 38, 38);   // Red #DC2626
+    private static readonly Brush ToggleActiveBrush = CreateFrozenBrush(71, 85, 105);   // Slate #475569
     private static readonly Brush OptionsAccentBrush = CreateFrozenBrush(124, 58, 237); // Purple #7C3AED
     private static readonly Brush SuccessAccentBrush = CreateFrozenBrush(5, 150, 105);  // Green #059669
     private static readonly Brush WarningAccentBrush = CreateFrozenBrush(245, 158, 11); // Amber #F59E0B

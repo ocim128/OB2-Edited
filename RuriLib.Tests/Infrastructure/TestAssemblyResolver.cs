@@ -71,9 +71,13 @@ internal static class TestAssemblyResolver
                     continue;
                 }
 
-                var match = Directory
+                var matches = Directory
                     .EnumerateFiles(packagesPath, $"{name}.dll", SearchOption.AllDirectories)
-                    .FirstOrDefault();
+                    .ToList();
+
+                var match = matches.FirstOrDefault(static path =>
+                    !path.Contains($"{Path.DirectorySeparatorChar}ref{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase))
+                    ?? matches.FirstOrDefault();
 
                 if (match is not null)
                 {

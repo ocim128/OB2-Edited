@@ -195,7 +195,7 @@ public partial class AutoBlockInstance : BlockInstance
                 writer.Write($"{OutputVariable} = ");
             }
 
-            WriteMethod(writer);
+            WriteMethod(writer, definedVariables);
 
             writer.WriteLine("} catch (Exception safeException) {");
             writer.WriteLine("data.ERROR = safeException.PrettyPrint();");
@@ -221,13 +221,13 @@ public partial class AutoBlockInstance : BlockInstance
                 }
             }
 
-            WriteMethod(writer);
+            WriteMethod(writer, definedVariables);
         }
 
         return writer.ToString();
     }
 
-    private void WriteMethod(StringWriter writer)
+    private void WriteMethod(StringWriter writer, List<string> definedVariables)
     {
         // If async, prepend the await keyword
         if ((Descriptor as AutoBlockDescriptor).Async)
@@ -256,9 +256,9 @@ public partial class AutoBlockInstance : BlockInstance
             writer.WriteLine(";");
         }
 
-        // If the block has a return type, log which variable was written
         if (Descriptor.ReturnType.HasValue)
         {
+            // If the block has a return type, log which variable was written
             writer.WriteLine($"data.LogVariableAssignment(\"{OutputVariable}\");");
 
             if (IsCapture)
@@ -266,6 +266,59 @@ public partial class AutoBlockInstance : BlockInstance
                 writer.WriteLine($"data.MarkForCapture(\"{OutputVariable}\");");
             }
         }
+        else
+        {
+            WriteObjectVariableSync(writer, definedVariables);
+        }
+    }
+
+    private void WriteObjectVariableSync(StringWriter writer, List<string> definedVariables)
+    {
+        if (!TryGetFixedObjectVariableName(out var variableName))
+        {
+            return;
+        }
+
+        var serializedName = CSharpWriter.SerializeString(variableName);
+        var assignment = $"data.Objects.ContainsKey({serializedName}) ? data.Objects[{serializedName}] : RuriLib.Models.NullDynamic.Instance";
+
+        if (definedVariables.Contains(variableName))
+        {
+            writer.WriteLine($"{variableName} = {assignment};");
+        }
+        else
+        {
+            if (!Disabled)
+            {
+                definedVariables.Add(variableName);
+            }
+
+            writer.WriteLine($"dynamic {variableName} = {assignment};");
+        }
+    }
+
+    private bool TryGetFixedObjectVariableName(out string variableName)
+    {
+        variableName = string.Empty;
+
+        if (Descriptor.ReturnType.HasValue ||
+            !Settings.TryGetValue("variableName", out var setting) ||
+            setting.InputMode != SettingInputMode.Fixed ||
+            setting.FixedSetting is not StringSetting stringSetting ||
+            string.IsNullOrWhiteSpace(stringSetting.Value))
+        {
+            return false;
+        }
+
+        var candidate = stringSetting.Value.Trim();
+
+        if (candidate.Contains('.', StringComparison.Ordinal) || !VariableNames.IsValid(candidate))
+        {
+            return false;
+        }
+
+        variableName = candidate;
+        return true;
     }
 
     /// <summary>

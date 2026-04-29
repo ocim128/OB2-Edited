@@ -234,14 +234,19 @@ namespace RuriLib.Blocks.Playwright.Elements
         }
 
         [Block("Hovers over an element", name = "Hover Element")]
-        public static async Task PlaywrightHoverElement(BotData data, string selector, int timeoutSeconds = 30)
+        public static async Task PlaywrightHoverElement(BotData data,
+            [BlockParam("Find By")] FindElementBy findBy = FindElementBy.Selector,
+            [BlockParam("Identifier")] string selector = "",
+            int index = 0,
+            int timeoutSeconds = 30)
         {
-            data.Logger.LogHeader();
+            LogMethodStart(data, $"Hovering over element: {findBy} {selector}");
 
             var frame = GetFrame(data);
-            await frame.HoverAsync(selector, new FrameHoverOptions { Timeout = timeoutSeconds * 1000 });
+            await GetLocator(frame, findBy, selector, index)
+                .HoverAsync(CreateElementOptions<LocatorHoverOptions>(timeoutSeconds));
 
-            data.Logger.Log($"Hovered over element: {selector}", LogColors.Tomato);
+            data.Logger.Log($"Hovered over element: {findBy} {selector} at index {index}", LogColors.Tomato);
         }
 
         [Block("Double clicks on an element", name = "Double Click")]
@@ -304,14 +309,19 @@ namespace RuriLib.Blocks.Playwright.Elements
         }
 
         [Block("Focuses on an element", name = "Focus Element")]
-        public static async Task PlaywrightFocusElement(BotData data, string selector, int timeoutSeconds = 30)
+        public static async Task PlaywrightFocusElement(BotData data,
+            [BlockParam("Find By")] FindElementBy findBy = FindElementBy.Selector,
+            [BlockParam("Identifier")] string selector = "",
+            int index = 0,
+            int timeoutSeconds = 30)
         {
-            data.Logger.LogHeader();
+            LogMethodStart(data, $"Focusing element: {findBy} {selector}");
 
             var frame = GetFrame(data);
-            await frame.FocusAsync(selector, new FrameFocusOptions { Timeout = timeoutSeconds * 1000 });
+            await GetLocator(frame, findBy, selector, index)
+                .FocusAsync(CreateElementOptions<LocatorFocusOptions>(timeoutSeconds));
 
-            data.Logger.Log($"Focused on element: {selector}", LogColors.Tomato);
+            data.Logger.Log($"Focused on element: {findBy} {selector} at index {index}", LogColors.Tomato);
         }
 
         [Block("Presses a key on an element", name = "Press Key")]
@@ -389,5 +399,11 @@ namespace RuriLib.Blocks.Playwright.Elements
 
         private static string BuildSelector(FindElementBy findBy, string identifier)
             => PlaywrightHelpers.BuildSelector(findBy, identifier);
+
+        private static ILocator GetLocator(IFrame frame, FindElementBy findBy, string identifier, int index)
+            => (findBy == FindElementBy.XPath
+                ? frame.Locator("xpath=" + identifier)
+                : frame.Locator(BuildSelector(findBy, identifier)))
+                .Nth(index);
     }
 }

@@ -15,6 +15,7 @@ namespace RuriLib.Models.Blocks.Custom
         private const string CaseModeToken = "CASEMODE";
         private static readonly string[] caseSettingNames =
         [
+            "input",
             "prefix",
             "suffix",
             "leftDelim",

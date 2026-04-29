@@ -262,14 +262,14 @@ namespace RuriLib.Models.Blocks.Custom
                     continue;
                 }
 
-                if (!Descriptor.Parameters.TryGetValue(name, out var parameter) ||
-                    !currentCase.Settings.TryGetValue(name, out var setting))
+                if (!Descriptor.Parameters.ContainsKey(name) ||
+                    !currentCase.Settings.ContainsKey(name))
                 {
                     return false;
                 }
 
                 var temp = line;
-                LoliCodeParser.ParseSettingValue(ref temp, setting, parameter);
+                LoliCodeParser.ParseSetting(ref temp, currentCase.Settings, Descriptor);
                 return true;
             }
 

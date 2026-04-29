@@ -8,6 +8,11 @@
              d:DesignHeight="320" d:DesignWidth="400">
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
+        <Style x:Key="ConditionalAddButton" TargetType="Button" BasedOn="{StaticResource ModernPrimaryButton}">
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Padding" Value="10 4"/>
+            <Setter Property="MinHeight" Value="28"/>
+        </Style>
     </UserControl.Resources>
 
     <Border Padding="10" Background="#AA000000" CornerRadius="8" BorderBrush="#40FFFFFF" BorderThickness="1">
@@ -196,7 +201,8 @@
                     CornerRadius="6"
                     Background="#19000000">
                 <StackPanel>
-                    <DockPanel Margin="0 0 0 6">
+                    <DockPanel Margin="0 0 0 6"
+                               LastChildFill="False">
                         <TextBlock Text="Conditional Overrides"
                                    DockPanel.Dock="Left"
                                    Foreground="#fec34d"
@@ -205,7 +211,7 @@
                                    VerticalAlignment="Center"/>
                         <Button Content="Add Condition"
                                 DockPanel.Dock="Right"
-                                Style="{StaticResource ModernButton}"
+                                Style="{StaticResource ConditionalAddButton}"
                                 Padding="10 4"
                                 Click="AddCondition"/>
                     </DockPanel>

@@ -52,6 +52,12 @@
           "Microsoft.Extensions.Logging": "8.0.0"
         }
       },
+      "System.CodeDom": {
+        "type": "Direct",
+        "requested": "[8.0.0, )",
+        "resolved": "8.0.0",
+        "contentHash": "WTlRjL6KWIMr/pAaq3rYqh0TJlzpouaQ/W1eelssHgtlwHAH25jXTkUphTYx9HaIIf7XA6qs/0+YhtLEQRkJ+Q=="
+      },
       "xunit": {
         "type": "Direct",
         "requested": "[2.8.1, )",
@@ -545,11 +551,6 @@
           "ExCSS": "4.2.3",
           "System.Drawing.Common": "5.0.3"
         }
-      },
-      "System.CodeDom": {
-        "type": "Transitive",
-        "resolved": "8.0.0",
-        "contentHash": "WTlRjL6KWIMr/pAaq3rYqh0TJlzpouaQ/W1eelssHgtlwHAH25jXTkUphTYx9HaIIf7XA6qs/0+YhtLEQRkJ+Q=="
       },
       "System.Collections.Immutable": {
         "type": "Transitive",

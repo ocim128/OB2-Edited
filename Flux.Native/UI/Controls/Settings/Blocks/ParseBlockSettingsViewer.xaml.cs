@@ -127,6 +127,7 @@ namespace Flux.Native.Controls
             };
             overridePanel.Children.Add(modeCombo);
 
+            overridePanel.Children.Add(new StringSettingViewer { Setting = conditionalCase.Settings["input"] });
             overridePanel.Children.Add(new StringSettingViewer { Setting = conditionalCase.Settings["prefix"] });
             overridePanel.Children.Add(new StringSettingViewer { Setting = conditionalCase.Settings["suffix"] });
             overridePanel.Children.Add(modeTabs);

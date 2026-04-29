@@ -21,6 +21,9 @@
     <PackageReference Include="PuppeteerSharp" Version="20.2.4" GeneratePathProperty="true">
       <ExcludeAssets></ExcludeAssets>
     </PackageReference>
+    <PackageReference Include="System.CodeDom" Version="8.0.0" GeneratePathProperty="true">
+      <ExcludeAssets></ExcludeAssets>
+    </PackageReference>
     <PackageReference Include="Microsoft.TestPlatform.ObjectModel" Version="17.10.0" GeneratePathProperty="true">
       <ExcludeAssets></ExcludeAssets>
     </PackageReference>
@@ -64,6 +67,7 @@
       <_TestPlatformRuntimeFiles Include="$(PkgMicrosoft_TestPlatform_TestHost)\lib\netcoreapp3.1\testhost.deps.json" />
       <_TestPlatformRuntimeFiles Include="$(PkgNewtonsoft_Json)\lib\netstandard2.0\Newtonsoft.Json.dll" />
       <_TestPlatformRuntimeFiles Include="$(PkgPuppeteerSharp)\lib\netstandard2.0\PuppeteerSharp.dll" />
+      <_TestPlatformRuntimeFiles Include="$(PkgSystem_CodeDom)\lib\net8.0\System.CodeDom.dll" />
       <_TestPlatformRuntimeFiles Include="$(Pkgxunit_assert)\lib\netstandard1.1\xunit.assert.dll" />
       <_TestPlatformRuntimeFiles Include="$(Pkgxunit_abstractions)\lib\netstandard2.0\xunit.abstractions.dll" />
       <_TestPlatformRuntimeFiles Include="$(Pkgxunit_extensibility_core)\lib\netstandard1.1\xunit.core.dll" />

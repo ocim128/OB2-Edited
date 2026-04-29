@@ -40,6 +40,11 @@ namespace Flux.Native.Controls
         {
             // General
             inputSetting.Setting = vm.ParseBlock.Settings["input"];
+            inputSetting.SettingChanged += (s, e) =>
+            {
+                vm.ParseBlock.SyncInheritedConditionalInputs();
+                ReloadConditionalCases();
+            };
             prefixSetting.Setting = vm.ParseBlock.Settings["prefix"];
             suffixSetting.Setting = vm.ParseBlock.Settings["suffix"];
             urlEncodeOutputSetting.Setting = vm.ParseBlock.Settings["urlEncodeOutput"];
@@ -76,6 +81,8 @@ namespace Flux.Native.Controls
 
         private void AddCaseViewer(ParseBlockInstance.ParseConditionalCase conditionalCase)
         {
+            vm.ParseBlock.SyncInheritedConditionalInput(conditionalCase);
+
             var container = new Border
             {
                 BorderBrush = new SolidColorBrush(Color.FromArgb(40, 255, 255, 255)),
@@ -127,7 +134,13 @@ namespace Flux.Native.Controls
             };
             overridePanel.Children.Add(modeCombo);
 
-            overridePanel.Children.Add(new StringSettingViewer { Setting = conditionalCase.Settings["input"] });
+            var inputViewer = new StringSettingViewer { Setting = conditionalCase.Settings["input"] };
+            inputViewer.SettingChanged += (s, e) =>
+            {
+                conditionalCase.InputOverridden = true;
+                conditionalCase.InputOverrideExplicitlySet = true;
+            };
+            overridePanel.Children.Add(inputViewer);
             overridePanel.Children.Add(new StringSettingViewer { Setting = conditionalCase.Settings["prefix"] });
             overridePanel.Children.Add(new StringSettingViewer { Setting = conditionalCase.Settings["suffix"] });
             overridePanel.Children.Add(modeTabs);

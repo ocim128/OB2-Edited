@@ -102,12 +102,16 @@ namespace RuriLib.Models.Blocks.Custom
                     }
                 }
             }
+
+            SyncInheritedConditionalInputs();
         }
 
         private void AppendConditionalCases(LoliCodeWriter writer, bool printDefaults)
         {
             foreach (var conditionalCase in ConditionalCases)
             {
+                SyncInheritedConditionalInput(conditionalCase);
+
                 var nameSetting = BlockSettingFactory.CreateStringSetting("caseName", conditionalCase.Name);
                 writer
                     .AppendToken("CASE", 2)
@@ -120,10 +124,22 @@ namespace RuriLib.Models.Blocks.Custom
 
                 foreach (var settingName in caseSettingNames)
                 {
+                    if (settingName == InputSettingName && !IsInputOverridden(conditionalCase))
+                    {
+                        continue;
+                    }
+
                     if (!conditionalCase.Settings.TryGetValue(settingName, out var setting) ||
                         !Descriptor.Parameters.TryGetValue(settingName, out var parameter))
                     {
                         continue;
+                    }
+
+                    if (settingName == InputSettingName &&
+                        conditionalCase.InputOverrideExplicitlySet &&
+                        IsDescriptorDefaultInput(setting))
+                    {
+                        writer.AppendLine(InputOverrideToken, 4);
                     }
 
                     writer.AppendSetting(setting, parameter, 4, printDefaults);
@@ -215,6 +231,12 @@ namespace RuriLib.Models.Blocks.Custom
 
                     writer.WriteLine();
                 }
+                else if (currentCase != null && trimmed.StartsWith(InputOverrideToken, StringComparison.OrdinalIgnoreCase))
+                {
+                    currentCase.InputOverridden = true;
+                    currentCase.InputOverrideExplicitlySet = true;
+                    writer.WriteLine();
+                }
                 else if (currentCase != null && TryParseConditionalSetting(trimmed, currentCase))
                 {
                     writer.WriteLine();
@@ -270,6 +292,12 @@ namespace RuriLib.Models.Blocks.Custom
 
                 var temp = line;
                 LoliCodeParser.ParseSetting(ref temp, currentCase.Settings, Descriptor);
+
+                if (name == InputSettingName)
+                {
+                    currentCase.InputOverridden = true;
+                }
+
                 return true;
             }
 

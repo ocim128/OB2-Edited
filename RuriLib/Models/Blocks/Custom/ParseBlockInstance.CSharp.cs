@@ -2,7 +2,6 @@ using RuriLib.Helpers.CSharp;
 using RuriLib.Logging;
 using RuriLib.Models.Blocks.Custom.Keycheck;
 using RuriLib.Models.Blocks.Custom.Parse;
-using RuriLib.Models.Blocks.Settings;
 using RuriLib.Models.Configs;
 using System;
 using System.Collections.Generic;
@@ -15,6 +14,8 @@ namespace RuriLib.Models.Blocks.Custom
     {
         public override string ToCSharp(List<string> definedVariables, ConfigSettings settings)
         {
+            SyncInheritedConditionalInputs();
+
             using var writer = new StringWriter();
             var outputType = Recursive ? "List<string>" : "string";
             var defaultReturnValue = Recursive ? "new List<string>()" : "string.Empty";
@@ -54,7 +55,7 @@ namespace RuriLib.Models.Blocks.Custom
                     writer.WriteLine(prefix);
                     writer.WriteLine("{");
                     writer.WriteLine("    __parseCaseMatched = true;");
-                    WriteParseMethod(writer, conditionalCase.OverrideMode, conditionalCase.Settings, 4);
+                    WriteParseMethod(writer, conditionalCase, 4);
                     writer.WriteLine("    data.Logger.LogHeader();");
                     writer.WriteLine($"    data.Logger.Log($\"Conditional parse '{conditionalCase.Name.Replace("\"", "\\\"")}' matched\", LogColors.YellowGreen);");
                     writer.WriteLine("}");
@@ -63,7 +64,7 @@ namespace RuriLib.Models.Blocks.Custom
 
                 writer.WriteLine("if (!__parseCaseMatched)");
                 writer.WriteLine("{");
-                WriteParseMethod(writer, null, null, 4);
+                WriteParseMethod(writer, null, 4);
                 writer.WriteLine("}");
             }
             else
@@ -86,10 +87,10 @@ namespace RuriLib.Models.Blocks.Custom
             return writer.ToString();
         }
 
-        private void WriteParseMethod(StringWriter writer, ParseMode? overrideMode = null, Dictionary<string, BlockSetting> overrideSettings = null, int indent = 0)
+        private void WriteParseMethod(StringWriter writer, ParseConditionalCase conditionalCase = null, int indent = 0)
         {
             var indentString = new string(' ', indent);
-            var modeToUse = overrideMode ?? Mode;
+            var modeToUse = conditionalCase?.OverrideMode ?? Mode;
             writer.Write($"{indentString}{OutputVariable} = ");
 
             switch (modeToUse)
@@ -117,45 +118,45 @@ namespace RuriLib.Models.Blocks.Custom
             }
 
             writer.Write("(data, ");
-            writer.Write(CSharpWriter.FromSetting(GetCaseSetting(overrideSettings, "input")));
+            writer.Write(CSharpWriter.FromSetting(GetCaseSetting(conditionalCase, "input")));
 
             switch (modeToUse)
             {
                 case ParseMode.LR:
-                    writer.Write($", {CSharpWriter.FromSetting(GetCaseSetting(overrideSettings, "leftDelim"))}");
-                    writer.Write($", {CSharpWriter.FromSetting(GetCaseSetting(overrideSettings, "rightDelim"))}");
-                    writer.Write($", {CSharpWriter.FromSetting(GetCaseSetting(overrideSettings, "caseSensitive"))}");
-                    writer.Write($", {CSharpWriter.FromSetting(GetCaseSetting(overrideSettings, "prefix"))}");
-                    writer.Write($", {CSharpWriter.FromSetting(GetCaseSetting(overrideSettings, "suffix"))}");
-                    writer.Write($", {CSharpWriter.FromSetting(GetCaseSetting(overrideSettings, "urlEncodeOutput"))}");
+                    writer.Write($", {CSharpWriter.FromSetting(GetCaseSetting(conditionalCase, "leftDelim"))}");
+                    writer.Write($", {CSharpWriter.FromSetting(GetCaseSetting(conditionalCase, "rightDelim"))}");
+                    writer.Write($", {CSharpWriter.FromSetting(GetCaseSetting(conditionalCase, "caseSensitive"))}");
+                    writer.Write($", {CSharpWriter.FromSetting(GetCaseSetting(conditionalCase, "prefix"))}");
+                    writer.Write($", {CSharpWriter.FromSetting(GetCaseSetting(conditionalCase, "suffix"))}");
+                    writer.Write($", {CSharpWriter.FromSetting(GetCaseSetting(conditionalCase, "urlEncodeOutput"))}");
                     break;
                 case ParseMode.CSS:
-                    writer.Write($", {CSharpWriter.FromSetting(GetCaseSetting(overrideSettings, "cssSelector"))}");
-                    writer.Write($", {CSharpWriter.FromSetting(GetCaseSetting(overrideSettings, "attributeName"))}");
-                    writer.Write($", {CSharpWriter.FromSetting(GetCaseSetting(overrideSettings, "prefix"))}");
-                    writer.Write($", {CSharpWriter.FromSetting(GetCaseSetting(overrideSettings, "suffix"))}");
-                    writer.Write($", {CSharpWriter.FromSetting(GetCaseSetting(overrideSettings, "urlEncodeOutput"))}");
+                    writer.Write($", {CSharpWriter.FromSetting(GetCaseSetting(conditionalCase, "cssSelector"))}");
+                    writer.Write($", {CSharpWriter.FromSetting(GetCaseSetting(conditionalCase, "attributeName"))}");
+                    writer.Write($", {CSharpWriter.FromSetting(GetCaseSetting(conditionalCase, "prefix"))}");
+                    writer.Write($", {CSharpWriter.FromSetting(GetCaseSetting(conditionalCase, "suffix"))}");
+                    writer.Write($", {CSharpWriter.FromSetting(GetCaseSetting(conditionalCase, "urlEncodeOutput"))}");
                     break;
                 case ParseMode.XPath:
-                    writer.Write($", {CSharpWriter.FromSetting(GetCaseSetting(overrideSettings, "xPath"))}");
-                    writer.Write($", {CSharpWriter.FromSetting(GetCaseSetting(overrideSettings, "attributeName"))}");
-                    writer.Write($", {CSharpWriter.FromSetting(GetCaseSetting(overrideSettings, "prefix"))}");
-                    writer.Write($", {CSharpWriter.FromSetting(GetCaseSetting(overrideSettings, "suffix"))}");
-                    writer.Write($", {CSharpWriter.FromSetting(GetCaseSetting(overrideSettings, "urlEncodeOutput"))}");
+                    writer.Write($", {CSharpWriter.FromSetting(GetCaseSetting(conditionalCase, "xPath"))}");
+                    writer.Write($", {CSharpWriter.FromSetting(GetCaseSetting(conditionalCase, "attributeName"))}");
+                    writer.Write($", {CSharpWriter.FromSetting(GetCaseSetting(conditionalCase, "prefix"))}");
+                    writer.Write($", {CSharpWriter.FromSetting(GetCaseSetting(conditionalCase, "suffix"))}");
+                    writer.Write($", {CSharpWriter.FromSetting(GetCaseSetting(conditionalCase, "urlEncodeOutput"))}");
                     break;
                 case ParseMode.Json:
-                    writer.Write($", {CSharpWriter.FromSetting(GetCaseSetting(overrideSettings, "jToken"))}");
-                    writer.Write($", {CSharpWriter.FromSetting(GetCaseSetting(overrideSettings, "prefix"))}");
-                    writer.Write($", {CSharpWriter.FromSetting(GetCaseSetting(overrideSettings, "suffix"))}");
-                    writer.Write($", {CSharpWriter.FromSetting(GetCaseSetting(overrideSettings, "urlEncodeOutput"))}");
+                    writer.Write($", {CSharpWriter.FromSetting(GetCaseSetting(conditionalCase, "jToken"))}");
+                    writer.Write($", {CSharpWriter.FromSetting(GetCaseSetting(conditionalCase, "prefix"))}");
+                    writer.Write($", {CSharpWriter.FromSetting(GetCaseSetting(conditionalCase, "suffix"))}");
+                    writer.Write($", {CSharpWriter.FromSetting(GetCaseSetting(conditionalCase, "urlEncodeOutput"))}");
                     break;
                 case ParseMode.Regex:
-                    writer.Write($", {CSharpWriter.FromSetting(GetCaseSetting(overrideSettings, "pattern"))}");
-                    writer.Write($", {CSharpWriter.FromSetting(GetCaseSetting(overrideSettings, "outputFormat"))}");
-                    writer.Write($", {CSharpWriter.FromSetting(GetCaseSetting(overrideSettings, "multiLine"))}");
-                    writer.Write($", {CSharpWriter.FromSetting(GetCaseSetting(overrideSettings, "prefix"))}");
-                    writer.Write($", {CSharpWriter.FromSetting(GetCaseSetting(overrideSettings, "suffix"))}");
-                    writer.Write($", {CSharpWriter.FromSetting(GetCaseSetting(overrideSettings, "urlEncodeOutput"))}");
+                    writer.Write($", {CSharpWriter.FromSetting(GetCaseSetting(conditionalCase, "pattern"))}");
+                    writer.Write($", {CSharpWriter.FromSetting(GetCaseSetting(conditionalCase, "outputFormat"))}");
+                    writer.Write($", {CSharpWriter.FromSetting(GetCaseSetting(conditionalCase, "multiLine"))}");
+                    writer.Write($", {CSharpWriter.FromSetting(GetCaseSetting(conditionalCase, "prefix"))}");
+                    writer.Write($", {CSharpWriter.FromSetting(GetCaseSetting(conditionalCase, "suffix"))}");
+                    writer.Write($", {CSharpWriter.FromSetting(GetCaseSetting(conditionalCase, "urlEncodeOutput"))}");
                     break;
             }
 

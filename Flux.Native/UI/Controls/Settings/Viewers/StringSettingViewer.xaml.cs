@@ -17,6 +17,8 @@ namespace Flux.Native.Controls
     {
         private StringSettingViewerViewModel vm;
 
+        public event EventHandler SettingChanged;
+
         public BlockSetting Setting
         {
             get => vm?.Setting;
@@ -28,6 +30,7 @@ namespace Flux.Native.Controls
                 }
 
                 vm = new StringSettingViewerViewModel(value);
+                vm.SettingChanged += (s, e) => SettingChanged?.Invoke(this, EventArgs.Empty);
                 DataContext = vm;
 
                 tabControl.SelectedIndex = vm.Mode switch
@@ -110,7 +113,13 @@ namespace Flux.Native.Controls
             get => Setting.InputMode;
             set
             {
+                if (Setting.InputMode == value)
+                {
+                    return;
+                }
+
                 Setting.InputMode = value;
+                SettingChanged?.Invoke(this, EventArgs.Empty);
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(CanSwitchToInterpolatedMode));
             }
@@ -121,7 +130,13 @@ namespace Flux.Native.Controls
             get => Setting.InputVariableName;
             set
             {
+                if (Setting.InputVariableName == value)
+                {
+                    return;
+                }
+
                 Setting.InputVariableName = value;
+                SettingChanged?.Invoke(this, EventArgs.Empty);
                 OnPropertyChanged();
             }
         }
@@ -131,7 +146,13 @@ namespace Flux.Native.Controls
             get => InterpolatedSetting.Value;
             set
             {
+                if (InterpolatedSetting.Value == value)
+                {
+                    return;
+                }
+
                 InterpolatedSetting.Value = value;
+                SettingChanged?.Invoke(this, EventArgs.Empty);
                 OnPropertyChanged();
             }
         }
@@ -141,7 +162,13 @@ namespace Flux.Native.Controls
             get => FixedSetting.Value;
             set
             {
+                if (FixedSetting.Value == value)
+                {
+                    return;
+                }
+
                 FixedSetting.Value = value;
+                SettingChanged?.Invoke(this, EventArgs.Empty);
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(CanSwitchToInterpolatedMode));
             }
@@ -151,5 +178,7 @@ namespace Flux.Native.Controls
         {
             Setting = setting;
         }
+
+        public event EventHandler SettingChanged;
     }
 }

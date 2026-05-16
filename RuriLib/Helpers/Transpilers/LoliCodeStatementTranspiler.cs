@@ -61,8 +61,9 @@ namespace RuriLib.Helpers.Transpilers
             {
                 var label = match.Groups[1].Value;
                 var maxJumps = settings?.GeneralSettings?.MaxJumpIterations > 0 ? settings.GeneralSettings.MaxJumpIterations : 40;
+                var jumpStatus = settings?.GeneralSettings?.MaxJumpExceededStatus ?? "RETRY";
                 // Note: We assume __jumpCount_{label} is declared at start of script
-                return $"data.Logger.Log(\"Jumping to label {label}\", LogColors.White);{System.Environment.NewLine}if (++__jumpCount_{label} > {maxJumps}) throw new InvalidOperationException($\"Infinite loop detected at label {label} - maximum {maxJumps} iterations reached\");{System.Environment.NewLine}goto {label};";
+                return $"data.Logger.Log(\"Jumping to label {label}\", LogColors.White);{System.Environment.NewLine}if (++__jumpCount_{label} > {maxJumps}) {{ data.Logger.Log(\"Infinite loop detected at label {label} - maximum {maxJumps} iterations reached\", LogColors.Tomato); data.STATUS = \"{jumpStatus}\"; return; }}{System.Environment.NewLine}goto {label};";
             }
 
             // END

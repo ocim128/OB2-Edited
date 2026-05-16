@@ -16,11 +16,11 @@
     <Page.Resources>
         <!-- Premium Settings Card Style -->
         <Style x:Key="SettingsCardStyle" TargetType="Border">
-            <Setter Property="Background" Value="{StaticResource Modern.BackgroundSecondary}"/>
+            <Setter Property="Background" Value="{DynamicResource Modern.BackgroundSecondary}"/>
             <Setter Property="CornerRadius" Value="12"/>
             <Setter Property="Padding" Value="24"/>
             <Setter Property="Margin" Value="0,0,0,24"/>
-            <Setter Property="BorderBrush" Value="{StaticResource Modern.BorderSecondary}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource Modern.BorderSecondary}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="UseLayoutRounding" Value="True"/>
             <Setter Property="SnapsToDevicePixels" Value="True"/>
@@ -31,19 +31,20 @@
             <Setter Property="Margin" Value="0,0,0,0"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="FontSize" Value="18"/>
-            <Setter Property="Foreground" Value="{StaticResource Modern.ThemeMain}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Modern.ThemeMain}"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
         </Style>
         
         <!-- Setting Label Style -->
         <Style x:Key="SettingLabelStyle" TargetType="TextBlock" BasedOn="{StaticResource ModernBodyText}">
+            <Setter Property="Foreground" Value="{DynamicResource Modern.ForegroundMain}"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
             <Setter Property="Margin" Value="0,8,16,8"/>
         </Style>
         
          <!-- Setting Subtitle Style -->
         <Style x:Key="SettingSubtitleStyle" TargetType="TextBlock" BasedOn="{StaticResource ModernCaptionText}">
-             <Setter Property="Foreground" Value="{StaticResource Modern.ThemeMain}"/>
+             <Setter Property="Foreground" Value="{DynamicResource Modern.ThemeMain}"/>
              <Setter Property="FontWeight" Value="SemiBold"/>
              <Setter Property="Margin" Value="0,16,0,8"/>
         </Style>
@@ -80,6 +81,7 @@
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
 
                             <!-- Bot Settings -->
@@ -107,6 +109,14 @@
                             <!-- Max Jump Iterations -->
                              <TextBlock Grid.Row="5" Grid.Column="0" Text="Max JUMP iterations (infinite loop guard):" Style="{StaticResource SettingLabelStyle}"/>
                             <mah:NumericUpDown Grid.Row="5" Grid.Column="1" Minimum="1" Maximum="100000" Value="{Binding GeneralSettings.MaxJumpIterations}" Width="200" HorizontalAlignment="Left" Margin="0,8"/>
+
+                            <!-- Max Jump Exceeded Status -->
+                            <TextBlock Grid.Row="6" Grid.Column="0" Text="Status when max JUMP exceeded:" Style="{StaticResource SettingLabelStyle}"/>
+                            <ComboBox Grid.Row="6" Grid.Column="1" 
+                                      ItemsSource="{Binding AllStatuses}" 
+                                      SelectedItem="{Binding GeneralSettings.MaxJumpExceededStatus}" 
+                                      Style="{StaticResource CleanComboBox}" 
+                                      Width="200" HorizontalAlignment="Left" Margin="0,8"/>
                         </Grid>
                     </StackPanel>
                 </Border>

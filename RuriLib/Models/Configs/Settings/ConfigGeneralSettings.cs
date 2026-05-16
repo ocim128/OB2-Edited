@@ -11,6 +11,9 @@ namespace RuriLib.Models.Configs.Settings
         // Maximum number of allowed label jumps before considering it an infinite loop
         public int MaxJumpIterations { get; set; } = 40;
 
+        // Bot status to assign when max jump iterations is exceeded
+        public string MaxJumpExceededStatus { get; set; } = "RETRY";
+
         public string[] ContinueStatuses { get; set; } = new string[]
         {
             "SUCCESS",

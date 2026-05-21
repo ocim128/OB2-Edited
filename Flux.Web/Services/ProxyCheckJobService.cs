@@ -7,6 +7,7 @@ using Flux.Web.Dtos.Job.ProxyCheck;
 using Flux.Web.Exceptions;
 using Flux.Web.Extensions;
 using Flux.Web.Interfaces;
+using Flux.Web.Models.Identity;
 using Flux.Web.SignalR;
 using Flux.Web.Utils;
 using RuriLib.Models.Jobs;
@@ -20,8 +21,8 @@ namespace Flux.Web.Services;
 /// </summary>
 public sealed class ProxyCheckJobService : IJobService, IDisposable
 {
-    // Maps jobs to connections
-    private readonly Dictionary<ProxyCheckJob, List<string>> _connections = new();
+    private readonly object _connectionsLock = new();
+    private readonly Dictionary<int, JobConnectionEntry> _connections = new();
     private readonly IHubContext<ProxyCheckJobHub> _hub;
     private readonly JobManagerService _jobManager;
     private readonly ILogger<ProxyCheckJobService> _logger;
@@ -34,6 +35,12 @@ public sealed class ProxyCheckJobService : IJobService, IDisposable
     private readonly EventHandler<JobStatus> _onStatusChanged;
     private readonly EventHandler<ErrorDetails<ProxyCheckInput>> _onTaskError;
     private readonly EventHandler _onTimerTick;
+
+    private sealed class JobConnectionEntry(ProxyCheckJob job)
+    {
+        public ProxyCheckJob Job { get; } = job;
+        public HashSet<string> ConnectionIds { get; } = [];
+    }
 
     /// <summary></summary>
     public ProxyCheckJobService(JobManagerService jobManager,
@@ -82,43 +89,37 @@ public sealed class ProxyCheckJobService : IJobService, IDisposable
     /// <inheritdoc />
     public void Dispose()
     {
-        Dispose(true);
-        GC.SuppressFinalize(this);
+        List<ProxyCheckJob> jobs;
+
+        lock (_connectionsLock)
+        {
+            jobs = _connections.Values.Select(entry => entry.Job).ToList();
+            _connections.Clear();
+        }
+
+        foreach (var job in jobs)
+        {
+            Unsubscribe(job);
+        }
     }
 
     /// <inheritdoc />
-    public void RegisterConnection(string connectionId, int jobId)
+    public void RegisterConnection(string connectionId, int jobId, ApiUser apiUser)
     {
-        var job = _jobManager.Jobs.FirstOrDefault(j => j.Id == jobId);
+        var job = GetJob(jobId);
+        EnsureOwnership(job, apiUser);
 
-        if (job is null)
+        lock (_connectionsLock)
         {
-            throw new EntryNotFoundException(ErrorCode.JobNotFound,
-                $"Job with id {jobId} not found");
+            if (!_connections.TryGetValue(job.Id, out var entry))
+            {
+                entry = new JobConnectionEntry(job);
+                _connections[job.Id] = entry;
+                Subscribe(job);
+            }
+
+            entry.ConnectionIds.Add(connectionId);
         }
-
-        if (job is not ProxyCheckJob pcJob)
-        {
-            throw new BadRequestException(ErrorCode.InvalidJobType,
-                $"Job with id {jobId} is not a proxy check job");
-        }
-
-        if (!_connections.ContainsKey(pcJob))
-        {
-            _connections[pcJob] = new List<string>();
-
-            // Hook the event handlers to the job
-            pcJob.OnStatusChanged += _onStatusChanged;
-            pcJob.OnCompleted += _onCompleted;
-            pcJob.OnError += _onError;
-            pcJob.OnTaskError += _onTaskError;
-            pcJob.OnResult += _onResult;
-            pcJob.OnTimerTick += _onTimerTick;
-            pcJob.OnBotsChanged += _onBotsChanged;
-        }
-
-        // Add the connection to the list
-        _connections[pcJob].Add(connectionId);
 
         _logger.LogDebug("Registered new connection {ConnectionId} for proxy check job {JobId}",
             connectionId, jobId);
@@ -127,12 +128,29 @@ public sealed class ProxyCheckJobService : IJobService, IDisposable
     /// <inheritdoc />
     public void UnregisterConnection(string connectionId, int jobId)
     {
-        var job = (ProxyCheckJob)_jobManager.Jobs.First(j => j.Id == jobId);
+        var removed = false;
 
-        _connections[job].Remove(connectionId);
+        lock (_connectionsLock)
+        {
+            if (!_connections.TryGetValue(jobId, out var entry))
+            {
+                return;
+            }
 
-        _logger.LogDebug("Unregistered connection {ConnectionId} for proxy check job {JobId}",
-            connectionId, jobId);
+            removed = entry.ConnectionIds.Remove(connectionId);
+
+            if (entry.ConnectionIds.Count == 0)
+            {
+                _connections.Remove(jobId);
+                Unsubscribe(entry.Job);
+            }
+        }
+
+        if (removed)
+        {
+            _logger.LogDebug("Unregistered connection {ConnectionId} for proxy check job {JobId}",
+                connectionId, jobId);
+        }
     }
 
     /// <inheritdoc />
@@ -229,10 +247,58 @@ public sealed class ProxyCheckJobService : IJobService, IDisposable
             });
     }
 
-    // The job exists and is of the correct type, otherwise
-    // we wouldn't have been able to register the connection
     private ProxyCheckJob GetJob(int jobId)
-        => (ProxyCheckJob)_jobManager.Jobs.First(j => j.Id == jobId);
+    {
+        var job = _jobManager.Jobs.FirstOrDefault(j => j.Id == jobId);
+
+        if (job is null)
+        {
+            throw new EntryNotFoundException(ErrorCode.JobNotFound,
+                $"Job with id {jobId} not found");
+        }
+
+        if (job is not ProxyCheckJob proxyCheckJob)
+        {
+            throw new BadRequestException(ErrorCode.InvalidJobType,
+                $"Job with id {jobId} is not a proxy check job");
+        }
+
+        return proxyCheckJob;
+    }
+
+    private void EnsureOwnership(ProxyCheckJob job, ApiUser apiUser)
+    {
+        if (apiUser.Role is UserRole.Guest && apiUser.Id != job.OwnerId)
+        {
+            _logger.LogWarning("Guest user {Username} tried to access job {JobId} not owned by them",
+                apiUser.Username, job.Id);
+
+            throw new EntryNotFoundException(ErrorCode.JobNotFound,
+                job.Id, nameof(JobManagerService));
+        }
+    }
+
+    private void Subscribe(ProxyCheckJob job)
+    {
+        job.OnStatusChanged += _onStatusChanged;
+        job.OnCompleted += _onCompleted;
+        job.OnError += _onError;
+        job.OnTaskError += _onTaskError;
+        job.OnResult += _onResult;
+        job.OnTimerTick += _onTimerTick;
+        job.OnBotsChanged += _onBotsChanged;
+    }
+
+    private void Unsubscribe(ProxyCheckJob job)
+    {
+        job.OnStatusChanged -= _onStatusChanged;
+        job.OnCompleted -= _onCompleted;
+        job.OnError -= _onError;
+        job.OnTaskError -= _onTaskError;
+        job.OnResult -= _onResult;
+        job.OnTimerTick -= _onTimerTick;
+        job.OnBotsChanged -= _onBotsChanged;
+    }
 
     private async Task OnStatusChangedAsync(object? sender, JobStatus e)
     {
@@ -306,10 +372,25 @@ public sealed class ProxyCheckJobService : IJobService, IDisposable
     private async Task NotifyClientsAsync(object? sender, object message,
         string method)
     {
-        var job = sender as ProxyCheckJob;
+        if (sender is not ProxyCheckJob job)
+        {
+            return;
+        }
 
-        await _hub.Clients.Clients(_connections[job!]).SendAsync(
-            method, message);
+        string[] connectionIds;
+
+        lock (_connectionsLock)
+        {
+            if (!_connections.TryGetValue(job.Id, out var entry) ||
+                entry.ConnectionIds.Count == 0)
+            {
+                return;
+            }
+
+            connectionIds = entry.ConnectionIds.ToArray();
+        }
+
+        await _hub.Clients.Clients(connectionIds).SendAsync(method, message);
     }
 
     private Task SendErrorAsync(Exception ex)
@@ -318,25 +399,4 @@ public sealed class ProxyCheckJobService : IJobService, IDisposable
         return Task.CompletedTask;
     }
 
-    private void Dispose(bool disposing)
-    {
-        if (disposing)
-        {
-            foreach (var job in _connections.Keys)
-            {
-                job.OnStatusChanged -= _onStatusChanged;
-                job.OnCompleted -= _onCompleted;
-                job.OnError -= _onError;
-                job.OnTaskError -= _onTaskError;
-                job.OnResult -= _onResult;
-                job.OnBotsChanged -= _onBotsChanged;
-            }
-        }
-    }
-
-    /// <inheritdoc />
-    ~ProxyCheckJobService()
-    {
-        Dispose(false);
-    }
 }

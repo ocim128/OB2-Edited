@@ -8,7 +8,7 @@ public class PaginationDto
     /// <summary>
     /// The page number.
     /// </summary>
-    public int PageNumber { get; set; } = 0;
+    public int PageNumber { get; set; } = 1;
 
     /// <summary>
     /// The number of elements per page.

@@ -10,6 +10,11 @@ namespace Flux.Web.Models.Pagination;
 public class PagedList<T>
 {
     /// <summary>
+    /// The maximum number of items that can be requested in one page.
+    /// </summary>
+    public const int MaxPageSize = 500;
+
+    /// <summary>
     /// Parameterless constructor for serialization.
     /// </summary>
     [JsonConstructor]
@@ -60,12 +65,16 @@ public class PagedList<T>
     /// </summary>
     public static async Task<PagedList<TEntity>> CreateAsync<TEntity>(
         IQueryable<TEntity> source,
-        int pageNumber, int pageSize) where TEntity : Entity
+        int pageNumber, int pageSize,
+        CancellationToken cancellationToken = default) where TEntity : Entity
     {
-        var count = await source.CountAsync();
+        pageNumber = Math.Max(1, pageNumber);
+        pageSize = Math.Clamp(pageSize, 1, MaxPageSize);
+
+        var count = await source.CountAsync(cancellationToken);
         var items = await source
             .Skip((pageNumber - 1) * pageSize)
-            .Take(pageSize).ToListAsync();
+            .Take(pageSize).ToListAsync(cancellationToken);
 
         return new PagedList<TEntity>(items, count, pageNumber, pageSize);
     }

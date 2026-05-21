@@ -216,15 +216,12 @@ public class HitController : ApiController
     public async Task<ActionResult<AffectedEntriesDto>> DeleteMany(
         [FromQuery] HitFiltersDto dto)
     {
-        var query = FilteredQuery(dto);
+        var deletedCount = await FilteredMutationQuery(dto)
+            .ExecuteDeleteAsync();
 
-        var toDelete = await query.ToListAsync();
+        _logger.LogInformation("Deleted {HitCount} hits", deletedCount);
 
-        await _hitRepo.DeleteAsync(toDelete);
-
-        _logger.LogInformation("Deleted {HitCount} hits", toDelete.Count);
-
-        return new AffectedEntriesDto { Count = toDelete.Count };
+        return new AffectedEntriesDto { Count = deletedCount };
     }
 
     /// <summary>
@@ -405,6 +402,46 @@ public class HitController : ApiController
 
     private IQueryable<HitEntity> FilteredQuery(HitFiltersDto dto)
     {
+        var query = FilteredMutationQuery(dto);
+
+        if (dto.SortBy is not null)
+        {
+            query = dto.SortBy switch
+            {
+                HitSortField.Type => dto.SortDescending
+                    ? query.OrderByDescending(h => h.Type)
+                    : query.OrderBy(h => h.Type),
+                HitSortField.Data => dto.SortDescending
+                    ? query.OrderByDescending(h => h.Data)
+                    : query.OrderBy(h => h.Data),
+                HitSortField.ConfigName => dto.SortDescending
+                    ? query.OrderByDescending(h => h.ConfigName)
+                    : query.OrderBy(h => h.ConfigName),
+                HitSortField.Date => dto.SortDescending
+                    ? query.OrderByDescending(h => h.Date)
+                    : query.OrderBy(h => h.Date),
+                HitSortField.WordlistName => dto.SortDescending
+                    ? query.OrderByDescending(h => h.WordlistName)
+                    : query.OrderBy(h => h.WordlistName),
+                HitSortField.Proxy => dto.SortDescending
+                    ? query.OrderByDescending(h => h.Proxy)
+                    : query.OrderBy(h => h.Proxy),
+                HitSortField.CapturedData => dto.SortDescending
+                    ? query.OrderByDescending(h => h.CapturedData)
+                    : query.OrderBy(h => h.CapturedData),
+                _ => query.OrderByDescending(h => h.Date)
+            };
+        }
+        else
+        {
+            query = query.OrderByDescending(h => h.Date);
+        }
+
+        return query;
+    }
+
+    private IQueryable<HitEntity> FilteredMutationQuery(HitFiltersDto dto)
+    {
         var apiUser = HttpContext.GetApiUser();
 
         var query = apiUser.Role is UserRole.Admin
@@ -446,39 +483,6 @@ public class HitController : ApiController
             query = query.Where(
                 h => h.Date <= TimeZoneInfo.ConvertTimeFromUtc(
                     dto.MaxDate.Value, TimeZoneInfo.Local));
-        }
-
-        if (dto.SortBy is not null)
-        {
-            query = dto.SortBy switch
-            {
-                HitSortField.Type => dto.SortDescending
-                    ? query.OrderByDescending(h => h.Type)
-                    : query.OrderBy(h => h.Type),
-                HitSortField.Data => dto.SortDescending
-                    ? query.OrderByDescending(h => h.Data)
-                    : query.OrderBy(h => h.Data),
-                HitSortField.ConfigName => dto.SortDescending
-                    ? query.OrderByDescending(h => h.ConfigName)
-                    : query.OrderBy(h => h.ConfigName),
-                HitSortField.Date => dto.SortDescending
-                    ? query.OrderByDescending(h => h.Date)
-                    : query.OrderBy(h => h.Date),
-                HitSortField.WordlistName => dto.SortDescending
-                    ? query.OrderByDescending(h => h.WordlistName)
-                    : query.OrderBy(h => h.WordlistName),
-                HitSortField.Proxy => dto.SortDescending
-                    ? query.OrderByDescending(h => h.Proxy)
-                    : query.OrderBy(h => h.Proxy),
-                HitSortField.CapturedData => dto.SortDescending
-                    ? query.OrderByDescending(h => h.CapturedData)
-                    : query.OrderBy(h => h.CapturedData),
-                _ => query.OrderByDescending(h => h.Date)
-            };
-        }
-        else
-        {
-            query = query.OrderByDescending(h => h.Date);
         }
 
         return query;

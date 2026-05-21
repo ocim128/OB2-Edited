@@ -27,7 +27,7 @@ public abstract class AuthorizedHub : Hub
     /// <summary>
     /// The verified user.
     /// </summary>
-    private ApiUser? User { get; set; }
+    protected ApiUser? AuthenticatedUser { get; private set; }
 
     /// <summary>
     /// Whether this hub should only be used by the admin user.
@@ -40,7 +40,7 @@ public abstract class AuthorizedHub : Hub
         // If the admin user does not need any login, allow anonymous requests
         if (!_fluxSettingsService.Settings.SecuritySettings.RequireAdminLogin)
         {
-            User = new ApiUser {
+            AuthenticatedUser = new ApiUser {
                 Id = -1, Role = UserRole.Admin, Username = _fluxSettingsService.Settings.SecuritySettings.AdminUsername
             };
 
@@ -64,7 +64,7 @@ public abstract class AuthorizedHub : Hub
         try
         {
             var validToken = _tokenService.ValidateToken(accessToken);
-            User = ApiUser.FromToken(validToken);
+            AuthenticatedUser = ApiUser.FromToken(validToken);
         }
         catch (Exception ex)
         {
@@ -75,7 +75,7 @@ public abstract class AuthorizedHub : Hub
             throw;
         }
 
-        if (OnlyAdmin && User.Role is not UserRole.Admin)
+        if (OnlyAdmin && AuthenticatedUser?.Role is not UserRole.Admin)
         {
             await Clients.Caller.SendAsync(
                 CommonMethods.Error,

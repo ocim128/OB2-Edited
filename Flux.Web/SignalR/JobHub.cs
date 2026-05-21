@@ -28,18 +28,17 @@ public abstract class JobHub : AuthorizedHub
     {
         await base.OnConnectedAsync();
 
-        var jobId = GetJobId();
+        var jobId = await GetJobIdOrThrowAsync();
 
-        if (jobId is null)
+        try
         {
-            await Clients.Caller.SendAsync(
-                CommonMethods.Error,
-                new ErrorMessage("Please specify a job id"));
-
-            throw new ApiException(ErrorCode.MissingJobId, "Please specify a job id");
+            _jobService.RegisterConnection(Context.ConnectionId, jobId, AuthenticatedUser!);
         }
-
-        _jobService.RegisterConnection(Context.ConnectionId, (int)jobId);
+        catch (ApiException ex)
+        {
+            await SendApiErrorAsync(ex);
+            throw;
+        }
     }
 
     /// <inheritdoc />
@@ -47,61 +46,92 @@ public abstract class JobHub : AuthorizedHub
     {
         await base.OnDisconnectedAsync(exception);
 
-        var jobId = GetJobId();
-
-        _jobService.UnregisterConnection(Context.ConnectionId, (int)jobId!);
+        var jobId = TryGetJobId();
+        if (jobId is not null)
+        {
+            _jobService.UnregisterConnection(Context.ConnectionId, jobId.Value);
+        }
     }
 
     /// <summary>
     /// Start a job.
     /// </summary>
     [HubMethodName("start")]
-    public void Start() => _jobService.Start((int)GetJobId()!);
+    public void Start() => _jobService.Start(GetJobIdOrThrow());
 
     /// <summary>
     /// Stop a job.
     /// </summary>
     [HubMethodName("stop")]
-    public void Stop() => _jobService.Stop((int)GetJobId()!);
+    public void Stop() => _jobService.Stop(GetJobIdOrThrow());
 
     /// <summary>
     /// Abort a job.
     /// </summary>
     [HubMethodName("abort")]
-    public void Abort() => _jobService.Abort((int)GetJobId()!);
+    public void Abort() => _jobService.Abort(GetJobIdOrThrow());
 
     /// <summary>
     /// Pause a job.
     /// </summary>
     [HubMethodName("pause")]
-    public void Pause() => _jobService.Pause((int)GetJobId()!);
+    public void Pause() => _jobService.Pause(GetJobIdOrThrow());
 
     /// <summary>
     /// Resume a job.
     /// </summary>
     [HubMethodName("resume")]
-    public void Resume() => _jobService.Resume((int)GetJobId()!);
+    public void Resume() => _jobService.Resume(GetJobIdOrThrow());
 
     /// <summary>
     /// Skip the wait for a job.
     /// </summary>
     [HubMethodName("skipWait")]
-    public void SkipWait() => _jobService.SkipWait((int)GetJobId()!);
+    public void SkipWait() => _jobService.SkipWait(GetJobIdOrThrow());
 
     /// <summary>
     /// Change the number of bots.
     /// </summary>
     [HubMethodName("changeBots")]
     public void ChangeBots(ChangeBotsMessage message) =>
-        _jobService.ChangeBots((int)GetJobId()!, message);
+        _jobService.ChangeBots(GetJobIdOrThrow(), message);
 
     /// <summary>
     /// Gets the job id provided by the user at connection setup.
     /// </summary>
-    private int? GetJobId()
+    private async Task<int> GetJobIdOrThrowAsync()
     {
-        var request = Context.GetHttpContext()!.Request;
-        var id = request.Query["jobId"].FirstOrDefault();
-        return id is null ? null : int.Parse(id);
+        try
+        {
+            return GetJobIdOrThrow();
+        }
+        catch (ApiException ex)
+        {
+            await SendApiErrorAsync(ex);
+            throw;
+        }
+    }
+
+    private Task SendApiErrorAsync(ApiException ex)
+        => Clients.Caller.SendAsync(
+            CommonMethods.Error,
+            new ErrorMessage { Message = ex.Message, Type = ex.GetType().Name });
+
+    private int GetJobIdOrThrow()
+        => TryGetJobId() ?? throw new BadRequestException(
+            ErrorCode.MissingJobId,
+            "Please specify a valid job id");
+
+    private int? TryGetJobId()
+    {
+        var request = Context.GetHttpContext()?.Request;
+        var id = request?.Query["jobId"].FirstOrDefault();
+
+        if (string.IsNullOrWhiteSpace(id))
+        {
+            return null;
+        }
+
+        return int.TryParse(id, out var jobId) ? jobId : null;
     }
 }

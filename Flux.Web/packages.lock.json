@@ -75,6 +75,19 @@
           "System.Runtime.CompilerServices.Unsafe": "6.0.0"
         }
       },
+      "Microsoft.EntityFrameworkCore.Design": {
+        "type": "Direct",
+        "requested": "[8.0.8, )",
+        "resolved": "8.0.8",
+        "contentHash": "MmQAMHdjZR8Iyn/FVQrh9weJQTn0HqtKa3vELS9ffQJat/qXgnTam9M9jqvePphjkYp5Scee+Hy+EJR4nmWmOA==",
+        "dependencies": {
+          "Humanizer.Core": "2.14.1",
+          "Microsoft.CodeAnalysis.CSharp.Workspaces": "4.5.0",
+          "Microsoft.EntityFrameworkCore.Relational": "8.0.8",
+          "Microsoft.Extensions.DependencyModel": "8.0.1",
+          "Mono.TextTemplating": "2.2.1"
+        }
+      },
       "nulastudio.NetBeauty": {
         "type": "Direct",
         "requested": "[2.1.4.5, )",
@@ -328,6 +341,17 @@
           "Microsoft.CodeAnalysis.CSharp": "[4.5.0]",
           "Microsoft.CodeAnalysis.Common": "[4.5.0]",
           "Microsoft.CodeAnalysis.Scripting.Common": "[4.5.0]"
+        }
+      },
+      "Microsoft.CodeAnalysis.CSharp.Workspaces": {
+        "type": "Transitive",
+        "resolved": "4.5.0",
+        "contentHash": "h74wTpmGOp4yS4hj+EvNzEiPgg/KVs2wmSfTZ81upJZOtPkJsVkgfsgtxxqmAeapjT/vLKfmYV0bS8n5MNVP+g==",
+        "dependencies": {
+          "Humanizer.Core": "2.14.1",
+          "Microsoft.CodeAnalysis.CSharp": "[4.5.0]",
+          "Microsoft.CodeAnalysis.Common": "[4.5.0]",
+          "Microsoft.CodeAnalysis.Workspaces.Common": "[4.5.0]"
         }
       },
       "Microsoft.CodeAnalysis.Scripting.Common": {
@@ -701,6 +725,14 @@
         "dependencies": {
           "BouncyCastle.Cryptography": "2.6.2",
           "System.Security.Cryptography.Pkcs": "8.0.1"
+        }
+      },
+      "Mono.TextTemplating": {
+        "type": "Transitive",
+        "resolved": "2.2.1",
+        "contentHash": "KZYeKBET/2Z0gY1WlTAK7+RHTl7GSbtvTLDXEZZojUdAPqpQNDL6tHv7VUpqfX5VEOh+uRGKaZXkuD253nEOBQ==",
+        "dependencies": {
+          "System.CodeDom": "4.4.0"
         }
       },
       "Mono.Unix": {

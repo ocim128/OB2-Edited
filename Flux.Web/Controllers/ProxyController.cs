@@ -187,15 +187,12 @@ public class ProxyController : ApiController
     public async Task<ActionResult<AffectedEntriesDto>> DeleteMany(
         [FromQuery] ProxyFiltersDto dto)
     {
-        var query = FilteredQuery(dto);
+        var deletedCount = await FilteredMutationQuery(dto)
+            .ExecuteDeleteAsync();
 
-        var toDelete = await query.ToListAsync();
+        _logger.LogInformation("Deleted {ProxyCount} proxies", deletedCount);
 
-        await _proxyRepo.DeleteAsync(toDelete);
-
-        _logger.LogInformation("Deleted {ProxyCount} proxies", toDelete.Count);
-
-        return new AffectedEntriesDto { Count = toDelete.Count };
+        return new AffectedEntriesDto { Count = deletedCount };
     }
 
     /// <summary>
@@ -210,19 +207,16 @@ public class ProxyController : ApiController
         var groupEntity = await GetProxyGroupEntityAsync(proxyGroupId);
         EnsureOwnership(groupEntity);
 
-        var toDelete = await _proxyRepo.GetAll()
-            .Include(p => p.Group)
+        var deletedCount = await _proxyRepo.GetAll()
             .Where(p => p.Status == ProxyWorkingStatus.Working)
             .Where(p => p.Ping > maxPing)
             .Where(p => p.Group.Id == proxyGroupId)
-            .ToListAsync();
+            .ExecuteDeleteAsync();
 
-        await _proxyRepo.DeleteAsync(toDelete);
+        _logger.LogInformation("Deleted {ProxyCount} proxies from proxy group {Name}",
+            deletedCount, groupEntity.Name);
 
-        _logger.LogInformation("Deleted {HitCount} proxies from proxy group {Name}",
-            toDelete.Count, groupEntity.Name);
-
-        return new AffectedEntriesDto { Count = toDelete.Count };
+        return new AffectedEntriesDto { Count = deletedCount };
     }
 
     private IEnumerable<ProxyEntity> ParseProxies(IEnumerable<string> lines,
@@ -258,29 +252,7 @@ public class ProxyController : ApiController
                 .ThenInclude(g => g.Owner)
                 .Where(p => p.Group.Owner.Id == apiUser.Id);
 
-        if (!string.IsNullOrEmpty(dto.SearchTerm))
-        {
-            query = query.Where(p =>
-                EF.Functions.Like(p.Host, $"%{dto.SearchTerm}%") ||
-                EF.Functions.Like(p.Port.ToString(), $"%{dto.SearchTerm}%") ||
-                EF.Functions.Like(p.Username, $"%{dto.SearchTerm}%") ||
-                EF.Functions.Like(p.Country, $"%{dto.SearchTerm}%"));
-        }
-
-        if (dto.Type is not null)
-        {
-            query = query.Where(p => p.Type == dto.Type);
-        }
-
-        if (dto.Status is not null)
-        {
-            query = query.Where(p => p.Status == dto.Status);
-        }
-
-        if (dto.ProxyGroupId != -1)
-        {
-            query = query.Where(p => p.Group.Id == dto.ProxyGroupId);
-        }
+        query = ApplyFilters(query, dto);
         
         if (dto.SortBy is not null)
         {
@@ -313,6 +285,49 @@ public class ProxyController : ApiController
         else
         {
             query = query.OrderByDescending(p => p.LastChecked);
+        }
+
+        return query;
+    }
+
+    private IQueryable<ProxyEntity> FilteredMutationQuery(ProxyFiltersDto dto)
+    {
+        var apiUser = HttpContext.GetApiUser();
+
+        var query = apiUser.Role is UserRole.Admin
+            ? _proxyRepo.GetAll()
+            : _proxyRepo.GetAll()
+                .Where(p => p.Group.Owner.Id == apiUser.Id);
+
+        return ApplyFilters(query, dto);
+    }
+
+    private static IQueryable<ProxyEntity> ApplyFilters(
+        IQueryable<ProxyEntity> query,
+        ProxyFiltersDto dto)
+    {
+        if (!string.IsNullOrEmpty(dto.SearchTerm))
+        {
+            query = query.Where(p =>
+                EF.Functions.Like(p.Host, $"%{dto.SearchTerm}%") ||
+                EF.Functions.Like(p.Port.ToString(), $"%{dto.SearchTerm}%") ||
+                EF.Functions.Like(p.Username, $"%{dto.SearchTerm}%") ||
+                EF.Functions.Like(p.Country, $"%{dto.SearchTerm}%"));
+        }
+
+        if (dto.Type is not null)
+        {
+            query = query.Where(p => p.Type == dto.Type);
+        }
+
+        if (dto.Status is not null)
+        {
+            query = query.Where(p => p.Status == dto.Status);
+        }
+
+        if (dto.ProxyGroupId != -1)
+        {
+            query = query.Where(p => p.Group.Id == dto.ProxyGroupId);
         }
 
         return query;

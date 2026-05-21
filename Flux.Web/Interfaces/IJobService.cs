@@ -1,4 +1,5 @@
 ﻿using Flux.Web.Dtos.Job;
+using Flux.Web.Models.Identity;
 
 namespace Flux.Web.Interfaces;
 
@@ -46,7 +47,7 @@ public interface IJobService
     /// Registers a new connection, a.k.a. an interactive job session started
     /// by a given client.
     /// </summary>
-    void RegisterConnection(string connectionId, int jobId);
+    void RegisterConnection(string connectionId, int jobId, ApiUser apiUser);
 
     /// <summary>
     /// Unregisters an existing connection.

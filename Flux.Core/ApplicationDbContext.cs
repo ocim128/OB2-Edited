@@ -45,6 +45,9 @@ public class ApplicationDbContext : DbContext
             .HasIndex(h => new { h.OwnerId, h.ConfigName, h.Date });
 
         modelBuilder.Entity<HitEntity>()
+            .HasIndex(h => new { h.ConfigName, h.Date });
+
+        modelBuilder.Entity<HitEntity>()
             .HasIndex(h => new { h.Type, h.Date });
 
         modelBuilder.Entity<HitEntity>()

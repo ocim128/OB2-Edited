@@ -17,7 +17,7 @@ This plan does not introduce new services, microservices, queues, infrastructure
 
 ## Implementation Status
 
-Planning only. No implementation has been started.
+Implemented on 2026-05-21. Remaining follow-ups are limited to items this plan intentionally deferred: broad `Flux.Native` repository/`DbContext` lifetime correction, proxy move SQL rewrite, and web API-specific unit coverage if a web test project is added later.
 
 ## Assumptions And Unknowns
 

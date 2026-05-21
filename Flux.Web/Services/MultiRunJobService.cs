@@ -6,6 +6,7 @@ using Flux.Web.Dtos.Job.MultiRun;
 using Flux.Web.Exceptions;
 using Flux.Web.Extensions;
 using Flux.Web.Interfaces;
+using Flux.Web.Models.Identity;
 using Flux.Web.SignalR;
 using Flux.Web.Utils;
 using RuriLib.Models.Hits;
@@ -19,8 +20,8 @@ namespace Flux.Web.Services;
 /// </summary>
 public sealed class MultiRunJobService : IJobService, IDisposable
 {
-    // Maps jobs to connections
-    private readonly Dictionary<MultiRunJob, List<string>> _connections = new();
+    private readonly object _connectionsLock = new();
+    private readonly Dictionary<int, JobConnectionEntry> _connections = new();
     private readonly IHubContext<MultiRunJobHub> _hub;
     private readonly JobManagerService _jobManager;
     private readonly ILogger<MultiRunJobService> _logger;
@@ -34,6 +35,12 @@ public sealed class MultiRunJobService : IJobService, IDisposable
     private readonly EventHandler<JobStatus> _onStatusChanged;
     private readonly EventHandler<ErrorDetails<MultiRunInput>> _onTaskError;
     private readonly EventHandler _onTimerTick;
+
+    private sealed class JobConnectionEntry(MultiRunJob job)
+    {
+        public MultiRunJob Job { get; } = job;
+        public HashSet<string> ConnectionIds { get; } = [];
+    }
 
     /// <summary></summary>
     public MultiRunJobService(JobManagerService jobManager,
@@ -87,44 +94,37 @@ public sealed class MultiRunJobService : IJobService, IDisposable
     /// <inheritdoc />
     public void Dispose()
     {
-        Dispose(true);
-        GC.SuppressFinalize(this);
+        List<MultiRunJob> jobs;
+
+        lock (_connectionsLock)
+        {
+            jobs = _connections.Values.Select(entry => entry.Job).ToList();
+            _connections.Clear();
+        }
+
+        foreach (var job in jobs)
+        {
+            Unsubscribe(job);
+        }
     }
 
     /// <inheritdoc />
-    public void RegisterConnection(string connectionId, int jobId)
+    public void RegisterConnection(string connectionId, int jobId, ApiUser apiUser)
     {
-        var job = _jobManager.Jobs.FirstOrDefault(j => j.Id == jobId);
+        var job = GetJob(jobId);
+        EnsureOwnership(job, apiUser);
 
-        if (job is null)
+        lock (_connectionsLock)
         {
-            throw new EntryNotFoundException(ErrorCode.JobNotFound,
-                $"Job with id {jobId} not found");
+            if (!_connections.TryGetValue(job.Id, out var entry))
+            {
+                entry = new JobConnectionEntry(job);
+                _connections[job.Id] = entry;
+                Subscribe(job);
+            }
+
+            entry.ConnectionIds.Add(connectionId);
         }
-
-        if (job is not MultiRunJob mrJob)
-        {
-            throw new BadRequestException(ErrorCode.InvalidJobType,
-                $"Job with id {jobId} is not a multi run job");
-        }
-
-        if (!_connections.ContainsKey(mrJob))
-        {
-            _connections[mrJob] = new List<string>();
-
-            // Hook the event handlers to the job
-            mrJob.OnStatusChanged += _onStatusChanged;
-            mrJob.OnCompleted += _onCompleted;
-            mrJob.OnError += _onError;
-            mrJob.OnTaskError += _onTaskError;
-            mrJob.OnResult += _onResult;
-            mrJob.OnTimerTick += _onTimerTick;
-            mrJob.OnHit += _onHit;
-            mrJob.OnBotsChanged += _onBotsChanged;
-        }
-
-        // Add the connection to the list
-        _connections[mrJob].Add(connectionId);
 
         _logger.LogDebug("Registered new connection {ConnectionId} for multi run job {JobId}",
             connectionId, jobId);
@@ -133,12 +133,29 @@ public sealed class MultiRunJobService : IJobService, IDisposable
     /// <inheritdoc />
     public void UnregisterConnection(string connectionId, int jobId)
     {
-        var job = (MultiRunJob)_jobManager.Jobs.First(j => j.Id == jobId);
+        var removed = false;
 
-        _connections[job].Remove(connectionId);
+        lock (_connectionsLock)
+        {
+            if (!_connections.TryGetValue(jobId, out var entry))
+            {
+                return;
+            }
 
-        _logger.LogDebug("Unregistered connection {ConnectionId} for multi run job {JobId}",
-            connectionId, jobId);
+            removed = entry.ConnectionIds.Remove(connectionId);
+
+            if (entry.ConnectionIds.Count == 0)
+            {
+                _connections.Remove(jobId);
+                Unsubscribe(entry.Job);
+            }
+        }
+
+        if (removed)
+        {
+            _logger.LogDebug("Unregistered connection {ConnectionId} for multi run job {JobId}",
+                connectionId, jobId);
+        }
     }
 
     /// <inheritdoc />
@@ -235,10 +252,60 @@ public sealed class MultiRunJobService : IJobService, IDisposable
             });
     }
 
-    // The job exists and is of the correct type, otherwise
-    // we wouldn't have been able to register the connection
     private MultiRunJob GetJob(int jobId)
-        => (MultiRunJob)_jobManager.Jobs.First(j => j.Id == jobId);
+    {
+        var job = _jobManager.Jobs.FirstOrDefault(j => j.Id == jobId);
+
+        if (job is null)
+        {
+            throw new EntryNotFoundException(ErrorCode.JobNotFound,
+                $"Job with id {jobId} not found");
+        }
+
+        if (job is not MultiRunJob multiRunJob)
+        {
+            throw new BadRequestException(ErrorCode.InvalidJobType,
+                $"Job with id {jobId} is not a multi run job");
+        }
+
+        return multiRunJob;
+    }
+
+    private void EnsureOwnership(MultiRunJob job, ApiUser apiUser)
+    {
+        if (apiUser.Role is UserRole.Guest && apiUser.Id != job.OwnerId)
+        {
+            _logger.LogWarning("Guest user {Username} tried to access job {JobId} not owned by them",
+                apiUser.Username, job.Id);
+
+            throw new EntryNotFoundException(ErrorCode.JobNotFound,
+                job.Id, nameof(JobManagerService));
+        }
+    }
+
+    private void Subscribe(MultiRunJob job)
+    {
+        job.OnStatusChanged += _onStatusChanged;
+        job.OnCompleted += _onCompleted;
+        job.OnError += _onError;
+        job.OnTaskError += _onTaskError;
+        job.OnResult += _onResult;
+        job.OnTimerTick += _onTimerTick;
+        job.OnHit += _onHit;
+        job.OnBotsChanged += _onBotsChanged;
+    }
+
+    private void Unsubscribe(MultiRunJob job)
+    {
+        job.OnStatusChanged -= _onStatusChanged;
+        job.OnCompleted -= _onCompleted;
+        job.OnError -= _onError;
+        job.OnTaskError -= _onTaskError;
+        job.OnResult -= _onResult;
+        job.OnTimerTick -= _onTimerTick;
+        job.OnHit -= _onHit;
+        job.OnBotsChanged -= _onBotsChanged;
+    }
 
     private async Task OnStatusChangedAsync(object? sender, JobStatus e)
     {
@@ -369,10 +436,25 @@ public sealed class MultiRunJobService : IJobService, IDisposable
     private async Task NotifyClientsAsync(object? sender, object message,
         string method)
     {
-        var job = sender as MultiRunJob;
+        if (sender is not MultiRunJob job)
+        {
+            return;
+        }
 
-        await _hub.Clients.Clients(_connections[job!]).SendAsync(
-            method, message);
+        string[] connectionIds;
+
+        lock (_connectionsLock)
+        {
+            if (!_connections.TryGetValue(job.Id, out var entry) ||
+                entry.ConnectionIds.Count == 0)
+            {
+                return;
+            }
+
+            connectionIds = entry.ConnectionIds.ToArray();
+        }
+
+        await _hub.Clients.Clients(connectionIds).SendAsync(method, message);
     }
 
     private Task SendErrorAsync(Exception ex)
@@ -381,26 +463,4 @@ public sealed class MultiRunJobService : IJobService, IDisposable
         return Task.CompletedTask;
     }
 
-    private void Dispose(bool disposing)
-    {
-        if (disposing)
-        {
-            foreach (var job in _connections.Keys)
-            {
-                job.OnStatusChanged -= _onStatusChanged;
-                job.OnCompleted -= _onCompleted;
-                job.OnError -= _onError;
-                job.OnTaskError -= _onTaskError;
-                job.OnResult -= _onResult;
-                job.OnHit -= _onHit;
-                job.OnBotsChanged -= _onBotsChanged;
-            }
-        }
-    }
-
-    /// <inheritdoc />
-    ~MultiRunJobService()
-    {
-        Dispose(false);
-    }
 }

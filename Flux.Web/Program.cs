@@ -115,7 +115,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection") ?? string.Empty,
         b => b.MigrationsAssembly("Flux.Core")));
 
-builder.Services.AddAutoMapper(typeof(AutoMapperProfile).Assembly);
+builder.Services.AddAutoMapper(_ => { }, typeof(AutoMapperProfile).Assembly);
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblies(
     typeof(ApplicationDbContext).Assembly,
     typeof(Program).Assembly));

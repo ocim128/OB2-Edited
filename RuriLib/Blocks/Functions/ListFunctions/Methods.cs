@@ -75,7 +75,7 @@ namespace RuriLib.Blocks.Functions.List
             if (fill)
             {
                 zipped = list1.Count < list2.Count
-                    ? list1.Concat(Enumerable.Repeat(fillString, list2.Count - list2.Count)).Zip(list2, zipFunc).ToList()
+                    ? list1.Concat(Enumerable.Repeat(fillString, list2.Count - list1.Count)).Zip(list2, zipFunc).ToList()
                     : list1.Zip(list2.Concat(Enumerable.Repeat(fillString, list1.Count - list2.Count)), zipFunc).ToList();
             }
             else
@@ -167,7 +167,7 @@ namespace RuriLib.Blocks.Functions.List
             {
                 var split = item.Split(separator, 2, autoTrim ? StringSplitOptions.TrimEntries : StringSplitOptions.None);
 
-                if (!string.IsNullOrEmpty(split[0]))
+                if (split.Length == 2 && !string.IsNullOrEmpty(split[0]))
                 {
                     dict[split[0]] = split[1];
                 }

@@ -145,7 +145,7 @@
     <!-- Core Dependencies Only -->
     <ItemGroup>
         <PackageReference Include="AvalonEdit" Version="6.3.0.90" />
-        <PackageReference Include="HtmlSanitizer" Version="8.1.866-beta" />
+        <PackageReference Include="HtmlSanitizer" Version="9.1.923-beta" />
         <PackageReference Include="MahApps.Metro" Version="2.4.10" />
         <!-- Essential Icon Packs Only - Removed unused packs for performance -->
         <PackageReference Include="MahApps.Metro.IconPacks.Material" Version="4.8.0" />

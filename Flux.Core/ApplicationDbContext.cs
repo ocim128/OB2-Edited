@@ -38,6 +38,30 @@ public class ApplicationDbContext : DbContext
             .HasIndex(u => u.Username)
             .IsUnique();
 
+        modelBuilder.Entity<HitEntity>()
+            .HasIndex(h => new { h.OwnerId, h.Type, h.Date });
+
+        modelBuilder.Entity<HitEntity>()
+            .HasIndex(h => new { h.OwnerId, h.ConfigName, h.Date });
+
+        modelBuilder.Entity<HitEntity>()
+            .HasIndex(h => new { h.Type, h.Date });
+
+        modelBuilder.Entity<HitEntity>()
+            .HasIndex(h => h.Date);
+
+        modelBuilder.Entity<RecordEntity>()
+            .HasIndex(r => new { r.ConfigId, r.WordlistId });
+
+        modelBuilder.Entity<ProxyEntity>()
+            .HasIndex("GroupId", nameof(ProxyEntity.Status));
+
+        modelBuilder.Entity<ProxyEntity>()
+            .HasIndex("GroupId", nameof(ProxyEntity.LastChecked));
+
+        modelBuilder.Entity<ProxyEntity>()
+            .HasIndex(p => new { p.Status, p.Ping });
+
         base.OnModelCreating(modelBuilder);
     }
 }

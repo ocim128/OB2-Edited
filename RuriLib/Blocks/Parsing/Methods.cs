@@ -188,8 +188,16 @@ namespace RuriLib.Blocks.Parsing
                 return new List<string> { result };
             }
 
-            var matches = RegexParser.MatchGroupsToString(input, pattern, outputFormat,
-                multiLine ? RegexOptions.Multiline : RegexOptions.None).ToList();
+            List<string> matches;
+            try
+            {
+                matches = RegexParser.MatchGroupsToString(input, pattern, outputFormat,
+                    multiLine ? RegexOptions.Multiline : RegexOptions.None).ToList();
+            }
+            catch (RegexMatchTimeoutException ex)
+            {
+                throw CreateRegexTimeoutException(pattern, ex);
+            }
 
             if (matches.Count == 0)
             {
@@ -226,8 +234,16 @@ namespace RuriLib.Blocks.Parsing
                 return result;
             }
 
-            var parsed = RegexParser.MatchGroupsToString(input, pattern, outputFormat,
-                multiLine ? RegexOptions.Multiline : RegexOptions.None).FirstOrDefault() ?? string.Empty;
+            string parsed;
+            try
+            {
+                parsed = RegexParser.MatchGroupsToString(input, pattern, outputFormat,
+                    multiLine ? RegexOptions.Multiline : RegexOptions.None).FirstOrDefault() ?? string.Empty;
+            }
+            catch (RegexMatchTimeoutException ex)
+            {
+                throw CreateRegexTimeoutException(pattern, ex);
+            }
 
             if (string.IsNullOrEmpty(parsed))
             {
@@ -254,5 +270,8 @@ namespace RuriLib.Blocks.Parsing
             string prefix = "", string suffix = "", bool urlEncodeOutput = false)
             => MatchRegexGroups(data, input, pattern, outputFormat, false, prefix, suffix, urlEncodeOutput);
         #endregion
+
+        private static InvalidOperationException CreateRegexTimeoutException(string pattern, RegexMatchTimeoutException ex)
+            => new($"Regex parsing timed out after {ex.MatchTimeout.TotalMilliseconds:0} ms for pattern '{pattern}'.", ex);
     }
 }

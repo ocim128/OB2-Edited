@@ -110,26 +110,23 @@ public class DashboardService : IDashboardService
 
     public async Task<DesktopDashboardSnapshotDto> GetDesktopSnapshotAsync(CancellationToken cancellationToken = default)
     {
-        var jobsTask = _jobRepository.GetAll().CountAsync(cancellationToken);
-        var configsTask = CountConfigsAsync();
-        var hitsTask = _hitRepository.CountAsync();
-        var guestsTask = _guestRepository.GetAll().CountAsync(cancellationToken);
-        var proxiesTask = CountProxiesAsync(cancellationToken);
-        var wordlistsTask = CountWordlistsAsync(cancellationToken);
-        var pluginsTask = Task.Run(() => _pluginRepository.GetPluginNames().Count(), cancellationToken);
-
-        await Task.WhenAll(jobsTask, configsTask, hitsTask, guestsTask, proxiesTask, wordlistsTask, pluginsTask)
-            .ConfigureAwait(false);
+        var jobsCount = await _jobRepository.GetAll().CountAsync(cancellationToken).ConfigureAwait(false);
+        var configsCount = await CountConfigsAsync().ConfigureAwait(false);
+        var hitsCount = await _hitRepository.CountAsync().ConfigureAwait(false);
+        var guestsCount = await _guestRepository.GetAll().CountAsync(cancellationToken).ConfigureAwait(false);
+        var proxiesCount = await CountProxiesAsync(cancellationToken).ConfigureAwait(false);
+        var wordlists = await CountWordlistsAsync(cancellationToken).ConfigureAwait(false);
+        var pluginsCount = _pluginRepository.GetPluginNames().Count();
 
         return new DesktopDashboardSnapshotDto(
-            jobsTask.Result,
-            configsTask.Result,
-            (int)System.Math.Min(hitsTask.Result, int.MaxValue),
-            proxiesTask.Result,
-            wordlistsTask.Result.Count,
-            wordlistsTask.Result.TotalLines,
-            guestsTask.Result,
-            pluginsTask.Result);
+            jobsCount,
+            configsCount,
+            (int)System.Math.Min(hitsCount, int.MaxValue),
+            proxiesCount,
+            wordlists.Count,
+            wordlists.TotalLines,
+            guestsCount,
+            pluginsCount);
     }
 
     private async Task<int> CountConfigsAsync()

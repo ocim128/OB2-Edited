@@ -242,8 +242,9 @@ public class HitController : ApiController
                 .Where(h => h.OwnerId == apiUser.Id)
                 .ToListAsync();
 
+        var ignoreWordlistName = _fluxSettingsService.Settings.GeneralSettings.IgnoreWordlistNameOnHitsDedupe;
         var duplicates = hits
-            .GroupBy(h => h.GetHashCode(_fluxSettingsService.Settings.GeneralSettings.IgnoreWordlistNameOnHitsDedupe))
+            .GroupBy(h => HitDedupeKey.From(h, ignoreWordlistName))
             .Where(g => g.Count() > 1)
             .SelectMany(g => g.OrderBy(h => h.Date)
                 .Reverse().Skip(1)).ToList();
@@ -282,6 +283,10 @@ public class HitController : ApiController
     [MapToApiVersion("1.0")]
     public async Task<ActionResult<RecentHitsDto>> GetRecent(int days)
     {
+        var normalizedDays = Math.Clamp(days, 1, 365);
+        var today = DateTime.UtcNow.Date;
+        var startDate = today.AddDays(1 - normalizedDays);
+        var endExclusive = today.AddDays(1);
         var apiUser = HttpContext.GetApiUser();
 
         var query = apiUser.Role is UserRole.Admin
@@ -291,37 +296,29 @@ public class HitController : ApiController
                 .Where(h => h.OwnerId == apiUser.Id)
                 .Where(h => h.Type == "SUCCESS");
 
-        var dates = Enumerable.Range(0, days)
-            .Select(i => DateTime.UtcNow.Date.AddDays(-i))
+        var dates = Enumerable.Range(0, normalizedDays)
+            .Select(i => today.AddDays(-i))
             .Reverse()
             .ToList();
 
-        // First of all, get the distinct names of the configs
-        // that have hits in the last N days
-        var configNames = await query
-            .Where(h => h.Date >= DateTime.UtcNow.Date.AddDays(-days))
-            .Select(h => h.ConfigName)
-            .Distinct()
+        var dailyHits = await query
+            .AsNoTracking()
+            .Where(h => h.Date >= startDate && h.Date < endExclusive)
+            .GroupBy(h => new { h.ConfigName, Date = h.Date.Date })
+            .Select(g => new { g.Key.ConfigName, g.Key.Date, Count = g.Count() })
             .ToListAsync();
 
-        // For each config, get the number of hits for each day
-        var hits = new Dictionary<string, List<int>>();
+        var counts = dailyHits
+            .ToDictionary(h => (h.ConfigName, h.Date), h => h.Count);
 
-        foreach (var configName in configNames)
-        {
-            var configHits = new List<int>();
-
-            foreach (var date in dates)
-            {
-                var dailyHits = await query
-                    .Where(h => h.ConfigName == configName && h.Date.Date == date)
-                    .CountAsync();
-
-                configHits.Add(dailyHits);
-            }
-
-            hits.Add(configName, configHits);
-        }
+        var hits = dailyHits
+            .Select(h => h.ConfigName)
+            .Distinct()
+            .ToDictionary(
+                configName => configName,
+                configName => dates
+                    .Select(date => counts.TryGetValue((configName, date), out var count) ? count : 0)
+                    .ToList());
 
         // If there are no hits, return an empty response
         if (hits.Count == 0)
@@ -400,7 +397,7 @@ public class HitController : ApiController
         
         await _jobRepo.AddAsync(entity);
         
-        var job = _jobFactoryService.FromOptions(entity.Id, apiUser.Id, jobOptions);
+        var job = await _jobFactoryService.FromOptionsAsync(entity.Id, apiUser.Id, jobOptions);
         _jobManagerService.AddJob(job);
         
         return new SendToRecheckResultDto { JobId = entity.Id };

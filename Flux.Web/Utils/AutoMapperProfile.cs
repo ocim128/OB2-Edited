@@ -52,7 +52,7 @@ using System.Text.Json;
 using Action = RuriLib.Models.Jobs.Monitor.Actions.Action;
 using Endpoint = Flux.Core.Models.Sharing.Endpoint;
 using GeneralSettings = Flux.Core.Models.Settings.GeneralSettings;
-using ProxySettings = RuriLib.Models.Settings.ProxySettings;
+using GlobalProxySettings = RuriLib.Models.Settings.GlobalProxySettings;
 
 namespace Flux.Web.Utils;
 
@@ -113,9 +113,9 @@ internal class AutoMapperProfile : Profile
         CreateMap<CustomizationSettings, OBCustomizationSettingsDto>().ReverseMap();
         CreateMap<CustomizationSettings, SafeOBCustomizationSettingsDto>();
         CreateMap<GlobalSettings, GlobalSettings>();
-        CreateMap<RuriLib.Models.Settings.GeneralSettings, RuriLib.Models.Settings.GeneralSettings>();
+        CreateMap<GlobalGeneralSettings, GlobalGeneralSettings>();
         CreateMap<CaptchaSettings, CaptchaSettings>();
-        CreateMap<ProxySettings, ProxySettings>();
+        CreateMap<GlobalProxySettings, GlobalProxySettings>();
         CreateMap<PuppeteerSettings, PuppeteerSettings>();
         CreateMap<SeleniumSettings, SeleniumSettings>();
 
@@ -234,8 +234,8 @@ internal class AutoMapperProfile : Profile
         CreateMap<UpdateConfigMetadataDto, ConfigMetadata>();
         CreateMap<ConfigMetadata, ConfigMetadataDto>();
         CreateMap<ConfigSettings, ConfigSettingsDto>().ReverseMap();
-        CreateMap<RuriLib.Models.Configs.Settings.GeneralSettings, ConfigGeneralSettingsDto>().ReverseMap();
-        CreateMap<RuriLib.Models.Configs.Settings.ProxySettings, ConfigProxySettingsDto>().ReverseMap();
+        CreateMap<ConfigGeneralSettings, ConfigGeneralSettingsDto>().ReverseMap();
+        CreateMap<ConfigProxySettings, ConfigProxySettingsDto>().ReverseMap();
         CreateMap<InputSettings, ConfigInputSettingsDto>().ReverseMap();
         CreateMap<DataSettings, ConfigDataSettingsDto>()
             .ForMember(dto => dto.DataRules, e => e.MapFrom(

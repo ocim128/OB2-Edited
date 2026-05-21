@@ -256,7 +256,7 @@ public class DebuggerViewModel : ViewModelBase
         PluginRepository pluginRepository)
     {
         rlSettingsService = ruriLibSettingsService ?? throw new ArgumentNullException(nameof(ruriLibSettingsService));
-        fluxSettingsService = fluxSettingsService ?? throw new ArgumentNullException(nameof(fluxSettingsService));
+        this.fluxSettingsService = fluxSettingsService ?? throw new ArgumentNullException(nameof(fluxSettingsService));
         this.configService = configService ?? throw new ArgumentNullException(nameof(configService));
         randomUAProvider = randomUserAgentProvider ?? throw new ArgumentNullException(nameof(randomUserAgentProvider));
         this.rngProvider = rngProvider ?? throw new ArgumentNullException(nameof(rngProvider));
@@ -388,5 +388,4 @@ public class DebuggerViewModel : ViewModelBase
         prewarmTask = ConfigDebugger.PrewarmAsync(config, pluginRepo, stepByStep: false, cancellationToken: token);
     }
 }
-
 

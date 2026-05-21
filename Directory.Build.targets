@@ -5,7 +5,7 @@
   <PropertyGroup>
     <SkipInvalidConfigurations>true</SkipInvalidConfigurations>
     <SkipUnchangedFiles>true</SkipUnchangedFiles>
-    <UseCommonOutputDirectory>true</UseCommonOutputDirectory>
+    <UseCommonOutputDirectory Condition="'$(IsTestProject)' != 'true' AND '$(OutputType)' != 'Exe' AND '$(OutputType)' != 'WinExe'">true</UseCommonOutputDirectory>
   </PropertyGroup>
   
   <!-- Faster file copying - ensure dependencies are copied -->
@@ -13,8 +13,8 @@
     <CopyBuildOutputToOutputDirectory>true</CopyBuildOutputToOutputDirectory>
     <CopyOutputSymbolsToOutputDirectory>false</CopyOutputSymbolsToOutputDirectory>
     <CopyDocumentationFileToOutputDirectory>false</CopyDocumentationFileToOutputDirectory>
-    <!-- Do not copy all lock file assemblies; rely on default per-project CopyLocal to shrink bin size -->
-    <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
+    <!-- Keep library outputs small; runnable apps and tests need local runtime dependencies. -->
+    <CopyLocalLockFileAssemblies Condition="'$(IsTestProject)' != 'true' AND '$(OutputType)' != 'Exe' AND '$(OutputType)' != 'WinExe'">false</CopyLocalLockFileAssemblies>
     <RestoreProjectStyle>PackageReference</RestoreProjectStyle>
   </PropertyGroup>
   

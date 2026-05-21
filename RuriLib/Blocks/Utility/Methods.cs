@@ -1,5 +1,6 @@
 using DeviceId;
 using RuriLib.Attributes;
+using RuriLib.Functions.Parsing;
 using RuriLib.Logging;
 using RuriLib.Models.Bots;
 using RuriLib.Services.Modem;
@@ -120,6 +121,7 @@ namespace RuriLib.Blocks.Utility
             var start = DateTime.UtcNow;
             var comparison = caseSensitive ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
             var regexOptions = caseSensitive ? RegexOptions.None : RegexOptions.IgnoreCase;
+            var regexTimeoutLogged = false;
 
             while ((DateTime.UtcNow - start).TotalMilliseconds < timeoutMs)
             {
@@ -134,7 +136,18 @@ namespace RuriLib.Blocks.Utility
                     }
                     else if (useRegex)
                     {
-                        isMatch = Regex.IsMatch(text, pattern, regexOptions);
+                        try
+                        {
+                            isMatch = RegexCache.GetOrCreate(pattern, regexOptions).IsMatch(text);
+                        }
+                        catch (RegexMatchTimeoutException ex)
+                        {
+                            if (!regexTimeoutLogged)
+                            {
+                                data.Logger.LogError($"Clipboard regex timed out: {ex.Message}", ex);
+                                regexTimeoutLogged = true;
+                            }
+                        }
                     }
                     else
                     {

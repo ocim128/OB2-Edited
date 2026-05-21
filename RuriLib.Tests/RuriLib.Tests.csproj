@@ -30,6 +30,7 @@
     <PackageReference Include="Microsoft.TestPlatform.TestHost" Version="17.10.0" GeneratePathProperty="true">
       <ExcludeAssets></ExcludeAssets>
     </PackageReference>
+    <PackageReference Include="System.Text.Json" Version="9.0.8" GeneratePathProperty="true" />
     <PackageReference Include="xunit" Version="2.8.1">
       <ExcludeAssets></ExcludeAssets>
     </PackageReference>
@@ -68,6 +69,7 @@
       <_TestPlatformRuntimeFiles Include="$(PkgNewtonsoft_Json)\lib\netstandard2.0\Newtonsoft.Json.dll" />
       <_TestPlatformRuntimeFiles Include="$(PkgPuppeteerSharp)\lib\netstandard2.0\PuppeteerSharp.dll" />
       <_TestPlatformRuntimeFiles Include="$(PkgSystem_CodeDom)\lib\net8.0\System.CodeDom.dll" />
+      <_TestPlatformRuntimeFiles Include="$(PkgSystem_Text_Json)\lib\net8.0\System.Text.Json.dll" />
       <_TestPlatformRuntimeFiles Include="$(Pkgxunit_assert)\lib\netstandard1.1\xunit.assert.dll" />
       <_TestPlatformRuntimeFiles Include="$(Pkgxunit_abstractions)\lib\netstandard2.0\xunit.abstractions.dll" />
       <_TestPlatformRuntimeFiles Include="$(Pkgxunit_extensibility_core)\lib\netstandard1.1\xunit.core.dll" />
@@ -76,8 +78,8 @@
       <_ProjectRuntimeFiles Include="..\RuriLib.Http\bin\$(Configuration)\net8.0\RuriLib.Http.dll" />
       <_ProjectRuntimeFiles Include="..\RuriLib.Proxies\bin\$(Configuration)\net8.0\RuriLib.Proxies.dll" />
       <_ProjectRuntimeFiles Include="..\RuriLib.Parallelization\bin\$(Configuration)\net8.0\RuriLib.Parallelization.dll" />
-      <_ProjectRuntimeFiles Include="..\Libraries\TlsClient.NET\src\TlsClient.Core\bin\$(Configuration)\net8.0\TlsClient.Core.dll" />
-      <_ProjectRuntimeFiles Include="..\Libraries\TlsClient.NET\src\TlsClient.Native\bin\$(Configuration)\net8.0\TlsClient.Native.dll" />
+      <_ProjectRuntimeFiles Include="..\Libraries\TlsClient.NET\src\TlsClient.Core\bin\$(Configuration)\netstandard2.1\TlsClient.Core.dll" />
+      <_ProjectRuntimeFiles Include="..\Libraries\TlsClient.NET\src\TlsClient.Native\bin\$(Configuration)\netstandard2.1\TlsClient.Native.dll" />
     </ItemGroup>
 
     <Copy

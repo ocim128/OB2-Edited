@@ -20,7 +20,25 @@ namespace RuriLib.Models.Data
         public int Retries { get; set; } = 0;
 
         /// <summary>Whether the data line respects the regex verification (if set to verify).</summary>
-        public bool IsValid => !Type.Verify || Type.CompiledRegex.IsMatch(Data);
+        public bool IsValid
+        {
+            get
+            {
+                if (!Type.Verify)
+                {
+                    return true;
+                }
+
+                try
+                {
+                    return Type.CompiledRegex.IsMatch(Data);
+                }
+                catch (RegexMatchTimeoutException)
+                {
+                    return false;
+                }
+            }
+        }
 
         /// <summary>
         /// Creates a CData object given some <paramref name="data"/> and the <paramref name="wordlistType"/>.

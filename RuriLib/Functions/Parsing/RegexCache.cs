@@ -9,8 +9,10 @@ namespace RuriLib.Functions.Parsing
     /// </summary>
     public static class RegexCache
     {
-        private static readonly ConcurrentDictionary<string, Regex> _cache = new();
-        private static readonly ConcurrentDictionary<string, Regex> _compiledCache = new();
+        public static readonly TimeSpan DefaultMatchTimeout = TimeSpan.FromSeconds(2);
+        private const int MaxCacheEntries = 512;
+        private static readonly ConcurrentDictionary<RegexCacheKey, Regex> _cache = new();
+        private static readonly ConcurrentDictionary<RegexCacheKey, Regex> _compiledCache = new();
 
         /// <summary>
         /// Gets a cached regex pattern or creates a new one if not found.
@@ -19,19 +21,31 @@ namespace RuriLib.Functions.Parsing
         /// <param name="options">Regex options</param>
         /// <param name="compile">Whether to compile the regex for better performance</param>
         /// <returns>A cached or new Regex instance</returns>
-        public static Regex GetOrCreate(string pattern, RegexOptions options = RegexOptions.None, bool compile = true)
+        public static Regex GetOrCreate(string pattern, RegexOptions options = RegexOptions.None,
+            bool compile = true, TimeSpan? matchTimeout = null)
         {
             if (string.IsNullOrEmpty(pattern))
                 throw new ArgumentNullException(nameof(pattern));
 
-            var key = $"{pattern}|{(int)options}";
+            var timeout = matchTimeout ?? DefaultMatchTimeout;
+            var key = new RegexCacheKey(pattern, options, timeout.Ticks);
             
             if (compile)
             {
-                return _compiledCache.GetOrAdd(key, _ => new Regex(pattern, options | RegexOptions.Compiled));
+                EnsureCapacity(_compiledCache);
+                return _compiledCache.GetOrAdd(key, _ => new Regex(pattern, options | RegexOptions.Compiled, timeout));
             }
             
-            return _cache.GetOrAdd(key, _ => new Regex(pattern, options));
+            EnsureCapacity(_cache);
+            return _cache.GetOrAdd(key, _ => new Regex(pattern, options, timeout));
+        }
+
+        private static void EnsureCapacity(ConcurrentDictionary<RegexCacheKey, Regex> cache)
+        {
+            if (cache.Count >= MaxCacheEntries)
+            {
+                cache.Clear();
+            }
         }
 
         /// <summary>
@@ -52,5 +66,7 @@ namespace RuriLib.Functions.Parsing
         /// Gets the number of compiled regex patterns.
         /// </summary>
         public static int CompiledCacheCount => _compiledCache.Count;
+
+        private readonly record struct RegexCacheKey(string Pattern, RegexOptions Options, long TimeoutTicks);
     }
 }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using RuriLib.Functions.Parsing;
 
 namespace RuriLib.Models.Environment
 {
@@ -22,11 +23,23 @@ namespace RuriLib.Models.Environment
         /// <returns>The correct Wordlist Type or (if every Regex match failed) the first one</returns>
         public string RecognizeWordlistType(string data)
         {
+            if (data is null)
+            {
+                throw new ArgumentNullException(nameof(data));
+            }
+
             foreach (var type in WordlistTypes)
             {
-                if (Regex.Match(data, type.Regex).Success)
+                try
                 {
-                    return type.Name;
+                    if (type.Regex == string.Empty || RegexCache.GetOrCreate(type.Regex).IsMatch(data))
+                    {
+                        return type.Name;
+                    }
+                }
+                catch (RegexMatchTimeoutException)
+                {
+                    // Treat timed-out recognition patterns as non-matches.
                 }
             }
 

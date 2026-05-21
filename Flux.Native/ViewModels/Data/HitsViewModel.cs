@@ -8,6 +8,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Data;
+using Flux.Core.Models.Hits;
 using Flux.Native.ViewModels.Base;
 
 
@@ -97,7 +98,7 @@ namespace Flux.Native.ViewModels.Data
             FluxSettingsService fluxSettingsService,
             IHitRepository hitRepository)
         {
-            fluxSettingsService = fluxSettingsService ?? throw new ArgumentNullException(nameof(fluxSettingsService));
+            this.fluxSettingsService = fluxSettingsService ?? throw new ArgumentNullException(nameof(fluxSettingsService));
             hitRepo = hitRepository ?? throw new ArgumentNullException(nameof(hitRepository));
             HitsCollection = new ObservableCollection<HitEntity>();
         }
@@ -233,7 +234,7 @@ namespace Flux.Native.ViewModels.Data
             var duplicates = await Task.Run(() => 
             {
                 return hitsSnapshot
-                    .GroupBy(h => h.GetHashCode(ignoreWordlist))
+                    .GroupBy(h => HitDedupeKey.From(h, ignoreWordlist))
                     .Where(g => g.Count() > 1)
                     .SelectMany(g => g.OrderBy(h => h.Date)
                     .Reverse().Skip(1)).ToList();
@@ -255,5 +256,3 @@ namespace Flux.Native.ViewModels.Data
         }
     }
 }
-
-

@@ -164,6 +164,7 @@ namespace RuriLib.Functions.Http
                 ? GetResponseBytes(response, useByteResponse)
                 : Array.Empty<byte>();
             var headers = NormalizeTlsHeaders(response.Headers);
+            MergeTlsCookies(headers, response.Cookies);
             var address = Uri.TryCreate(response.Target, UriKind.Absolute, out var targetUri)
                 ? targetUri
                 : request.Uri;
@@ -191,7 +192,8 @@ namespace RuriLib.Functions.Http
                 TimeoutSeconds = 0,
                 WithRandomTLSExtensionOrder = options.RandomizeTlsExtensionOrder,
                 InsecureSkipVerify = options.InsecureSkipVerify || InsecureSkipVerify,
-                WithDefaultCookieJar = true,
+                WithDefaultCookieJar = false,
+                WithoutCookieJar = true,
                 SessionId = data.TlsClientSessionId ??= Guid.NewGuid(),
                 TransportOptions = defaultTransportOptions,
                 Headers = CopyHeaders(request),
@@ -364,10 +366,15 @@ namespace RuriLib.Functions.Http
                             FileUtils.ThrowIfNotInCWD(fileContent.FileName);
                         }
 
-                        if (File.Exists(fileContent.FileName))
+                        lock (FileLocker.GetHandle(fileContent.FileName))
                         {
-                            var fileBytes = File.ReadAllBytes(fileContent.FileName);
-                            ms.Write(fileBytes, 0, fileBytes.Length);
+                            if (!File.Exists(fileContent.FileName))
+                            {
+                                throw new FileNotFoundException("Multipart file not found.", fileContent.FileName);
+                            }
+
+                            using var fileStream = new FileStream(fileContent.FileName, FileMode.Open, FileAccess.Read, FileShare.Read);
+                            fileStream.CopyTo(ms);
                         }
 
                         ms.Write(crlf, 0, crlf.Length);
@@ -415,6 +422,30 @@ namespace RuriLib.Functions.Http
             }
 
             return normalized;
+        }
+
+        private static void MergeTlsCookies(
+            Dictionary<string, List<string>> headers,
+            Dictionary<string, string>? cookies)
+        {
+            if (cookies == null || cookies.Count == 0)
+            {
+                return;
+            }
+
+            if (!headers.TryGetValue("Set-Cookie", out var values))
+            {
+                values = new List<string>();
+                headers["Set-Cookie"] = values;
+            }
+
+            foreach (var cookie in cookies)
+            {
+                if (!string.IsNullOrEmpty(cookie.Key))
+                {
+                    values.Add($"{cookie.Key}={cookie.Value}");
+                }
+            }
         }
 
         private static void ValidateTlsResponse(Response response)

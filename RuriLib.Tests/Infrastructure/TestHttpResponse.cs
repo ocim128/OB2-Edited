@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Text;
 
@@ -55,6 +56,17 @@ public sealed class TestHttpResponse
     /// When true, emits the body using HTTP chunked transfer encoding instead of Content-Length.
     /// </summary>
     public bool UseChunkedTransferEncoding { get; init; }
+
+    /// <summary>
+    /// When true, suppresses the Content-Length header for non-chunked responses.
+    /// </summary>
+    public bool OmitContentLength { get; init; }
+
+    /// <summary>
+    /// Whether the test server should close the TCP connection after this response.
+    /// Defaults to true to preserve existing test behavior.
+    /// </summary>
+    public bool CloseConnection { get; init; } = true;
 
     // -----------------------------------------------------------------
     // Convenience factory helpers
@@ -118,7 +130,7 @@ public sealed class TestHttpResponse
         {
             sb.Append("Transfer-Encoding: chunked\r\n");
         }
-        else
+        else if (!OmitContentLength)
         {
             sb.Append($"Content-Length: {bodyBytes.Length}\r\n");
         }
@@ -140,7 +152,12 @@ public sealed class TestHttpResponse
             sb.Append($"Set-Cookie: {cookie}\r\n");
         }
 
-        sb.Append("Connection: close\r\n\r\n");
+        if (!HasHeader("Connection"))
+        {
+            sb.Append(CloseConnection ? "Connection: close\r\n" : "Connection: keep-alive\r\n");
+        }
+
+        sb.Append("\r\n");
 
         var headerBytes = Encoding.ASCII.GetBytes(sb.ToString());
         var buffer = new byte[headerBytes.Length + payloadBytes.Length];
@@ -175,6 +192,10 @@ public sealed class TestHttpResponse
         stream.Write(chunk);
         stream.Write("\r\n"u8);
     }
+
+    private bool HasHeader(string name)
+        => Headers.Keys.Any(key => key.Equals(name, StringComparison.OrdinalIgnoreCase)) ||
+           AdditionalHeaders.Any(header => header.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
 
     private static string GetDefaultReasonPhrase(HttpStatusCode code) => code switch
     {

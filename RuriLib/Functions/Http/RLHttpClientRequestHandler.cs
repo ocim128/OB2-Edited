@@ -32,6 +32,7 @@ namespace RuriLib.Functions.Http
         {
             public required RuriLib.Http.RLHttpClient Client { get; init; }
             public required string Key { get; init; }
+            public required bool IsPoolTracked { get; init; }
             public DateTime LastUsed { get; set; } = DateTime.UtcNow;
 
             public bool IsValid => (DateTime.UtcNow - LastUsed).TotalMinutes < ClientTimeoutMinutes;
@@ -170,35 +171,42 @@ namespace RuriLib.Functions.Http
                 }
 
                 pooledClient.Dispose();
-                Interlocked.Decrement(ref poolEntry.ActiveClients);
+                ReleaseClientSlot(poolEntry);
             }
 
-            if (poolEntry.ActiveClients < MaxClientsPerKey)
+            if (TryReserveClientSlot(poolEntry))
             {
-                Interlocked.Increment(ref poolEntry.ActiveClients);
                 return new PooledClient
                 {
                     Client = HttpFactory.GetRLHttpClient(data.UseProxy ? data.Proxy : null, clientOptions),
-                    Key = key
+                    Key = key,
+                    IsPoolTracked = true
                 };
             }
 
             return new PooledClient
             {
                 Client = HttpFactory.GetRLHttpClient(data.UseProxy ? data.Proxy : null, clientOptions),
-                Key = key
+                Key = key,
+                IsPoolTracked = false
             };
         }
 
         private static void ReturnClient(PooledClient pooledClient)
         {
+            if (!pooledClient.IsPoolTracked)
+            {
+                pooledClient.Dispose();
+                return;
+            }
+
             if (!pooledClient.IsValid)
             {
                 pooledClient.Dispose();
 
                 if (clientPool.TryGetValue(pooledClient.Key, out var poolEntry))
                 {
-                    Interlocked.Decrement(ref poolEntry.ActiveClients);
+                    ReleaseClientSlot(poolEntry);
                 }
                 return;
             }
@@ -236,6 +244,40 @@ namespace RuriLib.Functions.Http
             return $"{proxyKey}:{clientOptions.SecurityProtocol}:{cipherKey}:{clientOptions.CertRevocationMode}:{clientOptions.ConnectTimeout.Ticks}:{clientOptions.ReadWriteTimeout.Ticks}";
         }
 
+        private static bool TryReserveClientSlot(ClientPoolEntry poolEntry)
+        {
+            while (true)
+            {
+                var current = Volatile.Read(ref poolEntry.ActiveClients);
+                if (current >= MaxClientsPerKey)
+                {
+                    return false;
+                }
+
+                if (Interlocked.CompareExchange(ref poolEntry.ActiveClients, current + 1, current) == current)
+                {
+                    return true;
+                }
+            }
+        }
+
+        private static void ReleaseClientSlot(ClientPoolEntry poolEntry)
+        {
+            while (true)
+            {
+                var current = Volatile.Read(ref poolEntry.ActiveClients);
+                if (current <= 0)
+                {
+                    return;
+                }
+
+                if (Interlocked.CompareExchange(ref poolEntry.ActiveClients, current - 1, current) == current)
+                {
+                    return;
+                }
+            }
+        }
+
         private static void CleanupExpiredClients(object? state)
         {
             var cutoff = DateTime.UtcNow.AddMinutes(-ClientTimeoutMinutes);
@@ -262,7 +304,10 @@ namespace RuriLib.Functions.Http
 
                 if (disposedClients > 0)
                 {
-                    Interlocked.Add(ref poolEntry.ActiveClients, -disposedClients);
+                    for (var i = 0; i < disposedClients; i++)
+                    {
+                        ReleaseClientSlot(poolEntry);
+                    }
                 }
 
                 foreach (var client in retainedClients)

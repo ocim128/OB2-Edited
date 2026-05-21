@@ -65,7 +65,7 @@ namespace RuriLib.Functions.Http
                 }
 
                 request.StringBody = content;
-                request.LoggedContent = content;
+                request.LoggedContent = ShouldBuildLoggedContent(data) ? content : null;
                 request.ContentType = options.ContentType;
                 request.ContentLengthDisplay = Encoding.UTF8.GetByteCount((content ?? string.Empty).Unescape()).ToString();
             }
@@ -77,7 +77,9 @@ namespace RuriLib.Functions.Http
         {
             var request = CreateBaseRequest(data, options);
             request.RawBody = options.Content ?? Array.Empty<byte>();
-            request.LoggedContent = Convert.ToBase64String(request.RawBody);
+            request.LoggedContent = ShouldBuildLoggedContent(data)
+                ? Convert.ToBase64String(request.RawBody)
+                : null;
             request.ContentType = options.ContentType;
             request.ContentLengthDisplay = request.RawBody.Length.ToString();
             return request;
@@ -101,9 +103,14 @@ namespace RuriLib.Functions.Http
             request.MultipartContents = options.Contents;
             request.ContentType = $"multipart/form-data; boundary=\"{request.Boundary}\"";
             request.ContentLengthDisplay = "(not calculated)";
-            request.LoggedContent = SerializeMultipart(request.Boundary, options.Contents);
+            request.LoggedContent = ShouldBuildLoggedContent(data)
+                ? SerializeMultipart(request.Boundary, options.Contents)
+                : null;
             return request;
         }
+
+        private static bool ShouldBuildLoggedContent(BotData data)
+            => data.Logger?.Enabled == true;
 
         public static void Validate(NormalizedHttpRequest request)
         {

@@ -1,251 +1,149 @@
-﻿using Newtonsoft.Json.Linq;
 using RuriLib.Proxies;
 using RuriLib.Proxies.Clients;
 using System;
-using System.Collections.Generic;
+using System.IO;
+using System.IO.Compression;
 using System.Net;
 using System.Net.Http;
+using System.Text;
 using System.Threading.Tasks;
 using Xunit;
 
-namespace RuriLib.Http.Tests
+namespace RuriLib.Http.Tests;
+
+public class ProxyClientHandlerTests
 {
-    public class ProxyClientHandlerTests
+    [Fact]
+    public async Task SendAsync_ForwardsHeadersAndQuery()
     {
-        [Fact]
-        public async Task SendAsync_Get_Headers()
-        {
-            var userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.113 Safari/537.36";
+        var userAgent = "Flux-Test";
+        await using var server = await LoopbackHttpServer.StartAsync(_ => new LoopbackHttpResponse());
 
-            var message = new HttpRequestMessage
+        using var response = await RequestAsync(new HttpRequestMessage(HttpMethod.Get, new Uri(server.Uri, "/get?key=value"))
+        {
+            Headers = { { "User-Agent", userAgent } }
+        });
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.True(server.Requests.TryPeek(out var request));
+        Assert.Equal("/get?key=value", request.PathAndQuery);
+        Assert.Equal(userAgent, request.Headers["User-Agent"]);
+    }
+
+    [Fact]
+    public async Task SendAsync_ReadsContentHeadersAndBody()
+    {
+        var body = Encoding.UTF8.GetBytes("<html><body>ok</body></html>");
+        await using var server = await LoopbackHttpServer.StartAsync(_ =>
+        {
+            var response = new LoopbackHttpResponse { Body = body };
+            response.Headers["Content-Type"] = "text/html; charset=utf-8";
+            return response;
+        });
+
+        using var response = await RequestAsync(new HttpRequestMessage(HttpMethod.Get, server.Uri));
+
+        Assert.Equal(body.Length, response.Content.Headers.ContentLength);
+        Assert.Equal("text/html", response.Content.Headers.ContentType.MediaType);
+        Assert.Equal("utf-8", response.Content.Headers.ContentType.CharSet);
+        Assert.Equal("<html><body>ok</body></html>", await response.Content.ReadAsStringAsync());
+    }
+
+    [Fact]
+    public async Task SendAsync_StoresResponseCookies()
+    {
+        await using var server = await LoopbackHttpServer.StartAsync(_ =>
+        {
+            var response = new LoopbackHttpResponse();
+            response.Headers["Set-Cookie"] = "name=value; Path=/";
+            return response;
+        });
+
+        var cookieContainer = new CookieContainer();
+        using var handler = new ProxyClientHandler(new NoProxyClient(new ProxySettings()))
+        {
+            CookieContainer = cookieContainer
+        };
+
+        using var client = new HttpClient(handler);
+        using var response = await client.SendAsync(new HttpRequestMessage(HttpMethod.Get, server.Uri));
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var cookies = cookieContainer.GetCookies(server.Uri);
+        Assert.Single(cookies);
+        Assert.Equal("value", cookies["name"].Value);
+    }
+
+    [Fact]
+    public async Task SendAsync_ReturnsStatusCode()
+    {
+        await using var server = await LoopbackHttpServer.StartAsync(_ =>
+            new LoopbackHttpResponse
             {
-                Method = HttpMethod.Get,
-                RequestUri = new Uri("http://httpbin.org/user-agent")
-            };
+                StatusCode = HttpStatusCode.NotFound,
+                ReasonPhrase = "Not Found",
+                Body = Array.Empty<byte>()
+            });
 
-            message.Headers.Add("User-Agent", userAgent);
+        using var response = await RequestAsync(new HttpRequestMessage(HttpMethod.Get, server.Uri));
 
-            var response = await RequestAsync(message);
-            var userAgentActual = await GetJsonStringValueAsync(response, "user-agent");
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
 
-            Assert.NotEmpty(userAgentActual);
-            Assert.Equal(userAgent, userAgentActual);
-        }
+    [Fact]
+    public async Task SendAsync_UsesExplicitHostHeader()
+    {
+        await using var server = await LoopbackHttpServer.StartAsync(_ => new LoopbackHttpResponse());
+        using var message = new HttpRequestMessage(HttpMethod.Get, server.Uri);
+        message.Headers.Host = "example.test";
 
-        [Fact]
-        public async Task SendAsync_Get_Query()
+        using var response = await RequestAsync(message);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.True(server.Requests.TryPeek(out var request));
+        Assert.Equal("example.test", request.Headers["Host"]);
+    }
+
+    [Fact]
+    public async Task SendAsync_DecompressesGzip()
+    {
+        var body = Compress("compressed", stream => new GZipStream(stream, CompressionLevel.Fastest, leaveOpen: true));
+        await using var server = await LoopbackHttpServer.StartAsync(_ =>
         {
-            var key = "key";
-            var value = "value";
+            var response = new LoopbackHttpResponse { Body = body };
+            response.Headers["Content-Encoding"] = "gzip";
+            return response;
+        });
 
-            var message = new HttpRequestMessage
-            {
-                Method = HttpMethod.Get,
-                RequestUri = new Uri($"http://httpbin.org/get?{key}={value}")
-            };
+        using var message = new HttpRequestMessage(HttpMethod.Get, server.Uri);
+        message.Headers.TryAddWithoutValidation("Accept-Encoding", "gzip");
 
-            var response = await RequestAsync(message);
-            var actual = await GetJsonDictionaryValueAsync(response, "args");
+        using var response = await RequestAsync(message);
 
-            Assert.True(actual.ContainsKey(key));
-            Assert.True(actual.ContainsValue(value));
-        }
+        Assert.Equal("compressed", await response.Content.ReadAsStringAsync());
+    }
 
-        [Fact]
-        public async Task SendAsync_Get_UTF8()
+    private static async Task<HttpResponseMessage> RequestAsync(HttpRequestMessage request)
+    {
+        using var handler = new ProxyClientHandler(new NoProxyClient(new ProxySettings()))
         {
-            var expected = "∮";
+            CookieContainer = new CookieContainer()
+        };
 
-            var message = new HttpRequestMessage
-            {
-                Method = HttpMethod.Get,
-                RequestUri = new Uri("http://httpbin.org/encoding/utf8")
-            };
+        using var client = new HttpClient(handler);
+        return await client.SendAsync(request);
+    }
 
-
-            var response = await RequestAsync(message);
-            var actual = await response.Content.ReadAsStringAsync();
-
-            Assert.Contains(expected, actual);
-        }
-
-        [Fact]
-        public async Task SendAsync_Get_HTML()
+    private static byte[] Compress(string value, Func<Stream, Stream> createCompressionStream)
+    {
+        using var output = new MemoryStream();
+        using (var compressionStream = createCompressionStream(output))
         {
-            long expectedLength = 3741;
-            var contentType = "text/html";
-            var charSet = "utf-8";
-
-            var message = new HttpRequestMessage
-            {
-                Method = HttpMethod.Get,
-                RequestUri = new Uri("http://httpbin.org/html")
-            };
-
-            var response = await RequestAsync(message);
-
-            var content = response.Content;
-            Assert.NotNull(content);
-
-            var headers = response.Content.Headers;
-            Assert.NotNull(headers);
-
-            Assert.NotNull(headers.ContentLength);
-            Assert.Equal(expectedLength, headers.ContentLength.Value);
-            Assert.NotNull(headers.ContentType);
-            Assert.Equal(contentType, headers.ContentType.MediaType);
-            Assert.Equal(charSet, headers.ContentType.CharSet);
+            var bytes = Encoding.UTF8.GetBytes(value);
+            compressionStream.Write(bytes, 0, bytes.Length);
         }
 
-        [Fact]
-        public async Task SendAsync_Get_Delay()
-        {
-            var message = new HttpRequestMessage
-            {
-                Method = HttpMethod.Get,
-                RequestUri = new Uri("http://httpbin.org/delay/4")
-            };
-
-            var response = await RequestAsync(message);
-            var source = response.Content.ReadAsStringAsync();
-
-            Assert.NotNull(response);
-            Assert.NotNull(source);
-        }
-
-        [Fact]
-        public async Task SendAsync_Get_Stream()
-        {
-            var message = new HttpRequestMessage
-            {
-                Method = HttpMethod.Get,
-                RequestUri = new Uri("http://httpbin.org/stream/20")
-            };
-
-            var response = await RequestAsync(message);
-            var source = response.Content.ReadAsStringAsync();
-
-            Assert.NotNull(response);
-            Assert.NotNull(source);
-        }
-
-        [Fact]
-        public async Task SendAsync_Get_Gzip()
-        {
-            var expected = "gzip, deflate";
-
-            var message = new HttpRequestMessage
-            {
-                Method = HttpMethod.Get,
-                RequestUri = new Uri("http://httpbin.org/gzip")
-            };
-
-            message.Headers.TryAddWithoutValidation("Accept-Encoding", expected);
-
-            var response = await RequestAsync(message);
-            var actual = await GetJsonDictionaryValueAsync(response, "headers");
-
-            Assert.Equal(expected, actual["Accept-Encoding"]);
-        }
-
-        [Fact]
-        public async Task SendAsync_Get_Cookies()
-        {
-            var name = "name";
-            var value = "value";
-
-            var message = new HttpRequestMessage
-            {
-                Method = HttpMethod.Get,
-                RequestUri = new Uri($"http://httpbin.org/cookies/set?{name}={value}")
-            };
-
-            var settings = new ProxySettings();
-            var proxyClient = new NoProxyClient(settings);
-            var cookieContainer = new CookieContainer();
-            using var proxyClientHandler = new ProxyClientHandler(proxyClient)
-            {
-                CookieContainer = cookieContainer
-            };
-
-            using var client = new HttpClient(proxyClientHandler);
-            var response = await client.SendAsync(message);
-
-            var cookies = cookieContainer.GetCookies(new Uri("http://httpbin.org/"));
-
-            Assert.Single(cookies);
-            var cookie = cookies[name];
-            Assert.Equal(name, cookie.Name);
-            Assert.Equal(value, cookie.Value);
-
-            client.Dispose();
-        }
-
-        [Fact]
-        public async Task SendAsync_Get_StatusCode()
-        {
-            var code = "404";
-            var expected = "NotFound";
-
-            var message = new HttpRequestMessage
-            {
-                Method = HttpMethod.Get,
-                RequestUri = new Uri($"http://httpbin.org/status/{code}")
-            };
-
-            var response = await RequestAsync(message);
-
-            Assert.NotNull(response);
-            Assert.Equal(expected, response.StatusCode.ToString());
-        }
-
-        [Fact]
-        public async Task SendAsync_Get_ExplicitHostHeader()
-        {
-            var message = new HttpRequestMessage(HttpMethod.Get, "https://httpbin.org/headers");
-            message.Headers.Host = "httpbin.org";
-
-            var response = await RequestAsync(message);
-
-            Assert.NotNull(response);
-            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        }
-
-        private static async Task<HttpResponseMessage> RequestAsync(HttpRequestMessage request)
-        {
-            var settings = new ProxySettings();
-            var proxyClient = new NoProxyClient(settings);
-            using var proxyClientHandler = new ProxyClientHandler(proxyClient)
-            {
-                CookieContainer = new CookieContainer()
-            };
-
-            using var client = new HttpClient(proxyClientHandler);
-            return await client.SendAsync(request);
-        }
-
-        private static async Task<string> GetJsonStringValueAsync(HttpResponseMessage response, string valueName)
-        {
-            var source = await response.Content.ReadAsStringAsync();
-            var obj = JObject.Parse(source);
-
-            var result = obj.TryGetValue(valueName, out var token);
-
-            return result
-                ? token.Value<string>()
-                : string.Empty;
-        }
-
-        private static async Task<Dictionary<string, string>> GetJsonDictionaryValueAsync(HttpResponseMessage response, string valueName)
-        {
-            var source = await response.Content.ReadAsStringAsync();
-            var obj = JObject.Parse(source);
-
-            var result = obj.TryGetValue(valueName, out var token);
-
-            return result
-                ? token.ToObject<Dictionary<string, string>>()
-                : null;
-        }
+        return output.ToArray();
     }
 }

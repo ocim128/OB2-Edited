@@ -130,5 +130,12 @@ namespace HttpDemo
 
 ```
 
+# Runtime Behavior
+
+- `RLHttpClient` uses HTTP/1.1 keep-alive by default. It only returns a connection to the pool after the response body was fully consumed and framed by `Content-Length`, chunked transfer encoding, or a no-body status such as `204` or `304`.
+- Explicit `Connection: close` on either the request or response is respected and prevents connection reuse.
+- `RLHttpClient.ReceiveTimeout` controls response reads. `TimeSpan.Zero` and `Timeout.InfiniteTimeSpan` disable the internal receive timeout.
+- `ProxyClientHandler` reads responses directly from the underlying proxied stream and can be used with `HttpClient` for proxy-check and compatibility paths.
+
 # Credits
 Some portions of the code were the work of Ruslan Khuduev and Artem Dontsov, to which I am grateful, all rights are reserved to them. Their work is under the MIT license.

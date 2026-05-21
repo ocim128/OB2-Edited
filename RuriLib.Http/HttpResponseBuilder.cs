@@ -20,7 +20,7 @@ namespace RuriLib.Http;
 /// <summary>
 /// High-performance HTTP response builder with optimized memory management and reduced allocations.
 /// </summary>
-internal class HttpResponseBuilder : IDisposable
+internal class HttpResponseBuilder
 {
     private PipeReader reader;
     private static readonly byte[] CRLFCRLF_Bytes = [13, 10, 13, 10];
@@ -28,6 +28,7 @@ internal class HttpResponseBuilder : IDisposable
 
     private Dictionary<string, List<string>> contentHeaders;
     private int contentLength = -1;
+    private bool reusableFraming;
 
     /// <summary>
     /// Add ArrayPool
@@ -117,9 +118,12 @@ internal class HttpResponseBuilder : IDisposable
     internal async Task<HttpResponse> GetResponseAsync(HttpRequest request, PipeReader pipeReader,
         bool readResponseContent = true, CancellationToken cancellationToken = default)
     {
-        using var timeoutCts = new CancellationTokenSource(ReceiveTimeout);
-        using var combinedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
+        using var timeoutCts = CreateReceiveTimeoutTokenSource();
+        using var combinedCts = timeoutCts is null
+            ? CancellationTokenSource.CreateLinkedTokenSource(cancellationToken)
+            : CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
         var token = combinedCts.Token;
+        var readerOwnedByResponseContent = false;
 
         reader = pipeReader;
 
@@ -135,10 +139,17 @@ internal class HttpResponseBuilder : IDisposable
             await ReceiveFirstLineAsync(token).ConfigureAwait(false);
             await ReceiveHeadersAsync(token).ConfigureAwait(false);
 
-            if (request.Method != HttpMethod.Head)
+            if (ResponseMustNotHaveBody(request))
             {
-                await ReceiveContentAsync(readResponseContent, token).ConfigureAwait(false);
+                response.Content = new ByteArrayContent(Array.Empty<byte>());
+                AddContentHeadersToResponseContent();
             }
+            else
+            {
+                readerOwnedByResponseContent = await ReceiveContentAsync(readResponseContent, token).ConfigureAwait(false);
+            }
+
+            response.CanReuseConnection = readResponseContent && HasReusableFraming(request);
         }
         catch
         {
@@ -147,15 +158,31 @@ internal class HttpResponseBuilder : IDisposable
         }
         finally
         {
-            if (readResponseContent)
+            if (!readerOwnedByResponseContent)
             {
-                // Only complete the reader if the content was fully read and buffered
                 await reader.CompleteAsync();
             }
-            // If readResponseContent is false, PipeReaderStream will complete the reader upon its disposal.
         }
 
         return response;
+    }
+
+    private CancellationTokenSource CreateReceiveTimeoutTokenSource()
+    {
+        if (ReceiveTimeout == TimeSpan.Zero || ReceiveTimeout == Timeout.InfiniteTimeSpan)
+        {
+            return null;
+        }
+
+        if (ReceiveTimeout < TimeSpan.Zero)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(ReceiveTimeout),
+                ReceiveTimeout,
+                "ReceiveTimeout must be zero or greater, or Timeout.InfiniteTimeSpan to disable the timeout.");
+        }
+
+        return new CancellationTokenSource(ReceiveTimeout);
     }
 
     /// <summary>
@@ -357,10 +384,12 @@ internal class HttpResponseBuilder : IDisposable
             // If it's a content header
             else if (IsContentHeader(headerName))
             {
+                TrackReusableFraming(headerName, headerValue);
                 AddContentHeader(headerName, headerValue);
             }
             else
             {
+                TrackReusableFraming(headerName, headerValue);
                 AddGeneralHeader(headerName, headerValue);
             }
         }
@@ -379,6 +408,15 @@ internal class HttpResponseBuilder : IDisposable
         headerName.Equals("Content-Range", StringComparison.OrdinalIgnoreCase) ||
         headerName.Equals("Last-Modified", StringComparison.OrdinalIgnoreCase) ||
         headerName.Equals("Expires", StringComparison.OrdinalIgnoreCase);
+
+    private void TrackReusableFraming(string headerName, string headerValue)
+    {
+        if (headerName.Equals("Transfer-Encoding", StringComparison.OrdinalIgnoreCase) &&
+            headerValue.Contains("chunked", StringComparison.OrdinalIgnoreCase))
+        {
+            reusableFraming = true;
+        }
+    }
 
     private void AddContentHeader(string headerName, string headerValue)
     {
@@ -477,8 +515,10 @@ internal class HttpResponseBuilder : IDisposable
         return new KeyValuePair<string, string>(name, val);
     }
 
-    private async Task ReceiveContentAsync(bool readResponseContent = true, CancellationToken cancellationToken = default)
+    private async Task<bool> ReceiveContentAsync(bool readResponseContent = true, CancellationToken cancellationToken = default)
     {
+        var readerOwnedByResponseContent = false;
+
         if (readResponseContent)
         {
             // Existing logic to read content into a stream
@@ -489,15 +529,20 @@ internal class HttpResponseBuilder : IDisposable
         {
             // Create a PipeReaderStream for on-demand reading
             response.Content = new StreamContent(new PipeReaderStream(reader, leaveOpen: false));
+            readerOwnedByResponseContent = true;
         }
 
-        // Set content headers from the collected dictionary
+        AddContentHeadersToResponseContent();
+
+        return readerOwnedByResponseContent;
+    }
+
+    private void AddContentHeadersToResponseContent()
+    {
         foreach (var header in contentHeaders)
         {
             if (!response.Content.Headers.TryAddWithoutValidation(header.Key, header.Value))
             {
-                // If it's a content header that was added to contentHeaders, it should be a List<string>
-                // Join the list into a single string before adding to response.Headers
                 response.Headers.Add(header.Key, string.Join(", ", header.Value));
             }
         }
@@ -510,6 +555,23 @@ internal class HttpResponseBuilder : IDisposable
             : GetContentLength() != -1
             ? GetContentLengthDecompressedStream(cancellationToken)
             : GetResponcestreamUntilCloseDecompressed(cancellationToken);
+
+    private bool HasReusableFraming(HttpRequest request)
+    {
+        if (ResponseMustNotHaveBody(request))
+        {
+            return true;
+        }
+
+        return reusableFraming || GetContentLength() >= 0;
+    }
+
+    private bool ResponseMustNotHaveBody(HttpRequest request)
+    {
+        var statusCode = (int)response.StatusCode;
+        return request.Method == HttpMethod.Head ||
+               statusCode is >= 100 and < 200 or 204 or 304;
+    }
 
     private async Task<Stream> GetResponcestreamUntilClose(CancellationToken cancellationToken)
     {
@@ -602,14 +664,31 @@ internal class HttpResponseBuilder : IDisposable
 
     private int GetContentLength()
     {
-        if (contentLength == -1 && contentHeaders.ContainsKey("Content-Length"))
+        if (contentLength != -1 || !contentHeaders.TryGetValue("Content-Length", out var values))
         {
-            var value = contentHeaders["Content-Length"][0];
-            if (int.TryParse(value, out var parsedLength))
+            return contentLength;
+        }
+
+        int? parsedLength = null;
+        foreach (var headerValue in values)
+        {
+            foreach (var part in headerValue.Split(','))
             {
-                contentLength = parsedLength;
+                if (!int.TryParse(part.Trim(), out var candidate) || candidate < 0)
+                {
+                    return -1;
+                }
+
+                if (parsedLength.HasValue && parsedLength.Value != candidate)
+                {
+                    return -1;
+                }
+
+                parsedLength = candidate;
             }
         }
+
+        contentLength = parsedLength ?? -1;
         return contentLength;
     }
 
@@ -770,5 +849,4 @@ internal class HttpResponseBuilder : IDisposable
         return stream;
     }
 
-    public void Dispose() => throw new NotImplementedException();
 }

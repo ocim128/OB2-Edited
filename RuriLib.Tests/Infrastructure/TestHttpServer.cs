@@ -2,9 +2,11 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace RuriLib.Tests.Infrastructure;
@@ -18,8 +20,10 @@ namespace RuriLib.Tests.Infrastructure;
 internal sealed class TestHttpServer : IAsyncDisposable
 {
     private readonly TcpListener _listener;
+    private readonly CancellationTokenSource _cts;
     private readonly Task _serverTask;
     private readonly ConcurrentQueue<RecordedHttpRequest> _recordedRequests;
+    private readonly ConnectionCounter _connectionCounter;
 
     /// <summary>
     /// The base URI that clients should use to reach this server.
@@ -33,6 +37,11 @@ internal sealed class TestHttpServer : IAsyncDisposable
     public IReadOnlyList<RecordedHttpRequest> RecordedRequests => _recordedRequests.ToArray();
 
     /// <summary>
+    /// Number of TCP connections accepted by the server.
+    /// </summary>
+    public int AcceptedConnections => Volatile.Read(ref _connectionCounter.Count);
+
+    /// <summary>
     /// The well-known header name used for Set-Cookie entries in
     /// <see cref="TestHttpResponse.Headers"/>.
     /// Prefer using <see cref="TestHttpResponse.SetCookies"/> instead.
@@ -41,14 +50,18 @@ internal sealed class TestHttpServer : IAsyncDisposable
 
     private TestHttpServer(
         TcpListener listener,
+        CancellationTokenSource cts,
         Task serverTask,
         Uri uri,
-        ConcurrentQueue<RecordedHttpRequest> recordedRequests)
+        ConcurrentQueue<RecordedHttpRequest> recordedRequests,
+        ConnectionCounter connectionCounter)
     {
         _listener = listener;
+        _cts = cts;
         _serverTask = serverTask;
         Uri = uri;
         _recordedRequests = recordedRequests;
+        _connectionCounter = connectionCounter;
     }
 
     // -----------------------------------------------------------------
@@ -91,12 +104,14 @@ internal sealed class TestHttpServer : IAsyncDisposable
 
         var port = ((IPEndPoint)listener.LocalEndpoint).Port;
         var bag = new ConcurrentQueue<RecordedHttpRequest>();
-        var serverTask = RunServerAsync(listener, scenario, expectedRequests, bag);
+        var connectionCounter = new ConnectionCounter();
+        var cts = new CancellationTokenSource();
+        var serverTask = RunServerAsync(listener, scenario, expectedRequests, bag, connectionCounter, cts.Token);
         var uri = new Uri($"http://127.0.0.1:{port}/");
 
         await Task.Yield();
 
-        return new TestHttpServer(listener, serverTask, uri, bag);
+        return new TestHttpServer(listener, cts, serverTask, uri, bag, connectionCounter);
     }
 
     // -----------------------------------------------------------------
@@ -105,6 +120,7 @@ internal sealed class TestHttpServer : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
+        _cts.Cancel();
         _listener.Stop();
 
         try
@@ -115,6 +131,8 @@ internal sealed class TestHttpServer : IAsyncDisposable
         {
             // The listener is intentionally stopped during teardown.
         }
+
+        _cts.Dispose();
     }
 
     // -----------------------------------------------------------------
@@ -125,14 +143,21 @@ internal sealed class TestHttpServer : IAsyncDisposable
         TcpListener listener,
         HttpTestScenario scenario,
         int expectedRequests,
-        ConcurrentQueue<RecordedHttpRequest> recordedQueue)
+        ConcurrentQueue<RecordedHttpRequest> recordedQueue,
+        ConnectionCounter connectionCounter,
+        CancellationToken cancellationToken)
     {
-        for (var i = 0; i < expectedRequests; i++)
+        var handledRequests = 0;
+        while (handledRequests < expectedRequests)
         {
             TcpClient client;
             try
             {
-                client = await listener.AcceptTcpClientAsync().ConfigureAwait(false);
+                client = await listener.AcceptTcpClientAsync(cancellationToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                break;
             }
             catch (SocketException) when (!listener.Server.IsBound)
             {
@@ -140,26 +165,46 @@ internal sealed class TestHttpServer : IAsyncDisposable
                 break;
             }
 
+            Interlocked.Increment(ref connectionCounter.Count);
             using (client)
             await using (var stream = client.GetStream())
             {
-                var recorded = await ReadRequestAsync(stream).ConfigureAwait(false);
-                recordedQueue.Enqueue(recorded);
+                while (handledRequests < expectedRequests)
+                {
+                    var recorded = await ReadRequestAsync(stream, cancellationToken).ConfigureAwait(false);
+                    if (string.IsNullOrEmpty(recorded.FirstLine))
+                    {
+                        break;
+                    }
 
-                var response = ResolveResponse(scenario, recorded, i);
-                var responseBytes = response.Serialize();
+                    var requestIndex = handledRequests++;
+                    recordedQueue.Enqueue(recorded);
 
-                await stream.WriteAsync(responseBytes).ConfigureAwait(false);
-                await stream.FlushAsync().ConfigureAwait(false);
+                    var response = ResolveResponse(scenario, recorded, requestIndex);
+                    var responseBytes = response.Serialize();
+
+                    await stream.WriteAsync(responseBytes, cancellationToken).ConfigureAwait(false);
+                    await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
+
+                    if (response.CloseConnection || RequestAskedToClose(recorded))
+                    {
+                        break;
+                    }
+                }
             }
         }
+    }
+
+    private sealed class ConnectionCounter
+    {
+        public int Count;
     }
 
     // -----------------------------------------------------------------
     // Request parsing
     // -----------------------------------------------------------------
 
-    private static async Task<RecordedHttpRequest> ReadRequestAsync(NetworkStream stream)
+    private static async Task<RecordedHttpRequest> ReadRequestAsync(NetworkStream stream, CancellationToken cancellationToken)
     {
         var headerBuffer = new byte[8192];
         var headerBytesRead = 0;
@@ -169,7 +214,8 @@ internal sealed class TestHttpServer : IAsyncDisposable
         while (headerBytesRead < headerBuffer.Length)
         {
             var read = await stream.ReadAsync(
-                headerBuffer.AsMemory(headerBytesRead, headerBuffer.Length - headerBytesRead)).ConfigureAwait(false);
+                headerBuffer.AsMemory(headerBytesRead, headerBuffer.Length - headerBytesRead),
+                cancellationToken).ConfigureAwait(false);
             if (read == 0) break;
             headerBytesRead += read;
 
@@ -235,7 +281,8 @@ internal sealed class TestHttpServer : IAsyncDisposable
             while (remaining > 0)
             {
                 var read = await stream.ReadAsync(
-                    bodyBytes.AsMemory(offset, remaining)).ConfigureAwait(false);
+                    bodyBytes.AsMemory(offset, remaining),
+                    cancellationToken).ConfigureAwait(false);
                 if (read == 0) break;
                 offset += read;
                 remaining -= read;
@@ -256,6 +303,10 @@ internal sealed class TestHttpServer : IAsyncDisposable
             RawBody = bodyBytes ?? Array.Empty<byte>()
         };
     }
+
+    private static bool RequestAskedToClose(RecordedHttpRequest request)
+        => request.Headers.TryGetValue("Connection", out var connection) &&
+           connection.Split(',').Any(part => part.Trim().Equals("close", StringComparison.OrdinalIgnoreCase));
 
     /// <summary>
     /// Parses the first line of an HTTP request.

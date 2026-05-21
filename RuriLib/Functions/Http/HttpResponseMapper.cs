@@ -41,7 +41,7 @@ namespace RuriLib.Functions.Http
                 }
 
                 data.Logger.Log("Received Headers:", LogColors.MediumPurple);
-                data.Logger.Log(data.HEADERS.Select(h => $"{h.Key}: {h.Value}"), LogColors.Violet);
+                data.Logger.Log(data.HEADERS.Select(h => HttpPipelineLogger.FormatHeaderForLog(h.Key, h.Value)), LogColors.Violet);
             }
             else
             {
@@ -58,7 +58,7 @@ namespace RuriLib.Functions.Http
                 }
 
                 data.Logger.Log("Received Cookies:", LogColors.MikadoYellow);
-                data.Logger.Log(data.COOKIES.Select(h => $"{h.Key}: {h.Value}"), LogColors.Khaki);
+                data.Logger.Log(data.COOKIES.Select(h => HttpPipelineLogger.FormatCookieForLog(h.Key)), LogColors.Khaki);
             }
             else
             {
@@ -86,7 +86,7 @@ namespace RuriLib.Functions.Http
             if (request.ReadResponseContent && response.RawBody is { Length: > 0 })
             {
                 data.Logger.Log("Received Payload:", LogColors.ForestGreen);
-                data.Logger.Log(data.SOURCE, LogColors.GreenYellow, true);
+                data.Logger.Log(HttpPipelineLogger.FormatPayloadForLog(data.SOURCE), LogColors.GreenYellow, true);
             }
         }
 

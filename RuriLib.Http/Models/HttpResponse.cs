@@ -35,6 +35,12 @@ namespace RuriLib.Http.Models
         /// </summary>
         public HttpContent Content { get; set; }
 
+        /// <summary>
+        /// Whether the response framing was fully delimited so the underlying
+        /// connection can be reused if no Connection: close token was present.
+        /// </summary>
+        public bool CanReuseConnection { get; set; }
+
         /// <inheritdoc/>
         public void Dispose() => Content?.Dispose();
     }

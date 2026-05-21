@@ -89,7 +89,8 @@ internal static class HttpTransportTestHelper
         Dictionary<string, string>? customCookies = null,
         string codePagesEncoding = "",
         bool readResponseContent = true,
-        bool alwaysSendContent = false)
+        bool alwaysSendContent = false,
+        bool disableCookieParsing = false)
         => Methods.HttpRequestStandard(data, new StandardHttpRequestOptions
         {
             Url = uri.ToString(),
@@ -104,6 +105,7 @@ internal static class HttpTransportTestHelper
             ContentType = "text/plain; charset=utf-8",
             AlwaysSendContent = alwaysSendContent,
             CodePagesEncoding = codePagesEncoding,
+            DisableCookieParsing = disableCookieParsing,
             CustomCookies = customCookies ?? new Dictionary<string, string>(),
             CustomHeaders = customHeaders ?? new Dictionary<string, string>()
         });

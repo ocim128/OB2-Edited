@@ -7,6 +7,7 @@ using System.Threading;
 using System.IO.Compression;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using System.Linq;
 using RuriLib.Http.Helpers;
 using System.IO.Pipelines;
 using System.Buffers;
@@ -16,7 +17,7 @@ namespace RuriLib.Http;
 /// <summary>
 /// Builds HTTP response messages from raw HTTP data with optimized parsing and memory usage.
 /// </summary>
-internal sealed class HttpResponseMessageBuilder : IAsyncDisposable
+internal sealed class HttpResponseMessageBuilder
 {
     private const string NewLine = "\r\n";
     private static readonly byte[] CRLF = Encoding.UTF8.GetBytes(NewLine);
@@ -69,7 +70,7 @@ internal sealed class HttpResponseMessageBuilder : IAsyncDisposable
 
             await ParseStatusLineAsync(cancellationToken).ConfigureAwait(false);
             await ParseHeadersAsync(cancellationToken).ConfigureAwait(false);
-            await ParseContentAsync(readResponseContent, cancellationToken).ConfigureAwait(false);
+            await ParseContentAsync(request, readResponseContent, cancellationToken).ConfigureAwait(false);
 
             return _response;
         }
@@ -77,6 +78,14 @@ internal sealed class HttpResponseMessageBuilder : IAsyncDisposable
         {
             _response?.Dispose();
             throw;
+        }
+        finally
+        {
+            if (_reader != null)
+            {
+                await _reader.CompleteAsync().ConfigureAwait(false);
+                _reader = null;
+            }
         }
     }
 
@@ -90,6 +99,12 @@ internal sealed class HttpResponseMessageBuilder : IAsyncDisposable
             var result = await _reader.ReadAsync(cancellationToken).ConfigureAwait(false);
             var buffer = result.Buffer;
 
+            if (TryParseStatusLine(ref buffer))
+            {
+                _reader.AdvanceTo(buffer.Start);
+                return;
+            }
+
             if (result.IsCompleted)
             {
                 throw new InvalidOperationException("Incomplete HTTP response status line");
@@ -102,6 +117,31 @@ internal sealed class HttpResponseMessageBuilder : IAsyncDisposable
     /// <summary>
     /// Attempts to parse the status line from the buffer.
     /// </summary>
+    private bool TryParseStatusLine(ref ReadOnlySequence<byte> buffer)
+    {
+        var reader = new SequenceReader<byte>(buffer);
+
+        if (!reader.TryReadTo(out ReadOnlySpan<byte> line, CRLF, true))
+        {
+            return false;
+        }
+
+        var statusLine = Encoding.ASCII.GetString(line);
+        var parts = statusLine.Split(' ', 3, StringSplitOptions.RemoveEmptyEntries);
+
+        if (parts.Length < 2 ||
+            !parts[0].StartsWith("HTTP/", StringComparison.OrdinalIgnoreCase) ||
+            !int.TryParse(parts[1], out var statusCode))
+        {
+            throw new FormatException($"Invalid first line of the HTTP response: {statusLine}");
+        }
+
+        _response.Version = Version.Parse(parts[0][5..]);
+        _response.StatusCode = (HttpStatusCode)statusCode;
+        _response.ReasonPhrase = parts.Length == 3 ? parts[2] : null;
+        buffer = buffer.Slice(reader.Position);
+        return true;
+    }
 
     /// <summary>
     /// Parses HTTP headers from the response.
@@ -241,9 +281,14 @@ internal sealed class HttpResponseMessageBuilder : IAsyncDisposable
     /// <summary>
     /// Parses the response content.
     /// </summary>
-    private async Task ParseContentAsync(bool readResponseContent, CancellationToken cancellationToken)
+    private async Task ParseContentAsync(HttpRequestMessage request, bool readResponseContent, CancellationToken cancellationToken)
     {
-        if (_contentHeaders.Count == 0) return;
+        if (ResponseMustNotHaveBody(request))
+        {
+            _response.Content = new ByteArrayContent(Array.Empty<byte>());
+            AddContentHeaders();
+            return;
+        }
 
         _contentLength = GetContentLength();
 
@@ -275,10 +320,11 @@ internal sealed class HttpResponseMessageBuilder : IAsyncDisposable
     /// </summary>
     private async Task<Stream> GetContentStreamAsync(CancellationToken cancellationToken)
     {
-        var hasTransferEncoding = _response.Headers.Contains("Transfer-Encoding");
+        var hasChunkedTransferEncoding = _response.Headers.TryGetValues("Transfer-Encoding", out var transferEncodings) &&
+            transferEncodings.Any(value => value.Contains("chunked", StringComparison.OrdinalIgnoreCase));
         var hasContentEncoding = _contentHeaders.ContainsKey("Content-Encoding");
 
-        if (hasTransferEncoding)
+        if (hasChunkedTransferEncoding)
         {
             return hasContentEncoding
                 ? await GetChunkedDecompressedStreamAsync(cancellationToken).ConfigureAwait(false)
@@ -433,32 +479,38 @@ internal sealed class HttpResponseMessageBuilder : IAsyncDisposable
     /// </summary>
     private int GetContentLength()
     {
-        if (_contentHeaders.TryGetValue("Content-Length", out var values) &&
-            values.Count > 0 &&
-            int.TryParse(values[0], out var length))
+        if (!_contentHeaders.TryGetValue("Content-Length", out var values))
         {
-            return length;
+            return -1;
         }
-        return -1;
+
+        int? parsedLength = null;
+        foreach (var headerValue in values)
+        {
+            foreach (var part in headerValue.Split(','))
+            {
+                if (!int.TryParse(part.Trim(), out var candidate) || candidate < 0)
+                {
+                    return -1;
+                }
+
+                if (parsedLength.HasValue && parsedLength.Value != candidate)
+                {
+                    return -1;
+                }
+
+                parsedLength = candidate;
+            }
+        }
+
+        return parsedLength ?? -1;
     }
 
-    /// <summary>
-    /// Disposes resources used by the builder.
-    /// </summary>
-    public async ValueTask DisposeAsync()
+    private bool ResponseMustNotHaveBody(HttpRequestMessage request)
     {
-        if (_reader != null)
-        {
-            await _reader.CompleteAsync();
-            _reader = null;
-        }
-
-        if (_response != null)
-        {
-            _response.Dispose();
-            _response = null;
-        }
-
-        _contentHeaders?.Clear();
+        var statusCode = (int)_response.StatusCode;
+        return request.Method == HttpMethod.Head ||
+               statusCode is >= 100 and < 200 or 204 or 304;
     }
+
 }

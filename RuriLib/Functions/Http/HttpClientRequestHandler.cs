@@ -51,7 +51,8 @@ namespace RuriLib.Functions.Http
             clientOptions.AutoRedirect = false;
             clientOptions.MaxNumberOfRedirects = 0;
 
-            using var client = HttpFactory.GetHttpClient(data.UseProxy ? data.Proxy : null, clientOptions, null);
+            using var clientLease = HttpFactory.RentSharedHttpClient(data.UseProxy ? data.Proxy : null, clientOptions);
+            var client = clientLease.Client;
             FileStream? fileStream = null;
             using var content = CreateHttpContent(data, request, out fileStream);
             using var message = new HttpRequestMessage

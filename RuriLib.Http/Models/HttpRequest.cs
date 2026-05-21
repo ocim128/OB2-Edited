@@ -110,7 +110,6 @@ namespace RuriLib.Http.Models
 
         // Builds the headers, for example
         // Host: example.com
-        // Connection: Close
         private void BuildHeaders(IBufferWriter<byte> writer)
         {
             var finalHeaders = new List<KeyValuePair<string, string>>();
@@ -138,12 +137,6 @@ namespace RuriLib.Http.Models
             if (!HeaderExists("Host", out _))
             {
                 finalHeaders.Add("Host", Uri.Host);
-            }
-
-            // If there is no Connection header, add it
-            if (!HeaderExists("Connection", out _))
-            {
-                finalHeaders.Add("Connection", "Close");
             }
 
             // Add the non-content headers

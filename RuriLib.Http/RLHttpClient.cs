@@ -79,11 +79,6 @@ public class RLHttpClient(ProxyClient proxyClient = null) : IDisposable
         foreach (var kvp in _connectionPool)
         {
             var entry = kvp.Value;
-            if (entry.LastAccessed < cutoff)
-            {
-                keysToRemove.Add(kvp.Key);
-                continue;
-            }
 
             // Clean up expired connections within the entry
             var validConnections = new List<PooledConnection>();
@@ -96,13 +91,18 @@ public class RLHttpClient(ProxyClient proxyClient = null) : IDisposable
                 else
                 {
                     conn.Dispose();
-                    Interlocked.Decrement(ref entry.ActiveConnections);
+                    ReleaseConnectionSlot(entry);
                 }
             }
 
             foreach (var conn in validConnections)
             {
                 entry.Connections.Enqueue(conn);
+            }
+
+            if (entry.LastAccessed < cutoff && Volatile.Read(ref entry.ActiveConnections) == 0)
+            {
+                keysToRemove.Add(kvp.Key);
             }
         }
 
@@ -149,6 +149,12 @@ public class RLHttpClient(ProxyClient proxyClient = null) : IDisposable
     /// in headers.
     /// </summary>
     public bool ReadResponseContent { get; set; } = true;
+
+    /// <summary>
+    /// The timeout used while receiving response headers and body bytes.
+    /// Zero and <see cref="Timeout.InfiniteTimeSpan"/> disable this internal timeout.
+    /// </summary>
+    public TimeSpan ReceiveTimeout { get; set; } = HttpPerformanceConfig.DefaultReceiveTimeout;
 
     /// <summary>
     /// The allowed SSL or TLS protocols.
@@ -296,14 +302,10 @@ public class RLHttpClient(ProxyClient proxyClient = null) : IDisposable
             await SendDataAsync(request, pooledConnection.CommonStream, cancellationToken).ConfigureAwait(false);
             var response = await ReceiveDataAsync(request, pooledConnection.CommonStream, cancellationToken).ConfigureAwait(false);
 
-            if (pooledConnection.IsValid)
+            if (CanReturnConnectionToPool(request, response, pooledConnection))
             {
-                if (_connectionPool.TryGetValue(poolKey, out var entry))
-                {
-                    entry.Connections.Enqueue(pooledConnection);
-                    entry.LastAccessed = DateTime.UtcNow;
-                    returnedToPool = true;
-                }
+                pooledConnection.LastUsed = DateTime.UtcNow;
+                returnedToPool = ReturnConnectionToPool(poolKey, pooledConnection);
             }
 
             return response;
@@ -315,10 +317,46 @@ public class RLHttpClient(ProxyClient proxyClient = null) : IDisposable
                 pooledConnection.Dispose();
                 if (_connectionPool.TryGetValue(poolKey, out var entry))
                 {
-                    Interlocked.Decrement(ref entry.ActiveConnections);
+                    ReleaseConnectionSlot(entry);
                 }
             }
         }
+    }
+
+    private bool CanReturnConnectionToPool(HttpRequest request, HttpResponse response, PooledConnection connection)
+    {
+        if (!HttpPerformanceConfig.EnableConnectionReuse || !ReadResponseContent || !connection.IsValid)
+        {
+            return false;
+        }
+
+        if (HasConnectionToken(request.Headers, "close") || HasConnectionToken(response.Headers, "close"))
+        {
+            return false;
+        }
+
+        if (request.Version <= new Version(1, 0) && !HasConnectionToken(request.Headers, "keep-alive"))
+        {
+            return false;
+        }
+
+        if (response.Version <= new Version(1, 0) && !HasConnectionToken(response.Headers, "keep-alive"))
+        {
+            return false;
+        }
+
+        return response.CanReuseConnection;
+    }
+
+    private static bool HasConnectionToken(IDictionary<string, string> headers, string token)
+    {
+        if (headers == null || !headers.TryGetValue("Connection", out var value))
+        {
+            return false;
+        }
+
+        return value.Split(',')
+            .Any(part => part.Trim().Equals(token, StringComparison.OrdinalIgnoreCase));
     }
 
     private string GetPoolKey(string host, int port, bool isSecure)
@@ -362,37 +400,72 @@ public class RLHttpClient(ProxyClient proxyClient = null) : IDisposable
         var entry = _connectionPool.GetOrAdd(poolKey, _ => new ConnectionPoolEntry());
         entry.LastAccessed = DateTime.UtcNow;
 
-        // Try to get an existing connection
-        while (entry.Connections.TryDequeue(out var connection))
+        while (true)
         {
-            if (connection.IsValid)
+            // Try to get an existing connection
+            while (entry.Connections.TryDequeue(out var connection))
             {
-                connection.LastUsed = DateTime.UtcNow;
-                return connection;
+                if (connection.IsValid)
+                {
+                    connection.LastUsed = DateTime.UtcNow;
+                    return connection;
+                }
+
+                connection.Dispose();
+                ReleaseConnectionSlot(entry);
             }
 
-            connection.Dispose();
-            Interlocked.Decrement(ref entry.ActiveConnections);
-        }
+            // Create new connection if under limit
+            if (TryReserveConnectionSlot(entry))
+            {
+                try
+                {
+                    return await CreateNewConnectionAsync(host, port, isSecure, cancellationToken).ConfigureAwait(false);
+                }
+                catch
+                {
+                    ReleaseConnectionSlot(entry);
+                    throw;
+                }
+            }
 
-        // Create new connection if under limit
-        if (entry.ActiveConnections < HttpPerformanceConfig.MaxConnectionsPerHost)
+            // Wait and retry if at limit
+            await Task.Delay(10, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private static bool TryReserveConnectionSlot(ConnectionPoolEntry entry)
+    {
+        while (true)
         {
-            Interlocked.Increment(ref entry.ActiveConnections);
-            try
+            var current = Volatile.Read(ref entry.ActiveConnections);
+            if (current >= HttpPerformanceConfig.MaxConnectionsPerHost)
             {
-                return await CreateNewConnectionAsync(host, port, isSecure, cancellationToken).ConfigureAwait(false);
+                return false;
             }
-            catch
+
+            if (Interlocked.CompareExchange(ref entry.ActiveConnections, current + 1, current) == current)
             {
-                Interlocked.Decrement(ref entry.ActiveConnections);
-                throw;
+                return true;
             }
         }
+    }
 
-        // Wait and retry if at limit
-        await Task.Delay(10, cancellationToken).ConfigureAwait(false);
-        return await GetPooledConnectionAsync(poolKey, host, port, isSecure, cancellationToken).ConfigureAwait(false);
+    private static void ReleaseConnectionSlot(ConnectionPoolEntry entry)
+    {
+        while (true)
+        {
+            var current = Volatile.Read(ref entry.ActiveConnections);
+            if (current <= 0)
+            {
+                return;
+            }
+
+            if (Interlocked.CompareExchange(ref entry.ActiveConnections, current - 1, current) == current)
+            {
+                return;
+            }
+        }
     }
 
     private async Task<PooledConnection> CreateNewConnectionAsync(string host, int port, bool isSecure, CancellationToken cancellationToken)
@@ -453,17 +526,16 @@ public class RLHttpClient(ProxyClient proxyClient = null) : IDisposable
         };
     }
 
-    private static void ReturnConnectionToPool(string poolKey, PooledConnection connection)
+    private static bool ReturnConnectionToPool(string poolKey, PooledConnection connection)
     {
         if (_connectionPool.TryGetValue(poolKey, out var entry))
         {
             entry.Connections.Enqueue(connection);
             entry.LastAccessed = DateTime.UtcNow;
+            return true;
         }
-        else
-        {
-            connection.Dispose();
-        }
+
+        return false;
     }
 
 
@@ -493,8 +565,11 @@ public class RLHttpClient(ProxyClient proxyClient = null) : IDisposable
     private Task<HttpResponse> ReceiveDataAsync(HttpRequest request, Stream stream,
         CancellationToken cancellationToken)
     {
-        var pipeReader = PipeReader.Create(stream);
-        return new HttpResponseBuilder().GetResponseAsync(request, pipeReader, ReadResponseContent, cancellationToken);
+        var pipeReader = PipeReader.Create(stream, new StreamPipeReaderOptions(leaveOpen: true));
+        return new HttpResponseBuilder
+        {
+            ReceiveTimeout = ReceiveTimeout
+        }.GetResponseAsync(request, pipeReader, ReadResponseContent, cancellationToken);
     }
 
 

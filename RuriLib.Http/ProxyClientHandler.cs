@@ -266,12 +266,13 @@ public class ProxyClientHandler(ProxyClient proxyClient) : HttpMessageHandler, I
         RawRequests.Add(ms.ToArray());
     }
 
-    private Pipe pipe;
-    private PipeWriter writer;
-
     private Task<HttpResponseMessage> ReceiveDataAsync(HttpRequestMessage request,
-        CancellationToken cancellationToken) =>
-        new HttpResponseMessageBuilder(CookieContainer, request.RequestUri).BuildResponseAsync(request, pipe.Reader, ReadResponseContent, cancellationToken);
+        CancellationToken cancellationToken)
+    {
+        var pipeReader = PipeReader.Create(connectionCommonStream, new StreamPipeReaderOptions(leaveOpen: true));
+        return new HttpResponseMessageBuilder(CookieContainer, request.RequestUri)
+            .BuildResponseAsync(request, pipeReader, ReadResponseContent, cancellationToken);
+    }
 
     private async Task CreateConnection(HttpRequestMessage request, CancellationToken cancellationToken)
     {
@@ -296,16 +297,11 @@ public class ProxyClientHandler(ProxyClient proxyClient) : HttpMessageHandler, I
                     {
                         if (connectionCommonStream is SslStream sslStream && sslStream.IsAuthenticated)
                         {
-                            // Initialize pipe and writer for the reused connection
-                            pipe = new Pipe();
-                            writer = pipe.Writer;
                             return;
                         }
                     }
                     else // For http connections, just return
                     {
-                        pipe = new Pipe();
-                        writer = pipe.Writer;
                         return;
                     }
                 }
@@ -386,9 +382,6 @@ public class ProxyClientHandler(ProxyClient proxyClient) : HttpMessageHandler, I
                 }
                 connectionCommonStream = sslStream;
             }
-
-            pipe = new Pipe();
-            writer = pipe.Writer;
         }
     }
 

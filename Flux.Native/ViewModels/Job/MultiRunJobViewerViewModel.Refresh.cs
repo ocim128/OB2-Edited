@@ -15,6 +15,11 @@ public partial class MultiRunJobViewerViewModel
 {
     private async Task RefreshAsync(bool forceResultsRefresh = false)
     {
+        if (disposed)
+        {
+            return;
+        }
+
         if (!await refreshLock.WaitAsync(0).ConfigureAwait(false))
         {
             return;
@@ -22,13 +27,19 @@ public partial class MultiRunJobViewerViewModel
 
         try
         {
-            var latest = await jobQueries.GetMultiRunJobViewerSnapshotAsync(Job.Id).ConfigureAwait(false);
-            if (latest is null)
+            if (disposed)
             {
                 return;
             }
 
-            ApplySnapshot(latest, refreshResults: forceResultsRefresh || latest.Results.Count != allResults.Count);
+            var latest = await jobQueries.GetMultiRunJobViewerSnapshotAsync(Job.Id).ConfigureAwait(false);
+            if (latest is null || disposed)
+            {
+                return;
+            }
+
+            await ApplySnapshotOnUiThreadAsync(latest, refreshResults: forceResultsRefresh || latest.Results.Count != allResults.Count)
+                .ConfigureAwait(false);
         }
         finally
         {
@@ -36,8 +47,35 @@ public partial class MultiRunJobViewerViewModel
         }
     }
 
+    private async Task ApplySnapshotOnUiThreadAsync(MultiRunJobViewerSnapshotDto latest, bool refreshResults)
+    {
+        if (disposed)
+        {
+            return;
+        }
+
+        if (Application.Current?.Dispatcher is null || Application.Current.Dispatcher.CheckAccess())
+        {
+            ApplySnapshot(latest, refreshResults);
+            return;
+        }
+
+        await Application.Current.Dispatcher.InvokeAsync(() =>
+        {
+            if (!disposed)
+            {
+                ApplySnapshot(latest, refreshResults);
+            }
+        });
+    }
+
     private void ApplySnapshot(MultiRunJobViewerSnapshotDto latest, bool refreshResults)
     {
+        if (disposed)
+        {
+            return;
+        }
+
         var previousHits = snapshot?.Summary.DataHits ?? 0;
         snapshot = latest;
         Job.ApplySnapshot(latest.Summary);
@@ -135,8 +173,29 @@ public partial class MultiRunJobViewerViewModel
 
     private void UpdateBots(IReadOnlyList<BotStateDto> bots)
     {
-        var botItems = bots.Select(static bot => new BotViewModel(bot)).ToList();
-        RunOnUiThread(() => SyncCollection(BotsCollection, botItems));
+        RunOnUiThread(() => SyncBotCollection(BotsCollection, bots));
+    }
+
+    private static void SyncBotCollection(ObservableCollection<BotViewModel> collection, IReadOnlyList<BotStateDto> target)
+    {
+        var existingById = collection.ToDictionary(static bot => bot.Id);
+        var targetViewModels = new List<BotViewModel>(target.Count);
+
+        foreach (var snapshot in target)
+        {
+            if (existingById.TryGetValue(snapshot.Id, out var botViewModel))
+            {
+                botViewModel.ApplySnapshot(snapshot);
+            }
+            else
+            {
+                botViewModel = new BotViewModel(snapshot);
+            }
+
+            targetViewModels.Add(botViewModel);
+        }
+
+        SyncCollection(collection, targetViewModels);
     }
 
     private static void SyncCollection<T>(ObservableCollection<T> collection, List<T> target) where T : notnull
@@ -174,35 +233,44 @@ public partial class MultiRunJobViewerViewModel
             collection.Add(target[collection.Count]);
     }
 
-    private static void RunOnUiThread(Action action)
+    private void RunOnUiThread(Action action)
     {
+        if (disposed)
+        {
+            return;
+        }
+
         if (Application.Current?.Dispatcher is null || Application.Current.Dispatcher.CheckAccess())
         {
             action();
             return;
         }
 
-        Application.Current.Dispatcher.BeginInvoke(action);
+        Application.Current.Dispatcher.BeginInvoke(() =>
+        {
+            if (!disposed)
+            {
+                action();
+            }
+        });
     }
 
     public void Dispose()
     {
-        try
+        if (disposed)
         {
-            refreshTimer?.Dispose();
-            soundPlayer?.Dispose();
-            refreshLock?.Dispose();
-            botChangeLock?.Dispose();
+            return;
         }
-        catch
-        {
-        }
+
+        disposed = true;
+        refreshTimer?.Dispose();
+        soundPlayer?.Dispose();
     }
 }
 
 public class BotViewModel : ViewModelBase
 {
-    private readonly BotStateDto bot;
+    private BotStateDto bot;
 
     public BotViewModel(BotStateDto bot)
     {
@@ -213,4 +281,12 @@ public class BotViewModel : ViewModelBase
     public string Data => bot.Data;
     public string Proxy => bot.Proxy;
     public string Info => bot.Info;
+
+    public void ApplySnapshot(BotStateDto snapshot)
+    {
+        bot = snapshot;
+        OnPropertyChanged(nameof(Data));
+        OnPropertyChanged(nameof(Proxy));
+        OnPropertyChanged(nameof(Info));
+    }
 }

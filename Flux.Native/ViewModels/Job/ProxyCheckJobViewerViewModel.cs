@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Media;
 using Flux.Core.Models.Jobs;
 using Flux.Core.Services;
@@ -18,6 +19,7 @@ public class ProxyCheckJobViewerViewModel : ViewModelBase, IDisposable
 {
         private readonly Timer secondsTicker;
         private readonly ProxyCheckJob proxyCheckJob;
+        private volatile bool disposed;
 
         public event Action<object, string, Color> NewMessage;
 
@@ -74,48 +76,64 @@ public class ProxyCheckJobViewerViewModel : ViewModelBase, IDisposable
         // Periodic update for stuff that needs to be updated every second
         private void PeriodicUpdate()
         {
-            if (ProxyCheckJob.Status == JobStatus.Waiting)
+            RunOnUiThread(() =>
             {
-                OnPropertyChanged(nameof(RemainingWaitString));
-            }
+                if (ProxyCheckJob.Status == JobStatus.Waiting)
+                {
+                    OnPropertyChanged(nameof(RemainingWaitString));
+                }
 
-            RefreshJobSnapshot();
+                RefreshJobSnapshot();
+            });
         }
 
         // Updates everything (only when a job completes, just to be safe, not expensive)
-        private void UpdateOnCompleted(object sender, EventArgs e) => UpdateViewModel();
+        private void UpdateOnCompleted(object sender, EventArgs e)
+            => RunOnUiThread(UpdateViewModel);
 
         // Updates the stats after every successful check
         private void UpdateViewModel(object sender, ResultDetails<ProxyCheckInput, Proxy> details)
         {
-            RefreshJobSnapshot();
-            OnPropertyChanged(nameof(Progress));
+            RunOnUiThread(() =>
+            {
+                RefreshJobSnapshot();
+                OnPropertyChanged(nameof(Progress));
+            });
         }
 
         // Update the stuff related to a job's status change
         private void UpdateStatus(object sender, JobStatus status)
         {
-            RefreshJobSnapshot();
+            RunOnUiThread(() =>
+            {
+                RefreshJobSnapshot();
 
-            OnPropertyChanged(nameof(CanStart));
-            OnPropertyChanged(nameof(CanSkipWait));
-            OnPropertyChanged(nameof(CanResume));
-            OnPropertyChanged(nameof(CanPause));
-            OnPropertyChanged(nameof(CanStop));
-            OnPropertyChanged(nameof(CanAbort));
+                OnPropertyChanged(nameof(CanStart));
+                OnPropertyChanged(nameof(CanSkipWait));
+                OnPropertyChanged(nameof(CanResume));
+                OnPropertyChanged(nameof(CanPause));
+                OnPropertyChanged(nameof(CanStop));
+                OnPropertyChanged(nameof(CanAbort));
 
-            OnPropertyChanged(nameof(IsStopping));
-            OnPropertyChanged(nameof(IsWaiting));
-            OnPropertyChanged(nameof(IsPausing));
+                OnPropertyChanged(nameof(IsStopping));
+                OnPropertyChanged(nameof(IsWaiting));
+                OnPropertyChanged(nameof(IsPausing));
+            });
         }
 
 
-        private void UpdateViewModel(object sender, float progress) => UpdateViewModel();
+        private void UpdateViewModel(object sender, float progress)
+            => RunOnUiThread(UpdateViewModel);
         #endregion
 
         #region Logging
         private void OnResult(object sender, ResultDetails<ProxyCheckInput, Proxy> details)
         {
+            if (disposed)
+            {
+                return;
+            }
+
             var proxy = details.Result;
 
             var message = $"Proxy checked ({proxy}) with ping {proxy.Ping} ms and country {proxy.Country}";
@@ -126,12 +144,22 @@ public class ProxyCheckJobViewerViewModel : ViewModelBase, IDisposable
 
         private void OnTaskError(object sender, ErrorDetails<ProxyCheckInput> details)
         {
+            if (disposed)
+            {
+                return;
+            }
+
             var message = $"Task error ({details.Item.Proxy})! {details.Exception.Message}";
             NewMessage?.Invoke(this, message, Colors.Tomato);
         }
 
         private void OnError(object sender, Exception ex)
-            => NewMessage?.Invoke(this, $"Job error: {ex.Message}", Colors.Tomato);
+        {
+            if (!disposed)
+            {
+                NewMessage?.Invoke(this, $"Job error: {ex.Message}", Colors.Tomato);
+            }
+        }
         #endregion
 
         #region Controls
@@ -145,11 +173,19 @@ public class ProxyCheckJobViewerViewModel : ViewModelBase, IDisposable
 
         public async Task ChangeBotsAsync(int newValue)
         {
+            if (disposed)
+            {
+                return;
+            }
+
             // TODO: Also edit the job options! So the number of bots is persisted
 
             await ProxyCheckJob.ChangeBots(newValue).ConfigureAwait(false);
-            ProxyCheckJob.Bots = newValue;
-            RefreshJobSnapshot();
+            await RunOnUiThreadAsync(() =>
+            {
+                ProxyCheckJob.Bots = newValue;
+                RefreshJobSnapshot();
+            }).ConfigureAwait(false);
         }
         #endregion
 
@@ -177,27 +213,67 @@ public class ProxyCheckJobViewerViewModel : ViewModelBase, IDisposable
                 ProxyCheckJob.Remaining,
                 false));
 
+        private void RunOnUiThread(Action action)
+        {
+            if (disposed)
+            {
+                return;
+            }
+
+            if (Application.Current?.Dispatcher is null || Application.Current.Dispatcher.CheckAccess())
+            {
+                action();
+                return;
+            }
+
+            Application.Current.Dispatcher.BeginInvoke(() =>
+            {
+                if (!disposed)
+                {
+                    action();
+                }
+            });
+        }
+
+        private async Task RunOnUiThreadAsync(Action action)
+        {
+            if (disposed)
+            {
+                return;
+            }
+
+            if (Application.Current?.Dispatcher is null || Application.Current.Dispatcher.CheckAccess())
+            {
+                action();
+                return;
+            }
+
+            await Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                if (!disposed)
+                {
+                    action();
+                }
+            });
+        }
+
         public void Dispose()
         {
-            try
+            if (disposed)
             {
-                secondsTicker?.Dispose();
-
-                ProxyCheckJob.OnCompleted -= UpdateOnCompleted;
-                ProxyCheckJob.OnResult -= UpdateViewModel;
-                ProxyCheckJob.OnStatusChanged -= UpdateStatus;
-                ProxyCheckJob.OnProgress -= UpdateViewModel;
-
-                ProxyCheckJob.OnResult -= OnResult;
-                ProxyCheckJob.OnTaskError -= OnTaskError;
-                ProxyCheckJob.OnError -= OnError;
+                return;
             }
-            catch
-            {
 
-            }
+            disposed = true;
+            secondsTicker?.Dispose();
+
+            ProxyCheckJob.OnCompleted -= UpdateOnCompleted;
+            ProxyCheckJob.OnResult -= UpdateViewModel;
+            ProxyCheckJob.OnStatusChanged -= UpdateStatus;
+            ProxyCheckJob.OnProgress -= UpdateViewModel;
+
+            ProxyCheckJob.OnResult -= OnResult;
+            ProxyCheckJob.OnTaskError -= OnTaskError;
+            ProxyCheckJob.OnError -= OnError;
         }
     }
-
-
-

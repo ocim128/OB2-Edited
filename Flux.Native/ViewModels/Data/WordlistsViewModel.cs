@@ -54,7 +54,7 @@ namespace Flux.Native.ViewModels.Data;
     {
         if (!initialized)
         {
-            await RefreshListAsync().ConfigureAwait(false);
+            await RefreshListAsync();
             initialized = true;
         }
     }
@@ -82,17 +82,17 @@ namespace Flux.Native.ViewModels.Data;
 
     public async Task RefreshListAsync()
     {
-        var items = await wordlistRepo.GetAll().ToListAsync().ConfigureAwait(false);
+        var items = await wordlistRepo.GetAll().AsNoTracking().ToListAsync();
         WordlistsCollection = new ObservableCollection<WordlistEntity>(items);
         HookFilters();
     }
 
-    public async Task UpdateAsync(WordlistEntity wordlist) => await wordlistRepo.UpdateAsync(wordlist).ConfigureAwait(false);
+    public async Task UpdateAsync(WordlistEntity wordlist) => await wordlistRepo.UpdateAsync(wordlist);
 
     public async Task DeleteAsync(WordlistEntity wordlist)
     {
         _ = WordlistsCollection.Remove(wordlist);
-        await wordlistRepo.DeleteAsync(wordlist, false).ConfigureAwait(false);
+        await wordlistRepo.DeleteAsync(wordlist, false);
         OnPropertyChanged(nameof(Total));
     }
 
@@ -113,7 +113,7 @@ namespace Flux.Native.ViewModels.Data;
 
             if (!File.Exists(wordlist.FileName))
             {
-                await DeleteAsync(wordlist).ConfigureAwait(false);
+                await DeleteAsync(wordlist);
                 deleted++;
             }
         }
@@ -121,5 +121,3 @@ namespace Flux.Native.ViewModels.Data;
         return deleted;
     }
 }
-
-

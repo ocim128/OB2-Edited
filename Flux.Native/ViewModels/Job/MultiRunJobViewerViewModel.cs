@@ -26,6 +26,7 @@ public partial class MultiRunJobViewerViewModel : ViewModelBase, IDisposable
     private readonly SoundPlayer soundPlayer;
     private readonly SemaphoreSlim refreshLock = new(1, 1);
     private readonly SemaphoreSlim botChangeLock = new(1, 1);
+    private volatile bool disposed;
 
     private MultiRunJobViewerSnapshotDto snapshot;
     private IReadOnlyList<JobRuntimeResultDto> allResults = [];
@@ -130,7 +131,7 @@ public partial class MultiRunJobViewerViewModel : ViewModelBase, IDisposable
         vm.snapshot = await jobQueries.GetMultiRunJobViewerSnapshotAsync(jobVM.Id).ConfigureAwait(false)
             ?? throw new InvalidOperationException($"Multi-run job {jobVM.Id} could not be loaded");
 
-        vm.ApplySnapshot(vm.snapshot, refreshResults: true);
+        await vm.ApplySnapshotOnUiThreadAsync(vm.snapshot, refreshResults: true).ConfigureAwait(false);
         vm.refreshTimer = new Timer(_ => _ = vm.RefreshAsync(), null, 1000, 1000);
         return vm;
     }
@@ -171,12 +172,22 @@ public partial class MultiRunJobViewerViewModel : ViewModelBase, IDisposable
 
     public async Task ChangeBotsAsync(int newValue)
     {
+        if (disposed)
+        {
+            return;
+        }
+
         await jobCommands.ChangeBotsAsync(Job.Id, newValue).ConfigureAwait(false);
         await RefreshAsync().ConfigureAwait(false);
     }
 
     public async Task IncreaseBotsByAsync(int amount)
     {
+        if (disposed)
+        {
+            return;
+        }
+
         if (!await botChangeLock.WaitAsync(0).ConfigureAwait(false))
         {
             return;
@@ -195,6 +206,11 @@ public partial class MultiRunJobViewerViewModel : ViewModelBase, IDisposable
 
     public async Task DecreaseBotsByAsync(int amount)
     {
+        if (disposed)
+        {
+            return;
+        }
+
         if (!await botChangeLock.WaitAsync(0).ConfigureAwait(false))
         {
             return;

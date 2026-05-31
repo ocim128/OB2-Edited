@@ -14,11 +14,12 @@ namespace Flux.Native.Views.Pages.Jobs;
 /// <summary>
 /// Interaction logic for ProxyCheckJobViewer.xaml
 /// </summary>
-public partial class ProxyCheckJobViewer : Page
+public partial class ProxyCheckJobViewer : Page, IDisposable
 {
         private readonly FluxSettingsService fluxSettingsService;
         private readonly JobManagerService jobManager;
         private ProxyCheckJobViewerViewModel vm;
+        private volatile bool disposed;
 
         public ProxyCheckJobViewer(FluxSettingsService fluxSettingsService, JobManagerService jobManager)
         {
@@ -29,19 +30,12 @@ public partial class ProxyCheckJobViewer : Page
 
         public void BindViewModel(ProxyCheckJobViewModel jobVM)
         {
-            if (vm is not null)
+            if (disposed)
             {
-                vm.Dispose();
-
-                try
-                {
-                    vm.NewMessage -= OnResultMessage;
-                }
-                catch
-                {
-
-                }
+                return;
             }
+
+            CleanupViewModel();
 
             vm = new ProxyCheckJobViewerViewModel(jobVM, jobManager);
             vm.NewMessage += OnResultMessage;
@@ -80,14 +74,43 @@ public partial class ProxyCheckJobViewer : Page
             => await Alert.SafeExecuteAsync(() => vm.ChangeBotsAsync(newValue), "changing bot count");
 
         private void OnResultMessage(object sender, string message, Color color)
-            => Application.Current.Dispatcher.Invoke(() =>
+        {
+            if (disposed)
             {
-                if (fluxSettingsService.Settings.GeneralSettings.EnableJobLogging)
+                return;
+            }
+
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                if (!disposed && fluxSettingsService.Settings.GeneralSettings.EnableJobLogging)
                 {
                     jobLog.Append(message, color);
                 }
             });
+        }
+
+        public void Dispose()
+        {
+            if (disposed)
+            {
+                return;
+            }
+
+            disposed = true;
+            CleanupViewModel();
+        }
+
+        private void CleanupViewModel()
+        {
+            if (vm is null)
+            {
+                DataContext = null;
+                return;
+            }
+
+            vm.NewMessage -= OnResultMessage;
+            vm.Dispose();
+            vm = null;
+            DataContext = null;
+        }
     }
-
-
-

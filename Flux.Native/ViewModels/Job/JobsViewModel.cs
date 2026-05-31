@@ -21,6 +21,7 @@ public partial class JobsViewModel : ViewModelBase, IDisposable
     private readonly HotkeyService hotkeyService;
     private readonly Timer timer;
     private readonly SemaphoreSlim refreshLock = new(1, 1);
+    private volatile bool disposed;
 
     private List<DesktopJobListItemDto> allJobs = [];
 
@@ -99,6 +100,11 @@ public partial class JobsViewModel : ViewModelBase, IDisposable
 
     private async Task RefreshJobsAsync()
     {
+        if (disposed)
+        {
+            return;
+        }
+
         if (!await refreshLock.WaitAsync(0).ConfigureAwait(false))
         {
             return;
@@ -106,6 +112,11 @@ public partial class JobsViewModel : ViewModelBase, IDisposable
 
         try
         {
+            if (disposed)
+            {
+                return;
+            }
+
             var latestJobs = await jobQueries.GetDesktopJobsAsync().ConfigureAwait(false);
             allJobs = latestJobs.OrderBy(static job => job.Id).ToList();
             FilterJobs();
@@ -119,13 +130,40 @@ public partial class JobsViewModel : ViewModelBase, IDisposable
 
     private void FilterJobs()
     {
+        if (disposed)
+        {
+            return;
+        }
+
         var filteredJobs = allJobs
             .Where(JobMatchesSearch)
-            .Select(MakeViewModel)
             .OrderBy(static job => job.Id)
             .ToList();
 
-        RunOnUiThread(() => SyncCollection(JobsCollection, filteredJobs));
+        RunOnUiThread(() => SyncJobCollection(JobsCollection, filteredJobs));
+    }
+
+    private static void SyncJobCollection(ObservableCollection<JobViewModel> collection, List<DesktopJobListItemDto> target)
+    {
+        var existingByKey = collection.ToDictionary(static job => (job.Id, job.JobType));
+        var targetViewModels = new List<JobViewModel>(target.Count);
+
+        foreach (var snapshot in target)
+        {
+            var key = (snapshot.Id, snapshot.JobType);
+            if (existingByKey.TryGetValue(key, out var jobViewModel))
+            {
+                jobViewModel.ApplySnapshot(snapshot);
+            }
+            else
+            {
+                jobViewModel = MakeViewModel(snapshot);
+            }
+
+            targetViewModels.Add(jobViewModel);
+        }
+
+        SyncCollection(collection, targetViewModels);
     }
 
     /// <summary>
@@ -194,20 +232,36 @@ public partial class JobsViewModel : ViewModelBase, IDisposable
         _ => throw new NotImplementedException($"Unsupported job type {snapshot.JobType}")
     };
 
-    private static void RunOnUiThread(Action action)
+    private void RunOnUiThread(Action action)
     {
+        if (disposed)
+        {
+            return;
+        }
+
         if (Application.Current?.Dispatcher is null || Application.Current.Dispatcher.CheckAccess())
         {
             action();
             return;
         }
 
-        Application.Current.Dispatcher.BeginInvoke(action);
+        Application.Current.Dispatcher.BeginInvoke(() =>
+        {
+            if (!disposed)
+            {
+                action();
+            }
+        });
     }
 
     public void Dispose()
     {
+        if (disposed)
+        {
+            return;
+        }
+
+        disposed = true;
         timer?.Dispose();
-        refreshLock?.Dispose();
     }
 }

@@ -92,7 +92,7 @@
             </StackPanel>
         </Button>
             <Separator Width="20" Background="Transparent" />
-            <TextBox x:Name="searchTextbox" Text="{Binding SearchString, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,8,0" Width="150" Style="{StaticResource MatchingTextBox}" ToolTip="Search in host, username, country"/>
+            <TextBox x:Name="searchTextbox" Text="{Binding SearchString, UpdateSourceTrigger=PropertyChanged, Delay=200}" Margin="0,0,8,0" Width="150" Style="{StaticResource MatchingTextBox}" ToolTip="Search in host, username, country"/>
             <ComboBox ItemsSource="{Binding ProxyTypes}" SelectedItem="{Binding TypeFilter}" Margin="0,0,8,0" Width="120" Style="{StaticResource CleanComboBox}" ToolTip="Filter by proxy type"/>
             <ComboBox ItemsSource="{Binding Countries}" SelectedItem="{Binding CountryFilter}" Margin="0,0,8,0" Width="120" Style="{StaticResource CleanComboBox}" ToolTip="Filter by country"/>
             <ComboBox ItemsSource="{Binding Statuses}" SelectedItem="{Binding StatusFilter}" Margin="0,0,8,0" Width="120" Style="{StaticResource CleanComboBox}" ToolTip="Filter by status"/>
@@ -105,99 +105,14 @@
             </StackPanel>
         </Border>
 
-        <ListView x:Name="proxiesListView" Grid.Column="0" Grid.Row="2" Foreground="{DynamicResource ForegroundMain}" Background="{DynamicResource BackgroundSecondary}" ItemsSource="{Binding Path=ProxiesCollection}" SelectionMode="Extended" BorderThickness="0" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" VirtualizingPanel.ScrollUnit="Item" VirtualizingPanel.CacheLengthUnit="Item" VirtualizingPanel.CacheLength="50,50" UseLayoutRounding="True" SnapsToDevicePixels="True" ScrollViewer.CanContentScroll="True" ScrollViewer.IsDeferredScrollingEnabled="True" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto" AllowDrop="True" Drop="ProxyListViewDrop">
+        <ListView x:Name="proxiesListView" Grid.Column="0" Grid.Row="2" Foreground="{DynamicResource ForegroundMain}" Background="{DynamicResource BackgroundSecondary}" ItemsSource="{Binding Path=ProxiesCollection}" SelectionMode="Extended" BorderThickness="0" Style="{StaticResource FluxVirtualizedListViewStyle}" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" VirtualizingPanel.ScrollUnit="Item" VirtualizingPanel.CacheLengthUnit="Item" VirtualizingPanel.CacheLength="50,50" UseLayoutRounding="True" SnapsToDevicePixels="True" ScrollViewer.CanContentScroll="True" ScrollViewer.IsDeferredScrollingEnabled="True" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto" AllowDrop="True" Drop="ProxyListViewDrop">
 
-            <!-- Show Headers by overriding the default style -->
-            <ListView.Style>
-                <Style TargetType="{x:Type ListView}" />
-            </ListView.Style>
-
-            <!-- Align Headers to the Left -->
             <ListView.Resources>
-                <Style x:Key="GridViewColumnHeaderGripper" TargetType="Thumb">
-                    <Setter Property="Width" Value="18" />
-                    <Setter Property="Background">
-                        <Setter.Value>
-                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                                <LinearGradientBrush.GradientStops>
-                                    <GradientStopCollection>
-                                        <GradientStop Color="{DynamicResource BorderLightColor}" Offset="0.0" />
-                                        <GradientStop Color="{DynamicResource BorderDarkColor}" Offset="1.0" />
-                                    </GradientStopCollection>
-                                </LinearGradientBrush.GradientStops>
-                            </LinearGradientBrush>
-                        </Setter.Value>
-                    </Setter>
-                    <Setter Property="Template">
-                        <Setter.Value>
-                            <ControlTemplate TargetType="{x:Type Thumb}">
-                                <Border Padding="{TemplateBinding Padding}" Background="Transparent">
-                                    <Rectangle HorizontalAlignment="Center" Width="1" Fill="{TemplateBinding Background}" />
-                                </Border>
-                            </ControlTemplate>
-                        </Setter.Value>
-                    </Setter>
-                    <Setter Property="BorderBrush" Value="{DynamicResource Modern.BorderSecondary}" />
-                </Style>
-                <Style TargetType="{x:Type GridViewColumnHeader}">
-                    <Setter Property="HorizontalContentAlignment" Value="Left" />
-                    <Setter Property="Template">
-                        <Setter.Value>
-                            <ControlTemplate TargetType="{x:Type GridViewColumnHeader}">
-                                <Grid>
-                                    <Border BorderThickness="0,0,0,1" BorderBrush="{DynamicResource Modern.BorderSecondary}" Background="Transparent">
-                                        <TextBlock x:Name="ContentHeader" Text="{TemplateBinding Content}" Padding="5,5,5,0" Width="{TemplateBinding Width}" TextAlignment="Left" />
-                                    </Border>
-                                    <Thumb x:Name="PART_HeaderGripper"
-                                         HorizontalAlignment="Right"
-                                         Margin="0,0,-9,0"
-                                         Style="{StaticResource GridViewColumnHeaderGripper}" />
-                                </Grid>
-                            </ControlTemplate>
-                        </Setter.Value>
-                    </Setter>
-                    <Setter Property="OverridesDefaultStyle" Value="True" />
-                    <Setter Property="Foreground" Value="{DynamicResource ForegroundMain}" />
-                    <Setter Property="FontFamily" Value="Segoe UI" />
-                    <Setter Property="FontSize" Value="13" />
-                </Style>
-                <Style TargetType="{x:Type ListViewItem}">
+                <Style TargetType="{x:Type GridViewColumnHeader}" BasedOn="{StaticResource FluxGridViewColumnHeaderStyle}" />
+                <Style TargetType="{x:Type ListViewItem}" BasedOn="{StaticResource FluxListViewItemStyle}">
                     <EventSetter Event="MouseRightButtonDown" Handler="ItemRightClick" />
                     <Setter Property="ContextMenu" Value="{StaticResource ItemContextMenu}"/>
-                    <Setter Property="Template">
-                        <Setter.Value>
-                            <ControlTemplate TargetType="{x:Type ListViewItem}">
-                                <Border x:Name="Bd" BorderBrush="{DynamicResource Modern.BorderSecondary}" 
-                    BorderThickness="0,0,0,1" 
-                    Background="{TemplateBinding Background}" 
-                    Padding="6,8"
-                    SnapsToDevicePixels="true">
-                                    <GridViewRowPresenter 
-                    HorizontalAlignment="Left" 
-                    SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"
-                    VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
-                                </Border>
-                            </ControlTemplate>
-                        </Setter.Value>
-                    </Setter>
-                    <Style.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter Property="Background" Value="{DynamicResource Modern.BackgroundHover}" />
-                        </Trigger>
-                        <Trigger Property="IsSelected" Value="True">
-                            <Setter Property="Background" Value="{DynamicResource Modern.ThemeMain}" />
-                            <Setter Property="Foreground" Value="{DynamicResource Modern.TextOnAccent}" />
-                        </Trigger>
-                        <MultiTrigger>
-                            <MultiTrigger.Conditions>
-                                <Condition Property="IsSelected" Value="True" />
-                                <Condition Property="IsMouseOver" Value="True" />
-                            </MultiTrigger.Conditions>
-                            <Setter Property="Background" Value="{DynamicResource Modern.ThemeSecondary}" />
-                        </MultiTrigger>
-                    </Style.Triggers>
                 </Style>
-
             </ListView.Resources>
 
             <ListView.ItemsPanel>
@@ -264,4 +179,3 @@
         </ListView>
     </Grid>
 </Page>
-

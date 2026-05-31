@@ -367,3 +367,7 @@ example-*.txt
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+
+
+.codegraph/

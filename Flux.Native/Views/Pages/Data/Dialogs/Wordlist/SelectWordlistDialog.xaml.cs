@@ -17,6 +17,7 @@ using System.Windows.Documents;
 using System.Windows.Input;
 using Flux.Native.ViewModels.Base;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.EntityFrameworkCore;
 
 
 using Flux.Native.Views.Dialogs.Job;
@@ -180,7 +181,7 @@ namespace Flux.Native.Views.Dialogs.Wordlist
 
         private void CreateCollection()
         {
-            var entities = wordlistRepo.GetAll().ToList();
+            var entities = wordlistRepo.GetAll().AsNoTracking().ToList();
             WordlistsCollection = new ObservableCollection<WordlistEntity>(entities);
             Application.Current.Dispatcher.Invoke(() => HookFilters());
         }

@@ -79,7 +79,7 @@ public class NavigationHandler : INavigationHandler
 
     private void OnNavigationServiceNavigated(object sender, NavigationEventArgs e)
     {
-        _transientPage = null;
+        DisposeTransientPage();
         _menuHandler.UpdateMenuHighlight(e.PageEnum);
         _viewModel.IsLoading = false;
         Navigated?.Invoke(this, e);
@@ -87,6 +87,7 @@ public class NavigationHandler : INavigationHandler
 
     private void ChangePage(Page newPage, Button newButton)
     {
+        DisposeTransientPage();
         _transientPage = newPage;
         _menuHandler.UpdateButtonHighlight(_currentSelectedButton, newButton);
         _currentSelectedButton = newButton;
@@ -94,5 +95,15 @@ public class NavigationHandler : INavigationHandler
         
         // We need to trigger the Navigated event even for transient pages if we want MainWindow to update
         Navigated?.Invoke(this, new NavigationEventArgs(newPage, MainWindowPage.JobViewer));
+    }
+
+    private void DisposeTransientPage()
+    {
+        if (_transientPage is IDisposable disposable)
+        {
+            disposable.Dispose();
+        }
+
+        _transientPage = null;
     }
 }

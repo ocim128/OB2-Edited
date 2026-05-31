@@ -6,6 +6,11 @@ public partial class MultiRunJobViewerViewModel
 {
     public void ClearSparklineData()
     {
+        if (disposed)
+        {
+            return;
+        }
+
         cpmHistory.Clear();
         hitsPerMinuteHistory.Clear();
         lastRecordedHits = 0;
@@ -15,6 +20,11 @@ public partial class MultiRunJobViewerViewModel
 
     private void RecordSparklineData()
     {
+        if (disposed)
+        {
+            return;
+        }
+
         cpmHistory.Add(Job.CPM);
         while (cpmHistory.Count > MaxHistoryPoints)
         {
@@ -42,6 +52,11 @@ public partial class MultiRunJobViewerViewModel
 
     private void TryPlayHitSound()
     {
+        if (disposed)
+        {
+            return;
+        }
+
         try
         {
             soundPlayer.Play();

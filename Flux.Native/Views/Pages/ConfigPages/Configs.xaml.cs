@@ -213,8 +213,6 @@ namespace Flux.Native.Views.Pages.Configs
             };
         }
 
-        private void UpdateSearch(object sender, TextChangedEventArgs e) => vm.SearchString = filterTextbox.Text;
-
         private void ItemHovered(object sender, SelectionChangedEventArgs e)
         {
             if (e.AddedItems is IList<object> items && items.Count == 1)
@@ -322,7 +320,6 @@ namespace Flux.Native.Views.Pages.Configs
         }
     }
 }
-
 
 
 

@@ -83,14 +83,17 @@ public class NavigationService : INavigationService
         // or pages we want to re-create every time vs cache.
         // For now, assuming caching for all main pages as per original MainWindow behavior.
 
-        if (_pageCache.TryGetValue(pageEnum, out var cachedPage))
+        if (ShouldCache(pageEnum) && _pageCache.TryGetValue(pageEnum, out var cachedPage))
         {
             page = cachedPage;
         }
         else
         {
             page = CreatePage(pageEnum);
-            _pageCache[pageEnum] = page;
+            if (ShouldCache(pageEnum))
+            {
+                _pageCache[pageEnum] = page;
+            }
         }
 
         // Special logic for ConfigEditor sub-pages (Stacker, LoliCode, etc.)
@@ -146,6 +149,9 @@ public class NavigationService : INavigationService
             _ => throw new ArgumentException($"Unknown page type: {pageEnum}")
         };
     }
+
+    private static bool ShouldCache(MainWindowPage pageEnum)
+        => pageEnum is not MainWindowPage.Tools;
 
     private ConfigEditor _sharedConfigEditor;
     private ConfigEditor GetOrCreateSharedConfigEditor()

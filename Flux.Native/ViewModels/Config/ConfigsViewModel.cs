@@ -226,6 +226,8 @@ namespace Flux.Native.ViewModels.Configs
     public class ConfigViewModel : ViewModelBase
     {
         public Config Config { get; init; }
+        private string iconSourceBase64;
+        private BitmapImage icon;
 
         private bool isSelected;
         public bool IsSelected
@@ -254,7 +256,20 @@ namespace Flux.Native.ViewModels.Configs
         }
 
         public string Id => Config.Id;
-        public BitmapImage Icon => Images.Base64ToBitmapImage(Config.Metadata.Base64Image);
+        public BitmapImage Icon
+        {
+            get
+            {
+                var base64 = Config.Metadata.Base64Image ?? string.Empty;
+                if (iconSourceBase64 != base64)
+                {
+                    icon = Images.Base64ToBitmapImage(base64);
+                    iconSourceBase64 = base64;
+                }
+
+                return icon;
+            }
+        }
         public string Name => Config.Metadata.Name;
         public string Author => Config.Metadata.Author;
         public string Category => Config.Metadata.Category;
@@ -313,5 +328,3 @@ namespace Flux.Native.ViewModels.Configs
         }
     } // Closing ConfigViewModel class
 } // Closing namespace
-
-

@@ -723,7 +723,7 @@ Style="{StaticResource JobCaptionTextStyle}"
                                          FontSize="12"
                                          Padding="0"
                                          VerticalContentAlignment="Center"
-                                         Text="{Binding SearchQuery, UpdateSourceTrigger=PropertyChanged}"
+                                         Text="{Binding SearchQuery, UpdateSourceTrigger=PropertyChanged, Delay=200}"
                                          ToolTip="Search data, proxy, type or capture"/>
                             </Grid>
                         </Border>
@@ -1068,4 +1068,3 @@ Style="{StaticResource JobCaptionTextStyle}"
         </Border>
     </Grid>
 </Page>
-

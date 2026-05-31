@@ -63,7 +63,7 @@ public class MultiRunJobOptionsViewModel : ViewModelBase
             _ => throw new NotImplementedException()
         };
 
-        proxyGroups = proxyGroupRepo.GetAll().ToList();
+        proxyGroups = proxyGroupRepo.GetAll().AsNoTracking().ToList();
         PopulateProxySources();
         HitOutputsCollection = new ObservableCollection<HitOutputOptions>(Options.HitOutputs);
 

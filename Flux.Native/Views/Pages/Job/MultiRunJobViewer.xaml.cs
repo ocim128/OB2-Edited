@@ -27,7 +27,7 @@ namespace Flux.Native.Views.Pages.Jobs;
 /// <summary>
 /// Interaction logic for MultiRunJobViewer.xaml
 /// </summary>
-public partial class MultiRunJobViewer : Page
+public partial class MultiRunJobViewer : Page, IDisposable
 {
         private readonly MainWindow mainWindow;
         private readonly FluxSettingsService fluxSettingsService;
@@ -37,6 +37,7 @@ public partial class MultiRunJobViewer : Page
         private MultiRunJobViewerViewModel vm;
         private GridViewColumnHeader listViewSortCol;
         private SortAdorner listViewSortAdorner;
+        private volatile bool disposed;
 
         private IEnumerable<HitViewModel> GetSelectedHits() => resultsListView.SelectedItems.Cast<HitViewModel>().ToList();
         private IEnumerable<BotViewModel> GetSelectedBots() => botsListView.SelectedItems.Cast<BotViewModel>().ToList();
@@ -81,25 +82,24 @@ public partial class MultiRunJobViewer : Page
 
         public async void BindViewModel(MultiRunJobViewModel jobVM)
         {
-            if (vm is not null)
+            if (disposed)
             {
-                vm.Dispose();
-
-                try
-                {
-                    vm.NewMessage -= OnResultMessage;
-                    vm.SparklineDataUpdated -= UpdateSparklines;
-                }
-                catch
-                {
-                    // The event might not have been subscribed, so we can ignore this exception.
-                }
+                return;
             }
 
-            vm = await MultiRunJobViewerViewModel.CreateAsync(jobVM, fluxSettingsService, jobCommands, jobQueries);
-            vm.NewMessage += OnResultMessage;
-            vm.SparklineDataUpdated += UpdateSparklines;
-            DataContext = vm;
+            CleanupViewModel();
+
+            var nextViewModel = await MultiRunJobViewerViewModel.CreateAsync(jobVM, fluxSettingsService, jobCommands, jobQueries);
+            if (disposed)
+            {
+                nextViewModel.Dispose();
+                return;
+            }
+
+            vm = nextViewModel;
+            nextViewModel.NewMessage += OnResultMessage;
+            nextViewModel.SparklineDataUpdated += UpdateSparklines;
+            DataContext = nextViewModel;
 
             // Set the initial active tab to Hits
             SetActiveTab("Hits");
@@ -113,9 +113,14 @@ public partial class MultiRunJobViewer : Page
         /// </summary>
         private void UpdateSparklines()
         {
+            if (disposed)
+            {
+                return;
+            }
+
             Dispatcher.Invoke(() =>
             {
-                if (vm != null && CpmSparkline != null)
+                if (!disposed && vm != null && CpmSparkline != null)
                 {
                     CpmSparkline.SetDataPoints(vm.CpmHistory);
                 }
@@ -419,7 +424,30 @@ public partial class MultiRunJobViewer : Page
 
         private void SelectAllBots(object sender, RoutedEventArgs e) => botsListView.SelectAll();
 
+        public void Dispose()
+        {
+            if (disposed)
+            {
+                return;
+            }
+
+            disposed = true;
+            CleanupViewModel();
+        }
+
+        private void CleanupViewModel()
+        {
+            if (vm is null)
+            {
+                DataContext = null;
+                return;
+            }
+
+            vm.NewMessage -= OnResultMessage;
+            vm.SparklineDataUpdated -= UpdateSparklines;
+            vm.Dispose();
+            vm = null;
+            DataContext = null;
+        }
+
     }
-
-
-

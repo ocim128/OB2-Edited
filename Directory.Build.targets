@@ -7,6 +7,10 @@
     <SkipUnchangedFiles>true</SkipUnchangedFiles>
     <UseCommonOutputDirectory Condition="'$(IsTestProject)' != 'true' AND '$(OutputType)' != 'Exe' AND '$(OutputType)' != 'WinExe'">true</UseCommonOutputDirectory>
   </PropertyGroup>
+
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'TlsClient.Native'">
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+  </PropertyGroup>
   
   <!-- Faster file copying - ensure dependencies are copied -->
   <PropertyGroup>

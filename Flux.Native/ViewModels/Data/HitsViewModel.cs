@@ -166,7 +166,7 @@ namespace Flux.Native.ViewModels.Data
                 System.Diagnostics.Debug.WriteLine("HitsViewModel: Starting RefreshListAsync");
                 // TODO: Make this not fail when hits are being written and we try to read them!
                 // A.k.a. make this use another repo, not the singleton, and refresh it when new hits come in
-                var items = await hitRepo.GetAll().ToListAsync();
+                var items = await hitRepo.GetAll().AsNoTracking().ToListAsync();
                 System.Diagnostics.Debug.WriteLine($"HitsViewModel: Loaded {items.Count} hits from repository");
                 
                 HitsCollection = new ObservableCollection<HitEntity>(items);

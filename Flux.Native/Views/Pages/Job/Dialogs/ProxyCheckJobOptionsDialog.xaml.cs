@@ -12,6 +12,7 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using Flux.Native.ViewModels.Base;
+using Microsoft.EntityFrameworkCore;
 
 
 namespace Flux.Native.Views.Dialogs.Job
@@ -149,7 +150,7 @@ namespace Flux.Native.Views.Dialogs.Job
             this.jobFactory = jobFactory;
             this.fluxSettingsService = fluxSettingsService;
 
-            proxyGroups = proxyGroupRepo.GetAll().ToList();
+            proxyGroups = proxyGroupRepo.GetAll().AsNoTracking().ToList();
 
             var proxyCheckTargets = fluxSettingsService.Settings.GeneralSettings.ProxyCheckTargets;
             Targets = proxyCheckTargets.Any()

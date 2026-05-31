@@ -1,0 +1,95 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Style x:Key="FluxGridViewColumnHeaderGripperStyle" TargetType="{x:Type Thumb}">
+        <Setter Property="Width" Value="18" />
+        <Setter Property="Background" Value="{DynamicResource Modern.BorderSecondary}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Modern.BorderSecondary}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type Thumb}">
+                    <Border Padding="{TemplateBinding Padding}" Background="Transparent">
+                        <Rectangle HorizontalAlignment="Center" Width="1" Fill="{TemplateBinding Background}" />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="FluxGridViewColumnHeaderStyle" TargetType="{x:Type GridViewColumnHeader}">
+        <Setter Property="HorizontalContentAlignment" Value="Left" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type GridViewColumnHeader}">
+                    <Grid>
+                        <Border BorderThickness="0,0,0,1"
+                                BorderBrush="{DynamicResource Modern.BorderSecondary}"
+                                Background="Transparent">
+                            <TextBlock x:Name="ContentHeader"
+                                       Text="{TemplateBinding Content}"
+                                       Padding="5,5,5,0"
+                                       Width="{TemplateBinding Width}"
+                                       TextAlignment="Left" />
+                        </Border>
+                        <Thumb x:Name="PART_HeaderGripper"
+                               HorizontalAlignment="Right"
+                               Margin="0,0,-9,0"
+                               Style="{StaticResource FluxGridViewColumnHeaderGripperStyle}" />
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Setter Property="OverridesDefaultStyle" Value="True" />
+        <Setter Property="Foreground" Value="{DynamicResource ForegroundMain}" />
+        <Setter Property="FontFamily" Value="Segoe UI" />
+        <Setter Property="FontSize" Value="13" />
+    </Style>
+
+    <Style x:Key="FluxListViewItemStyle" TargetType="{x:Type ListViewItem}">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type ListViewItem}">
+                    <Border x:Name="Bd"
+                            BorderBrush="{DynamicResource Modern.BorderSecondary}"
+                            BorderThickness="0,0,0,1"
+                            Background="{TemplateBinding Background}"
+                            Padding="6,8"
+                            SnapsToDevicePixels="true">
+                        <GridViewRowPresenter HorizontalAlignment="Left"
+                                              SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"
+                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="{DynamicResource Modern.BackgroundHover}" />
+            </Trigger>
+            <Trigger Property="IsSelected" Value="True">
+                <Setter Property="Background" Value="{DynamicResource Modern.ThemeMain}" />
+                <Setter Property="Foreground" Value="{DynamicResource Modern.TextOnAccent}" />
+            </Trigger>
+            <MultiTrigger>
+                <MultiTrigger.Conditions>
+                    <Condition Property="IsSelected" Value="True" />
+                    <Condition Property="IsMouseOver" Value="True" />
+                </MultiTrigger.Conditions>
+                <Setter Property="Background" Value="{DynamicResource Modern.ThemeSecondary}" />
+            </MultiTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style x:Key="FluxVirtualizedListViewStyle" TargetType="{x:Type ListView}">
+        <Setter Property="VirtualizingPanel.IsVirtualizing" Value="True" />
+        <Setter Property="VirtualizingPanel.VirtualizationMode" Value="Recycling" />
+        <Setter Property="VirtualizingPanel.ScrollUnit" Value="Item" />
+        <Setter Property="VirtualizingPanel.CacheLengthUnit" Value="Item" />
+        <Setter Property="ScrollViewer.CanContentScroll" Value="True" />
+        <Setter Property="ScrollViewer.IsDeferredScrollingEnabled" Value="True" />
+        <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto" />
+        <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto" />
+        <Setter Property="UseLayoutRounding" Value="True" />
+        <Setter Property="SnapsToDevicePixels" Value="True" />
+    </Style>
+</ResourceDictionary>

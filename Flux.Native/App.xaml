@@ -45,6 +45,7 @@
                 <ResourceDictionary Source="/Views/Pages/Shared/DebuggerStyles.xaml" />
 
                 <ResourceDictionary Source="/Styles/AppStyles.xaml" />
+                <ResourceDictionary Source="/Styles/ListViewStyles.xaml" />
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>

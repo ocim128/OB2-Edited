@@ -14,6 +14,9 @@ namespace Flux.Native.ViewModels.Configs
 {
     public class ConfigMetadataViewModel(ConfigService configService) : ViewModelBase
     {
+        private string iconSourceBase64;
+        private BitmapImage icon;
+
         private static readonly Lazy<HttpClient> SharedClient = new(() =>
         {
             var client = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
@@ -53,7 +56,25 @@ namespace Flux.Native.ViewModels.Configs
             }
         }
 
-        public BitmapImage Icon => Config is null ? null : Images.Base64ToBitmapImage(Config.Metadata.Base64Image);
+        public BitmapImage Icon
+        {
+            get
+            {
+                if (Config is null)
+                {
+                    return null;
+                }
+
+                var base64 = Config.Metadata.Base64Image ?? string.Empty;
+                if (iconSourceBase64 != base64)
+                {
+                    icon = Images.Base64ToBitmapImage(base64);
+                    iconSourceBase64 = base64;
+                }
+
+                return icon;
+            }
+        }
 
         public void SetIconFromFile(string fileName)
         {
@@ -75,5 +96,4 @@ namespace Flux.Native.ViewModels.Configs
         }
     }
 }
-
 

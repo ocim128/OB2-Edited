@@ -177,7 +177,7 @@
                                 Foreground="{DynamicResource Modern.ForegroundMain}" 
                                 FontSize="14"
                                 VerticalAlignment="Center"
-                                Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                                Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged, Delay=200}"
                                 Tag="Search jobs by name, status, or type..."/>
                     </Grid>
                 </Border>
@@ -637,5 +637,4 @@
 
     </Grid>
 </Page>
-
 

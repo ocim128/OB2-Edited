@@ -26,7 +26,7 @@
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="auto" />
             </Grid.ColumnDefinitions>
-            <TextBox x:Name="filterTextbox" HorizontalAlignment="Stretch" Grid.Column="0" Text="{Binding SearchString, UpdateSourceTrigger=PropertyChanged}" Margin="0 5 5 5" Style="{StaticResource MatchingTextBox}"/>
+            <TextBox x:Name="filterTextbox" HorizontalAlignment="Stretch" Grid.Column="0" Text="{Binding SearchString, UpdateSourceTrigger=PropertyChanged, Delay=200}" Margin="0 5 5 5" Style="{StaticResource MatchingTextBox}"/>
         </Grid>
 
         <!-- Configs List View -->

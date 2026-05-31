@@ -114,14 +114,13 @@
                     <Border Background="{DynamicResource Modern.BackgroundInput}" CornerRadius="8" Padding="12,8" Margin="0,0,8,0">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                             <TextBox x:Name="filterTextbox" 
-                                     Text="{Binding SearchString, UpdateSourceTrigger=PropertyChanged}" 
+                                     Text="{Binding SearchString, UpdateSourceTrigger=PropertyChanged, Delay=200}"
                                      Width="160" 
                                      Background="Transparent" 
                                      BorderThickness="0" 
                                      Foreground="{DynamicResource ForegroundInput}"
                                      FontSize="13"
                                      VerticalAlignment="Center"
-                                     TextChanged="UpdateSearch"
                                      Padding="8,6"/>
                         </StackPanel>
                     </Border>
@@ -387,4 +386,3 @@
         </Border>
     </Grid>
 </Page>
-

@@ -858,10 +858,31 @@ Style="{StaticResource JobCaptionTextStyle}"
 
                         <ListView.View>
                             <GridView>
-                                <GridViewColumn Width="60" Header="Type" DisplayMemberBinding="{Binding Type}" />
-                                <GridViewColumn Width="Auto" Header="Data" DisplayMemberBinding="{Binding Data}" />
-                                <GridViewColumn Width="{Binding Data.Job.ProxyMode, Converter={StaticResource BoolToDouble}, Source={StaticResource Proxy}}" Header="Proxy" DisplayMemberBinding="{Binding Proxy}" />
-                                <GridViewColumn Width="800" Header="Captured Data" DisplayMemberBinding="{Binding Capture}" />
+                                <GridViewColumn Width="90" DisplayMemberBinding="{Binding Time, StringFormat={}{0:HH:mm:ss}}">
+                                    <GridViewColumn.Header>
+                                        <GridViewColumnHeader Tag="Time" Click="ResultsColumnHeaderClicked">Time</GridViewColumnHeader>
+                                    </GridViewColumn.Header>
+                                </GridViewColumn>
+                                <GridViewColumn Width="60" DisplayMemberBinding="{Binding Type}">
+                                    <GridViewColumn.Header>
+                                        <GridViewColumnHeader Tag="Type" Click="ResultsColumnHeaderClicked">Type</GridViewColumnHeader>
+                                    </GridViewColumn.Header>
+                                </GridViewColumn>
+                                <GridViewColumn Width="Auto" DisplayMemberBinding="{Binding Data}">
+                                    <GridViewColumn.Header>
+                                        <GridViewColumnHeader Tag="Data" Click="ResultsColumnHeaderClicked">Data</GridViewColumnHeader>
+                                    </GridViewColumn.Header>
+                                </GridViewColumn>
+                                <GridViewColumn Width="{Binding Data.Job.ProxyMode, Converter={StaticResource BoolToDouble}, Source={StaticResource Proxy}}" DisplayMemberBinding="{Binding Proxy}">
+                                    <GridViewColumn.Header>
+                                        <GridViewColumnHeader Tag="Proxy" Click="ResultsColumnHeaderClicked">Proxy</GridViewColumnHeader>
+                                    </GridViewColumn.Header>
+                                </GridViewColumn>
+                                <GridViewColumn Width="800" DisplayMemberBinding="{Binding Capture}">
+                                    <GridViewColumn.Header>
+                                        <GridViewColumnHeader Tag="Capture" Click="ResultsColumnHeaderClicked">Captured Data</GridViewColumnHeader>
+                                    </GridViewColumn.Header>
+                                </GridViewColumn>
                             </GridView>
                         </ListView.View>
                     </ListView>

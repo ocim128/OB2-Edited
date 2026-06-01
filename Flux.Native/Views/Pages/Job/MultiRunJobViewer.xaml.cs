@@ -37,6 +37,12 @@ public partial class MultiRunJobViewer : Page, IDisposable
         private MultiRunJobViewerViewModel vm;
         private GridViewColumnHeader listViewSortCol;
         private SortAdorner listViewSortAdorner;
+        private GridViewColumnHeader resultListViewSortCol;
+        private SortAdorner resultListViewSortAdorner;
+        private string resultListViewSortBy = string.Empty;
+        private ListSortDirection resultListViewSortDir = ListSortDirection.Ascending;
+        private DateTime resultListViewLastClickTime = DateTime.MinValue;
+        private static readonly TimeSpan ResultHeaderRapidClickInterval = TimeSpan.FromMilliseconds(500);
         private volatile bool disposed;
 
         private IEnumerable<HitViewModel> GetSelectedHits() => resultsListView.SelectedItems.Cast<HitViewModel>().ToList();
@@ -99,6 +105,7 @@ public partial class MultiRunJobViewer : Page, IDisposable
             vm = nextViewModel;
             nextViewModel.NewMessage += OnResultMessage;
             nextViewModel.SparklineDataUpdated += UpdateSparklines;
+            nextViewModel.PropertyChanged += OnViewModelPropertyChanged;
             DataContext = nextViewModel;
 
             // Set the initial active tab to Hits
@@ -287,6 +294,70 @@ public partial class MultiRunJobViewer : Page, IDisposable
             botsListView.Items.SortDescriptions.Add(new SortDescription(sortBy, newDir));
         }
 
+        private void ResultsColumnHeaderClicked(object sender, RoutedEventArgs e)
+        {
+            var column = sender as GridViewColumnHeader;
+            if (column?.Tag is not string sortBy) return;
+
+            var now = DateTime.UtcNow;
+            var isRapidRepeatClick = resultListViewSortCol == column &&
+                now - resultListViewLastClickTime <= ResultHeaderRapidClickInterval;
+            resultListViewLastClickTime = now;
+
+            var newDir = ListSortDirection.Ascending;
+            if (!isRapidRepeatClick && resultListViewSortCol == column && resultListViewSortAdorner?.Direction == newDir)
+            {
+                newDir = ListSortDirection.Descending;
+            }
+
+            ApplyResultsSort(column, sortBy, newDir);
+        }
+
+        private void ApplyResultsSort(GridViewColumnHeader column, string sortBy, ListSortDirection direction)
+        {
+            if (resultListViewSortCol != null)
+            {
+                var oldLayer = AdornerLayer.GetAdornerLayer(resultListViewSortCol);
+                if (oldLayer != null) oldLayer.Remove(resultListViewSortAdorner);
+            }
+
+            resultListViewSortCol = column;
+            resultListViewSortAdorner = new SortAdorner(resultListViewSortCol, direction);
+            resultListViewSortBy = sortBy;
+            resultListViewSortDir = direction;
+
+            var layer = AdornerLayer.GetAdornerLayer(resultListViewSortCol);
+            if (layer != null) layer.Add(resultListViewSortAdorner);
+            ApplyResultSortDescription();
+        }
+
+        private void ApplyResultSortDescription()
+        {
+            if (string.IsNullOrWhiteSpace(resultListViewSortBy))
+            {
+                return;
+            }
+
+            resultsListView.Items.SortDescriptions.Clear();
+            resultsListView.Items.SortDescriptions.Add(new SortDescription(resultListViewSortBy, resultListViewSortDir));
+        }
+
+        private void OnViewModelPropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (disposed || e.PropertyName != nameof(MultiRunJobViewerViewModel.HitsCollection))
+            {
+                return;
+            }
+
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                if (!disposed)
+                {
+                    ApplyResultSortDescription();
+                }
+            }));
+        }
+
         private void LVIRightClick(object sender, MouseButtonEventArgs e)
         {
             // This method is intentionally empty. The logic for right-click context menu is handled in XAML.
@@ -445,6 +516,7 @@ public partial class MultiRunJobViewer : Page, IDisposable
 
             vm.NewMessage -= OnResultMessage;
             vm.SparklineDataUpdated -= UpdateSparklines;
+            vm.PropertyChanged -= OnViewModelPropertyChanged;
             vm.Dispose();
             vm = null;
             DataContext = null;

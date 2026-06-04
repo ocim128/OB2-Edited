@@ -7,12 +7,17 @@ namespace Flux.Native.Services.Navigation;
 public class PageButtonMapper
 {
     private readonly Dictionary<MainWindowPage, Button> _pageButtonMap = new();
+    // Reverse lookup so MainWindow.HandleNavigationClick can resolve a clicked
+    // button to its MainWindowPage in O(1) instead of iterating every enum value
+    // and calling GetButtonForPage (which was O(N) per click).
+    private readonly Dictionary<Button, MainWindowPage> _buttonPageMap = new();
 
     public void MapButton(MainWindowPage page, Button button)
     {
         if (button != null)
         {
             _pageButtonMap[page] = button;
+            _buttonPageMap[button] = page;
             if (button.Tag == null)
             {
                 button.Tag = page;
@@ -23,6 +28,17 @@ public class PageButtonMapper
     public Button GetButtonForPage(MainWindowPage page)
     {
         return _pageButtonMap.TryGetValue(page, out var button) ? button : null;
+    }
+
+    public bool TryGetPageForButton(Button button, out MainWindowPage page)
+    {
+        if (button == null)
+        {
+            page = default;
+            return false;
+        }
+
+        return _buttonPageMap.TryGetValue(button, out page);
     }
 
     public void InitializeStandardButtons(Button[] buttons)

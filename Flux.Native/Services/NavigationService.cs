@@ -52,7 +52,21 @@ public class NavigationEventArgs : EventArgs
 public class NavigationService : INavigationService
 {
     private readonly IPageFactory _pageFactory;
-    private readonly Dictionary<MainWindowPage, Page> _pageCache = new();
+
+    // #COMPLETION_DRIVE: We replaced the unbounded Dictionary page cache with a
+    // small LRU (MaxCachedPages entries) that disposes the evicted page's
+    // DataContext. The shared ConfigEditor is held in a dedicated field and
+    // is never evicted.
+    // #SUGGEST_VERIFY: Long-running profile (start job, navigate Home -> Jobs ->
+    // Proxies -> Wordlists -> Configs -> Hits -> Plugins) and watch the
+    // working set stabilize at ~5 page VMs instead of growing per navigation.
+    private const int MaxCachedPages = 4;
+
+    private readonly Dictionary<MainWindowPage, LruEntry> _lruCache = new();
+    private readonly LinkedList<MainWindowPage> _lruOrder = new();
+    private ConfigEditor? _sharedConfigEditor;
+
+    private readonly record struct LruEntry(Page Page, LinkedListNode<MainWindowPage> Node);
 
     public event EventHandler<NavigationEventArgs>? Navigated;
 
@@ -79,21 +93,22 @@ public class NavigationService : INavigationService
 
         Page page;
 
-        // Special handling for pages that might need arguments (though currently most are parameterless or handled via ViewModels)
-        // or pages we want to re-create every time vs cache.
-        // For now, assuming caching for all main pages as per original MainWindow behavior.
-
-        if (ShouldCache(pageEnum) && _pageCache.TryGetValue(pageEnum, out var cachedPage))
+        if (IsConfigEditorPage(pageEnum))
         {
-            page = cachedPage;
+            // ConfigEditor sub-pages share a single page instance; the LRU is
+            // not used for it because eviction would lose the user's section
+            // selection mid-flow.
+            page = GetOrCreateSharedConfigEditor();
+        }
+        else if (_lruCache.TryGetValue(pageEnum, out var cached))
+        {
+            page = cached.Page;
+            TouchLru(pageEnum, cached);
         }
         else
         {
             page = CreatePage(pageEnum);
-            if (ShouldCache(pageEnum))
-            {
-                _pageCache[pageEnum] = page;
-            }
+            InsertIntoLru(pageEnum, page);
         }
 
         // Special logic for ConfigEditor sub-pages (Stacker, LoliCode, etc.)
@@ -120,6 +135,55 @@ public class NavigationService : INavigationService
         CurrentPage = page;
         CurrentPageEnum = pageEnum;
         Navigated?.Invoke(this, new NavigationEventArgs(page, pageEnum));
+    }
+
+    private void TouchLru(MainWindowPage key, LruEntry entry)
+    {
+        _lruOrder.Remove(entry.Node);
+        _lruOrder.AddFirst(entry.Node);
+    }
+
+    private void InsertIntoLru(MainWindowPage key, Page page)
+    {
+        var node = new LinkedListNode<MainWindowPage>(key);
+        _lruCache[key] = new LruEntry(page, node);
+        _lruOrder.AddFirst(node);
+
+        while (_lruOrder.Count > MaxCachedPages)
+        {
+            var oldestNode = _lruOrder.Last;
+            if (oldestNode == null)
+            {
+                break;
+            }
+
+            _lruOrder.RemoveLast();
+            if (_lruCache.Remove(oldestNode.Value, out var evicted))
+            {
+                DisposePage(evicted.Page);
+            }
+        }
+    }
+
+    private static void DisposePage(Page page)
+    {
+        try
+        {
+            if (page.DataContext is IDisposable disposable)
+            {
+                disposable.Dispose();
+            }
+        }
+        catch
+        {
+            // Disposal must never break navigation.
+        }
+        finally
+        {
+            // Drop the DataContext reference so the VM (and any singletons
+            // it might be subscribing to) can be collected promptly.
+            page.DataContext = null;
+        }
     }
 
     private Page CreatePage(MainWindowPage pageEnum)
@@ -150,25 +214,13 @@ public class NavigationService : INavigationService
         };
     }
 
-    private static bool ShouldCache(MainWindowPage pageEnum)
-        => pageEnum is not MainWindowPage.Tools;
-
-    private ConfigEditor _sharedConfigEditor;
     private ConfigEditor GetOrCreateSharedConfigEditor()
     {
         if (_sharedConfigEditor == null)
         {
             _sharedConfigEditor = _pageFactory.CreateConfigEditorPage();
-            SyncConfigEditorCache(_sharedConfigEditor);
         }
         return _sharedConfigEditor;
-    }
-
-    private void SyncConfigEditorCache(ConfigEditor editor)
-    {
-        _pageCache[MainWindowPage.ConfigStacker] = editor;
-        _pageCache[MainWindowPage.ConfigLoliCode] = editor;
-        _pageCache[MainWindowPage.ConfigCSharpCode] = editor;
     }
 
     private bool IsConfigEditorPage(MainWindowPage page)

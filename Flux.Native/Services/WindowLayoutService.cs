@@ -1,5 +1,6 @@
 using Flux.Core.Services;
 using Flux.Native.Helpers;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Windows;
 using System.Windows.Controls;
@@ -18,13 +19,15 @@ public interface IWindowLayoutService
 public class WindowLayoutService : IWindowLayoutService
 {
     private readonly FluxSettingsService _settingsService;
+    private readonly ILogger<WindowLayoutService> _logger;
     private readonly DispatcherTimer _saveDebounceTimer;
     private System.Windows.Window _window;
     private FrameworkElement _rootElement;
 
-    public WindowLayoutService(FluxSettingsService settingsService)
+    public WindowLayoutService(FluxSettingsService settingsService, ILogger<WindowLayoutService> logger)
     {
         _settingsService = settingsService;
+        _logger = logger;
         _saveDebounceTimer = new DispatcherTimer
         {
             Interval = TimeSpan.FromMilliseconds(500)
@@ -144,7 +147,7 @@ public class WindowLayoutService : IWindowLayoutService
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Error saving window state: {ex.Message}");
+            _logger.LogError(ex, "Error saving window state");
         }
     }
 

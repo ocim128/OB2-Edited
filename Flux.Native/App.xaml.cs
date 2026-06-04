@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Flux.Core;
 using Flux.Core.Models.Proxies;
 using Flux.Core.Repositories;
@@ -25,6 +26,7 @@ using Flux.Native.ViewModels.Tools;
 using Flux.Native.ViewModels.Pages;
 using Flux.Native.ViewModels.Shared;
 using Flux.Native.Enums;
+using Flux.Native.Logging;
 using Flux.Native.Views.Pages;
 using Flux.Native.Views.Pages.Configs;
 using Flux.Shared.DependencyInjection;
@@ -57,6 +59,21 @@ public partial class App : Application
     private readonly CancellationTokenSource _startupCts = new();
 
     public static IServiceProvider ServiceProvider => ((App)Current)._serviceProvider;
+
+    // #COMPLETION_DRIVE: App is instantiated by the WPF runtime before any DI
+    // graph is built, so a constructor-injected ILogger<App> is not available
+    // to the static ReportCrash handler. We hold a private FileLogger here so
+    // crash logging still flows through the shared logging infrastructure
+    // (locking, formatting, category label) instead of the ad-hoc
+    // File.WriteAllText it used to do.
+    // #SUGGEST_VERIFY: Trigger an unhandled exception in a debug build, then
+    // confirm crash.log contains the new "[Critical] App: ..." line and that
+    // no extra "Failed to write crash log" Debug.WriteLine fires.
+    private static readonly FileLogger CrashLogger = new(
+        Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "crash.log"),
+        overwrite: true,
+        new object(),
+        typeof(App).FullName ?? nameof(App));
 
 
     public App()
@@ -220,11 +237,30 @@ public partial class App : Application
         var appDirectory = AppDomain.CurrentDomain.BaseDirectory;
         var userDataPath = Path.Combine(appDirectory, "UserData");
 
+        // Wire the file logger providers used by ReportCrash, AppUpdateService,
+        // UpdateDownloader, and WindowLayoutService. Each provider is filtered to
+        // a small allow-list of categories so unrelated DI loggers stay no-ops.
+        var crashLogPath = Path.Combine(appDirectory, "crash.log");
+        var updateErrorLogPath = Path.Combine(appDirectory, "update_error.log");
+        var crashProvider = new FileLoggerProvider(crashLogPath, overwrite: true);
+        var updateProvider = new FileLoggerProvider(updateErrorLogPath);
+        services.AddLogging(builder =>
+        {
+            builder.AddProvider(new CategoryFilteredLoggerProvider(crashProvider, (category, level) =>
+                    category == typeof(App).FullName && level >= Microsoft.Extensions.Logging.LogLevel.Critical));
+            builder.AddProvider(new CategoryFilteredLoggerProvider(updateProvider, (category, level) =>
+                    (category == typeof(AppUpdateService).FullName
+                     || category == typeof(UpdateDownloader).FullName
+                     || category == typeof(WindowLayoutService).FullName)
+                    && level >= Microsoft.Extensions.Logging.LogLevel.Warning));
+        });
+
         // Windows and pages
         services.AddSingleton<MainWindow>();
         services.AddSingleton<DebuggerPage>();
         services.AddSingleton<MainWindowViewModel>();
         services.AddSingleton<IAppUpdateService, AppUpdateService>();
+        services.AddSingleton<UpdateDownloader>();
         services.AddSingleton<IPageFactory, PageFactory>();
         services.AddSingleton<IMultiRunJobOptionsViewModelFactory, MultiRunJobOptionsViewModelFactory>();
         services.AddSingleton<IProxyCheckJobOptionsViewModelFactory, ProxyCheckJobOptionsViewModelFactory>();
@@ -297,19 +333,10 @@ public partial class App : Application
         services.AddSingleton<SidebarAnimator>();
         services.AddSingleton<IWindowLayoutService, WindowLayoutService>();
         services.AddSingleton<IThemeService, ThemeService>();
-        services.AddSingleton<IUIStateService, UIStateService>();
 
-        // Non-critical services (lazy loaded for performance)
-        services.AddSingleton<Lazy<ProxyReloadService>>(provider => new Lazy<ProxyReloadService>(() => provider.GetRequiredService<ProxyReloadService>()));
-        services.AddSingleton<Lazy<ProxyCheckOutputFactory>>(provider => new Lazy<ProxyCheckOutputFactory>(() => provider.GetRequiredService<ProxyCheckOutputFactory>()));
-        services.AddSingleton<Lazy<JobFactoryService>>(provider => new Lazy<JobFactoryService>(() => provider.GetRequiredService<JobFactoryService>()));
-        services.AddSingleton<Lazy<JobManagerService>>(provider => new Lazy<JobManagerService>(() => provider.GetRequiredService<JobManagerService>()));
-        services.AddSingleton<Lazy<JobMonitorService>>(provider => new Lazy<JobMonitorService>(() => provider.GetRequiredService<JobMonitorService>()));
-        services.AddSingleton<Lazy<HitStorageService>>(provider => new Lazy<HitStorageService>(() => provider.GetRequiredService<HitStorageService>()));
-        services.AddSingleton<Lazy<DataPoolFactoryService>>(provider => new Lazy<DataPoolFactoryService>(() => provider.GetRequiredService<DataPoolFactoryService>()));
-        services.AddSingleton<Lazy<ProxySourceFactoryService>>(provider => new Lazy<ProxySourceFactoryService>(() => provider.GetRequiredService<ProxySourceFactoryService>()));
-
-        // Actual service registrations for lazy services
+        // These singletons are instantiated on first GetRequiredService<T>() call,
+        // which is already lazy enough for our startup profile; no Lazy<T> wrapper
+        // is registered because nothing in the codebase consumes one.
         services.AddSingleton<ProxyReloadService>();
         services.AddSingleton<ProxyCheckOutputFactory>();
         services.AddSingleton<JobFactoryService>();
@@ -503,8 +530,7 @@ public partial class App : Application
     {
         try
         {
-            var crashLogPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "crash.log");
-            File.WriteAllText(crashLogPath, $"Unhandled exception thrown on {DateTime.Now}\r\n{ex}");
+            CrashLogger.LogCritical(ex, "Unhandled exception");
         }
         catch (Exception logEx)
         {

@@ -1,4 +1,5 @@
 using Flux.Native.Helpers;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Diagnostics;
 using System.IO;
@@ -14,12 +15,12 @@ internal sealed class UpdateDownloader
 {
     private const string UserAgent = "Flux-Native-Updater/1.0";
 
-    private static readonly Lazy<HttpClient> SharedClient = new(() =>
+    private readonly ILogger<UpdateDownloader> logger;
+
+    public UpdateDownloader(ILogger<UpdateDownloader> logger)
     {
-        var client = new HttpClient();
-        client.DefaultRequestHeaders.UserAgent.ParseAdd(UserAgent);
-        return client;
-    });
+        this.logger = logger;
+    }
 
     public UpdateAssetSelection FindSuitableAsset(UpdateAsset[] assets)
     {
@@ -32,7 +33,7 @@ internal sealed class UpdateDownloader
             }
         }
 
-        return new UpdateAssetSelection(null, 0);
+        throw new InvalidOperationException("Download loop exited unexpectedly.");
     }
 
     public async Task<bool> DownloadUpdateAsync(string url, string destination, IUpdateProgress progressUi, long expectedSize, CancellationToken cancellationToken)
@@ -81,7 +82,7 @@ internal sealed class UpdateDownloader
         return false;
     }
 
-    private static async Task<bool> TryUseExistingDownloadAsync(string url, string destination, long expectedSize)
+    private async Task<bool> TryUseExistingDownloadAsync(string url, string destination, long expectedSize)
     {
         if (!File.Exists(destination))
         {
@@ -124,7 +125,7 @@ internal sealed class UpdateDownloader
             return expectedSize;
         }
 
-        var httpClient = SharedClient.Value;
+        var httpClient = DownloadClient.Value;
         using var response = await httpClient.SendAsync(new HttpRequestMessage(HttpMethod.Head, url)).ConfigureAwait(false);
         return response.Content.Headers.ContentLength ?? 0;
     }
@@ -136,7 +137,7 @@ internal sealed class UpdateDownloader
         return client;
     });
 
-    private static async Task DownloadFileWithProgressAsync(string url, string destination, IUpdateProgress progressUi, long expectedSize, CancellationToken cancellationToken)
+    private async Task DownloadFileWithProgressAsync(string url, string destination, IUpdateProgress progressUi, long expectedSize, CancellationToken cancellationToken)
     {
         var httpClient = DownloadClient.Value;
         using var response = await httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
@@ -298,16 +299,8 @@ internal sealed class UpdateDownloader
         return $"{span.Minutes:D2}:{span.Seconds:D2}";
     }
 
-    private static void AppendUpdateLog(string message)
+    private void AppendUpdateLog(string message)
     {
-        try
-        {
-            var logPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "update_error.log");
-            File.AppendAllText(logPath, $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {message}{Environment.NewLine}");
-        }
-        catch
-        {
-            // Ignore logging failures.
-        }
+        logger.LogWarning("{Message}", message);
     }
 }

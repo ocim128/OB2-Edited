@@ -1,4 +1,5 @@
 using Flux.Native.Helpers;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Diagnostics;
 using System.IO;
@@ -15,19 +16,21 @@ public interface IAppUpdateService
     Task CheckForUpdatesAsync();
 }
 
-public class AppUpdateService : IAppUpdateService
+internal class AppUpdateService : IAppUpdateService
 {
     private readonly Dispatcher dispatcher;
     private readonly UpdateVersionChecker versionChecker;
     private readonly UpdateDownloader downloader;
     private readonly UpdateInstaller installer;
+    private readonly ILogger<AppUpdateService> logger;
 
-    public AppUpdateService()
+    public AppUpdateService(UpdateDownloader downloader, ILogger<AppUpdateService> logger)
     {
         dispatcher = Application.Current?.Dispatcher ?? throw new InvalidOperationException("WPF dispatcher is not available.");
         versionChecker = new UpdateVersionChecker();
-        downloader = new UpdateDownloader();
+        this.downloader = downloader;
         installer = new UpdateInstaller(dispatcher);
+        this.logger = logger;
     }
 
     public async Task CheckForUpdatesAsync()
@@ -220,18 +223,9 @@ public class AppUpdateService : IAppUpdateService
         }
     }
 
-    private static void TryAppendUpdateErrorLog(Exception ex)
+    private void TryAppendUpdateErrorLog(Exception ex)
     {
-        try
-        {
-            var logPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "update_error.log");
-            var logEntry = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] Update Error: {ex}\n\n";
-            File.AppendAllText(logPath, logEntry);
-        }
-        catch
-        {
-            // Ignore logging failures.
-        }
+        logger.LogError(ex, "Update Error");
     }
 
     private static string BuildUpdateErrorMessage(string errorMessage)

@@ -17,6 +17,7 @@ public interface IMenuHandler
     void CloseSubmenu();
     void UpdateButtonHighlight(Button previous, Button current);
     void MapButton(MainWindowPage page, Button button);
+    bool TryGetPageForButton(Button button, out MainWindowPage page);
     Task OnConfigSubmenuMouseEnterAsync();
     Task OnConfigSubmenuMouseLeaveAsync();
     Task OnConfigsMenuOptionMouseEnterAsync();

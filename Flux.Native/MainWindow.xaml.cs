@@ -284,41 +284,27 @@ public partial class MainWindow : MetroWindow
     // Modern navigation handler for button clicks
     private async void HandleNavigationClick(object sender, RoutedEventArgs e)
     {
-        var button = sender as Button;
+        if (sender is not Button button)
+        {
+            return;
+        }
 
         // Handle update check separately
-        if (button?.Name == "menuOptionCheckUpdate")
+        if (button.Name == "menuOptionCheckUpdate")
         {
             await appUpdateService.CheckForUpdatesAsync();
             return;
         }
 
-        // Use Tag property for navigation mapping - more reliable for buttons
-        if (button?.Tag != null && Enum.TryParse<MainWindowPage>(button.Tag.ToString(), out var targetPage))
+        // O(1) reverse-map lookup: prefer explicit button.Tag (string),
+        // fall back to the maintained Button -> Page dictionary.
+        if (menuHandler.TryGetPageForButton(button, out var targetPage))
         {
             await NavigateTo(targetPage);
         }
         else
         {
-            // Fallback mapping via our helper if Tag fails or is missing
-            // We can't easily reverse GetButtonForPage without a map.
-            // But we can check button names.
-            // Or just assume if Tag is missing it might be mapped by name if we support it.
-            // Simplified:
-            if (button != null)
-            {
-                // Try to find which page this button corresponds to
-                // Iterate Enum?
-                foreach (MainWindowPage page in Enum.GetValues(typeof(MainWindowPage)))
-                {
-                    if (menuHandler.GetButtonForPage(page) == button)
-                    {
-                        await NavigateTo(page);
-                        return;
-                    }
-                }
-            }
-
+            // Last-resort fallback for unmapped buttons: navigate home.
             await NavigateTo(MainWindowPage.Home);
         }
     }

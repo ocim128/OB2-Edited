@@ -1,4 +1,4 @@
-<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:mah="http://metro.mahapps.com/winfx/xaml/controls"
                     xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
@@ -10,52 +10,52 @@
     </ResourceDictionary.MergedDictionaries>
 
     <!-- Modern Color Palette -->
-    <SolidColorBrush x:Key="Modern.ThemeMain" Color="#2563EB" po:Freeze="False" />
-    <SolidColorBrush x:Key="Modern.ThemeMainFill" Color="#302563EB" po:Freeze="False" />
-    <SolidColorBrush x:Key="Modern.ThemeAccent" Color="#8B5CF6" po:Freeze="False" />
-    <SolidColorBrush x:Key="Modern.ThemeSecondary" Color="#1D4ED8" po:Freeze="False" />
+    <SolidColorBrush x:Key="Modern.ThemeMain" Color="#2563EB" po:Freeze="True" />
+    <SolidColorBrush x:Key="Modern.ThemeMainFill" Color="#302563EB" po:Freeze="True" />
+    <SolidColorBrush x:Key="Modern.ThemeAccent" Color="#8B5CF6" po:Freeze="True" />
+    <SolidColorBrush x:Key="Modern.ThemeSecondary" Color="#1D4ED8" po:Freeze="True" />
     
     <!-- Background Colors -->
-    <SolidColorBrush x:Key="Modern.BackgroundMain" Color="#F8FAFC" po:Freeze="False" />
-    <SolidColorBrush x:Key="Modern.BackgroundSecondary" Color="#FFFFFF" po:Freeze="False" />
-    <SolidColorBrush x:Key="Modern.BackgroundTertiary" Color="#E2E8F0" po:Freeze="False" />
-    <SolidColorBrush x:Key="Modern.BackgroundInput" Color="#FFFFFF" po:Freeze="False" />
-    <SolidColorBrush x:Key="Modern.BackgroundCard" Color="#FFFFFF" po:Freeze="False" />
-    <SolidColorBrush x:Key="Modern.BackgroundElevated" Color="#E2E8F0" po:Freeze="False" />
-    <SolidColorBrush x:Key="Modern.BackgroundHover" Color="#E2E8F0" po:Freeze="False" />
+    <SolidColorBrush x:Key="Modern.BackgroundMain" Color="#F8FAFC" po:Freeze="True" />
+    <SolidColorBrush x:Key="Modern.BackgroundSecondary" Color="#FFFFFF" po:Freeze="True" />
+    <SolidColorBrush x:Key="Modern.BackgroundTertiary" Color="#E2E8F0" po:Freeze="True" />
+    <SolidColorBrush x:Key="Modern.BackgroundInput" Color="#FFFFFF" po:Freeze="True" />
+    <SolidColorBrush x:Key="Modern.BackgroundCard" Color="#FFFFFF" po:Freeze="True" />
+    <SolidColorBrush x:Key="Modern.BackgroundElevated" Color="#E2E8F0" po:Freeze="True" />
+    <SolidColorBrush x:Key="Modern.BackgroundHover" Color="#E2E8F0" po:Freeze="True" />
     
     <!-- Foreground Colors -->
-    <SolidColorBrush x:Key="Modern.ForegroundMain" Color="#0F172A" po:Freeze="False" />
-    <SolidColorBrush x:Key="Modern.ForegroundSecondary" Color="#334155" po:Freeze="False" />
-    <SolidColorBrush x:Key="Modern.ForegroundMuted" Color="#64748B" po:Freeze="False" />
-    <SolidColorBrush x:Key="Modern.ForegroundInput" Color="#0F172A" po:Freeze="False" />
-    <SolidColorBrush x:Key="Modern.TextSecondary" Color="#64748B" po:Freeze="False" />
-    <SolidColorBrush x:Key="Modern.TextOnAccent" Color="#FFFFFF" po:Freeze="False" />
-    <SolidColorBrush x:Key="Modern.TextTertiary" Color="#94A3B8" po:Freeze="False" />
+    <SolidColorBrush x:Key="Modern.ForegroundMain" Color="#0F172A" po:Freeze="True" />
+    <SolidColorBrush x:Key="Modern.ForegroundSecondary" Color="#334155" po:Freeze="True" />
+    <SolidColorBrush x:Key="Modern.ForegroundMuted" Color="#64748B" po:Freeze="True" />
+    <SolidColorBrush x:Key="Modern.ForegroundInput" Color="#0F172A" po:Freeze="True" />
+    <SolidColorBrush x:Key="Modern.TextSecondary" Color="#64748B" po:Freeze="True" />
+    <SolidColorBrush x:Key="Modern.TextOnAccent" Color="#FFFFFF" po:Freeze="True" />
+    <SolidColorBrush x:Key="Modern.TextTertiary" Color="#94A3B8" po:Freeze="True" />
     
     <!-- Semantic Colors -->
-    <SolidColorBrush x:Key="Modern.Success" Color="#10B981" po:Freeze="False" />
-    <SolidColorBrush x:Key="Modern.Warning" Color="#F59E0B" po:Freeze="False" />
-    <SolidColorBrush x:Key="Modern.Error" Color="#EF4444" po:Freeze="False" />
-    <SolidColorBrush x:Key="Modern.Info" Color="#3B82F6" po:Freeze="False" />
+    <SolidColorBrush x:Key="Modern.Success" Color="#10B981" po:Freeze="True" />
+    <SolidColorBrush x:Key="Modern.Warning" Color="#F59E0B" po:Freeze="True" />
+    <SolidColorBrush x:Key="Modern.Error" Color="#EF4444" po:Freeze="True" />
+    <SolidColorBrush x:Key="Modern.Info" Color="#3B82F6" po:Freeze="True" />
     
     <!-- Border Colors -->
-    <SolidColorBrush x:Key="Modern.BorderMain" Color="#CBD5E1" po:Freeze="False" />
-    <SolidColorBrush x:Key="Modern.BorderSecondary" Color="#E2E8F0" po:Freeze="False" />
-    <SolidColorBrush x:Key="Modern.BorderInput" Color="#CBD5E1" po:Freeze="False" />
-    <SolidColorBrush x:Key="Modern.BorderFocus" Color="#2563EB" po:Freeze="False" />
-    <SolidColorBrush x:Key="Modern.BorderHover" Color="#94A3B8" po:Freeze="False" />
+    <SolidColorBrush x:Key="Modern.BorderMain" Color="#CBD5E1" po:Freeze="True" />
+    <SolidColorBrush x:Key="Modern.BorderSecondary" Color="#E2E8F0" po:Freeze="True" />
+    <SolidColorBrush x:Key="Modern.BorderInput" Color="#CBD5E1" po:Freeze="True" />
+    <SolidColorBrush x:Key="Modern.BorderFocus" Color="#2563EB" po:Freeze="True" />
+    <SolidColorBrush x:Key="Modern.BorderHover" Color="#94A3B8" po:Freeze="True" />
 
     <!-- Page-Specific Background Colors (for dark panel backgrounds) -->
-    <SolidColorBrush x:Key="Modern.BackgroundDark" Color="#F1F5F9" po:Freeze="False" />
-    <SolidColorBrush x:Key="Modern.BackgroundDarkSecondary" Color="#E2E8F0" po:Freeze="False" />
-    <SolidColorBrush x:Key="Modern.BackgroundDarkTertiary" Color="#CBD5E1" po:Freeze="False" />
+    <SolidColorBrush x:Key="Modern.BackgroundDark" Color="#F1F5F9" po:Freeze="True" />
+    <SolidColorBrush x:Key="Modern.BackgroundDarkSecondary" Color="#E2E8F0" po:Freeze="True" />
+    <SolidColorBrush x:Key="Modern.BackgroundDarkTertiary" Color="#CBD5E1" po:Freeze="True" />
     
     <!-- Job Status Colors -->
-    <SolidColorBrush x:Key="Modern.StatusRunning" Color="#3B82F6" po:Freeze="False" />
-    <SolidColorBrush x:Key="Modern.StatusPaused" Color="#F59E0B" po:Freeze="False" />
-    <SolidColorBrush x:Key="Modern.StatusStopped" Color="#6B7280" po:Freeze="False" />
-    <SolidColorBrush x:Key="Modern.StatusCompleted" Color="#10B981" po:Freeze="False" />
+    <SolidColorBrush x:Key="Modern.StatusRunning" Color="#3B82F6" po:Freeze="True" />
+    <SolidColorBrush x:Key="Modern.StatusPaused" Color="#F59E0B" po:Freeze="True" />
+    <SolidColorBrush x:Key="Modern.StatusStopped" Color="#6B7280" po:Freeze="True" />
+    <SolidColorBrush x:Key="Modern.StatusCompleted" Color="#10B981" po:Freeze="True" />
 
 
     <!-- ================================================================ -->
@@ -103,12 +103,12 @@
     <!-- ================================================================ -->
     <!-- CHART SERIES COLORS -->
     <!-- ================================================================ -->
-    <SolidColorBrush x:Key="Modern.ChartSeries1" Color="#3B82F6" po:Freeze="False" />
-    <SolidColorBrush x:Key="Modern.ChartSeries2" Color="#10B981" po:Freeze="False" />
-    <SolidColorBrush x:Key="Modern.ChartSeries3" Color="#8B5CF6" po:Freeze="False" />
-    <SolidColorBrush x:Key="Modern.ChartSeries4" Color="#F59E0B" po:Freeze="False" />
-    <SolidColorBrush x:Key="Modern.ChartSeries5" Color="#EF4444" po:Freeze="False" />
-    <SolidColorBrush x:Key="Modern.ChartSeries6" Color="#06B6D4" po:Freeze="False" />
+    <SolidColorBrush x:Key="Modern.ChartSeries1" Color="#3B82F6" po:Freeze="True" />
+    <SolidColorBrush x:Key="Modern.ChartSeries2" Color="#10B981" po:Freeze="True" />
+    <SolidColorBrush x:Key="Modern.ChartSeries3" Color="#8B5CF6" po:Freeze="True" />
+    <SolidColorBrush x:Key="Modern.ChartSeries4" Color="#F59E0B" po:Freeze="True" />
+    <SolidColorBrush x:Key="Modern.ChartSeries5" Color="#EF4444" po:Freeze="True" />
+    <SolidColorBrush x:Key="Modern.ChartSeries6" Color="#06B6D4" po:Freeze="True" />
     
     <!-- Chart line/fill with alpha -->
     <Color x:Key="Modern.Color.ChartLine">#FF3B82F6</Color>
@@ -117,31 +117,31 @@
     <!-- ================================================================ -->
     <!-- DIALOG & PANEL BACKGROUNDS (for dark-themed panels/dialogs) -->
     <!-- ================================================================ -->
-    <SolidColorBrush x:Key="Modern.DialogBackground" Color="#1F2937" po:Freeze="False" />
-    <SolidColorBrush x:Key="Modern.DialogBackgroundAlt" Color="#111827" po:Freeze="False" />
-    <SolidColorBrush x:Key="Modern.PanelDark" Color="#1C2030" po:Freeze="False" />
-    <SolidColorBrush x:Key="Modern.PanelDarkSecondary" Color="#1B1E2B" po:Freeze="False" />
+    <SolidColorBrush x:Key="Modern.DialogBackground" Color="#1F2937" po:Freeze="True" />
+    <SolidColorBrush x:Key="Modern.DialogBackgroundAlt" Color="#111827" po:Freeze="True" />
+    <SolidColorBrush x:Key="Modern.PanelDark" Color="#1C2030" po:Freeze="True" />
+    <SolidColorBrush x:Key="Modern.PanelDarkSecondary" Color="#1B1E2B" po:Freeze="True" />
     
     <!-- ================================================================ -->
     <!-- DARK PANEL (BotLog / terminal-style dark surfaces) -->
     <!-- ================================================================ -->
-    <SolidColorBrush x:Key="Modern.BotLogBackground" Color="#0F1419" po:Freeze="False" />
-    <SolidColorBrush x:Key="Modern.BotLogPanel" Color="#1C2433" po:Freeze="False" />
-    <SolidColorBrush x:Key="Modern.BotLogTerminal" Color="#161616" po:Freeze="False" />
-    <SolidColorBrush x:Key="Modern.BotLogInputBackground" Color="#121B29" po:Freeze="False" />
-    <SolidColorBrush x:Key="Modern.BotLogBorder" Color="#27324A" po:Freeze="False" />
-    <SolidColorBrush x:Key="Modern.BotLogInputBorder" Color="#303D55" po:Freeze="False" />
-    <SolidColorBrush x:Key="Modern.DarkBorder" Color="#374151" po:Freeze="False" />
-    <SolidColorBrush x:Key="Modern.DarkFocusBorder" Color="#4C72FF" po:Freeze="False" />
-    <SolidColorBrush x:Key="Modern.DarkFocusShadow" Color="#81A1FF" po:Freeze="False" />
-    <SolidColorBrush x:Key="Modern.DarkHoverBackground" Color="#4B5563" po:Freeze="False" />
-    <SolidColorBrush x:Key="Modern.InfoLight" Color="#60A5FA" po:Freeze="False" />
-    <SolidColorBrush x:Key="Modern.ForegroundOnDark" Color="#F8FAFC" po:Freeze="False" />
-    <SolidColorBrush x:Key="Modern.DarkSeparator" Color="#374151" po:Freeze="False" />
-    <SolidColorBrush x:Key="Modern.DarkTextMuted" Color="#9CA3AF" po:Freeze="False" />
-    <SolidColorBrush x:Key="Modern.SearchInputBackground" Color="#0E1726" po:Freeze="False" />
-    <SolidColorBrush x:Key="Modern.SearchHoverBackground" Color="#374151" po:Freeze="False" />
-    <SolidColorBrush x:Key="Modern.MatchInfoBackground" Color="#1F2A3D" po:Freeze="False" />
+    <SolidColorBrush x:Key="Modern.BotLogBackground" Color="#0F1419" po:Freeze="True" />
+    <SolidColorBrush x:Key="Modern.BotLogPanel" Color="#1C2433" po:Freeze="True" />
+    <SolidColorBrush x:Key="Modern.BotLogTerminal" Color="#161616" po:Freeze="True" />
+    <SolidColorBrush x:Key="Modern.BotLogInputBackground" Color="#121B29" po:Freeze="True" />
+    <SolidColorBrush x:Key="Modern.BotLogBorder" Color="#27324A" po:Freeze="True" />
+    <SolidColorBrush x:Key="Modern.BotLogInputBorder" Color="#303D55" po:Freeze="True" />
+    <SolidColorBrush x:Key="Modern.DarkBorder" Color="#374151" po:Freeze="True" />
+    <SolidColorBrush x:Key="Modern.DarkFocusBorder" Color="#4C72FF" po:Freeze="True" />
+    <SolidColorBrush x:Key="Modern.DarkFocusShadow" Color="#81A1FF" po:Freeze="True" />
+    <SolidColorBrush x:Key="Modern.DarkHoverBackground" Color="#4B5563" po:Freeze="True" />
+    <SolidColorBrush x:Key="Modern.InfoLight" Color="#60A5FA" po:Freeze="True" />
+    <SolidColorBrush x:Key="Modern.ForegroundOnDark" Color="#F8FAFC" po:Freeze="True" />
+    <SolidColorBrush x:Key="Modern.DarkSeparator" Color="#374151" po:Freeze="True" />
+    <SolidColorBrush x:Key="Modern.DarkTextMuted" Color="#9CA3AF" po:Freeze="True" />
+    <SolidColorBrush x:Key="Modern.SearchInputBackground" Color="#0E1726" po:Freeze="True" />
+    <SolidColorBrush x:Key="Modern.SearchHoverBackground" Color="#374151" po:Freeze="True" />
+    <SolidColorBrush x:Key="Modern.MatchInfoBackground" Color="#1F2A3D" po:Freeze="True" />
     
     <!-- Dialog gradient backgrounds -->
     <LinearGradientBrush x:Key="Modern.Gradient.DialogBackground" StartPoint="0,0" EndPoint="0,1">
@@ -158,30 +158,30 @@
     <!-- ================================================================ -->
     <!-- OVERLAY & TRANSPARENCY COLORS -->
     <!-- ================================================================ -->
-    <SolidColorBrush x:Key="Modern.OverlayLight" Color="#22FFFFFF" po:Freeze="False" />
-    <SolidColorBrush x:Key="Modern.OverlayMedium" Color="#30FFFFFF" po:Freeze="False" />
-    <SolidColorBrush x:Key="Modern.OverlayShadow" Color="#AA000000" po:Freeze="False" />
-    <SolidColorBrush x:Key="Modern.TextMuted" Color="#B0B0B0" po:Freeze="False" />
-    <SolidColorBrush x:Key="Modern.TextMutedLight" Color="#CCCCCC" po:Freeze="False" />
-    <SolidColorBrush x:Key="Modern.TextMutedOnDark" Color="#99FFFFFF" po:Freeze="False" />
+    <SolidColorBrush x:Key="Modern.OverlayLight" Color="#22FFFFFF" po:Freeze="True" />
+    <SolidColorBrush x:Key="Modern.OverlayMedium" Color="#30FFFFFF" po:Freeze="True" />
+    <SolidColorBrush x:Key="Modern.OverlayShadow" Color="#AA000000" po:Freeze="True" />
+    <SolidColorBrush x:Key="Modern.TextMuted" Color="#B0B0B0" po:Freeze="True" />
+    <SolidColorBrush x:Key="Modern.TextMutedLight" Color="#CCCCCC" po:Freeze="True" />
+    <SolidColorBrush x:Key="Modern.TextMutedOnDark" Color="#99FFFFFF" po:Freeze="True" />
     
     <!-- ================================================================ -->
     <!-- BUTTON HOVER/PRESSED STATE COLORS -->
     <!-- ================================================================ -->
-    <SolidColorBrush x:Key="Modern.ThemeMainHover" Color="#2563EB" po:Freeze="False" />
-    <SolidColorBrush x:Key="Modern.ThemeMainPressed" Color="#1D4ED8" po:Freeze="False" />
-    <SolidColorBrush x:Key="Modern.SuccessHover" Color="#059669" po:Freeze="False" />
-    <SolidColorBrush x:Key="Modern.SuccessPressed" Color="#047857" po:Freeze="False" />
-    <SolidColorBrush x:Key="Modern.WarningHover" Color="#D97706" po:Freeze="False" />
-    <SolidColorBrush x:Key="Modern.WarningPressed" Color="#B45309" po:Freeze="False" />
-    <SolidColorBrush x:Key="Modern.ErrorHover" Color="#DC2626" po:Freeze="False" />
-    <SolidColorBrush x:Key="Modern.ErrorPressed" Color="#B91C1C" po:Freeze="False" />
+    <SolidColorBrush x:Key="Modern.ThemeMainHover" Color="#2563EB" po:Freeze="True" />
+    <SolidColorBrush x:Key="Modern.ThemeMainPressed" Color="#1D4ED8" po:Freeze="True" />
+    <SolidColorBrush x:Key="Modern.SuccessHover" Color="#059669" po:Freeze="True" />
+    <SolidColorBrush x:Key="Modern.SuccessPressed" Color="#047857" po:Freeze="True" />
+    <SolidColorBrush x:Key="Modern.WarningHover" Color="#D97706" po:Freeze="True" />
+    <SolidColorBrush x:Key="Modern.WarningPressed" Color="#B45309" po:Freeze="True" />
+    <SolidColorBrush x:Key="Modern.ErrorHover" Color="#DC2626" po:Freeze="True" />
+    <SolidColorBrush x:Key="Modern.ErrorPressed" Color="#B91C1C" po:Freeze="True" />
     
     <!-- ================================================================ -->
     <!-- LEGACY COMPATIBILITY (for gradual migration) -->
     <!-- ================================================================ -->
-    <SolidColorBrush x:Key="ForegroundMain" Color="#0F172A" po:Freeze="False" />
-    <SolidColorBrush x:Key="ForegroundMenuSelected" Color="#2563EB" po:Freeze="False" />
+    <SolidColorBrush x:Key="ForegroundMain" Color="#0F172A" po:Freeze="True" />
+    <SolidColorBrush x:Key="ForegroundMenuSelected" Color="#2563EB" po:Freeze="True" />
     <!-- Shadow Effects -->
     <DropShadowEffect x:Key="ModernShadow" BlurRadius="8" Direction="270" Opacity="0.12" ShadowDepth="2" />
 
@@ -872,12 +872,12 @@
     </Style>
     
     <!-- Focus Ring Color Resources -->
-    <SolidColorBrush x:Key="Modern.FocusRing" Color="#60A5FA" po:Freeze="False"/>
-    <SolidColorBrush x:Key="Modern.FocusRingAlt" Color="#93C5FD" po:Freeze="False"/>
+    <SolidColorBrush x:Key="Modern.FocusRing" Color="#60A5FA" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Modern.FocusRingAlt" Color="#93C5FD" po:Freeze="True"/>
     
     <!-- High Contrast Skip Link (for screen readers) -->
-    <SolidColorBrush x:Key="Modern.SkipLinkBackground" Color="#3B82F6" po:Freeze="False"/>
-    <SolidColorBrush x:Key="Modern.SkipLinkForeground" Color="#FFFFFF" po:Freeze="False"/>
+    <SolidColorBrush x:Key="Modern.SkipLinkBackground" Color="#3B82F6" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Modern.SkipLinkForeground" Color="#FFFFFF" po:Freeze="True"/>
     
     <!-- Reduced Motion - Alternative styles (comment: users can set animation timings to 0) -->
     <!-- These provide a foundation for reduced motion preferences -->
@@ -886,8 +886,8 @@
     <Duration x:Key="Modern.Animation.Slow">0:0:0.4</Duration>
     
     <!-- Loading/Processing Indicator Colors -->
-    <SolidColorBrush x:Key="Modern.LoadingPrimary" Color="#3B82F6" po:Freeze="False"/>
-    <SolidColorBrush x:Key="Modern.LoadingSecondary" Color="#1E3A5F" po:Freeze="False"/>
+    <SolidColorBrush x:Key="Modern.LoadingPrimary" Color="#3B82F6" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Modern.LoadingSecondary" Color="#1E3A5F" po:Freeze="True"/>
     
     <!-- Tooltip Styling for better readability -->
     <Style x:Key="Modern.Tooltip" TargetType="ToolTip">
@@ -902,6 +902,7 @@
     </Style>
     
     <!-- Disabled State Overlay - for clearly indicating disabled controls -->
-    <SolidColorBrush x:Key="Modern.DisabledOverlay" Color="#40000000" po:Freeze="False"/>
-    <SolidColorBrush x:Key="Modern.DisabledText" Color="#6B7280" po:Freeze="False"/>
+    <SolidColorBrush x:Key="Modern.DisabledOverlay" Color="#40000000" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Modern.DisabledText" Color="#6B7280" po:Freeze="True"/>
 </ResourceDictionary>
+

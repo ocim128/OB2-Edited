@@ -373,9 +373,21 @@ namespace Flux.Native.Services
             }
         }
 
-        // Returns directories of all running Flux.Native processes (including current)
+        // Returns directories of all running Flux.Native processes (including current).
+        // Result is cached for 30s because Process.GetProcessesByName is expensive
+        // and the set of running Flux instances changes rarely in practice.
+        private const int FluxDirectoriesCacheTtlMs = 30_000;
+        private HashSet<string>? _cachedFluxDirs;
+        private long _cachedFluxDirsTimestampMs;
+
         private IEnumerable<string> GetFluxDirectories()
         {
+            var now = Environment.TickCount64;
+            if (_cachedFluxDirs != null && now - _cachedFluxDirsTimestampMs < FluxDirectoriesCacheTtlMs)
+            {
+                return _cachedFluxDirs;
+            }
+
             var dirs = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             // Always include current directory
@@ -402,6 +414,8 @@ namespace Flux.Native.Services
             }
             catch { }
 
+            _cachedFluxDirs = dirs;
+            _cachedFluxDirsTimestampMs = now;
             return dirs;
         }
 

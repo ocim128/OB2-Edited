@@ -1,9 +1,8 @@
 using System;
 using System.Diagnostics;
 using System.Runtime;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
-
-using Microsoft.VisualBasic.Devices;
 
 using Flux.Native.Helpers;
 
@@ -17,8 +16,48 @@ namespace Flux.Native.Utils
         private static readonly object _lockObject = new object();
         private static DateTime _lastGcTime = DateTime.MinValue;
         private static readonly TimeSpan _minGcInterval = TimeSpan.FromSeconds(30);
-        private static readonly ComputerInfo _computerInfo = new();
         private static readonly Process CurrentProcess = Process.GetCurrentProcess();
+
+        // #COMPLETION_DRIVE: We replaced Microsoft.VisualBasic.Devices.ComputerInfo with
+        // GlobalMemoryStatusEx P/Invoke so the process no longer needs the entire
+        // Microsoft.VisualBasic assembly on its load path.
+        // #SUGGEST_VERIFY: Confirm the "Total physical memory" / "Available physical memory"
+        // values shown in the Home dashboard match the OS task manager or
+        // `Get-CimInstance Win32_OperatingSystem` to within a few MB before trusting
+        // pressure thresholds.
+
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+        private struct MEMORYSTATUSEX
+        {
+            public uint dwLength;
+            public uint dwMemoryLoad;
+            public ulong ullTotalPhys;
+            public ulong ullAvailPhys;
+            public ulong ullTotalPageFile;
+            public ulong ullAvailPageFile;
+            public ulong ullTotalVirtual;
+            public ulong ullAvailVirtual;
+            public ulong ullAvailExtendedVirtual;
+        }
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool GlobalMemoryStatusEx(ref MEMORYSTATUSEX lpBuffer);
+
+        private static bool TryGetPhysicalMemory(out long totalBytes, out long availableBytes)
+        {
+            var status = new MEMORYSTATUSEX { dwLength = (uint)Marshal.SizeOf<MEMORYSTATUSEX>() };
+            if (!GlobalMemoryStatusEx(ref status))
+            {
+                totalBytes = 0;
+                availableBytes = 0;
+                return false;
+            }
+
+            totalBytes = (long)status.ullTotalPhys;
+            availableBytes = (long)status.ullAvailPhys;
+            return true;
+        }
 
         /// <summary>
         /// Applies garbage collection optimizations for low-spec systems
@@ -103,10 +142,10 @@ namespace Flux.Native.Utils
             {
                 var (workingSet, managedMemory) = GetMemoryUsage();
 
-                var totalMemory = _computerInfo.TotalPhysicalMemory;
-                var availableMemory = _computerInfo.AvailablePhysicalMemory;
-
-                if (totalMemory == 0) return false;
+                if (!TryGetPhysicalMemory(out var totalMemory, out var availableMemory) || totalMemory == 0)
+                {
+                    return false;
+                }
 
                 // Calculate percentage-based thresholds
                 var usedPercent = (double)(totalMemory - availableMemory) / totalMemory * 100.0;
@@ -194,8 +233,11 @@ namespace Flux.Native.Utils
                         return _lastMemoryInfo;
                     }
 
-                    var totalMemory = (long)_computerInfo.TotalPhysicalMemory;
-                    var availableMemory = (long)_computerInfo.AvailablePhysicalMemory;
+                    if (!TryGetPhysicalMemory(out var totalMemory, out var availableMemory))
+                    {
+                        return (0, 0, 0f);
+                    }
+
                     var usagePercent = totalMemory == 0 ? 0f : (float)(100.0 * (totalMemory - availableMemory) / totalMemory);
 
                     _lastMemoryInfo = (totalMemory, availableMemory, usagePercent);
@@ -234,8 +276,9 @@ namespace Flux.Native.Utils
                     var workingSet = CurrentProcess.WorkingSet64;
                     var managedMemory = GC.GetTotalMemory(false);
 
-                    var totalSystemMemory = (long)_computerInfo.TotalPhysicalMemory;
-                    var systemUsagePercent = totalSystemMemory == 0 ? 0f : (float)(100.0 * workingSet / totalSystemMemory);
+                    var systemUsagePercent = TryGetPhysicalMemory(out var totalSystemMemory, out _) && totalSystemMemory > 0
+                        ? (float)(100.0 * workingSet / totalSystemMemory)
+                        : 0f;
 
                     _lastAppMemoryInfo = (workingSet, managedMemory, systemUsagePercent);
                     _lastAppMemoryTime = now;

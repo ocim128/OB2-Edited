@@ -36,16 +36,18 @@ namespace Flux.Native.ViewModels.Base
         }
 
         /// <summary>
-        /// Calls OnPropertyChanged on all public properties of this class.
-        /// Uses reflection to enumerate properties; prefer overriding this method
-        /// with explicit OnPropertyChanged calls in hot paths or large ViewModels.
+        /// Hook for view models that need to broadcast a generic "I changed" signal
+        /// (e.g. after a bulk refresh or settings reset). Default implementation is
+        /// a no-op: it used to use <c>GetType().GetProperties()</c> reflection, which
+        /// is too expensive on hot UI paths (e.g. <c>JobsViewModel</c>'s 2 s refresh
+        /// loop) and was always shadowed by explicit <c>OnPropertyChanged</c> calls
+        /// in every real override.
+        ///
+        /// Subclasses that need this behavior should override and raise change
+        /// notifications explicitly for the properties whose values actually moved.
         /// </summary>
         public virtual void UpdateViewModel()
         {
-            foreach (var property in GetType().GetProperties())
-            {
-                OnPropertyChanged(property.Name);
-            }
         }
 
         /// <summary>

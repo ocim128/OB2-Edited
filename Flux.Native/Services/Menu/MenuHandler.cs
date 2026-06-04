@@ -32,6 +32,11 @@ public class MenuHandler : IMenuHandler
         _buttonMapper.MapButton(page, button);
     }
 
+    public bool TryGetPageForButton(Button button, out MainWindowPage page)
+    {
+        return _buttonMapper.TryGetPageForButton(button, out page);
+    }
+
     public Button GetButtonForPage(MainWindowPage page)
     {
         return _buttonMapper.GetButtonForPage(page);

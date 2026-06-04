@@ -1,4 +1,4 @@
-<Application x:Class="Flux.Native.App"
+﻿<Application x:Class="Flux.Native.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="clr-namespace:Flux.Native"
@@ -9,31 +9,31 @@
     <Application.Resources>
         <ResourceDictionary>
             <!-- FLUENT DESIGN SYSTEM COLORS - Performance Optimized -->
-            <SolidColorBrush x:Key="ThemeMain" Color="#2563EB" po:Freeze="False" />
-            <SolidColorBrush x:Key="BackgroundMain" Color="#F8FAFC" po:Freeze="False" />
-            <SolidColorBrush x:Key="BackgroundSecondary" Color="#EEF2F7" po:Freeze="False" />
-            <SolidColorBrush x:Key="BackgroundInput" Color="#FFFFFF" po:Freeze="False" />
-            <SolidColorBrush x:Key="ForegroundMain" Color="#0F172A" po:Freeze="False" />
-            <SolidColorBrush x:Key="ForegroundInput" Color="#0F172A" po:Freeze="False" />
-            <SolidColorBrush x:Key="ForegroundGood" Color="#10B981" po:Freeze="False"/>
-            <SolidColorBrush x:Key="ForegroundBad" Color="#EF4444" po:Freeze="False"/>
-            <SolidColorBrush x:Key="ForegroundCustom" Color="#F97316" po:Freeze="False"/>
-            <SolidColorBrush x:Key="ForegroundRetry" Color="#EAB308" po:Freeze="False"/>
-            <SolidColorBrush x:Key="ForegroundBanned" Color="#8B5CF6" po:Freeze="False"/>
-            <SolidColorBrush x:Key="ForegroundToCheck" Color="#14B8A6" po:Freeze="False"/>
-            <SolidColorBrush x:Key="ForegroundMenuSelected" Color="#2563EB" po:Freeze="False"/>
-            <SolidColorBrush x:Key="Headers" Color="#0F172A" po:Freeze="False" />
+            <SolidColorBrush x:Key="ThemeMain" Color="#2563EB" po:Freeze="True" />
+            <SolidColorBrush x:Key="BackgroundMain" Color="#F8FAFC" po:Freeze="True" />
+            <SolidColorBrush x:Key="BackgroundSecondary" Color="#EEF2F7" po:Freeze="True" />
+            <SolidColorBrush x:Key="BackgroundInput" Color="#FFFFFF" po:Freeze="True" />
+            <SolidColorBrush x:Key="ForegroundMain" Color="#0F172A" po:Freeze="True" />
+            <SolidColorBrush x:Key="ForegroundInput" Color="#0F172A" po:Freeze="True" />
+            <SolidColorBrush x:Key="ForegroundGood" Color="#10B981" po:Freeze="True"/>
+            <SolidColorBrush x:Key="ForegroundBad" Color="#EF4444" po:Freeze="True"/>
+            <SolidColorBrush x:Key="ForegroundCustom" Color="#F97316" po:Freeze="True"/>
+            <SolidColorBrush x:Key="ForegroundRetry" Color="#EAB308" po:Freeze="True"/>
+            <SolidColorBrush x:Key="ForegroundBanned" Color="#8B5CF6" po:Freeze="True"/>
+            <SolidColorBrush x:Key="ForegroundToCheck" Color="#14B8A6" po:Freeze="True"/>
+            <SolidColorBrush x:Key="ForegroundMenuSelected" Color="#2563EB" po:Freeze="True"/>
+            <SolidColorBrush x:Key="Headers" Color="#0F172A" po:Freeze="True" />
 
             <!-- BoolToTextWrappingConverter -->
             <converters:BoolToTextWrappingConverter x:Key="BoolToWrap" />
 
             <!-- PERFORMANCE-OPTIMIZED BUTTON COLORS -->
-            <SolidColorBrush x:Key="SuccessButton" Color="#10B981" po:Freeze="False"/>
-            <SolidColorBrush x:Key="PrimaryButton" Color="#2563EB" po:Freeze="False"/>
-            <SolidColorBrush x:Key="WarningButton" Color="#F59E0B" po:Freeze="False"/>
-            <SolidColorBrush x:Key="DangerButton" Color="#EF4444" po:Freeze="False"/>
-            <SolidColorBrush x:Key="ForegroundButton" Color="#0F172A" po:Freeze="False"/>
-            <SolidColorBrush x:Key="BackgroundButton" Color="#E2E8F0" po:Freeze="False"/>
+            <SolidColorBrush x:Key="SuccessButton" Color="#10B981" po:Freeze="True"/>
+            <SolidColorBrush x:Key="PrimaryButton" Color="#2563EB" po:Freeze="True"/>
+            <SolidColorBrush x:Key="WarningButton" Color="#F59E0B" po:Freeze="True"/>
+            <SolidColorBrush x:Key="DangerButton" Color="#EF4444" po:Freeze="True"/>
+            <SolidColorBrush x:Key="ForegroundButton" Color="#0F172A" po:Freeze="True"/>
+            <SolidColorBrush x:Key="BackgroundButton" Color="#E2E8F0" po:Freeze="True"/>
 
             <!-- Shadow effects removed for modern flat design -->
 
@@ -50,3 +50,4 @@
         </ResourceDictionary>
     </Application.Resources>
 </Application>
+

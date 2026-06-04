@@ -529,6 +529,34 @@ namespace Flux.Native.ViewModels.Settings
             Customization.BackgroundButton = "#E2E8F0";
         }
 
+        public override void UpdateViewModel()
+        {
+            // Bulk state changes (ApplyThemePreset, Reset, ResetCustomization) mutate
+            // the underlying Customization instance directly, so the per-property
+            // setters never fire. Re-raise notifications for the properties the
+            // settings page binds to so the ColorPickers and the
+            // ForegroundMenuSelected toggle re-fetch their values.
+            OnPropertyChanged(nameof(BackgroundMain));
+            OnPropertyChanged(nameof(BackgroundSecondary));
+            OnPropertyChanged(nameof(BackgroundInput));
+            OnPropertyChanged(nameof(ForegroundMain));
+            OnPropertyChanged(nameof(ForegroundInput));
+            OnPropertyChanged(nameof(ForegroundGood));
+            OnPropertyChanged(nameof(ForegroundBad));
+            OnPropertyChanged(nameof(ForegroundCustom));
+            OnPropertyChanged(nameof(ForegroundRetry));
+            OnPropertyChanged(nameof(ForegroundBanned));
+            OnPropertyChanged(nameof(ForegroundToCheck));
+            OnPropertyChanged(nameof(ForegroundMenuSelected));
+            OnPropertyChanged(nameof(SuccessButton));
+            OnPropertyChanged(nameof(PrimaryButton));
+            OnPropertyChanged(nameof(WarningButton));
+            OnPropertyChanged(nameof(DangerButton));
+            OnPropertyChanged(nameof(ForegroundButton));
+            OnPropertyChanged(nameof(BackgroundButton));
+            OnPropertyChanged(nameof(UseDarkMode));
+        }
+
         private void CreateCollections()
         {
             ProxyCheckTargetsCollection = new ObservableCollection<ProxyCheckTarget>(General.ProxyCheckTargets);

@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Text;
@@ -27,15 +28,13 @@ internal class HttpResponseBuilder
     private HttpResponse response;
 
     private Dictionary<string, List<string>> contentHeaders;
-    private int contentLength = -1;
+    private long contentLength = -1;
     private bool reusableFraming;
 
     /// <summary>
     /// Add ArrayPool
     /// </summary>
     private static readonly ArrayPool<byte> _bufferPool = ArrayPool<byte>.Shared;
-    private static readonly ConcurrentQueue<StringBuilder> _stringBuilderPool = new();
-    private static readonly ConcurrentQueue<Dictionary<string, string>> _headerDictionaryPool = new();
 
     // Pre-compiled byte sequences for performance
     private static readonly ReadOnlyMemory<byte> CrLf = "\r\n"u8.ToArray();
@@ -43,44 +42,16 @@ internal class HttpResponseBuilder
     private static readonly ReadOnlyMemory<byte> ChunkedEndMarker = "0\r\n\r\n"u8.ToArray();
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static StringBuilder GetPooledStringBuilder()
-    {
-        if (_stringBuilderPool.TryDequeue(out var sb))
-        {
-            sb.Clear();
-            return sb;
-        }
-        return new StringBuilder(256);
-    }
+    private static StringBuilder GetPooledStringBuilder() => MemoryPoolUtility.GetStringBuilder();
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void ReturnStringBuilder(StringBuilder sb)
-    {
-        if (sb.Capacity <= 4096) // Prevent memory bloat
-        {
-            _stringBuilderPool.Enqueue(sb);
-        }
-    }
+    private static void ReturnStringBuilder(StringBuilder sb) => MemoryPoolUtility.ReturnStringBuilder(sb);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Dictionary<string, string> GetPooledHeaderDictionary()
-    {
-        if (_headerDictionaryPool.TryDequeue(out var dict))
-        {
-            dict.Clear();
-            return dict;
-        }
-        return new Dictionary<string, string>(16, StringComparer.OrdinalIgnoreCase);
-    }
+    private static Dictionary<string, string> GetPooledHeaderDictionary() => MemoryPoolUtility.GetHeaderDictionary();
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void ReturnHeaderDictionary(Dictionary<string, string> dict)
-    {
-        if (dict.Count <= 32) // Prevent memory bloat
-        {
-            _headerDictionaryPool.Enqueue(dict);
-        }
-    }
+    private static void ReturnHeaderDictionary(Dictionary<string, string> dict) => MemoryPoolUtility.ReturnHeaderDictionary(dict);
 
     /// <summary>
     /// Nested PooledMemoryStream for ArrayPool integration
@@ -382,7 +353,7 @@ internal class HttpResponseBuilder
                 AddGeneralHeader(headerName, headerValue);
             }
             // If it's a content header
-            else if (IsContentHeader(headerName))
+            else if (ContentHelper.IsContentHeader(headerName))
             {
                 TrackReusableFraming(headerName, headerValue);
                 AddContentHeader(headerName, headerValue);
@@ -398,16 +369,6 @@ internal class HttpResponseBuilder
             ReturnStringBuilder(sb);
         }
     }
-
-    private static bool IsContentHeader(string headerName) =>
-        headerName.Equals("Content-Type", StringComparison.OrdinalIgnoreCase) ||
-        headerName.Equals("Content-Length", StringComparison.OrdinalIgnoreCase) ||
-        headerName.Equals("Content-Encoding", StringComparison.OrdinalIgnoreCase) ||
-        headerName.Equals("Content-Disposition", StringComparison.OrdinalIgnoreCase) ||
-        headerName.Equals("Content-Location", StringComparison.OrdinalIgnoreCase) ||
-        headerName.Equals("Content-Range", StringComparison.OrdinalIgnoreCase) ||
-        headerName.Equals("Last-Modified", StringComparison.OrdinalIgnoreCase) ||
-        headerName.Equals("Expires", StringComparison.OrdinalIgnoreCase);
 
     private void TrackReusableFraming(string headerName, string headerValue)
     {
@@ -432,9 +393,13 @@ internal class HttpResponseBuilder
 
     private void AddGeneralHeader(string headerName, string headerValue)
     {
-        if (!response.Headers.TryAdd(headerName, headerValue))
+        if (response.Headers.TryGetValue(headerName, out var list))
         {
-            response.Headers[headerName] += ", " + headerValue;
+            list.Add(headerValue);
+        }
+        else
+        {
+            response.Headers[headerName] = [headerValue];
         }
     }
 
@@ -543,14 +508,15 @@ internal class HttpResponseBuilder
         {
             if (!response.Content.Headers.TryAddWithoutValidation(header.Key, header.Value))
             {
-                response.Headers.Add(header.Key, string.Join(", ", header.Value));
+                // Content headers that couldn't be added to Content.Headers go to general headers
+                response.Headers[header.Key] = header.Value;
             }
         }
     }
 
     private Task<Stream> GetMessageBodySource(CancellationToken cancellationToken) =>
-        response.Headers.TryGetValue("Transfer-Encoding", out var value) &&
-        value.Contains("chunked", StringComparison.OrdinalIgnoreCase)
+        response.Headers.TryGetValue("Transfer-Encoding", out var values) &&
+        values.Any(v => v.Contains("chunked", StringComparison.OrdinalIgnoreCase))
             ? GetChunkedDecompressedStream(cancellationToken)
             : GetContentLength() != -1
             ? GetContentLengthDecompressedStream(cancellationToken)
@@ -591,7 +557,7 @@ internal class HttpResponseBuilder
 
                 foreach (var segment in buff)
                 {
-                    await ms.WriteAsync(segment.Span.ToArray(), cancellationToken);
+                    ms.Write(segment.Span);
                 }
 
                 reader.AdvanceTo(buff.End);
@@ -630,7 +596,7 @@ internal class HttpResponseBuilder
             throw new InvalidOperationException("Cannot read content by length when length is negative");
         }
 
-        var ms = new MemoryStream(length);
+        var ms = new MemoryStream((int)length);
 
         long bytesRead = 0;
 
@@ -662,19 +628,19 @@ internal class HttpResponseBuilder
         return ms;
     }
 
-    private int GetContentLength()
+    private long GetContentLength()
     {
         if (contentLength != -1 || !contentHeaders.TryGetValue("Content-Length", out var values))
         {
             return contentLength;
         }
 
-        int? parsedLength = null;
+        long? parsedLength = null;
         foreach (var headerValue in values)
         {
             foreach (var part in headerValue.Split(','))
             {
-                if (!int.TryParse(part.Trim(), out var candidate) || candidate < 0)
+                if (!long.TryParse(part.Trim(), out var candidate) || candidate < 0)
                 {
                     return -1;
                 }

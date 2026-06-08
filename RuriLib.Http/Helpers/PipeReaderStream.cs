@@ -145,23 +145,15 @@ public class PipeReaderStream : Stream
 
             if (bytesToCopy > 0)
             {
-                // Copy to the user's buffer
+                // Copy to the user's buffer using span-based copy (zero intermediate allocation)
+                var destination = buffer.AsSpan(offset, count);
                 foreach (var segment in readableBuffer)
                 {
-                    // Convert span to array immediately to avoid async span usage
-                    var segmentArray = segment.Span.ToArray();
-                    var arrayToCopy = segmentArray;
-                    
-                    if (copiedBytes + arrayToCopy.Length > bytesToCopy)
-                    {
-                        arrayToCopy = new byte[(int)(bytesToCopy - copiedBytes)];
-                        Array.Copy(segmentArray, 0, arrayToCopy, 0, arrayToCopy.Length);
-                    }
-                    
-                    arrayToCopy.CopyTo(buffer, offset + copiedBytes);
-                    copiedBytes += arrayToCopy.Length;
+                    var toCopy = Math.Min(segment.Length, bytesToCopy - copiedBytes);
+                    segment.Span[..(int)toCopy].CopyTo(destination.Slice(copiedBytes, (int)toCopy));
+                    copiedBytes += (int)toCopy;
 
-                    if (copiedBytes == bytesToCopy) break; // Finished copying the requested amount
+                    if (copiedBytes >= bytesToCopy) break;
                 }
             }
             

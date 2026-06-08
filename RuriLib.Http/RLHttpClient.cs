@@ -47,6 +47,9 @@ public class RLHttpClient(ProxyClient proxyClient = null) : IDisposable
         public ConcurrentQueue<PooledConnection> Connections { get; } = new();
         public DateTime LastAccessed { get; set; } = DateTime.UtcNow;
         public int ActiveConnections;
+        public SemaphoreSlim SlotAvailable { get; } = new(
+            HttpPerformanceConfig.MaxConnectionsPerHost,
+            HttpPerformanceConfig.MaxConnectionsPerHost);
     }
 
     private sealed class PooledConnection : IDisposable
@@ -241,10 +244,13 @@ public class RLHttpClient(ProxyClient proxyClient = null) : IDisposable
                 return response;
             }
 
-            if (!response.Headers.TryGetValue("Location", out var location) || string.IsNullOrEmpty(location))
+            if (!response.Headers.TryGetValue("Location", out var locationValues) ||
+                locationValues.Count == 0 || string.IsNullOrEmpty(locationValues[0]))
             {
                 return response;
             }
+
+            var location = locationValues[0];
 
             var redirectUri = new Uri(currentRequest.Uri, location);
 
@@ -359,6 +365,17 @@ public class RLHttpClient(ProxyClient proxyClient = null) : IDisposable
             .Any(part => part.Trim().Equals(token, StringComparison.OrdinalIgnoreCase));
     }
 
+    private static bool HasConnectionToken(IDictionary<string, List<string>> headers, string token)
+    {
+        if (headers == null || !headers.TryGetValue("Connection", out var values))
+        {
+            return false;
+        }
+
+        return values.SelectMany(v => v.Split(','))
+            .Any(part => part.Trim().Equals(token, StringComparison.OrdinalIgnoreCase));
+    }
+
     private string GetPoolKey(string host, int port, bool isSecure)
     {
         var proxyKey = ProxyClient switch
@@ -429,8 +446,8 @@ public class RLHttpClient(ProxyClient proxyClient = null) : IDisposable
                 }
             }
 
-            // Wait and retry if at limit
-            await Task.Delay(10, cancellationToken).ConfigureAwait(false);
+            // Wait efficiently for a slot to become available (replaces spin-wait polling)
+            await entry.SlotAvailable.WaitAsync(cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -463,6 +480,8 @@ public class RLHttpClient(ProxyClient proxyClient = null) : IDisposable
 
             if (Interlocked.CompareExchange(ref entry.ActiveConnections, current - 1, current) == current)
             {
+                // Signal one waiting caller that a slot is now available
+                try { entry.SlotAvailable.Release(); } catch (SemaphoreFullException) { }
                 return;
             }
         }
@@ -545,14 +564,15 @@ public class RLHttpClient(ProxyClient proxyClient = null) : IDisposable
         // Use ArrayBufferWriter to collect the request bytes
         var bufferWriter = new ArrayBufferWriter<byte>();
         await request.WriteToAsync(bufferWriter, cancellationToken).ConfigureAwait(false);
-        var buffer = bufferWriter.WrittenSpan.ToArray();
 
-        await stream.WriteAsync(buffer.AsMemory(0, buffer.Length), cancellationToken).ConfigureAwait(false);
+        // Write directly from the buffer writer's committed memory (avoids one full copy)
+        var writtenMemory = bufferWriter.WrittenMemory;
+        await stream.WriteAsync(writtenMemory, cancellationToken).ConfigureAwait(false);
 
         // Add to RawRequests with memory limit to prevent leaks
         lock (RawRequests)
         {
-            RawRequests.Add(buffer);
+            RawRequests.Add(writtenMemory.ToArray());
 
             // Remove oldest requests if we exceed the limit
             while (RawRequests.Count > MaxRawRequestsToKeep)

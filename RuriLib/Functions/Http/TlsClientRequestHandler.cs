@@ -32,6 +32,17 @@ namespace RuriLib.Functions.Http
         private static NativeTlsClient? sharedClient;
         private static long requestCount;
 
+        /// <summary>
+        /// Limits concurrent native P/Invoke calls into the Go-based tls-client.dll.
+        /// The Go CGo runtime serialises callbacks to GOMAXPROCS (≈ CPU cores), so
+        /// submitting more concurrent calls than the bridge can handle just wastes
+        /// ThreadPool threads and worsens starvation. The limit is set to
+        /// max(4, ProcessorCount * 2) — generous enough to keep the I/O pipeline
+        /// full without overwhelming the Go scheduler.
+        /// </summary>
+        private static readonly SemaphoreSlim NativeConcurrencyLimiter = new(
+            Math.Max(4, Environment.ProcessorCount * 2));
+
         private static readonly TransportOptions defaultTransportOptions = new()
         {
             MaxIdleConns = 100,
@@ -156,7 +167,19 @@ namespace RuriLib.Functions.Http
 
             var useByteResponse = request.ReadResponseContent;
             var transportRequest = BuildRequest(data, options, request, useByteResponse);
-            var response = await sharedClient.RequestAsync(transportRequest, cancellationToken).ConfigureAwait(false);
+
+            // Throttle concurrent native calls to avoid overwhelming the Go CGo bridge
+            // and prevent ThreadPool starvation under high parallelism.
+            await NativeConcurrencyLimiter.WaitAsync(cancellationToken).ConfigureAwait(false);
+            Response response;
+            try
+            {
+                response = await sharedClient.RequestAsync(transportRequest, cancellationToken).ConfigureAwait(false);
+            }
+            finally
+            {
+                NativeConcurrencyLimiter.Release();
+            }
             ValidateTlsResponse(response);
 
             var statusCode = (int)response.Status;

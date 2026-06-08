@@ -14,6 +14,7 @@ using RuriLib.Proxies.Exceptions;
 using System.Collections.Generic;
 using System.IO.Pipelines;
 using System.Collections.Concurrent;
+using System.Linq;
 
 namespace RuriLib.Http;
 
@@ -154,6 +155,28 @@ public class ProxyClientHandler(ProxyClient proxyClient) : HttpMessageHandler, I
     #endregion Properties
 
     /// <summary>
+    /// Generates a pool key that includes proxy identity, TLS settings, and cipher suites
+    /// to prevent cross-proxy/cross-TLS connection reuse.
+    /// </summary>
+    private string GetPoolKey(Uri uri)
+    {
+        var proxyKey = ProxyClient switch
+        {
+            null => "noproxy",
+            _ => string.Join(":",
+                ProxyClient.GetType().Name,
+                ProxyClient.Settings?.Host ?? string.Empty,
+                ProxyClient.Settings?.Port.ToString() ?? string.Empty,
+                ProxyClient.Settings?.Credentials?.UserName ?? string.Empty,
+                ProxyClient.Settings?.Credentials?.Password ?? string.Empty)
+        };
+        var cipherKey = UseCustomCipherSuites && AllowedCipherSuites is { Length: > 0 }
+            ? string.Join(",", AllowedCipherSuites.Select(c => c.ToString()))
+            : "default";
+        return $"{uri.Host}:{uri.Port}:{uri.Scheme}:{proxyKey}:{(int)SslProtocols}:{cipherKey}:{CertRevocationMode}";
+    }
+
+    /// <summary>
     /// Asynchronously sends a <paramref name="request"/> and returns an <see cref="HttpResponseMessage"/>.
     /// </summary>
     /// <param name="request">The request to send</param>
@@ -277,7 +300,7 @@ public class ProxyClientHandler(ProxyClient proxyClient) : HttpMessageHandler, I
     private async Task CreateConnection(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         var uri = request.RequestUri;
-        var key = $"{uri.Host}:{uri.Port}";
+        var key = GetPoolKey(uri);
 
         // Try to get a connection from the pool
         if (_connectionPool.TryGetValue(key, out var connections))
@@ -344,8 +367,8 @@ public class ProxyClientHandler(ProxyClient proxyClient) : HttpMessageHandler, I
                 {
                     TargetHost = uri.Host,
                     ClientCertificates = null,
-                    EnabledSslProtocols = SslProtocols == SslProtocols.None 
-                        ? (SslProtocols.Tls12 | SslProtocols.Tls13) 
+                    EnabledSslProtocols = SslProtocols == SslProtocols.None
+                        ? (SslProtocols.Tls12 | SslProtocols.Tls13)
                         : SslProtocols,
                     CertificateRevocationCheckMode = CertRevocationMode,
                     ApplicationProtocols = [SslApplicationProtocol.Http11],

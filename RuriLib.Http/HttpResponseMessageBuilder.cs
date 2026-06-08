@@ -28,7 +28,7 @@ internal sealed class HttpResponseMessageBuilder
     private PipeReader _reader;
     private HttpResponseMessage _response;
     private Dictionary<string, List<string>> _contentHeaders;
-    private int _contentLength = -1;
+    private long _contentLength = -1;
 
     /// <summary>
     /// Gets or sets the timeout for receive operations.
@@ -351,21 +351,21 @@ internal sealed class HttpResponseMessageBuilder
         if (_contentLength == 0)
             return new MemoryStream(Array.Empty<byte>());
 
-        var stream = new MemoryStream(_contentLength);
-        var bytesRead = 0;
+        var stream = new MemoryStream(_contentLength <= int.MaxValue ? (int)_contentLength : 0);
+        long bytesRead = 0;
 
         while (bytesRead < _contentLength)
         {
             var result = await _reader.ReadAsync(cancellationToken).ConfigureAwait(false);
             var buffer = result.Buffer;
 
-            var toRead = Math.Min((int)buffer.Length, _contentLength - bytesRead);
+            var toRead = Math.Min(buffer.Length, _contentLength - bytesRead);
             if (toRead > 0)
             {
                 foreach (var segment in buffer)
                 {
                     var segmentLength = Math.Min(segment.Length, _contentLength - bytesRead);
-                    await stream.WriteAsync(segment.Slice(0, segmentLength), cancellationToken).ConfigureAwait(false);
+                    stream.Write(segment.Span[..(int)segmentLength]);
                     bytesRead += segmentLength;
 
                     if (bytesRead >= _contentLength) break;
@@ -421,7 +421,7 @@ internal sealed class HttpResponseMessageBuilder
             {
                 foreach (var segment in buffer)
                 {
-                    await stream.WriteAsync(segment, cancellationToken).ConfigureAwait(false);
+                    stream.Write(segment.Span);
                 }
             }
 
@@ -477,19 +477,19 @@ internal sealed class HttpResponseMessageBuilder
     /// <summary>
     /// Gets the content length from headers.
     /// </summary>
-    private int GetContentLength()
+    private long GetContentLength()
     {
         if (!_contentHeaders.TryGetValue("Content-Length", out var values))
         {
             return -1;
         }
 
-        int? parsedLength = null;
+        long? parsedLength = null;
         foreach (var headerValue in values)
         {
             foreach (var part in headerValue.Split(','))
             {
-                if (!int.TryParse(part.Trim(), out var candidate) || candidate < 0)
+                if (!long.TryParse(part.Trim(), out var candidate) || candidate < 0)
                 {
                     return -1;
                 }

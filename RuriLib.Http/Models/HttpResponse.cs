@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 
@@ -26,9 +27,10 @@ namespace RuriLib.Http.Models
         public HttpStatusCode StatusCode { get; set; }
 
         /// <summary>
-        /// The headers of the response.
+        /// The headers of the response. Each key maps to a list of values to correctly
+        /// support multi-value headers (e.g., Set-Cookie, X-Forwarded-For).
         /// </summary>
-        public Dictionary<string, string> Headers { get; set; } = new(StringComparer.InvariantCultureIgnoreCase);
+        public Dictionary<string, List<string>> Headers { get; set; } = new(StringComparer.InvariantCultureIgnoreCase);
 
         /// <summary>
         /// The content of the response.
@@ -40,6 +42,28 @@ namespace RuriLib.Http.Models
         /// connection can be reused if no Connection: close token was present.
         /// </summary>
         public bool CanReuseConnection { get; set; }
+
+        /// <summary>
+        /// Gets the first value for a given header name, or null if not present.
+        /// Convenience helper for single-value header access.
+        /// </summary>
+        public string GetFirstHeader(string name)
+        {
+            if (Headers.TryGetValue(name, out var values) && values.Count > 0)
+                return values[0];
+            return null;
+        }
+
+        /// <summary>
+        /// Gets all values for a given header name joined by ", " (standard HTTP folding).
+        /// Returns null if the header is not present.
+        /// </summary>
+        public string GetJoinedHeader(string name)
+        {
+            if (Headers.TryGetValue(name, out var values) && values.Count > 0)
+                return string.Join(", ", values);
+            return null;
+        }
 
         /// <inheritdoc/>
         public void Dispose() => Content?.Dispose();

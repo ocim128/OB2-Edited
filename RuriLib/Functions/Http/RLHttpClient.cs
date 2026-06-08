@@ -127,13 +127,13 @@ namespace RuriLib.Functions.Http
                 Request = request,
                 StatusCode = responseMessage.StatusCode,
                 Version = responseMessage.Version,
-                Headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                Headers = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase)
             };
 
             // Copy headers
             foreach (var header in responseMessage.Headers.Concat(responseMessage.Content.Headers))
             {
-                response.Headers[header.Key] = string.Join(", ", header.Value);
+                response.Headers[header.Key] = header.Value.ToList();
             }
 
             // Handle content

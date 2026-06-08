@@ -139,6 +139,12 @@ namespace RuriLib.Functions.Http
             return normalized;
         }
 
+        protected static Dictionary<string, List<string>> NormalizeHeaders(Dictionary<string, List<string>> headers)
+        {
+            // Already in the target format — return as-is (case-insensitive comparer already set)
+            return headers;
+        }
+
         protected static Dictionary<string, List<string>> NormalizeHeaders(IEnumerable<KeyValuePair<string, string>> headers)
         {
             var normalized = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);

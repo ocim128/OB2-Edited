@@ -32,7 +32,7 @@ public partial class MultiRunJobViewerViewModel
                 return;
             }
 
-            var latest = await jobQueries.GetMultiRunJobViewerSnapshotAsync(Job.Id).ConfigureAwait(false);
+            var latest = await jobOrchestrator.GetMultiRunJobViewerSnapshotAsync(Job.Id).ConfigureAwait(false);
             if (latest is null || disposed)
             {
                 return;

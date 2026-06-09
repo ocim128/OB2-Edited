@@ -31,8 +31,7 @@ public partial class MultiRunJobViewer : Page, IDisposable
 {
         private readonly MainWindow mainWindow;
         private readonly FluxSettingsService fluxSettingsService;
-        private readonly IJobCommands jobCommands;
-        private readonly IJobQueries jobQueries;
+        private readonly IJobOrchestrator jobOrchestrator;
         private readonly DebuggerViewModel debuggerViewModel;
         private MultiRunJobViewerViewModel vm;
         private GridViewColumnHeader listViewSortCol;
@@ -74,14 +73,12 @@ public partial class MultiRunJobViewer : Page, IDisposable
         public MultiRunJobViewer(
             MainWindow mainWindow,
             FluxSettingsService fluxSettingsService,
-            IJobCommands jobCommands,
-            IJobQueries jobQueries,
+            IJobOrchestrator jobOrchestrator,
             DebuggerViewModel debuggerViewModel)
         {
             this.mainWindow = mainWindow;
             this.fluxSettingsService = fluxSettingsService;
-            this.jobCommands = jobCommands;
-            this.jobQueries = jobQueries;
+            this.jobOrchestrator = jobOrchestrator;
             this.debuggerViewModel = debuggerViewModel;
             InitializeComponent();
         }
@@ -95,7 +92,7 @@ public partial class MultiRunJobViewer : Page, IDisposable
 
             CleanupViewModel();
 
-            var nextViewModel = await MultiRunJobViewerViewModel.CreateAsync(jobVM, fluxSettingsService, jobCommands, jobQueries);
+            var nextViewModel = await MultiRunJobViewerViewModel.CreateAsync(jobVM, fluxSettingsService, jobOrchestrator);
             if (disposed)
             {
                 nextViewModel.Dispose();

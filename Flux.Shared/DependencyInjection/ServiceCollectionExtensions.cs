@@ -11,14 +11,12 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<JobProjectionService>();
         services.AddSingleton<JobEventSubscriptionService>();
         services.AddSingleton<INotificationService, NotificationService>();
-        services.AddSingleton<IAuthenticationService, AuthenticationService>();
-        services.AddSingleton<IJobCommands, JobCommands>();
-        services.AddSingleton<IJobQueries, JobQueries>();
+        services.AddSingleton<AuthenticationService>();
         services.AddSingleton<IJobOrchestrator, JobOrchestrator>();
-        services.AddSingleton<ISettingsFacade, SettingsFacade>();
-        services.AddSingleton<IPluginService, PluginService>();
+        services.AddSingleton<SettingsFacade>();
+        services.AddSingleton<PluginService>();
         services.AddSingleton<IDashboardService, DashboardService>();
-        services.AddSingleton<IFluxApplication, FluxApplication>();
+        services.AddSingleton<FluxApplication>();
         return services;
     }
 }

@@ -16,7 +16,6 @@ namespace Flux.Native.ViewModels.Jobs;
 
 public partial class JobsViewModel : ViewModelBase, IDisposable
 {
-    private readonly IJobQueries jobQueries;
     private readonly IJobOrchestrator jobOrchestrator;
     private readonly HotkeyService hotkeyService;
     private readonly Timer timer;
@@ -49,11 +48,9 @@ public partial class JobsViewModel : ViewModelBase, IDisposable
     }
 
     public JobsViewModel(
-        IJobQueries jobQueries,
         IJobOrchestrator jobOrchestrator,
         HotkeyService hotkeyService)
     {
-        this.jobQueries = jobQueries ?? throw new ArgumentNullException(nameof(jobQueries));
         this.jobOrchestrator = jobOrchestrator ?? throw new ArgumentNullException(nameof(jobOrchestrator));
         this.hotkeyService = hotkeyService ?? throw new ArgumentNullException(nameof(hotkeyService));
 
@@ -117,7 +114,7 @@ public partial class JobsViewModel : ViewModelBase, IDisposable
                 return;
             }
 
-            var latestJobs = await jobQueries.GetDesktopJobsAsync().ConfigureAwait(false);
+            var latestJobs = await jobOrchestrator.GetDesktopJobsAsync().ConfigureAwait(false);
             allJobs = latestJobs.OrderBy(static job => job.Id).ToList();
             FilterJobs();
             EvaluateCpmTriggers(allJobs);

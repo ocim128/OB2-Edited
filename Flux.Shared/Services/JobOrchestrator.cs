@@ -14,6 +14,7 @@ using Flux.Core.Repositories;
 using Flux.Core.Services;
 using Flux.Shared.Abstractions;
 using Flux.Shared.Models;
+using Microsoft.EntityFrameworkCore;
 using RuriLib.Models.Jobs;
 
 namespace Flux.Shared.Services;
@@ -28,6 +29,8 @@ public class JobOrchestrator : IJobOrchestrator
     private readonly JobProjectionService _projections;
     private readonly JobEventSubscriptionService _subscriptions;
     private readonly JsonSerializerSettings _jsonSettings = new() { TypeNameHandling = TypeNameHandling.Auto };
+    private readonly SemaphoreSlim _proxyGroupLock = new(1, 1);
+    private IReadOnlyDictionary<int, string>? _proxyGroupNames;
 
     public JobOrchestrator(
         JobManagerService jobManager,
@@ -172,12 +175,14 @@ public class JobOrchestrator : IJobOrchestrator
     public async Task<IReadOnlyList<JobResultDto>> GetRecentResultsAsync(int jobId, int take = 200, CancellationToken cancellationToken = default)
         => await _projections.GetRecentResultsAsync(FindJob(jobId), take, cancellationToken).ConfigureAwait(false);
 
-    public async Task<JobDetailDto?> StartJobAsync(int jobId, CancellationToken cancellationToken = default)
+    public async Task<JobDetailDto?> StartJobAsync(int jobId, IReadOnlyDictionary<string, string>? customInputs = null, CancellationToken cancellationToken = default)
     {
         if (FindJob(jobId) is not MultiRunJob job)
         {
             return null;
         }
+
+        ApplyCustomInputs(job, customInputs);
 
         await StartJobInternalAsync(job, cancellationToken).ConfigureAwait(false);
         return await _projections.BuildDetailAsync(job, cancellationToken).ConfigureAwait(false);
@@ -385,4 +390,93 @@ public class JobOrchestrator : IJobOrchestrator
 
     private Task PublishJobNotificationAsync(Job job, string message, string severity, CancellationToken cancellationToken)
         => _notifications.PublishAsync(new NotificationDto("jobs", message, severity, DateTime.UtcNow), cancellationToken);
+
+    public Task<IReadOnlyList<DesktopJobListItemDto>> GetDesktopJobsAsync(CancellationToken cancellationToken = default)
+        => Task.FromResult(_projections.BuildDesktopListItems(_jobManager.Jobs));
+
+    public async Task<MultiRunJobViewerSnapshotDto?> GetMultiRunJobViewerSnapshotAsync(int jobId, CancellationToken cancellationToken = default)
+    {
+        var job = FindJob(jobId);
+        if (job is null)
+        {
+            return null;
+        }
+
+        var proxyGroupNames = await GetProxyGroupNamesCachedAsync(cancellationToken).ConfigureAwait(false);
+        return _projections.BuildMultiRunViewerSnapshot(job, proxyGroupNames);
+    }
+
+    public Task<BotLogDto?> GetBotLogAsync(int jobId, string resultId, CancellationToken cancellationToken = default)
+        => Task.FromResult(_projections.BuildBotLog(FindJob(jobId), resultId));
+
+    private async Task<IReadOnlyDictionary<int, string>> GetProxyGroupNamesCachedAsync(CancellationToken cancellationToken)
+    {
+        if (_proxyGroupNames is not null)
+        {
+            return _proxyGroupNames;
+        }
+
+        await _proxyGroupLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            if (_proxyGroupNames is not null)
+            {
+                return _proxyGroupNames;
+            }
+
+            using var scope = _scopeFactory.CreateScope();
+            var proxyGroupRepository = scope.ServiceProvider.GetRequiredService<IProxyGroupRepository>();
+            var groups = await proxyGroupRepository.GetAll()
+                .AsNoTracking()
+                .ToListAsync(cancellationToken)
+                .ConfigureAwait(false);
+
+            var lookup = groups.ToDictionary(group => group.Id, group => group.Name);
+            lookup[-1] = "All";
+            _proxyGroupNames = lookup;
+            return _proxyGroupNames;
+        }
+        finally
+        {
+            _proxyGroupLock.Release();
+        }
+    }
+
+    public Task SkipWaitAsync(int jobId, CancellationToken cancellationToken = default)
+    {
+        if (FindJob(jobId) is MultiRunJob job)
+        {
+            job.SkipWait();
+        }
+        return Task.CompletedTask;
+    }
+
+    public Task ResetSkipAsync(int jobId, CancellationToken cancellationToken = default)
+    {
+        if (FindJob(jobId) is MultiRunJob job)
+        {
+            if (job.Status is not JobStatus.Idle)
+            {
+                return Task.CompletedTask;
+            }
+
+            job.Skip = 0;
+            job.DataPool?.Reload();
+        }
+        return Task.CompletedTask;
+    }
+
+    private static void ApplyCustomInputs(MultiRunJob job, IReadOnlyDictionary<string, string>? customInputs)
+    {
+        job.CustomInputsAnswers.Clear();
+        if (customInputs is null)
+        {
+            return;
+        }
+
+        foreach (var answer in customInputs)
+        {
+            job.CustomInputsAnswers[answer.Key] = answer.Value;
+        }
+    }
 }

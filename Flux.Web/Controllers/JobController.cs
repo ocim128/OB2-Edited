@@ -1,8 +1,10 @@
-﻿using AutoMapper;
+using AutoMapper;
 using FluentValidation;
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
+using Flux.Core.Application.Jobs;
 using Flux.Core.Entities;
 using Flux.Core.Models.Jobs;
 using Flux.Core.Repositories;
@@ -12,6 +14,7 @@ using Flux.Web.Dtos.Common;
 using Flux.Web.Dtos.Job;
 using Flux.Web.Dtos.Job.MultiRun;
 using Flux.Web.Dtos.Job.ProxyCheck;
+using Flux.Web.Dtos.JobMonitor;
 using Flux.Web.Exceptions;
 using Flux.Web.Extensions;
 using Flux.Web.Models.Identity;
@@ -19,6 +22,7 @@ using Flux.Web.Utils;
 using RuriLib.Models.Data.DataPools;
 using RuriLib.Models.Hits.HitOutputs;
 using RuriLib.Models.Jobs;
+using RuriLib.Models.Jobs.Monitor;
 using RuriLib.Models.Jobs.StartConditions;
 using RuriLib.Models.Proxies.ProxySources;
 using Flux.Core.Models.Hits;
@@ -32,29 +36,35 @@ using System.Threading.Tasks;
 namespace Flux.Web.Controllers;
 
 /// <summary>
-/// Manage jobs (CRUD operations).
+/// Manage jobs (CRUD, operations, and monitor).
 /// </summary>
 [TypeFilter<GuestFilter>]
 [ApiVersion("1.0")]
 [Route("api/v{version:apiVersion}/job")]
-public class JobCrudController(
+public class JobController(
     IJobRepository jobRepo,
-    ILogger<JobCrudController> logger,
+    ILogger<JobController> logger,
     IGuestRepository guestRepo,
     IMapper mapper,
     JobManagerService jobManager,
     JobFactoryService jobFactory,
     IProxyGroupRepository proxyGroupRepo,
-    IRecordRepository recordRepo) : ApiController
+    IRecordRepository recordRepo,
+    JobMonitorService jobMonitorService,
+    IMediator mediator) : ApiController
 {
     private readonly IGuestRepository _guestRepo = guestRepo;
     private readonly JobFactoryService _jobFactory = jobFactory;
     private readonly JobManagerService _jobManager = jobManager;
     private readonly IJobRepository _jobRepo = jobRepo;
-    private readonly ILogger<JobCrudController> _logger = logger;
+    private readonly ILogger<JobController> _logger = logger;
     private readonly IMapper _mapper = mapper;
     private readonly IProxyGroupRepository _proxyGroupRepo = proxyGroupRepo;
     private readonly IRecordRepository _recordRepo = recordRepo;
+    private readonly JobMonitorService _jobMonitorService = jobMonitorService;
+    private readonly IMediator _mediator = mediator;
+
+    #region CRUD Operations
 
     /// <summary>
     /// Get overview information about all jobs.
@@ -422,6 +432,302 @@ public class JobCrudController(
         return _mapper.Map<RecordDto>(record);
     }
 
+    #endregion
+
+    #region Job Operations
+
+    /// <summary>
+    /// Start a job.
+    /// </summary>
+    [HttpPost("start")]
+    [MapToApiVersion("1.0")]
+    public async Task<ActionResult> StartJob(JobCommandDto dto)
+    {
+        EnsureOwnership(dto.JobId);
+        await _mediator.Send(new StartJobCommand(dto.JobId, dto.Wait));
+        return Ok();
+    }
+
+    /// <summary>
+    /// Stop a job.
+    /// </summary>
+    [HttpPost("stop")]
+    [MapToApiVersion("1.0")]
+    public async Task<ActionResult> StopJob(JobCommandDto dto)
+    {
+        EnsureOwnership(dto.JobId);
+        await _mediator.Send(new StopJobCommand(dto.JobId));
+        return Ok();
+    }
+
+    /// <summary>
+    /// Pause a job.
+    /// </summary>
+    [HttpPost("pause")]
+    [MapToApiVersion("1.0")]
+    public async Task<ActionResult> PauseJob(JobCommandDto dto)
+    {
+        EnsureOwnership(dto.JobId);
+        await _mediator.Send(new PauseJobCommand(dto.JobId));
+        return Ok();
+    }
+
+    /// <summary>
+    /// Resume a paused job.
+    /// </summary>
+    [HttpPost("resume")]
+    [MapToApiVersion("1.0")]
+    public async Task<ActionResult> ResumeJob(JobCommandDto dto)
+    {
+        EnsureOwnership(dto.JobId);
+        await _mediator.Send(new ResumeJobCommand(dto.JobId));
+        return Ok();
+    }
+
+    /// <summary>
+    /// Abort a job.
+    /// </summary>
+    [HttpPost("abort")]
+    [MapToApiVersion("1.0")]
+    public async Task<ActionResult> AbortJob(JobCommandDto dto)
+    {
+        EnsureOwnership(dto.JobId);
+        await _mediator.Send(new AbortJobCommand(dto.JobId));
+        return Ok();
+    }
+
+    /// <summary>
+    /// Skip a job's waiting time.
+    /// </summary>
+    [HttpPost("skip-wait")]
+    [MapToApiVersion("1.0")]
+    public ActionResult SkipWaitJob(JobCommandDto dto)
+    {
+        var job = GetJob(dto.JobId);
+        job.SkipWait();
+        _logger.LogInformation("Skipped wait for job {JobId}", dto.JobId);
+        return Ok();
+    }
+
+    /// <summary>
+    /// Change the number of bots in a job.
+    /// </summary>
+    [HttpPost("change-bots")]
+    [MapToApiVersion("1.0")]
+    public ActionResult ChangeBots(ChangeBotsDto dto)
+    {
+        var job = GetJob(dto.JobId);
+
+        if (job is MultiRunJob mrj) mrj.Bots = dto.Bots;
+        else if (job is ProxyCheckJob pcj) pcj.Bots = dto.Bots;
+
+        _logger.LogInformation("Changed bots to {Bots} for job {JobId}", dto.Bots, dto.JobId);
+        return Ok();
+    }
+
+    /// <summary>
+    /// Get the details of all bots in a multi run job.
+    /// </summary>
+    [HttpGet("bot-details")]
+    [MapToApiVersion("1.0")]
+    public ActionResult<IEnumerable<BotDetailsDto>> GetBotDetails(int id)
+    {
+        var job = GetJob<MultiRunJob>(id);
+        return Ok(job.CurrentBotDatas
+            .Where(b => b is not null)
+            .Select(b => new BotDetailsDto {
+                Id = b.BOTNUM,
+                Data = b.Line.Data,
+                Proxy = b.Proxy?.ToString() ?? "N/A",
+                Info = b.ExecutionInfo
+            }));
+    }
+
+    /// <summary>
+    /// Get the custom user inputs that can be set in a given multi run job for
+    /// the currently selected config.
+    /// </summary>
+    [HttpGet("multi-run/custom-inputs")]
+    [MapToApiVersion("1.0")]
+    public ActionResult<IEnumerable<CustomInputQuestionDto>> GetCustomInputs(int id)
+    {
+        var job = GetJob<MultiRunJob>(id);
+
+        if (job.Config is null)
+        {
+            throw new BadRequestException(ErrorCode.InvalidJobConfiguration, $"The job with id {id} is missing a config");
+        }
+
+        return Ok(job.Config.Settings.InputSettings.CustomInputs.Select(i =>
+            new CustomInputQuestionDto {
+                Description = i.Description, DefaultAnswer = i.DefaultAnswer, VariableName = i.VariableName,
+                CurrentAnswer = job.CustomInputsAnswers.TryGetValue(i.VariableName, out var answer) ? answer : null
+            }));
+    }
+
+    /// <summary>
+    /// Set the values of custom inputs in a multi run job for the
+    /// currently selected config.
+    /// </summary>
+    [HttpPatch("multi-run/custom-inputs")]
+    [MapToApiVersion("1.0")]
+    public ActionResult SetCustomInputs(CustomInputsDto dto)
+    {
+        var job = GetJob<MultiRunJob>(dto.JobId);
+
+        foreach (var input in dto.Answers)
+        {
+            job.CustomInputsAnswers[input.VariableName] = input.Answer;
+        }
+        
+        _logger.LogInformation("Set custom inputs for job {Id}", dto.JobId);
+        return Ok();
+    }
+
+    /// <summary>
+    /// Get the full debugger log of a hit. Note that bot log must
+    /// be enabled in the settings, or it will be blank.
+    /// </summary>
+    [HttpGet("hit-log")]
+    [MapToApiVersion("1.0")]
+    public ActionResult<string> GetHitLog(int jobId, string hitId)
+    {
+        var job = GetJob<MultiRunJob>(jobId);
+        var hit = job.Hits.FirstOrDefault(h => h.Id == hitId);
+
+        if (hit is null)
+        {
+            throw new KeyNotFoundException($"No hit with ID {hitId} in job {jobId}");
+        }
+
+        return Ok(hit.BotLogger is null ? string.Empty : string.Join(Environment.NewLine, hit.BotLogger.Entries.Select(e => e.Message)));
+    }
+
+    #endregion
+
+    #region Job Monitor Triggered Actions
+
+    /// <summary>
+    /// List all available triggered actions.
+    /// </summary>
+    [HttpGet("/api/v{version:apiVersion}/job-monitor/triggered-action/all")]
+    [MapToApiVersion("1.0")]
+    [TypeFilter<AdminFilter>]
+    public ActionResult<IEnumerable<TriggeredActionDto>> GetAllTriggeredActions()
+    {
+        var actions = _jobMonitorService.TriggeredActions;
+        return Ok(actions.Select(MapTriggeredAction));
+    }
+
+    /// <summary>
+    /// Get a triggered action by id.
+    /// </summary>
+    [HttpGet("/api/v{version:apiVersion}/job-monitor/triggered-action")]
+    [MapToApiVersion("1.0")]
+    [TypeFilter<AdminFilter>]
+    public ActionResult<TriggeredActionDto> GetTriggeredAction(string id) =>
+        MapTriggeredAction(GetTriggeredActionById(id));
+
+    /// <summary>
+    /// Create a new triggered action.
+    /// </summary>
+    [HttpPost("/api/v{version:apiVersion}/job-monitor/triggered-action")]
+    [MapToApiVersion("1.0")]
+    [TypeFilter<AdminFilter>]
+    public ActionResult<TriggeredActionDto> CreateTriggeredAction(
+        CreateTriggeredActionDto dto)
+    {
+        var actions = _jobMonitorService.TriggeredActions;
+
+        var newAction = _mapper.Map<TriggeredAction>(dto);
+        actions.Add(newAction);
+        _jobMonitorService.SaveStateIfChanged();
+
+        _logger.LogInformation("Created triggered action {Id}", newAction.Id);
+
+        return MapTriggeredAction(newAction);
+    }
+
+    /// <summary>
+    /// Update a triggered action.
+    /// </summary>
+    [HttpPut("/api/v{version:apiVersion}/job-monitor/triggered-action")]
+    [MapToApiVersion("1.0")]
+    [TypeFilter<AdminFilter>]
+    public async Task<ActionResult<TriggeredActionDto>> UpdateTriggeredAction(
+        UpdateTriggeredActionDto dto,
+        [FromServices] IValidator<UpdateTriggeredActionDto> validator)
+    {
+        await validator.ValidateAndThrowAsync(dto);
+        
+        var targetAction = GetTriggeredActionById(dto.Id);
+
+        var newAction = _mapper.Map(dto, targetAction);
+        _jobMonitorService.SaveStateIfChanged();
+
+        _logger.LogInformation("Updated triggered action {Id}", newAction.Id);
+
+        return MapTriggeredAction(newAction);
+    }
+
+    /// <summary>
+    /// Resets a triggered action's execution counter.
+    /// </summary>
+    [HttpPost("/api/v{version:apiVersion}/job-monitor/triggered-action/reset")]
+    [MapToApiVersion("1.0")]
+    [TypeFilter<AdminFilter>]
+    public ActionResult ResetTriggeredAction(string id)
+    {
+        var targetAction = GetTriggeredActionById(id);
+
+        targetAction.Reset();
+        _jobMonitorService.SaveStateIfChanged();
+
+        _logger.LogInformation("Reset triggered action {Id}", id);
+
+        return Ok();
+    }
+
+    /// <summary>
+    /// Sets a triggered action as active or inactive.
+    /// </summary>
+    [HttpPost("/api/v{version:apiVersion}/job-monitor/triggered-action/set-active")]
+    [MapToApiVersion("1.0")]
+    [TypeFilter<AdminFilter>]
+    public ActionResult SetActiveTriggeredAction(string id, bool active)
+    {
+        var targetAction = GetTriggeredActionById(id);
+
+        targetAction.IsActive = active;
+        _jobMonitorService.SaveStateIfChanged();
+
+        _logger.LogInformation("Set triggered action {Id} as {Active}", id, active ? "active" : "inactive");
+
+        return Ok();
+    }
+
+    /// <summary>
+    /// Delete a triggered action.
+    /// </summary>
+    [HttpDelete("/api/v{version:apiVersion}/job-monitor/triggered-action")]
+    [MapToApiVersion("1.0")]
+    [TypeFilter<AdminFilter>]
+    public ActionResult DeleteTriggeredAction(string id)
+    {
+        var targetAction = GetTriggeredActionById(id);
+
+        _jobMonitorService.TriggeredActions.Remove(targetAction);
+        _jobMonitorService.SaveStateIfChanged();
+
+        _logger.LogInformation("Deleted triggered action {Id}", id);
+
+        return Ok();
+    }
+
+    #endregion
+
+    #region Private Helpers
+
     private bool CanSee(ApiUser apiUser, Job job)
         => apiUser.Role is UserRole.Admin || job.OwnerId == apiUser.Id;
 
@@ -490,6 +796,8 @@ public class JobCrudController(
 
         return entity;
     }
+
+    private void EnsureOwnership(int jobId) => EnsureOwnership(GetJob(jobId));
 
     private void EnsureOwnership(Job job)
     {
@@ -699,4 +1007,37 @@ public class JobCrudController(
 
     private async Task<string> GetProxyGroupName(int id)
         => id == -1 ? "All" : (await _proxyGroupRepo.GetAsync(id))?.Name ?? "Invalid";
+
+    private TriggeredAction GetTriggeredActionById(string id)
+    {
+        var actions = _jobMonitorService.TriggeredActions;
+        var targetAction = actions.Find(a => a.Id == id);
+
+        if (targetAction is null)
+        {
+            throw new EntryNotFoundException(
+                ErrorCode.TriggeredActionNotFound,
+                id, nameof(IGuestRepository));
+        }
+
+        return targetAction;
+    }
+
+    private TriggeredActionDto MapTriggeredAction(TriggeredAction action)
+    {
+        var mapped = _mapper.Map<TriggeredActionDto>(action);
+
+        // Search for a job with the given id and set its name
+        var job = _jobManager.Jobs.FirstOrDefault(j => j.Id == mapped.JobId);
+
+        if (job is not null)
+        {
+            mapped.JobName = job.Name;
+            mapped.JobType = GetJobType(job);
+        }
+
+        return mapped;
+    }
+
+    #endregion
 }

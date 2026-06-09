@@ -16,7 +16,7 @@ public interface IJobOrchestrator
     Task<IReadOnlyList<JobSummaryDto>> GetJobsAsync(CancellationToken cancellationToken = default);
     Task<JobQueueDto> GetQueueSnapshotAsync(CancellationToken cancellationToken = default);
     Task<IReadOnlyList<JobResultDto>> GetRecentResultsAsync(int jobId, int take = 200, CancellationToken cancellationToken = default);
-    Task<JobDetailDto?> StartJobAsync(int jobId, CancellationToken cancellationToken = default);
+    Task<JobDetailDto?> StartJobAsync(int jobId, IReadOnlyDictionary<string, string>? customInputs = null, CancellationToken cancellationToken = default);
     Task<JobDetailDto?> PauseJobAsync(int jobId, CancellationToken cancellationToken = default);
     Task<JobDetailDto?> ResumeJobAsync(int jobId, CancellationToken cancellationToken = default);
     Task<JobDetailDto?> StopJobAsync(int jobId, CancellationToken cancellationToken = default);
@@ -24,4 +24,9 @@ public interface IJobOrchestrator
     Task<bool> DeleteJobAsync(int jobId, CancellationToken cancellationToken = default);
     Task<bool> DeleteAllJobsAsync(CancellationToken cancellationToken = default);
     Task<JobDetailDto?> UpdateBotsAsync(int jobId, int bots, CancellationToken cancellationToken = default);
+    Task SkipWaitAsync(int jobId, CancellationToken cancellationToken = default);
+    Task ResetSkipAsync(int jobId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<DesktopJobListItemDto>> GetDesktopJobsAsync(CancellationToken cancellationToken = default);
+    Task<MultiRunJobViewerSnapshotDto?> GetMultiRunJobViewerSnapshotAsync(int jobId, CancellationToken cancellationToken = default);
+    Task<BotLogDto?> GetBotLogAsync(int jobId, string resultId, CancellationToken cancellationToken = default);
 }

@@ -6,24 +6,24 @@ using Flux.Shared.Models;
 
 namespace Flux.Shared.Services;
 
-public class FluxApplication : IFluxApplication
+public class FluxApplication
 {
-    public IAuthenticationService Auth { get; }
+    public AuthenticationService Auth { get; }
     public IJobOrchestrator Jobs { get; }
-    public ISettingsFacade Settings { get; }
-    public IPluginService Plugins { get; }
-    public INotificationService Notifications { get; }
-    public IDashboardService Dashboard { get; }
+    public SettingsFacade Settings { get; }
+    public PluginService Plugins { get; }
+    public NotificationService Notifications { get; }
+    public DashboardService Dashboard { get; }
 
     private readonly ILogger<FluxApplication> _logger;
 
     public FluxApplication(
-        IAuthenticationService auth,
+        AuthenticationService auth,
         IJobOrchestrator jobs,
-        ISettingsFacade settings,
-        IPluginService plugins,
-        INotificationService notifications,
-        IDashboardService dashboard,
+        SettingsFacade settings,
+        PluginService plugins,
+        NotificationService notifications,
+        DashboardService dashboard,
         ILogger<FluxApplication> logger)
     {
         Auth = auth;

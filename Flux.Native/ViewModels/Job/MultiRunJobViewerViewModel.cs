@@ -20,8 +20,7 @@ namespace Flux.Native.ViewModels.Jobs;
 public partial class MultiRunJobViewerViewModel : ViewModelBase, IDisposable
 {
     private readonly FluxSettingsService fluxSettingsService;
-    private readonly IJobCommands jobCommands;
-    private readonly IJobQueries jobQueries;
+    private readonly IJobOrchestrator jobOrchestrator;
     private Timer refreshTimer;
     private readonly SoundPlayer soundPlayer;
     private readonly SemaphoreSlim refreshLock = new(1, 1);
@@ -106,13 +105,11 @@ public partial class MultiRunJobViewerViewModel : ViewModelBase, IDisposable
     private MultiRunJobViewerViewModel(
         MultiRunJobViewModel jobVM,
         FluxSettingsService fluxSettingsService,
-        IJobCommands jobCommands,
-        IJobQueries jobQueries)
+        IJobOrchestrator jobOrchestrator)
     {
         Job = jobVM;
         this.fluxSettingsService = fluxSettingsService;
-        this.jobCommands = jobCommands;
-        this.jobQueries = jobQueries;
+        this.jobOrchestrator = jobOrchestrator;
         soundPlayer = new SoundPlayer("Sounds/hit.wav");
     }
 
@@ -123,12 +120,11 @@ public partial class MultiRunJobViewerViewModel : ViewModelBase, IDisposable
     public static async Task<MultiRunJobViewerViewModel> CreateAsync(
         MultiRunJobViewModel jobVM,
         FluxSettingsService fluxSettingsService,
-        IJobCommands jobCommands,
-        IJobQueries jobQueries)
+        IJobOrchestrator jobOrchestrator)
     {
-        var vm = new MultiRunJobViewerViewModel(jobVM, fluxSettingsService, jobCommands, jobQueries);
+        var vm = new MultiRunJobViewerViewModel(jobVM, fluxSettingsService, jobOrchestrator);
 
-        vm.snapshot = await jobQueries.GetMultiRunJobViewerSnapshotAsync(jobVM.Id).ConfigureAwait(false)
+        vm.snapshot = await jobOrchestrator.GetMultiRunJobViewerSnapshotAsync(jobVM.Id).ConfigureAwait(false)
             ?? throw new InvalidOperationException($"Multi-run job {jobVM.Id} could not be loaded");
 
         await vm.ApplySnapshotOnUiThreadAsync(vm.snapshot, refreshResults: true).ConfigureAwait(false);
@@ -152,7 +148,7 @@ public partial class MultiRunJobViewerViewModel : ViewModelBase, IDisposable
             ClearSparklineData();
             customInputAnswers = AskCustomInputs();
             OnPropertyChanged(nameof(CustomInputsInfo));
-            await jobCommands.StartAsync(Job.Id, customInputAnswers).ConfigureAwait(false);
+            await jobOrchestrator.StartJobAsync(Job.Id, customInputAnswers).ConfigureAwait(false);
             await RefreshAsync(forceResultsRefresh: true).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
@@ -160,15 +156,15 @@ public partial class MultiRunJobViewerViewModel : ViewModelBase, IDisposable
         }
     }
 
-    public Task StopAsync() => jobCommands.StopAsync(Job.Id);
+    public Task StopAsync() => jobOrchestrator.StopJobAsync(Job.Id);
 
-    public Task AbortAsync() => jobCommands.AbortAsync(Job.Id);
+    public Task AbortAsync() => jobOrchestrator.AbortJobAsync(Job.Id);
 
-    public Task PauseAsync() => jobCommands.PauseAsync(Job.Id);
+    public Task PauseAsync() => jobOrchestrator.PauseJobAsync(Job.Id);
 
-    public Task ResumeAsync() => jobCommands.ResumeAsync(Job.Id);
+    public Task ResumeAsync() => jobOrchestrator.ResumeJobAsync(Job.Id);
 
-    public Task SkipWaitAsync() => jobCommands.SkipWaitAsync(Job.Id);
+    public Task SkipWaitAsync() => jobOrchestrator.SkipWaitAsync(Job.Id);
 
     public async Task ChangeBotsAsync(int newValue)
     {
@@ -177,7 +173,7 @@ public partial class MultiRunJobViewerViewModel : ViewModelBase, IDisposable
             return;
         }
 
-        await jobCommands.ChangeBotsAsync(Job.Id, newValue).ConfigureAwait(false);
+        await jobOrchestrator.UpdateBotsAsync(Job.Id, newValue).ConfigureAwait(false);
         await RefreshAsync().ConfigureAwait(false);
     }
 
@@ -229,12 +225,12 @@ public partial class MultiRunJobViewerViewModel : ViewModelBase, IDisposable
 
     public async Task ResetSkipAsync()
     {
-        await jobCommands.ResetSkipAsync(Job.Id).ConfigureAwait(false);
+        await jobOrchestrator.ResetSkipAsync(Job.Id).ConfigureAwait(false);
         await RefreshAsync().ConfigureAwait(false);
     }
 
     public Task<BotLogDto?> GetBotLogAsync(string resultId)
-        => jobQueries.GetBotLogAsync(Job.Id, resultId);
+        => jobOrchestrator.GetBotLogAsync(Job.Id, resultId);
 
     private Dictionary<string, string> AskCustomInputs()
     {

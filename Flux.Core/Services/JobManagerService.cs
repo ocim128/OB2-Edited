@@ -78,6 +78,44 @@ public class JobManagerService : IDisposable
         }
     }
 
+    public async Task StartJobAsync(int jobId, bool wait = false)
+    {
+        var job = GetJobById(jobId);
+        if (wait)
+            await job.Start();
+        else
+            job.Start().Forget(e => _logger.LogError(e, "Error while starting job {JobId}", jobId));
+        _logger.LogInformation("Started job {JobId}", jobId);
+    }
+
+    public async Task StopJobAsync(int jobId)
+    {
+        await GetJobById(jobId).Stop();
+        _logger.LogInformation("Stopped job {JobId}", jobId);
+    }
+
+    public async Task PauseJobAsync(int jobId)
+    {
+        await GetJobById(jobId).Pause();
+        _logger.LogInformation("Paused job {JobId}", jobId);
+    }
+
+    public async Task ResumeJobAsync(int jobId)
+    {
+        await GetJobById(jobId).Resume();
+        _logger.LogInformation("Resumed job {JobId}", jobId);
+    }
+
+    public async Task AbortJobAsync(int jobId)
+    {
+        await GetJobById(jobId).Abort();
+        _logger.LogInformation("Aborted job {JobId}", jobId);
+    }
+
+    private Job GetJobById(int id)
+        => _jobs.FirstOrDefault(j => j.Id == id)
+            ?? throw new KeyNotFoundException($"Job {id} not found");
+
     public void AddJob(Job job)
     {
         _jobs.Add(job);

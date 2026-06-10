@@ -22,9 +22,10 @@ using RuriLib.Models.Proxies.ProxySources;
 
 namespace Flux.Shared.Services;
 
-public class JobProjectionService(IServiceScopeFactory scopeFactory)
+// Projection methods — moved from JobProjectionService (single consumer: JobOrchestrator)
+public partial class JobOrchestrator
 {
-    public DesktopJobListItemDto ToDesktopListItem(Job job)
+    private DesktopJobListItemDto ToDesktopListItem(Job job)
         => job switch
         {
             MultiRunJob multiRun => new DesktopJobListItemDto(
@@ -74,10 +75,10 @@ public class JobProjectionService(IServiceScopeFactory scopeFactory)
             _ => throw new NotImplementedException($"Unsupported job type {job.GetType().Name}")
         };
 
-    public IReadOnlyList<DesktopJobListItemDto> BuildDesktopListItems(IEnumerable<Job> jobs)
+    private IReadOnlyList<DesktopJobListItemDto> BuildDesktopListItems(IEnumerable<Job> jobs)
         => jobs.Select(ToDesktopListItem).ToList();
 
-    public JobSummaryDto ToSummary(Job job)
+    private JobSummaryDto ToSummary(Job job)
     {
         var progress = job switch
         {
@@ -105,10 +106,10 @@ public class JobProjectionService(IServiceScopeFactory scopeFactory)
             DateTime.UtcNow);
     }
 
-    public IReadOnlyList<JobSummaryDto> BuildSummaries(IEnumerable<Job> jobs)
+    private IReadOnlyList<JobSummaryDto> BuildSummaries(IEnumerable<Job> jobs)
         => jobs.Select(ToSummary).ToList();
 
-    public MultiRunJobViewerSnapshotDto? BuildMultiRunViewerSnapshot(Job? job, IReadOnlyDictionary<int, string> proxyGroupNames)
+    private MultiRunJobViewerSnapshotDto? BuildMultiRunViewerSnapshot(Job? job, IReadOnlyDictionary<int, string> proxyGroupNames)
     {
         if (job is not MultiRunJob multiRun)
         {
@@ -150,7 +151,7 @@ public class JobProjectionService(IServiceScopeFactory scopeFactory)
             multiRun.Hits.Select(ToRuntimeResult).ToList());
     }
 
-    public JobQueueDto BuildQueueSnapshot(IEnumerable<Job> jobs)
+    private JobQueueDto BuildQueueSnapshot(IEnumerable<Job> jobs)
     {
         var running = new List<JobSummaryDto>();
         var waiting = new List<JobSummaryDto>();
@@ -186,14 +187,14 @@ public class JobProjectionService(IServiceScopeFactory scopeFactory)
         return new JobQueueDto(running, waiting, idle, paused, completed);
     }
 
-    public async Task<IReadOnlyList<JobResultDto>> GetRecentResultsAsync(Job? job, int take, CancellationToken cancellationToken = default)
+    private async Task<IReadOnlyList<JobResultDto>> GetRecentResultsFromDbAsync(Job? job, int take, CancellationToken cancellationToken = default)
     {
         if (job is null)
         {
             return Array.Empty<JobResultDto>();
         }
 
-        using var scope = scopeFactory.CreateScope();
+        using var scope = _scopeFactory.CreateScope();
         var hitRepo = scope.ServiceProvider.GetRequiredService<IHitRepository>();
         var query = hitRepo.GetAll().AsNoTracking();
 
@@ -211,14 +212,14 @@ public class JobProjectionService(IServiceScopeFactory scopeFactory)
         return entities.Select(ToDto).ToList();
     }
 
-    public async Task<JobDetailDto?> BuildDetailAsync(Job? job, CancellationToken cancellationToken = default)
+    private async Task<JobDetailDto?> BuildDetailAsync(Job? job, CancellationToken cancellationToken = default)
     {
         if (job is null)
         {
             return null;
         }
 
-        var results = await GetRecentResultsAsync(job, 50, cancellationToken).ConfigureAwait(false);
+        var results = await GetRecentResultsFromDbAsync(job, 50, cancellationToken).ConfigureAwait(false);
         var bots = BuildBotStates(job);
         var counters = BuildCounters(job);
         var dataPool = DescribeDataPool(job);
@@ -258,7 +259,7 @@ public class JobProjectionService(IServiceScopeFactory scopeFactory)
         return list;
     }
 
-    public BotLogDto? BuildBotLog(Job? job, string resultId)
+    private static BotLogDto? BuildBotLog(Job? job, string resultId)
     {
         if (job is not MultiRunJob multiRun)
         {

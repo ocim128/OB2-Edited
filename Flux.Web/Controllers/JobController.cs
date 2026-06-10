@@ -1,10 +1,8 @@
 using AutoMapper;
 using FluentValidation;
-using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
-using Flux.Core.Application.Jobs;
 using Flux.Core.Entities;
 using Flux.Core.Models.Jobs;
 using Flux.Core.Repositories;
@@ -50,8 +48,7 @@ public class JobController(
     JobFactoryService jobFactory,
     IProxyGroupRepository proxyGroupRepo,
     IRecordRepository recordRepo,
-    JobMonitorService jobMonitorService,
-    IMediator mediator) : ApiController
+    JobMonitorService jobMonitorService) : ApiController
 {
     private readonly IGuestRepository _guestRepo = guestRepo;
     private readonly JobFactoryService _jobFactory = jobFactory;
@@ -62,7 +59,6 @@ public class JobController(
     private readonly IProxyGroupRepository _proxyGroupRepo = proxyGroupRepo;
     private readonly IRecordRepository _recordRepo = recordRepo;
     private readonly JobMonitorService _jobMonitorService = jobMonitorService;
-    private readonly IMediator _mediator = mediator;
 
     #region CRUD Operations
 
@@ -444,7 +440,7 @@ public class JobController(
     public async Task<ActionResult> StartJob(JobCommandDto dto)
     {
         EnsureOwnership(dto.JobId);
-        await _mediator.Send(new StartJobCommand(dto.JobId, dto.Wait));
+        await _jobManager.StartJobAsync(dto.JobId, dto.Wait);
         return Ok();
     }
 
@@ -456,7 +452,7 @@ public class JobController(
     public async Task<ActionResult> StopJob(JobCommandDto dto)
     {
         EnsureOwnership(dto.JobId);
-        await _mediator.Send(new StopJobCommand(dto.JobId));
+        await _jobManager.StopJobAsync(dto.JobId);
         return Ok();
     }
 
@@ -468,7 +464,7 @@ public class JobController(
     public async Task<ActionResult> PauseJob(JobCommandDto dto)
     {
         EnsureOwnership(dto.JobId);
-        await _mediator.Send(new PauseJobCommand(dto.JobId));
+        await _jobManager.PauseJobAsync(dto.JobId);
         return Ok();
     }
 
@@ -480,7 +476,7 @@ public class JobController(
     public async Task<ActionResult> ResumeJob(JobCommandDto dto)
     {
         EnsureOwnership(dto.JobId);
-        await _mediator.Send(new ResumeJobCommand(dto.JobId));
+        await _jobManager.ResumeJobAsync(dto.JobId);
         return Ok();
     }
 
@@ -492,7 +488,7 @@ public class JobController(
     public async Task<ActionResult> AbortJob(JobCommandDto dto)
     {
         EnsureOwnership(dto.JobId);
-        await _mediator.Send(new AbortJobCommand(dto.JobId));
+        await _jobManager.AbortJobAsync(dto.JobId);
         return Ok();
     }
 

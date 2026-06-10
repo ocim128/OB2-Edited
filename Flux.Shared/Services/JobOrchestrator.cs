@@ -15,41 +15,41 @@ using Flux.Core.Services;
 using Flux.Shared.Abstractions;
 using Flux.Shared.Models;
 using Microsoft.EntityFrameworkCore;
+using RuriLib.Models.Hits;
 using RuriLib.Models.Jobs;
+using RuriLib.Models.Jobs.Status;
 
 namespace Flux.Shared.Services;
 
-public class JobOrchestrator : IJobOrchestrator
+public partial class JobOrchestrator : IJobOrchestrator
 {
     private readonly JobManagerService _jobManager;
     private readonly JobFactoryService _jobFactory;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly INotificationService _notifications;
     private readonly ILogger<JobOrchestrator> _logger;
-    private readonly JobProjectionService _projections;
-    private readonly JobEventSubscriptionService _subscriptions;
     private readonly JsonSerializerSettings _jsonSettings = new() { TypeNameHandling = TypeNameHandling.Auto };
     private readonly SemaphoreSlim _proxyGroupLock = new(1, 1);
     private IReadOnlyDictionary<int, string>? _proxyGroupNames;
+
+    // Subscription state (moved from JobEventSubscriptionService)
+    private readonly Dictionary<int, MultiRunJob> _subscribedJobs = new();
+    private readonly SemaphoreSlim _subscriptionLock = new(1, 1);
 
     public JobOrchestrator(
         JobManagerService jobManager,
         JobFactoryService jobFactory,
         IServiceScopeFactory scopeFactory,
         INotificationService notifications,
-        ILogger<JobOrchestrator> logger,
-        JobProjectionService projections,
-        JobEventSubscriptionService subscriptions)
+        ILogger<JobOrchestrator> logger)
     {
         _jobManager = jobManager;
         _jobFactory = jobFactory;
         _scopeFactory = scopeFactory;
         _notifications = notifications;
         _logger = logger;
-        _projections = projections;
-        _subscriptions = subscriptions;
 
-        _subscriptions.SubscribeExistingAsync(_jobManager.Jobs.OfType<MultiRunJob>()).GetAwaiter().GetResult();
+        SubscribeExistingJobs(_jobManager.Jobs.OfType<MultiRunJob>());
     }
 
     public async Task<JobDetailDto> CreateMultiRunJobAsync(JobCreateRequest request, CancellationToken cancellationToken = default)
@@ -86,7 +86,7 @@ public class JobOrchestrator : IJobOrchestrator
 
         job.Name = string.IsNullOrWhiteSpace(request.Name) ? $"{config.Metadata.Name} #{entity.Id}" : request.Name;
         _jobManager.AddJob(job);
-        await _subscriptions.EnsureSubscribedAsync(job).ConfigureAwait(false);
+        if (job is MultiRunJob mrj) EnsureSubscribed(mrj);
 
         _logger.LogInformation("Created job {JobId} ({JobName})", entity.Id, job.Name);
         await _notifications.PublishAsync(
@@ -98,7 +98,7 @@ public class JobOrchestrator : IJobOrchestrator
             _ = Task.Run(async () => await StartJobInternalAsync(job, CancellationToken.None));
         }
 
-        return await _projections.BuildDetailAsync(job, cancellationToken).ConfigureAwait(false)
+        return await BuildDetailAsync(job, cancellationToken).ConfigureAwait(false)
             ?? throw new InvalidOperationException($"Failed to build details for job {job.Id}");
     }
 
@@ -129,7 +129,7 @@ public class JobOrchestrator : IJobOrchestrator
         var job = await MaterializeJobAsync(entity.Id, options).ConfigureAwait(false);
 
         _jobManager.AddJob(job);
-        await SubscribeIfNeededAsync(job).ConfigureAwait(false);
+        if (job is MultiRunJob mrj3) EnsureSubscribed(mrj3);
 
         _logger.LogInformation("Created job {JobId} ({JobName})", job.Id, job.Name);
         await PublishJobNotificationAsync(job, $"Job '{job.Name}' created", "info", cancellationToken).ConfigureAwait(false);
@@ -151,12 +151,12 @@ public class JobOrchestrator : IJobOrchestrator
         await jobRepo.UpdateAsync(entity, cancellationToken).ConfigureAwait(false);
 
         var oldJob = FindJob(jobId) ?? throw new InvalidOperationException($"Job {jobId} is not loaded");
-        await UnsubscribeIfNeededAsync(oldJob).ConfigureAwait(false);
+        UnsubscribeIfMultiRun(oldJob);
 
         var newJob = await MaterializeJobAsync(jobId, options).ConfigureAwait(false);
         _jobManager.RemoveJob(oldJob);
         _jobManager.AddJob(newJob);
-        await SubscribeIfNeededAsync(newJob).ConfigureAwait(false);
+        if (newJob is MultiRunJob mrj2) EnsureSubscribed(mrj2);
 
         _logger.LogInformation("Updated job {JobId} ({JobName})", newJob.Id, newJob.Name);
         await PublishJobNotificationAsync(newJob, $"Job '{newJob.Name}' updated", "info", cancellationToken).ConfigureAwait(false);
@@ -164,16 +164,16 @@ public class JobOrchestrator : IJobOrchestrator
     }
 
     public Task<JobDetailDto?> GetJobAsync(int jobId, CancellationToken cancellationToken = default)
-        => _projections.BuildDetailAsync(FindJob(jobId), cancellationToken);
+        => BuildDetailAsync(FindJob(jobId), cancellationToken);
 
     public Task<IReadOnlyList<JobSummaryDto>> GetJobsAsync(CancellationToken cancellationToken = default)
-        => Task.FromResult(_projections.BuildSummaries(_jobManager.Jobs));
+        => Task.FromResult(BuildSummaries(_jobManager.Jobs));
 
     public Task<JobQueueDto> GetQueueSnapshotAsync(CancellationToken cancellationToken = default)
-        => Task.FromResult(_projections.BuildQueueSnapshot(_jobManager.Jobs));
+        => Task.FromResult(BuildQueueSnapshot(_jobManager.Jobs));
 
     public async Task<IReadOnlyList<JobResultDto>> GetRecentResultsAsync(int jobId, int take = 200, CancellationToken cancellationToken = default)
-        => await _projections.GetRecentResultsAsync(FindJob(jobId), take, cancellationToken).ConfigureAwait(false);
+        => await GetRecentResultsFromDbAsync(FindJob(jobId), take, cancellationToken).ConfigureAwait(false);
 
     public async Task<JobDetailDto?> StartJobAsync(int jobId, IReadOnlyDictionary<string, string>? customInputs = null, CancellationToken cancellationToken = default)
     {
@@ -185,7 +185,7 @@ public class JobOrchestrator : IJobOrchestrator
         ApplyCustomInputs(job, customInputs);
 
         await StartJobInternalAsync(job, cancellationToken).ConfigureAwait(false);
-        return await _projections.BuildDetailAsync(job, cancellationToken).ConfigureAwait(false);
+        return await BuildDetailAsync(job, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<JobDetailDto?> PauseJobAsync(int jobId, CancellationToken cancellationToken = default)
@@ -196,7 +196,7 @@ public class JobOrchestrator : IJobOrchestrator
         }
 
         await job.Pause().ConfigureAwait(false);
-        return await _projections.BuildDetailAsync(job, cancellationToken).ConfigureAwait(false);
+        return await BuildDetailAsync(job, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<JobDetailDto?> ResumeJobAsync(int jobId, CancellationToken cancellationToken = default)
@@ -207,7 +207,7 @@ public class JobOrchestrator : IJobOrchestrator
         }
 
         await job.Resume().ConfigureAwait(false);
-        return await _projections.BuildDetailAsync(job, cancellationToken).ConfigureAwait(false);
+        return await BuildDetailAsync(job, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<JobDetailDto?> StopJobAsync(int jobId, CancellationToken cancellationToken = default)
@@ -218,7 +218,7 @@ public class JobOrchestrator : IJobOrchestrator
         }
 
         await job.Stop().ConfigureAwait(false);
-        return await _projections.BuildDetailAsync(job, cancellationToken).ConfigureAwait(false);
+        return await BuildDetailAsync(job, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<bool> AbortJobAsync(int jobId, CancellationToken cancellationToken = default)
@@ -253,10 +253,7 @@ public class JobOrchestrator : IJobOrchestrator
             await jobRepo.DeleteAsync(entity, cancellationToken).ConfigureAwait(false);
         }
 
-        if (job is MultiRunJob multiRunJob)
-        {
-            await _subscriptions.UnsubscribeAsync(multiRunJob).ConfigureAwait(false);
-        }
+        UnsubscribeIfMultiRun(job);
 
         _jobManager.RemoveJob(job);
         await PublishJobNotificationAsync(job, $"Job '{job.Name}' deleted", "warning", cancellationToken).ConfigureAwait(false);
@@ -278,7 +275,7 @@ public class JobOrchestrator : IJobOrchestrator
 
         foreach (var job in jobs)
         {
-            await UnsubscribeIfNeededAsync(job).ConfigureAwait(false);
+            UnsubscribeIfMultiRun(job);
         }
 
         _jobManager.Clear();
@@ -297,8 +294,52 @@ public class JobOrchestrator : IJobOrchestrator
         }
 
         await job.ChangeBots(Math.Max(1, bots)).ConfigureAwait(false);
-        return await _projections.BuildDetailAsync(job, cancellationToken).ConfigureAwait(false);
+        return await BuildDetailAsync(job, cancellationToken).ConfigureAwait(false);
     }
+
+    public Task<IReadOnlyList<DesktopJobListItemDto>> GetDesktopJobsAsync(CancellationToken cancellationToken = default)
+        => Task.FromResult(BuildDesktopListItems(_jobManager.Jobs));
+
+    public async Task<MultiRunJobViewerSnapshotDto?> GetMultiRunJobViewerSnapshotAsync(int jobId, CancellationToken cancellationToken = default)
+    {
+        var job = FindJob(jobId);
+        if (job is null)
+        {
+            return null;
+        }
+
+        var proxyGroupNames = await GetProxyGroupNamesCachedAsync(cancellationToken).ConfigureAwait(false);
+        return BuildMultiRunViewerSnapshot(job, proxyGroupNames);
+    }
+
+    public Task<BotLogDto?> GetBotLogAsync(int jobId, string resultId, CancellationToken cancellationToken = default)
+        => Task.FromResult(BuildBotLog(FindJob(jobId), resultId));
+
+    public Task SkipWaitAsync(int jobId, CancellationToken cancellationToken = default)
+    {
+        if (FindJob(jobId) is MultiRunJob job)
+        {
+            job.SkipWait();
+        }
+        return Task.CompletedTask;
+    }
+
+    public Task ResetSkipAsync(int jobId, CancellationToken cancellationToken = default)
+    {
+        if (FindJob(jobId) is MultiRunJob job)
+        {
+            if (job.Status is not JobStatus.Idle)
+            {
+                return Task.CompletedTask;
+            }
+
+            job.Skip = 0;
+            job.DataPool?.Reload();
+        }
+        return Task.CompletedTask;
+    }
+
+    // ── Private helpers ──────────────────────────────────────────────
 
     private async Task StartJobInternalAsync(MultiRunJob job, CancellationToken cancellationToken)
     {
@@ -344,22 +385,6 @@ public class JobOrchestrator : IJobOrchestrator
         => await _jobFactory.FromOptionsAsync(jobId, ownerId: 0, options).ConfigureAwait(false)
             ?? throw new InvalidOperationException($"Failed to create runtime job for {jobId}");
 
-    private async Task SubscribeIfNeededAsync(Job job)
-    {
-        if (job is MultiRunJob multiRunJob)
-        {
-            await _subscriptions.EnsureSubscribedAsync(multiRunJob).ConfigureAwait(false);
-        }
-    }
-
-    private async Task UnsubscribeIfNeededAsync(Job job)
-    {
-        if (job is MultiRunJob multiRunJob)
-        {
-            await _subscriptions.UnsubscribeAsync(multiRunJob).ConfigureAwait(false);
-        }
-    }
-
     private MultiRunJobOptions BuildOptions(JobCreateRequest request)
         => new()
         {
@@ -390,24 +415,6 @@ public class JobOrchestrator : IJobOrchestrator
 
     private Task PublishJobNotificationAsync(Job job, string message, string severity, CancellationToken cancellationToken)
         => _notifications.PublishAsync(new NotificationDto("jobs", message, severity, DateTime.UtcNow), cancellationToken);
-
-    public Task<IReadOnlyList<DesktopJobListItemDto>> GetDesktopJobsAsync(CancellationToken cancellationToken = default)
-        => Task.FromResult(_projections.BuildDesktopListItems(_jobManager.Jobs));
-
-    public async Task<MultiRunJobViewerSnapshotDto?> GetMultiRunJobViewerSnapshotAsync(int jobId, CancellationToken cancellationToken = default)
-    {
-        var job = FindJob(jobId);
-        if (job is null)
-        {
-            return null;
-        }
-
-        var proxyGroupNames = await GetProxyGroupNamesCachedAsync(cancellationToken).ConfigureAwait(false);
-        return _projections.BuildMultiRunViewerSnapshot(job, proxyGroupNames);
-    }
-
-    public Task<BotLogDto?> GetBotLogAsync(int jobId, string resultId, CancellationToken cancellationToken = default)
-        => Task.FromResult(_projections.BuildBotLog(FindJob(jobId), resultId));
 
     private async Task<IReadOnlyDictionary<int, string>> GetProxyGroupNamesCachedAsync(CancellationToken cancellationToken)
     {
@@ -442,30 +449,6 @@ public class JobOrchestrator : IJobOrchestrator
         }
     }
 
-    public Task SkipWaitAsync(int jobId, CancellationToken cancellationToken = default)
-    {
-        if (FindJob(jobId) is MultiRunJob job)
-        {
-            job.SkipWait();
-        }
-        return Task.CompletedTask;
-    }
-
-    public Task ResetSkipAsync(int jobId, CancellationToken cancellationToken = default)
-    {
-        if (FindJob(jobId) is MultiRunJob job)
-        {
-            if (job.Status is not JobStatus.Idle)
-            {
-                return Task.CompletedTask;
-            }
-
-            job.Skip = 0;
-            job.DataPool?.Reload();
-        }
-        return Task.CompletedTask;
-    }
-
     private static void ApplyCustomInputs(MultiRunJob job, IReadOnlyDictionary<string, string>? customInputs)
     {
         job.CustomInputsAnswers.Clear();
@@ -478,5 +461,79 @@ public class JobOrchestrator : IJobOrchestrator
         {
             job.CustomInputsAnswers[answer.Key] = answer.Value;
         }
+    }
+
+    // ── Event subscriptions (moved from JobEventSubscriptionService) ─
+
+    private void SubscribeExistingJobs(IEnumerable<MultiRunJob> jobs)
+    {
+        foreach (var job in jobs)
+        {
+            EnsureSubscribed(job);
+        }
+    }
+
+    private void EnsureSubscribed(MultiRunJob job)
+    {
+        lock (_subscribedJobs)
+        {
+            if (_subscribedJobs.ContainsKey(job.Id))
+            {
+                return;
+            }
+
+            job.OnStatusChanged += HandleStatusChanged;
+            job.OnHit += HandleHit;
+            job.OnError += HandleError;
+            job.OnCompleted += HandleCompleted;
+            _subscribedJobs[job.Id] = job;
+        }
+    }
+
+    private void UnsubscribeIfMultiRun(Job job)
+    {
+        if (job is not MultiRunJob multiRun)
+        {
+            return;
+        }
+
+        lock (_subscribedJobs)
+        {
+            if (!_subscribedJobs.Remove(multiRun.Id))
+            {
+                return;
+            }
+
+            multiRun.OnStatusChanged -= HandleStatusChanged;
+            multiRun.OnHit -= HandleHit;
+            multiRun.OnError -= HandleError;
+            multiRun.OnCompleted -= HandleCompleted;
+        }
+    }
+
+    private void HandleStatusChanged(object sender, JobStatus status)
+    {
+        if (sender is not Job job) return;
+        _ = PublishJobNotificationAsync(job, $"Job '{job.Name}' status changed to {status}",
+            status is JobStatus.Running ? "success" : "info", CancellationToken.None);
+    }
+
+    private void HandleHit(object sender, Hit hit)
+    {
+        _ = _notifications.PublishAsync(
+            new NotificationDto("hits", $"[{hit.Type}] {hit.DataString}", "success", DateTime.UtcNow),
+            CancellationToken.None);
+    }
+
+    private void HandleError(object sender, Exception exception)
+    {
+        if (sender is not Job job) return;
+        _ = PublishJobNotificationAsync(job, $"Job '{job.Name}' error: {exception.Message}", "error", CancellationToken.None);
+    }
+
+    private void HandleCompleted(object sender, EventArgs e)
+    {
+        if (sender is not Job job) return;
+        _ = PublishJobNotificationAsync(job, $"Job '{job.Name}' completed", "success", CancellationToken.None);
     }
 }

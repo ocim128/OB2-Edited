@@ -379,7 +379,7 @@ public class MultiRunJob : Job, IDisposable
 
     public void DebugLog(string message)
     {
-        if (Providers.GeneralSettings.VerboseMode)
+        if (settings.RuriLibSettings.GeneralSettings.VerboseMode)
         {
             Console.WriteLine($"[{DateTime.Now}] {message}");
         }

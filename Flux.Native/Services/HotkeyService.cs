@@ -426,77 +426,47 @@ namespace Flux.Native.Services
         {
             try
             {
-                // Use the ui-sound.mp3 file from the Sounds directory
                 var baseDir = AppDomain.CurrentDomain.BaseDirectory;
                 var soundPath = Path.Combine(baseDir, "Sounds", "ui-sound.mp3");
-
                 if (!File.Exists(soundPath))
-                {
                     soundPath = Path.Combine(baseDir, "ui-sound.mp3");
-                }
 
                 if (File.Exists(soundPath))
                 {
-                    // Use MediaPlayer on the dispatcher thread
-                    try
+                    Application.Current.Dispatcher.BeginInvoke(() =>
                     {
-                        Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+                        if (_popSoundPlayer == null)
                         {
-                            // Reuse or create the player
-                            if (_popSoundPlayer == null)
+                            _popSoundPlayer = new System.Windows.Media.MediaPlayer();
+                            _popSoundPlayer.Volume = 0.7;
+                        }
+                        _popSoundPlayer.Open(new Uri(soundPath));
+                        _popSoundPlayer.Play();
+
+                        if (_popSoundCleanupTimer == null)
+                        {
+                            _popSoundCleanupTimer = new System.Windows.Threading.DispatcherTimer
                             {
-                                _popSoundPlayer = new System.Windows.Media.MediaPlayer();
-                                _popSoundPlayer.Volume = 0.7;
-                            }
-
-                            _popSoundPlayer.Open(new Uri(soundPath));
-                            _popSoundPlayer.Play();
-
-                            // Reuse or create the cleanup timer
-                            if (_popSoundCleanupTimer == null)
+                                Interval = TimeSpan.FromSeconds(3)
+                            };
+                            _popSoundCleanupTimer.Tick += (s, e) =>
                             {
-                                _popSoundCleanupTimer = new System.Windows.Threading.DispatcherTimer
-                                {
-                                    Interval = TimeSpan.FromSeconds(3)
-                                };
-                                _popSoundCleanupTimer.Tick += (s, e) =>
-                                {
-                                    _popSoundCleanupTimer.Stop();
-                                    _popSoundPlayer?.Close();
-                                    _popSoundPlayer = null;
-                                };
-                            }
-
-                            _popSoundCleanupTimer.Start();
-                        }));
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.WriteLine($"MediaPlayer failed: {ex.Message}");
-                        // Fallback to system sound
-                        SystemSounds.Asterisk.Play();
-                    }
+                                _popSoundCleanupTimer.Stop();
+                                _popSoundPlayer?.Close();
+                                _popSoundPlayer = null;
+                            };
+                        }
+                        _popSoundCleanupTimer.Start();
+                    });
                 }
                 else
                 {
-                    Debug.WriteLine($"Sound file not found: {soundPath}");
-                    // Fallback to system sound
                     SystemSounds.Asterisk.Play();
                 }
             }
-            catch (Exception ex)
+            catch
             {
-                // Sound failure shouldn't break the functionality
-                Debug.WriteLine($"Failed to play sound: {ex.Message}");
-                // Try fallback system sound
-                try
-                {
-                    SystemSounds.Asterisk.Play();
-                }
-                catch
-                {
-                    // Silent if even system sound fails
-                }
+                try { SystemSounds.Asterisk.Play(); } catch { }
             }
         }
 
@@ -549,201 +519,6 @@ namespace Flux.Native.Services
                 _popSoundPlayer?.Close();
                 disposed = true;
             }
-        }
-    }
-
-    // Shared notification window using App.xaml styles
-    public partial class SharedNotificationWindow : System.Windows.Window
-    {
-        public SharedNotificationWindow(string title, string message)
-        {
-            InitializeComponent(title, message);
-        }
-
-        private void InitializeComponent(string title, string message)
-        {
-            Width = 320;
-            Height = 90;
-            WindowStyle = WindowStyle.None;
-            AllowsTransparency = true;
-            Background = System.Windows.Media.Brushes.Transparent;
-            Topmost = true;
-            ShowInTaskbar = false;
-            ShowActivated = false;
-
-            // Position in bottom-right corner of the working area
-            var workArea = SystemParameters.WorkArea;
-            Left = workArea.Right - Width - 30;
-            Top = workArea.Bottom - Height - 50;
-
-            // Use the shared ModernNotificationWindow style from App.xaml
-            var mainBorder = new Border();
-            mainBorder.SetResourceReference(StyleProperty, "ModernNotificationWindow");
-
-            var grid = new Grid();
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(50) });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-
-            // Icon using shared style
-            var iconPath = new System.Windows.Shapes.Path();
-            iconPath.SetResourceReference(StyleProperty, "NotificationIconStyle");
-            iconPath.Data = System.Windows.Media.Geometry.Parse(GetIconPath(title));
-            iconPath.Fill = GetIconColor(title);
-            Grid.SetColumn(iconPath, 0);
-            grid.Children.Add(iconPath);
-
-            var textPanel = new StackPanel
-            {
-                Margin = new Thickness(5, 10, 15, 10),
-                VerticalAlignment = VerticalAlignment.Center
-            };
-            Grid.SetColumn(textPanel, 1);
-
-            // Title using shared style
-            var titleBlock = new TextBlock { Text = title };
-            titleBlock.SetResourceReference(StyleProperty, "NotificationTitleStyle");
-
-            // Message using shared style
-            var messageBlock = new TextBlock { Text = message };
-            messageBlock.SetResourceReference(StyleProperty, "NotificationMessageStyle");
-
-            textPanel.Children.Add(titleBlock);
-            textPanel.Children.Add(messageBlock);
-            grid.Children.Add(textPanel);
-
-            mainBorder.Child = grid;
-            Content = mainBorder;
-
-            // Smooth fade-in animation
-            var fadeIn = new System.Windows.Media.Animation.DoubleAnimation
-            {
-                From = 0,
-                To = 1,
-                Duration = TimeSpan.FromMilliseconds(300),
-                EasingFunction = new System.Windows.Media.Animation.QuadraticEase()
-            };
-            BeginAnimation(OpacityProperty, fadeIn);
-
-            // Auto-close after 4 seconds with fade-out
-            var timer = new System.Windows.Threading.DispatcherTimer
-            {
-                Interval = TimeSpan.FromSeconds(4)
-            };
-            timer.Tick += (s, e) =>
-            {
-                timer.Stop();
-                var fadeOut = new System.Windows.Media.Animation.DoubleAnimation
-                {
-                    From = 1,
-                    To = 0,
-                    Duration = TimeSpan.FromMilliseconds(300),
-                    EasingFunction = new System.Windows.Media.Animation.QuadraticEase()
-                };
-                fadeOut.Completed += (s2, e2) => Close();
-                BeginAnimation(OpacityProperty, fadeOut);
-            };
-            timer.Start();
-
-            // Click to close
-            MouseDown += (s, e) =>
-            {
-                timer.Stop();
-                Close();
-            };
-        }
-
-        protected override void OnSourceInitialized(EventArgs e)
-        {
-            base.OnSourceInitialized(e);
-            HideFromAltTab();
-        }
-
-        private void HideFromAltTab()
-        {
-            var helper = new WindowInteropHelper(this);
-            var handle = helper.Handle;
-            if (handle == IntPtr.Zero)
-            {
-                return;
-            }
-
-            var styles = GetExtendedStyles(handle).ToInt64();
-            styles |= WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE;
-            styles &= ~WS_EX_APPWINDOW;
-            SetExtendedStyles(handle, new IntPtr(styles));
-        }
-
-        private static IntPtr GetExtendedStyles(IntPtr handle)
-        {
-            return IntPtr.Size == 8
-                ? GetWindowLongPtr64(handle, GWL_EXSTYLE)
-                : new IntPtr(GetWindowLong(handle, GWL_EXSTYLE));
-        }
-
-        private static void SetExtendedStyles(IntPtr handle, IntPtr styles)
-        {
-            if (IntPtr.Size == 8)
-            {
-                SetWindowLongPtr64(handle, GWL_EXSTYLE, styles);
-            }
-            else
-            {
-                SetWindowLong(handle, GWL_EXSTYLE, styles.ToInt32());
-            }
-        }
-
-        private const int GWL_EXSTYLE = -20;
-        private const int WS_EX_TOOLWINDOW = 0x00000080;
-        private const int WS_EX_APPWINDOW = 0x00040000;
-        private const int WS_EX_NOACTIVATE = 0x08000000;
-
-        [DllImport("user32.dll", EntryPoint = "GetWindowLong")]
-        private static extern int GetWindowLong(IntPtr hWnd, int nIndex);
-
-        [DllImport("user32.dll", EntryPoint = "GetWindowLongPtr")]
-        private static extern IntPtr GetWindowLongPtr64(IntPtr hWnd, int nIndex);
-
-        [DllImport("user32.dll", EntryPoint = "SetWindowLong")]
-        private static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
-
-        [DllImport("user32.dll", EntryPoint = "SetWindowLongPtr")]
-        private static extern IntPtr SetWindowLongPtr64(IntPtr hWnd, int nIndex, IntPtr dwNewLong);
-
-        private string GetIconPath(string title)
-        {
-            return title.ToLower() switch
-            {
-                var t when t.Contains("error") => "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z",
-                var t when t.Contains("enabled") || t.Contains("success") => "M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z",
-                var t when t.Contains("disabled") => "M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z",
-                var t when t.Contains("text sent") => "M2.01 21L23 12 2.01 3 2 10l15 2-15 2z",
-                _ => "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
-            };
-        }
-
-        private static readonly System.Windows.Media.SolidColorBrush ErrorBrush = FreezeBrush(System.Windows.Media.Color.FromRgb(239, 68, 68));
-        private static readonly System.Windows.Media.SolidColorBrush SuccessBrush = FreezeBrush(System.Windows.Media.Color.FromRgb(34, 197, 94));
-        private static readonly System.Windows.Media.SolidColorBrush DisabledBrush = FreezeBrush(System.Windows.Media.Color.FromRgb(156, 163, 175));
-        private static readonly System.Windows.Media.SolidColorBrush SentBrush = FreezeBrush(System.Windows.Media.Color.FromRgb(59, 130, 246));
-        private static readonly System.Windows.Media.SolidColorBrush DefaultBrush = FreezeBrush(System.Windows.Media.Color.FromRgb(129, 140, 248));
-
-        private static System.Windows.Media.SolidColorBrush FreezeBrush(System.Windows.Media.Color color)
-        {
-            var brush = new System.Windows.Media.SolidColorBrush(color);
-            brush.Freeze();
-            return brush;
-        }
-
-        private System.Windows.Media.Brush GetIconColor(string title)
-        {
-            return title.ToLower() switch
-            {
-                var t when t.Contains("error") => ErrorBrush,
-                var t when t.Contains("enabled") || t.Contains("success") => SuccessBrush,
-                var t when t.Contains("disabled") => DisabledBrush,
-                var t when t.Contains("text sent") => SentBrush,
-                _ => DefaultBrush
-            };
         }
     }
 }

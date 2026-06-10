@@ -19,7 +19,6 @@ using RuriLib.Models.Data.Resources;
 using RuriLib.Models.Data.Resources.Options;
 using RuriLib.Models.Proxies;
 using RuriLib.Models.Variables;
-using RuriLib.Providers.RandomNumbers;
 using RuriLib.Providers.UserAgents;
 using RuriLib.Services;
 using System;
@@ -59,7 +58,6 @@ public partial class ConfigDebugger : IDisposable
     private const int MaxTranspilationCacheSize = 40;
 
     public IRandomUAProvider RandomUAProvider { get; set; }
-    public IRNGProvider RNGProvider { get; set; }
     public RuriLibSettingsService RuriLibSettings { get; set; }
     public PluginRepository PluginRepo { get; set; }
 
@@ -149,7 +147,6 @@ public partial class ConfigDebugger : IDisposable
 
         var providers = BotRuntimeContextBuilder.CreateDebuggerProviders(
             RuriLibSettings,
-            RNGProvider,
             RandomUAProvider);
 
         // Ensure the debugger respects the current VerboseMode setting coming from the global RuriLibSettingsService

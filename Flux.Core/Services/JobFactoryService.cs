@@ -8,7 +8,6 @@ using RuriLib.Logging;
 using RuriLib.Models.Bots;
 using RuriLib.Models.Jobs;
 using RuriLib.Models.Proxies;
-using RuriLib.Providers.RandomNumbers;
 using RuriLib.Providers.UserAgents;
 using RuriLib.Services;
 using System;
@@ -29,7 +28,6 @@ public class JobFactoryService
     private readonly ProxyCheckOutputFactory _proxyCheckOutputFactory;
     private readonly ProxyReloadService _proxyReloadService;
     private readonly IRandomUAProvider _randomUaProvider;
-    private readonly IRNGProvider _rngProvider;
     private readonly IJobLogger _logger;
     private readonly PluginRepository _pluginRepo;
 
@@ -40,7 +38,7 @@ public class JobFactoryService
 
     public JobFactoryService(ConfigService configService, RuriLibSettingsService settingsService, PluginRepository pluginRepo,
         HitStorageService hitStorage, IServiceScopeFactory scopeFactory, ProxyCheckOutputFactory proxyCheckOutputFactory,
-        ProxyReloadService proxyReloadService, IRandomUAProvider randomUaProvider, IRNGProvider rngProvider, IJobLogger logger,
+        ProxyReloadService proxyReloadService, IRandomUAProvider randomUaProvider, IJobLogger logger,
         IConfiguration config)
     {
         _configService = configService;
@@ -51,7 +49,6 @@ public class JobFactoryService
         _proxyCheckOutputFactory = proxyCheckOutputFactory;
         _proxyReloadService = proxyReloadService;
         _randomUaProvider = randomUaProvider;
-        _rngProvider = rngProvider;
         _logger = logger;
 
         var botLimit = config.GetSection("Resources")["BotLimit"];
@@ -153,8 +150,7 @@ public class JobFactoryService
             {
                 RandomUA = _settingsService.RuriLibSettings.GeneralSettings.UseCustomUserAgentsList
                     ? new DefaultRandomUAProvider(_settingsService)
-                    : _randomUaProvider,
-                RNG = _rngProvider
+                    : _randomUaProvider
             },
             DataPool = await dataPoolTask
         };

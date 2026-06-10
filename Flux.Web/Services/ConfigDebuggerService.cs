@@ -8,7 +8,6 @@ using Flux.Web.Utils;
 using RuriLib.Logging;
 using RuriLib.Models.Debugger;
 using RuriLib.Models.Variables;
-using RuriLib.Providers.RandomNumbers;
 using RuriLib.Providers.UserAgents;
 using RuriLib.Services;
 using System.Collections.Concurrent;
@@ -37,17 +36,15 @@ public sealed class ConfigDebuggerService : IDisposable
     private readonly PluginRepository _pluginRepo;
     private readonly IRandomUAProvider _randomUAProvider;
     private readonly RuriLibSettingsService _rlSettingsService;
-    private readonly IRNGProvider _rngProvider;
 
     /// <summary></summary>
     public ConfigDebuggerService(PluginRepository pluginRepo,
-        IRandomUAProvider randomUAProvider, IRNGProvider rngProvider,
+        IRandomUAProvider randomUAProvider,
         RuriLibSettingsService rlSettingsService, ConfigService configService,
         IHubContext<ConfigDebuggerHub> hub, ILogger<ConfigDebuggerService> logger)
     {
         _pluginRepo = pluginRepo;
         _randomUAProvider = randomUAProvider;
-        _rngProvider = rngProvider;
         _rlSettingsService = rlSettingsService;
         _configService = configService;
         _hub = hub;
@@ -246,7 +243,6 @@ public sealed class ConfigDebuggerService : IDisposable
         var debugger = new ConfigDebugger(config, options) {
             PluginRepo = _pluginRepo,
             RandomUAProvider = _randomUAProvider,
-            RNGProvider = _rngProvider,
             RuriLibSettings = _rlSettingsService
         };
         
@@ -283,7 +279,6 @@ public sealed class ConfigDebuggerService : IDisposable
         var debugger = new ConfigDebugger(config, options) {
             PluginRepo = _pluginRepo,
             RandomUAProvider = _randomUAProvider,
-            RNGProvider = _rngProvider,
             RuriLibSettings = _rlSettingsService
         };
 

@@ -3,7 +3,6 @@ using RuriLib.Logging;
 using RuriLib.Models.Debugger;
 using RuriLib.Models.Proxies;
 using RuriLib.Models.Variables;
-using RuriLib.Providers.RandomNumbers;
 using RuriLib.Providers.UserAgents;
 using RuriLib.Services;
 using System;
@@ -22,7 +21,6 @@ public class DebuggerViewModel : ViewModelBase
     private readonly FluxSettingsService fluxSettingsService;
     private readonly ConfigService configService;
     private readonly IRandomUAProvider randomUAProvider;
-    private readonly IRNGProvider rngProvider;
     private readonly PluginRepository pluginRepo;
 
     private DebuggerOptions? options;
@@ -252,14 +250,12 @@ public class DebuggerViewModel : ViewModelBase
         FluxSettingsService fluxSettingsService,
         ConfigService configService,
         IRandomUAProvider randomUserAgentProvider,
-        IRNGProvider rngProvider,
         PluginRepository pluginRepository)
     {
         rlSettingsService = ruriLibSettingsService ?? throw new ArgumentNullException(nameof(ruriLibSettingsService));
         this.fluxSettingsService = fluxSettingsService ?? throw new ArgumentNullException(nameof(fluxSettingsService));
         this.configService = configService ?? throw new ArgumentNullException(nameof(configService));
         randomUAProvider = randomUserAgentProvider ?? throw new ArgumentNullException(nameof(randomUserAgentProvider));
-        this.rngProvider = rngProvider ?? throw new ArgumentNullException(nameof(rngProvider));
         pluginRepo = pluginRepository ?? throw new ArgumentNullException(nameof(pluginRepository));
 
         WordlistType = WordlistTypes.FirstOrDefault() ?? string.Empty;
@@ -325,7 +321,6 @@ public class DebuggerViewModel : ViewModelBase
         {
             PluginRepo = pluginRepo,
             RandomUAProvider = randomUAProvider,
-            RNGProvider = rngProvider,
             RuriLibSettings = rlSettingsService
         };
 

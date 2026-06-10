@@ -32,7 +32,6 @@ using Flux.Native.Views.Pages.Configs;
 using Flux.Shared.DependencyInjection;
 using DebuggerPage = Flux.Native.Views.Pages.Shared.Debugger;
 using RuriLib.Logging;
-using RuriLib.Providers.RandomNumbers;
 using RuriLib.Providers.UserAgents;
 using RuriLib.Services;
 using System;
@@ -349,7 +348,6 @@ public partial class App : Application
         services.AddSingleton(_ => new FluxSettingsService(userDataPath));
         services.AddSingleton(_ => new PluginRepository(Path.Combine(userDataPath, "Plugins")));
         services.AddSingleton<IRandomUAProvider>(_ => new IntoliRandomUAProvider(Path.Combine(appDirectory, "user-agents.json")));
-        services.AddSingleton<IRNGProvider, DefaultRNGProvider>();
         services.AddSingleton<MemoryJobLogger>();
         services.AddFluxShared();
         services.AddSingleton<IJobLogger>(service =>

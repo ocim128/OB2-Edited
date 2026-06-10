@@ -24,8 +24,8 @@ public class BotData(Providers providers, ConfigSettings configSettings, IBotLog
     public Providers Providers { get; } = providers;
     public IBotLogger Logger { get; set; } = logger;
 
-    // Use thread-safe RNG per bot via provider; no change in API, but document usage.
-    public Random Random { get; } = providers.RNG.GetNew();
+    // Use thread-safe shared RNG (Random.Shared is thread-safe in .NET 6+)
+    public Random Random { get; } = Random.Shared;
 
     public CancellationToken CancellationToken { get; set; }
     public AsyncLocker? AsyncLocker { get; set; }

@@ -14,7 +14,6 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<SettingsFacade>();
         services.AddSingleton<PluginService>();
         services.AddSingleton<IDashboardService, DashboardService>();
-        services.AddSingleton<FluxApplication>();
         return services;
     }
 }

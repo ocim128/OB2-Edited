@@ -10,7 +10,6 @@ using RuriLib.Models.Data.Resources;
 using RuriLib.Models.Data.Resources.Options;
 using RuriLib.Models.Proxies;
 using RuriLib.Models.Scripting;
-using RuriLib.Providers.RandomNumbers;
 using RuriLib.Providers.UserAgents;
 using RuriLib.Services;
 using System;
@@ -26,13 +25,9 @@ internal static class BotRuntimeContextBuilder
 {
     public static Providers CreateDebuggerProviders(
         RuriLibSettingsService settings,
-        IRNGProvider? rngProvider,
         IRandomUAProvider? randomUaProvider)
     {
-        var providers = new Providers(settings)
-        {
-            RNG = rngProvider ?? new DefaultRNGProvider()
-        };
+        var providers = new Providers(settings);
 
         if (settings?.RuriLibSettings?.GeneralSettings?.UseCustomUserAgentsList == false && randomUaProvider is not null)
         {

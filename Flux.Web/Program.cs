@@ -16,7 +16,6 @@ using Flux.Web.SignalR;
 using Flux.Web.Utils;
 using RuriLib.Helpers;
 using RuriLib.Logging;
-using RuriLib.Providers.RandomNumbers;
 using RuriLib.Providers.UserAgents;
 using RuriLib.Services;
 using System.Net;
@@ -164,7 +163,6 @@ builder.Services.AddSingleton(_ => new PluginRepository($"{Globals.UserDataFolde
 builder.Services.AddSingleton(_ => new ThemeService($"{Globals.UserDataFolder}/Themes"));
 builder.Services.AddSingleton<IRandomUAProvider>(
     _ => new IntoliRandomUAProvider("user-agents.json"));
-builder.Services.AddSingleton<IRNGProvider, DefaultRNGProvider>();
 builder.Services.AddSingleton<IJobLogger>(service =>
     new FileJobLogger(service.GetService<RuriLibSettingsService>(),
         $"{Globals.UserDataFolder}/Logs/Jobs"));

@@ -33,6 +33,10 @@ namespace Flux.Native.Views.Pages.Configs
     /// </summary>
     public partial class Configs : Page, IUpdatablePage
     {
+        // #COMPLETION_DRIVE: Assuming configs at or above this line count are better opened in the text editor first because stack conversion cost dominates the initial open experience.
+        // #SUGGEST_VERIFY: Profile open times for large saved configs and tune this threshold against real user samples.
+        private const int LargeLoliCodeOpenLineThreshold = 2000;
+
         private readonly FluxSettingsService fluxSettingsService;
         private readonly ConfigService configService;
         private readonly ConfigsViewModel vm;
@@ -189,6 +193,12 @@ namespace Flux.Native.Views.Pages.Configs
             var mode = vm.SelectedConfig.Config.Mode;
             var section = fluxSettingsService.Settings.GeneralSettings.ConfigSectionOnLoad;
 
+            if (ShouldOpenLargeLoliCodeInEditor(vm.SelectedConfig.Config, section))
+            {
+                _ = navigationHandler.NavigateTo(MainWindowPage.ConfigLoliCode);
+                return;
+            }
+
             var page = section switch
             {
                 ConfigSection.Metadata => MainWindowPage.ConfigMetadata,
@@ -198,6 +208,36 @@ namespace Flux.Native.Views.Pages.Configs
             };
 
             _ = navigationHandler.NavigateTo(page);
+        }
+
+        private static bool ShouldOpenLargeLoliCodeInEditor(Config config, ConfigSection section)
+        {
+            if (config.Mode != ConfigMode.LoliCode || section != ConfigSection.Stacker)
+            {
+                return false;
+            }
+
+            return CountLines(config.LoliCodeScript) >= LargeLoliCodeOpenLineThreshold;
+        }
+
+        private static int CountLines(string? text)
+        {
+            if (string.IsNullOrEmpty(text))
+            {
+                return 0;
+            }
+
+            var lines = 1;
+
+            foreach (var ch in text)
+            {
+                if (ch == '\n')
+                {
+                    lines++;
+                }
+            }
+
+            return lines;
         }
 
         private MainWindowPage GetModeSpecificPage(ConfigSection section, ConfigMode mode)
@@ -320,8 +360,6 @@ namespace Flux.Native.Views.Pages.Configs
         }
     }
 }
-
-
 
 
 

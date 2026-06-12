@@ -17,6 +17,10 @@ namespace Flux.Native.ViewModels.Shared;
 
 public class DebuggerViewModel : ViewModelBase
 {
+    // #COMPLETION_DRIVE: Assuming a short delay is enough to keep config selection responsive while still preserving most debugger prewarm benefit for deliberate runs.
+    // #SUGGEST_VERIFY: Measure open latency and first debugger-run latency on large configs, then tune or remove this delay if real profiling shows a better threshold.
+    private static readonly TimeSpan PrewarmDelay = TimeSpan.FromMilliseconds(750);
+
     private readonly RuriLibSettingsService rlSettingsService;
     private readonly FluxSettingsService fluxSettingsService;
     private readonly ConfigService configService;
@@ -380,7 +384,18 @@ public class DebuggerViewModel : ViewModelBase
         prewarmCts = new CancellationTokenSource();
         prewarmConfig = config;
         var token = prewarmCts.Token;
-        prewarmTask = ConfigDebugger.PrewarmAsync(config, pluginRepo, stepByStep: false, cancellationToken: token);
+        prewarmTask = Task.Run(async () =>
+        {
+            await Task.Delay(PrewarmDelay, token).ConfigureAwait(false);
+
+            if (token.IsCancellationRequested || !ReferenceEquals(configService.SelectedConfig, config))
+            {
+                return;
+            }
+
+            await ConfigDebugger.PrewarmAsync(config, pluginRepo, stepByStep: false, cancellationToken: token)
+                .ConfigureAwait(false);
+        }, token);
     }
 }
 

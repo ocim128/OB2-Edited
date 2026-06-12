@@ -168,52 +168,71 @@
                     </Grid>
                 </Border>
 
-                <ScrollViewer Grid.Row="2"
-                              VerticalScrollBarVisibility="Auto"
-                              HorizontalScrollBarVisibility="Disabled">
-                    <ItemsControl x:Name="BlocksItemsControl"
-                                  ItemsSource="{Binding Stack}"
-                                  Margin="0">
-                        <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <VirtualizingStackPanel Orientation="Vertical"
-                                                        VirtualizingPanel.IsVirtualizing="True"
-                                                        VirtualizingPanel.VirtualizationMode="Recycling"
-                                                        VirtualizingPanel.ScrollUnit="Pixel" />
-                            </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Button Style="{StaticResource ModernButton}"
-                                        Height="40"
-                                        Margin="0,4"
-                                        Padding="8,0"
-                                        Background="{Binding BackgroundColor}"
-                                        Foreground="{Binding ForegroundColor}"
-                                        BorderThickness="{Binding Selected, Converter={StaticResource BoolToThick}}"
-                                        BorderBrush="{Binding Selected, Converter={StaticResource BoolToColorConverter}, ConverterParameter='#3B82F6|Transparent'}"
-                                        Tag="{Binding}"
-                                        Click="SelectBlock"
-                                        ToolTip="{Binding Block.Descriptor.Name}">
-                                    <Grid HorizontalAlignment="Stretch" VerticalAlignment="Center">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto"/>
-                                            <ColumnDefinition Width="*"/>
-                                        </Grid.ColumnDefinitions>
-                                        <Ellipse Grid.Column="0" Width="8" Height="8" Fill="{Binding ForegroundColor}" Opacity="0.8" Margin="0,0,10,0" VerticalAlignment="Center" />
-                                        <TextBlock Grid.Column="1" Text="{Binding Label}"
-                                                   FontSize="13"
-                                                   FontWeight="SemiBold"
-                                                   TextAlignment="Left"
-                                                   TextTrimming="CharacterEllipsis"
-                                                   Foreground="{Binding ForegroundColor}"
-                                                   VerticalAlignment="Center" />
-                                    </Grid>
-                                </Button>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </ScrollViewer>
+                <ListBox x:Name="BlocksListBox"
+                         Grid.Row="2"
+                         ItemsSource="{Binding Stack}"
+                         Background="Transparent"
+                         BorderThickness="0"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                         ScrollViewer.VerticalScrollBarVisibility="Auto"
+                         ScrollViewer.CanContentScroll="True"
+                         VirtualizingPanel.IsVirtualizing="True"
+                         VirtualizingPanel.VirtualizationMode="Recycling"
+                         VirtualizingPanel.ScrollUnit="Pixel">
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem">
+                            <Setter Property="Padding" Value="0" />
+                            <Setter Property="Margin" Value="0" />
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                            <Setter Property="VerticalContentAlignment" Value="Stretch" />
+                            <Setter Property="Focusable" Value="False" />
+                            <Setter Property="Background" Value="Transparent" />
+                            <Setter Property="BorderThickness" Value="0" />
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="ListBoxItem">
+                                        <ContentPresenter />
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </ListBox.ItemContainerStyle>
+                    <ListBox.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <VirtualizingStackPanel Orientation="Vertical" />
+                        </ItemsPanelTemplate>
+                    </ListBox.ItemsPanel>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Button Style="{StaticResource ModernButton}"
+                                    Height="40"
+                                    Margin="0,4"
+                                    Padding="8,0"
+                                    Background="{Binding BackgroundColor}"
+                                    Foreground="{Binding ForegroundColor}"
+                                    BorderThickness="{Binding Selected, Converter={StaticResource BoolToThick}}"
+                                    BorderBrush="{Binding Selected, Converter={StaticResource BoolToColorConverter}, ConverterParameter='#3B82F6|Transparent'}"
+                                    Tag="{Binding}"
+                                    Click="SelectBlock"
+                                    ToolTip="{Binding Block.Descriptor.Name}">
+                                <Grid HorizontalAlignment="Stretch" VerticalAlignment="Center">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Ellipse Grid.Column="0" Width="8" Height="8" Fill="{Binding ForegroundColor}" Opacity="0.8" Margin="0,0,10,0" VerticalAlignment="Center" />
+                                    <TextBlock Grid.Column="1" Text="{Binding Label}"
+                                               FontSize="13"
+                                               FontWeight="SemiBold"
+                                               TextAlignment="Left"
+                                               TextTrimming="CharacterEllipsis"
+                                               Foreground="{Binding ForegroundColor}"
+                                               VerticalAlignment="Center" />
+                                </Grid>
+                            </Button>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
             </Grid>
         </Border>
     </Grid>

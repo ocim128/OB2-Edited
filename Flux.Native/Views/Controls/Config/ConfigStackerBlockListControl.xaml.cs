@@ -57,8 +57,10 @@ public partial class ConfigStackerBlockListControl : UserControl
         {
             try
             {
-                BlocksItemsControl.UpdateLayout();
-                var container = BlocksItemsControl.ItemContainerGenerator.ContainerFromItem(block) as FrameworkElement;
+                BlocksListBox.UpdateLayout();
+                BlocksListBox.ScrollIntoView(block);
+
+                var container = BlocksListBox.ItemContainerGenerator.ContainerFromItem(block) as FrameworkElement;
                 container?.BringIntoView();
             }
             catch

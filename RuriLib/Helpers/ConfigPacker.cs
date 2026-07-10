@@ -38,7 +38,14 @@ namespace RuriLib.Helpers
                 switch (config.Mode)
                 {
                     case ConfigMode.Stack:
-                        config.LoliCodeScript = Stack2LoliTranspiler.Transpile(config.Stack);
+                        var transpiledScript = Stack2LoliTranspiler.Transpile(config.Stack);
+                        // Never let an empty Stack wipe out previously saved script
+                        // content (e.g. when the in-memory Stack is temporarily empty
+                        // at save time). Only adopt the transpiled script if it carries
+                        // content, otherwise fall back to the existing LoliCodeScript.
+                        config.LoliCodeScript = !string.IsNullOrWhiteSpace(transpiledScript)
+                            ? transpiledScript
+                            : config.LoliCodeScript;
                         await CreateZipEntryFromString(archive, "script.loli", config.LoliCodeScript);
                         await CreateZipEntryFromString(archive, "startup.loli", config.StartupLoliCodeScript);
                         break;

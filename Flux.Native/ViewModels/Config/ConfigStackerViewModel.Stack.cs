@@ -19,16 +19,17 @@ public partial class ConfigStackerViewModel
 
         Stack.Insert(insertIndex, newBlockVm);
 
-        if (OriginalStack.Count > 0)
+        // OriginalStack is never null (initialized to []), so always mirror the
+        // insert. The previous `Count > 0` guard skipped the first block on an
+        // empty config, so SaveStack() then wrote an empty list back to the
+        // config and the block vanished on the next view switch.
+        if (insertIndex >= 0 && insertIndex <= OriginalStack.Count)
         {
-            if (insertIndex >= 0 && insertIndex <= OriginalStack.Count)
-            {
-                OriginalStack.Insert(insertIndex, newBlockVm);
-            }
-            else
-            {
-                OriginalStack.Add(newBlockVm);
-            }
+            OriginalStack.Insert(insertIndex, newBlockVm);
+        }
+        else
+        {
+            OriginalStack.Add(newBlockVm);
         }
 
         SelectBlock(newBlockVm, false);

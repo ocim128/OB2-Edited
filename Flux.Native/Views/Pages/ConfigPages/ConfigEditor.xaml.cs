@@ -165,6 +165,19 @@ namespace Flux.Native.Views.Pages.Configs
             }
         }
 
+        /// <summary>
+        /// Flushes the active sub-editor's unsaved text into the config before a save.
+        /// Without this, saving via the toolbar/autosave/CTRL+S routed command writes
+        /// the stale LoliCodeScript instead of what the user just typed.
+        /// </summary>
+        private void FlushActiveEditor()
+        {
+            if (editorFrame.Content == loliCodePage)
+            {
+                loliCodePage.OnPageChanged();
+            }
+        }
+
         private void OpenStacker(object sender, RoutedEventArgs e) => _ = navigationHandler.NavigateTo(MainWindowPage.ConfigStacker);
         private void OpenLoliCode(object sender, RoutedEventArgs e) => _ = navigationHandler.NavigateTo(MainWindowPage.ConfigLoliCode);
         private void OpenCSharpCode(object sender, RoutedEventArgs e) => _ = navigationHandler.NavigateTo(MainWindowPage.ConfigCSharpCode);
@@ -175,6 +188,7 @@ namespace Flux.Native.Views.Pages.Configs
         {
             try
             {
+                FlushActiveEditor();
                 await vm.Save();
                 Alert.Success("Success", $"{vm.Config.Metadata.Name} was saved successfully!");
             }
@@ -190,6 +204,7 @@ namespace Flux.Native.Views.Pages.Configs
             {
                 try
                 {
+                    FlushActiveEditor();
                     await vm.Save();
                 }
                 catch (Exception ex)

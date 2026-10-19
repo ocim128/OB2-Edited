@@ -51,6 +51,20 @@ public class PlaywrightElementBlockDescriptorTests
         Assert.Equal(12, block.GetFixedSetting<IntSetting>("timeoutSeconds").Value);
     }
 
+    [Fact]
+    public void UploadFiles_DescriptorExposesFileListSetting()
+    {
+        TestAssemblyResolver.EnsureRegistered();
+        var repository = new DescriptorsRepository();
+
+        var descriptor = repository.GetAs<AutoBlockDescriptor>("PlaywrightUploadFiles");
+
+        var filePaths = Assert.IsType<ListOfStringsParameter>(descriptor.Parameters["filePaths"]);
+        Assert.Equal(SettingInputMode.Fixed, filePaths.InputMode);
+        Assert.IsType<EnumParameter>(descriptor.Parameters["findBy"]);
+        Assert.IsType<IntParameter>(descriptor.Parameters["index"]);
+    }
+
     private sealed class ParserProbeBlockInstance(AutoBlockDescriptor descriptor) : BlockInstance(descriptor)
     {
         public void ParseSettings(string script)

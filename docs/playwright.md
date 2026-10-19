@@ -276,6 +276,7 @@ Important limitations:
 - Uncheck Element
 - Focus Element
 - Press Key
+- Upload Files
 - Switch to Frame
 
 ### Cookie blocks
@@ -341,6 +342,12 @@ These are real constraints in the current code. The stealth script has been hard
 
 6. **Firefox new tabs go through `window.open`.**
    `PlaywrightNewPage` uses `window.open('about:blank', '_blank')` for Firefox because `context.NewPageAsync()` opens a window there. Page-level popup handling can interfere with this path.
+
+7. **"Upload Files" needs a file input or the control that opens the chooser.**
+   The block accepts a real `<input type="file">` (visible or hidden, including a `<label>` bound to one) and also a wrapper element whose only file input it can target. For icon-based composers it falls back to `RunAndWaitForFileChooserAsync`, so it must be pointed at the clickable button, not at the SVG icon inside it. XPath cannot match SVG child elements, so an XPath ending in `svg/path[n]` locates nothing in both Chromium and Firefox; drop the `svg/path` tail and select the button element.
+
+8. **`fill` refuses an editable element nested inside a clickable wrapper.**
+   Playwright's `fill` retargets the element to the closest `<button>`/`[role=button]` ancestor, so it throws `Element is not an <input>, <textarea> or [contenteditable] element` for editors like the Threads composer, where `contenteditable` sits inside a `role="button"` wrapper. `PlaywrightFillElement` detects that case, confirms the target really is editable, and falls back to selecting the contents and using `Keyboard.InsertTextAsync`. On any other non-editable target it raises an explicit error instead of the raw Playwright message. Selecting the wrapper's `aria-label` is not enough when the same label is also on the button: include `[contenteditable='true']` or `[role='textbox']` in the selector.
 
 ## Native App Integration
 

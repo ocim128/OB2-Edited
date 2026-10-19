@@ -4,6 +4,9 @@ using RuriLib.Functions.Puppeteer;
 using RuriLib.Logging;
 using RuriLib.Models.Bots;
 using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace RuriLib.Blocks.Playwright.Elements
@@ -72,25 +75,55 @@ namespace RuriLib.Blocks.Playwright.Elements
         {
             LogMethodStart(data, $"Filling element: {findBy} {identifier}");
             var frame = GetFrame(data);
+            var selector = findBy == FindElementBy.XPath ? "xpath=" + identifier : BuildSelector(findBy, identifier);
+            var elements = await frame.Locator(selector).AllAsync();
 
-            if (findBy == FindElementBy.XPath)
+            if (elements.Count <= index)
+                throw new Exception($"Expected at least {index + 1} elements to be found but {elements.Count} were found");
+
+            var target = elements[index];
+
+            try
             {
-                var elements = await frame.Locator("xpath=" + identifier).AllAsync();
-                if (elements.Count <= index)
-                    throw new Exception($"Expected at least {index + 1} elements to be found but {elements.Count} were found");
-                await elements[index].FillAsync(text, CreateElementOptions<LocatorFillOptions>(timeoutSeconds));
+                await target.FillAsync(text, CreateElementOptions<LocatorFillOptions>(timeoutSeconds));
             }
-            else
+            catch (PlaywrightException ex) when (ex.Message.Contains("not an <input>, <textarea> or [contenteditable] element"))
             {
-                var selector = BuildSelector(findBy, identifier);
-                var elements = await frame.Locator(selector).AllAsync();
-                if (elements.Count <= index)
-                    throw new Exception($"Expected at least {index + 1} elements to be found but {elements.Count} were found");
-                await elements[index].FillAsync(text, CreateElementOptions<LocatorFillOptions>(timeoutSeconds));
+                // FillAsync retargets to the closest <button>/[role=button] ancestor, so it refuses an
+                // editable element nested inside a clickable wrapper (e.g. the Threads composer).
+                // Only take over when the element itself really is editable, otherwise the caller
+                // pointed the block at the wrong element and must see that instead.
+                if (!await IsEditableAsync(target))
+                {
+                    throw new Exception($"The element {findBy} {identifier} at index {index} is not a text input or editable element. " +
+                        "Target the element with contenteditable=\"true\" or role=\"textbox\" instead of a wrapper or button that only contains it.");
+                }
+
+                await SelectAllTextAsync(target);
+                await GetPage(data).Keyboard.InsertTextAsync(text);
+
+                data.Logger.Log($"Filled element {findBy} {identifier} at index {index} by typing into it (editable element inside a clickable wrapper)", LogColors.Tomato);
+                return;
             }
 
             data.Logger.Log($"Filled element {findBy} {identifier} at index {index} with: {text}", LogColors.Tomato);
         }
+
+        private static async Task<bool> IsEditableAsync(ILocator locator)
+            => await locator.EvaluateAsync<bool>(
+                "e => e.isContentEditable === true || e.getAttribute('role') === 'textbox'");
+
+        // Mirrors what Playwright's fill does for contenteditable elements: select everything
+        // so the following insert replaces it, without relying on a platform-specific hotkey.
+        private static async Task SelectAllTextAsync(ILocator locator)
+            => await locator.EvaluateAsync(@"e => {
+                   e.focus();
+                   const range = document.createRange();
+                   range.selectNodeContents(e);
+                   const selection = window.getSelection();
+                   selection.removeAllRanges();
+                   selection.addRange(range);
+               }");
 
         [Block("Clears an input element", name = "Clear Element")]
         public static async Task PlaywrightClearElement(BotData data, string selector, int timeoutSeconds = 30)
@@ -348,6 +381,79 @@ namespace RuriLib.Blocks.Playwright.Elements
 
             data.Logger.Log($"Pressed key '{key}' on element: {findBy} {identifier} at index {index}", LogColors.Tomato);
         }
+
+        [Block("Uploads one or more files to a file input, or to a button that opens the file chooser", name = "Upload Files")]
+        public static async Task PlaywrightUploadFiles(BotData data, FindElementBy findBy, string identifier, int index, List<string> filePaths, int timeoutSeconds = 30)
+        {
+            LogMethodStart(data, $"Uploading files to element: {findBy} {identifier}");
+
+            if (filePaths == null || filePaths.Count == 0)
+                throw new Exception("No files were specified for upload");
+
+            var missingFiles = filePaths.Where(f => !File.Exists(f)).ToList();
+            if (missingFiles.Count > 0)
+                throw new Exception($"The following files do not exist: {string.Join(", ", missingFiles)}");
+
+            var page = GetPage(data);
+            var frame = GetFrame(data);
+            var matches = await frame.Locator(GetSelector(findBy, identifier)).CountAsync();
+
+            if (matches <= index)
+            {
+                throw new Exception(matches == 0
+                    ? $"No element matched {findBy} {identifier}. Point the block at the file input or at the button that opens " +
+                      "the upload dialog. XPath cannot match SVG child elements, so an XPath ending in a svg/path icon locates nothing; " +
+                      "drop the svg/path part and target the button element instead."
+                    : $"Expected at least {index + 1} elements to be found but {matches} were found");
+            }
+
+            var target = GetLocator(frame, findBy, identifier, index);
+
+            // A file input (also hidden, or a label bound to one) accepts the files directly.
+            var fileInput = await IsFileInputAsync(target) ? target : null;
+
+            // A wrapper element that owns a single file input can be used as-is.
+            if (fileInput == null)
+            {
+                var nested = target.Locator("input[type='file']");
+                if (await nested.CountAsync() == 1)
+                    fileInput = nested;
+            }
+
+            if (fileInput != null)
+            {
+                await fileInput.SetInputFilesAsync(filePaths, CreateElementOptions<LocatorSetInputFilesOptions>(timeoutSeconds));
+                data.Logger.Log($"Uploaded {filePaths.Count} file(s) to element: {findBy} {identifier} at index {index}", LogColors.Tomato);
+                return;
+            }
+
+            // Not a file input: act like a user and go through the file chooser dialog it opens.
+            IFileChooser chooser;
+            try
+            {
+                chooser = await page.RunAndWaitForFileChooserAsync(
+                    () => target.ClickAsync(CreateElementOptions<LocatorClickOptions>(timeoutSeconds)),
+                    new PageRunAndWaitForFileChooserOptions { Timeout = timeoutSeconds * 1000 });
+            }
+            catch (TimeoutException)
+            {
+                throw new Exception($"The element {findBy} {identifier} at index {index} is not a file input and clicking it did not open a file chooser within {timeoutSeconds} seconds. " +
+                    "Click the control that opens the upload dialog (not its icon), or select the file input itself.");
+            }
+
+            await chooser.SetFilesAsync(filePaths, new FileChooserSetFilesOptions { Timeout = timeoutSeconds * 1000 });
+            data.Logger.Log($"Uploaded {filePaths.Count} file(s) through the file chooser opened by: {findBy} {identifier} at index {index}", LogColors.Tomato);
+        }
+
+        private static async Task<bool> IsFileInputAsync(ILocator locator)
+        {
+            return await locator.EvaluateAsync<bool>(
+                "e => (e.tagName === 'INPUT' && (e.type || '').toLowerCase() === 'file') " +
+                "|| (e.tagName === 'LABEL' && !!e.control && e.control.tagName === 'INPUT' && (e.control.type || '').toLowerCase() === 'file')");
+        }
+
+        private static string GetSelector(FindElementBy findBy, string identifier)
+            => findBy == FindElementBy.XPath ? "xpath=" + identifier : BuildSelector(findBy, identifier);
 
         [Block("Switches to a different iframe", name = "Switch to Frame")]
         public static async Task PlaywrightSwitchToFrame(BotData data, FindElementBy findBy, string identifier, int index = 0, int timeoutSeconds = 30)

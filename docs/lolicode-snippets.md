@@ -1,10 +1,20 @@
-# Block Performance Test Config Snippets
+# LoliCode Block Snippets
 
-This file is meant to be copied into the config debugger as real LoliCode.
+Hand-written LoliCode examples for exercising blocks in the config debugger. Useful when you need a known-good config without building one in the stacker, or when checking that a parser/transpiler change still accepts real syntax.
 
-- Turn on `Block Profiling` in the debugger before running these snippets.
-- Use small themed configs instead of one giant config.
-- Duplicate a block several times when you want steadier timing comparisons.
+How to use:
+
+- Paste a snippet into the LoliCode editor of a new config (`ConfigMode.LoliCode`).
+- Run it in the debugger; the log shows each block's output.
+- Duplicate a block when you want to compare timings between two variants.
+
+Syntax notes, verified against `RuriLib/Models/Blocks/AutoBlockInstance.cs` and the custom block partials:
+
+- `BLOCK:<Id>` — the id is the method name of the `[Block]` method (`ConstantString`, `CharAt`, `HttpRequest`, …), not the display name.
+- `LABEL:` is optional and only labels the block in logs.
+- `SAFE` makes the block catch exceptions and store them in `data.ERROR` instead of aborting the config.
+- `=> VAR @name` assigns the return value to a variable.
+- `ENDBLOCK` terminates every block.
 
 ## Local string and constant blocks
 
@@ -190,9 +200,9 @@ BLOCK:Keycheck
 ENDBLOCK
 ```
 
-## Parse block template
+## Parse block
 
-Use this for local parse timing without external HTTP.
+Uses a constant as input so the block can be exercised without network access.
 
 ```text
 BLOCK:ConstantString
@@ -209,9 +219,9 @@ BLOCK:Parse
 ENDBLOCK
 ```
 
-## Http Request block template
+## Http Request block
 
-Use a fast stable endpoint for measurement. Keep this separate from pure local blocks.
+Minimal request block. Keep network blocks in their own config so a failing endpoint does not hide local block behavior.
 
 ```text
 BLOCK:HttpRequest
@@ -231,7 +241,7 @@ ENDBLOCK
 
 ## Combined sample config
 
-This is a ready-to-run starter config built from the snippets above.
+A runnable config built from the snippets above. The five `ConstantString` blocks all use `LABEL:otp`; the label is cosmetic, and each block reassigns `@otp`.
 
 ```text
 BLOCK:ConstantString
@@ -399,9 +409,9 @@ BLOCK:Keycheck
 ENDBLOCK
 ```
 
-## Next expansion pattern
+## Adding More Blocks
 
-When you add more blocks, keep the same pattern:
+Keep the same shape:
 
 ```text
 BLOCK:BlockIdHere
@@ -421,4 +431,3 @@ Use separate configs for:
 - captcha/provider blocks
 - mail blocks
 - Android blocks
-```

@@ -1,210 +1,103 @@
 # Flux
 
-Flux is a .NET 8 automation platform built around `RuriLib`, with a WPF desktop application and a shared orchestration layer in the same repository.
+Flux is a Windows desktop automation platform for building and running configs against lists of input data. The execution engine (`RuriLib`) is independent of the UI; the WPF app (`Flux.Native`) is a shell over it, with persistence in `Flux.Core` and job orchestration in `Flux.Shared`.
 
-This root README is optimized for fast orientation. If you are trying to understand behavior, start from execution flow and project boundaries before reading individual files.
+- Runtime: .NET 8 (`net8.0` libraries, `net8.0-windows` WPF app)
+- SDK: pinned to **8.0.401** by `global.json`
+- Current version: `0.3.2` (`version.txt`), history in `Changelog/`
+- Platform: Windows only, `win-x64` by default
 
 ## Repository Layout
 
-- `RuriLib/`
-  Core automation/runtime library. Blocks, config execution, jobs, bot state, providers, scripting.
-- `RuriLib.Http/`
-  Custom HTTP transport used by `HttpLibrary.RuriLibHttp`.
-- `RuriLib.Proxies/`
-  TCP/proxy abstraction used by `RuriLib.Http`.
-- `RuriLib.Parallelization/`
-  Parallel job execution primitives.
-- `RuriLib.Tests/`
-  Runtime and debugger integration tests for `RuriLib`.
-- `Flux.Shared/`
-  Shared application services, job orchestration, DTO projection.
-- `Flux.Core/`
-  Persistence/domain layer.
-- `Flux.Native/`
-  WPF desktop application.
-- `Libraries/TlsClient.NET/`
-  Included TLS client transport used by `HttpLibrary.TlsClient`.
+| Path | What lives there |
+|---|---|
+| `RuriLib/` | Execution engine: blocks, configs, transpilers, scripting, jobs, bot state, providers, HTTP dispatch |
+| `RuriLib.Http/` | Custom HTTP/1.1 client used by `HttpLibrary.RuriLibHttp` |
+| `RuriLib.Proxies/` | TCP/proxy layer used by `RuriLib.Http` |
+| `RuriLib.Parallelization/` | Bot/work-item parallelizer (pause, resume, stop, abort, CPM) |
+| `Flux.Core/` | EF Core SQLite persistence, repositories, config/wordlist/proxy/job services |
+| `Flux.Shared/` | `JobOrchestrator`, DTO projection, dashboard service |
+| `Flux.Native/` | WPF desktop app and DI composition root |
+| `RuriLib.Tests/`, `RuriLib.Http.Tests/`, `Flux.Shared.Tests/` | xUnit test projects |
+| `Libraries/TlsClient.NET/` | Vendored TLS-fingerprint transport (nested git repo, locally patched) |
+| `docs/` | Architecture, development, UI and Playwright documentation |
+| `Changelog/` | Per-version release notes, inherited from upstream OpenBullet. Entries that mention the web app or Windows Forms describe upstream history, not the current code. |
 
-## Execution Flows
+`UserData/` (local configs and settings) and `packages/` (NuGet cache redirected by `nuget.config`) are runtime artifacts, not source.
 
-### HTTP request block
-
-The request block flow is:
-
-1. `RuriLib/Blocks/Requests/Http/Methods.cs`
-2. `RuriLib/Functions/Http/HttpRequestHandler.cs`
-3. one of:
-   `HttpClientRequestHandler`
-   `RLHttpClientRequestHandler`
-   `TlsClientRequestHandler`
-4. `RuriLib/Functions/Http/HttpFactory.cs`
-5. lower transport code in `RuriLib.Http/`, `RuriLib.Proxies/`, or `Libraries/TlsClient.NET/`
-
-Transport mapping:
-
-- `SystemNet` -> built-in `HttpClient`
-- `RuriLibHttp` -> custom transport in `RuriLib.Http`
-- `TlsClient` -> `TlsClient.NET`
-
-### Job runtime
-
-The main runtime path is:
-
-1. `RuriLib/Models/Jobs/MultiRunJob.cs`
-2. `RuriLib/Models/Jobs/JobInitializer.cs`
-3. `RuriLib/Models/Jobs/JobLifecycleService.cs`
-4. `RuriLib/Models/Jobs/Execution/`
-5. `RuriLib/Models/Jobs/Execution/WorkItemFactory.cs`
-6. `RuriLib/Models/Jobs/Execution/JobResultProcessor.cs`
-7. `RuriLib/Models/Jobs/Execution/JobResourceScope.cs`
-8. `Flux.Shared/Services/JobOrchestrator.cs`
-9. `Flux.Shared/Services/JobProjectionService.cs`
-10. `Flux.Shared/Services/JobEventSubscriptionService.cs`
-
-### Config execution
-
-For debugger and generated execution behavior, start here:
-
-1. `RuriLib/Models/Debugger/ConfigDebugger.cs`
-2. `RuriLib/Models/Scripting/ScriptPreparationService.cs`
-3. `RuriLib/Models/Bots/BotSessionFactory.cs`
-4. `RuriLib/Helpers/Transpilers/`
-5. `RuriLib/Models/Blocks/`
-6. `RuriLib/Blocks/`
-
-If the bug crosses generated C#, compiled script caching, debugger execution, or transport selection, add or update coverage in `RuriLib.Tests/`.
-
-## Good Starting Points By Problem
-
-### "HTTP request is failing"
-
-Read:
-
-- `RuriLib/Blocks/Requests/Http/Methods.cs`
-- `RuriLib/Functions/Http/HttpRequestHandler.cs`
-- `RuriLib/Functions/Http/HttpFactory.cs`
-- the concrete transport handler
-
-### "Job start/stop/progress is wrong"
-
-Read:
-
-- `RuriLib/Models/Jobs/MultiRunJob.cs`
-- `RuriLib/Models/Jobs/JobInitializer.cs`
-- `RuriLib/Models/Jobs/JobLifecycleService.cs`
-- `Flux.Shared/Services/JobOrchestrator.cs`
-
-### "A block does the wrong thing"
-
-Read:
-
-- block instance/descriptor under `RuriLib/Models/Blocks/`
-- implementation under `RuriLib/Blocks/`
-- transpiler glue under `RuriLib/Helpers/Transpilers/` if needed
-
-If the issue is block registration or discovery, also read:
-
-- `RuriLib/Helpers/Blocks/BuiltInBlockRegistry.cs`
-- `RuriLib/Helpers/Blocks/DescriptorsRepository.cs`
-- `RuriLib/Helpers/Blocks/BlockFactory.cs`
-
-If the issue is custom block LC parsing/serialization or generated C#, start from:
-
-- `RuriLib/Models/Blocks/Custom/HttpRequestBlockInstance.cs`
-- `RuriLib/Models/Blocks/Custom/HttpRequestBlockInstance.LoliCode.cs`
-- `RuriLib/Models/Blocks/Custom/HttpRequestBlockInstance.CSharp.cs`
-- `RuriLib/Models/Blocks/Custom/ParseBlockInstance.cs`
-- `RuriLib/Models/Blocks/Custom/ParseBlockInstance.LoliCode.cs`
-- `RuriLib/Models/Blocks/Custom/ParseBlockInstance.CSharp.cs`
-
-### "Desktop UI issue"
-
-Read:
-
-- `Flux.Native/ViewModels/`
-- `Flux.Native/Views/`
-- then whatever service the UI delegates into
-
-For the recently split desktop pages, start from the shell page and then drill into feature controls/viewmodels:
-
-- tools dashboard shell: `Flux.Native/Views/Pages/Tools/Monitor.xaml`
-- tools dashboard state: `Flux.Native/ViewModels/Pages/ToolsPageViewModel.cs`
-- individual tools: `Flux.Native/ViewModels/Tools/` and `Flux.Native/Views/Controls/Tools/`
-- config stacker shell: `Flux.Native/Views/Pages/ConfigPages/ConfigStacker.xaml`
-- config stacker features: `Flux.Native/ViewModels/Config/` and `Flux.Native/Views/Controls/Config/`
-
-## Recent Runtime Refactors
-
-The codebase already contains a few important simplifications:
-
-- `MultiRunJob` no longer owns all initialization and lifecycle logic directly
-- `MultiRunJob` now delegates work-item creation, result propagation, hit/stats updates, and runtime-owned cleanup to `WorkItemFactory`, `JobResultProcessor`, and `JobResourceScope`
-- shared runtime script preparation and bot/session setup now flow through `ScriptPreparationService` and `BotSessionFactory`, used by `JobInitializer`, `WorkItemFactory`, and `ConfigDebugger`
-- `JobOrchestrator` no longer owns all projection and subscription logic directly
-- desktop job create/edit/clone/delete and job option loading now flow through `Flux.Shared/Services/JobOrchestrator.cs` instead of `Flux.Native`
-- HTTP transport behavior is centered around a shared request pipeline in `HttpRequestHandler`
-- built-in block registration now goes through `RuriLib/Helpers/Blocks/BuiltInBlockRegistry.cs`; reflection-based descriptor discovery is now mainly the plugin path
-- `BlockDescriptor` now owns block instance creation through a registered factory, so `BlockFactory` stays thin
-- Legacy `HttpCloak` HTTP block settings are normalized to `TlsClient` during load/transpile
-- `HttpRequestBlockInstance` and `ParseBlockInstance` are split into core state, LoliCode parsing/serialization, and C# emission partials
-- Puppeteer browser blocks are now split across `Methods.cs`, `Methods.Helpers.cs`, `Methods.Cleanup.cs`, `Methods.Launch.cs`, and `Methods.LaunchOptions.cs`
-- Runtime/global settings and config-scoped settings now use distinct model names: `GlobalGeneralSettings`/`GlobalProxySettings` and `ConfigGeneralSettings`/`ConfigProxySettings`
-- `Monitor` and `ConfigStacker` in `Flux.Native` are now shell pages with feature-specific controls/viewmodels
-- `Home` is now a thin page over `Flux.Native/ViewModels/Pages/HomeViewModel.cs`, with dashboard data coming from `Flux.Shared/Abstractions/IDashboardService.cs`
-
-If you are debugging older assumptions about these areas, verify the current extracted services first.
-
-## Diagnostics
-
-### HTTP diagnostics
-
-HTTP failures now log:
-
-- transport name
-- exception chain
-- request context
-- effective timeout/proxy settings
-- stack trace when verbose mode is enabled, and for important framework argument/state errors
-
-The logging is implemented in:
-
-- `RuriLib/Functions/Http/HttpRequestHandler.cs`
-
-### Verbose mode
-
-Verbose mode is useful when reading runtime behavior or debugging config execution.
-
-Relevant files:
-
-- `RuriLib/Models/Settings/GlobalGeneralSettings.cs`
-- `RuriLib/Providers/General/`
-- `RuriLib/Models/Debugger/ConfigDebugger.cs`
-
-## Build And Test
-
-From the repository root:
+## Quick Start
 
 ```powershell
 dotnet restore Flux.sln
 dotnet build Flux.sln -c Debug
-dotnet test Flux.sln
+dotnet test RuriLib.Tests/RuriLib.Tests.csproj
 ```
 
-Useful targeted commands:
+Run the desktop app through the publish-and-launch script (this is the normal local loop):
 
 ```powershell
-dotnet build RuriLib/RuriLib.csproj -c Debug --no-restore
-dotnet build Flux.Shared/Flux.Shared.csproj -c Debug --no-restore
-dotnet test RuriLib.Tests/RuriLib.Tests.csproj
-dotnet test RuriLib.Http.Tests/RuriLib.Http.Tests.csproj
-dotnet test Flux.Shared.Tests/Flux.Shared.Tests.csproj
+Flux.Native\test_build\run_testing.bat
 ```
 
+Full setup, test layout, migrations, and troubleshooting: [docs/development.md](docs/development.md).
+
+## How Execution Flows
+
+### Config → C#
+
+A config is `Stack`, `LoliCode`, `CSharp`, or `DLL`. `ScriptPreparationService` converts it to C# (fast path for production, block-stack path for step-by-step debugging), then `ScriptBuilder` compiles it with Roslyn and caches the assembly in `UserData/CompiledScripts`.
+
+1. `RuriLib/Models/Scripting/ScriptPreparationService.cs`
+2. `RuriLib/Helpers/Transpilers/`
+3. `RuriLib/Helpers/CSharp/ScriptBuilder.cs`
+
+### Job execution
+
+1. `Flux.Shared/Services/JobOrchestrator.cs` (commands, DTO projection)
+2. `Flux.Core/Services/JobFactoryService.cs`, `JobManagerService.cs` (build + own live jobs)
+3. `RuriLib/Models/Jobs/MultiRunJob.cs`
+4. `RuriLib/Models/Jobs/JobInitializer.cs`, `JobLifecycleService.cs`
+5. `RuriLib/Models/Jobs/Execution/` (`WorkItemFactory`, `JobResultProcessor`, `JobResourceScope`, execution handlers)
+
+### HTTP request
+
+1. `RuriLib/Blocks/Requests/Http/Methods.cs` (transport switch)
+2. `RuriLib/Functions/Http/HttpRequestHandler.cs` (shared pipeline: normalize, log, timeout, redirect, map)
+3. `HttpClientRequestHandler` / `RLHttpClientRequestHandler` / `TlsClientRequestHandler`
+4. `RuriLib/Functions/Http/HttpFactory.cs`, then `RuriLib.Http/` or `Libraries/TlsClient.NET/`
+
+Transport mapping: `SystemNet` → `HttpClient`, `RuriLibHttp` → `RuriLib.Http`, `TlsClient` → `TlsClient.NET`.
+
+## Where To Start By Problem
+
+| Problem | Start here |
+|---|---|
+| "HTTP request fails" | `Blocks/Requests/Http/Methods.cs` → `Functions/Http/HttpRequestHandler.cs` → the concrete handler |
+| "Job start/stop/progress is wrong" | `Models/Jobs/MultiRunJob.cs` → `JobInitializer` → `JobLifecycleService` → `Flux.Shared/Services/JobOrchestrator.cs` |
+| "A block does the wrong thing" | block instance under `RuriLib/Models/Blocks/` → implementation under `RuriLib/Blocks/` → transpiler glue |
+| "Block registration or discovery is wrong" | `RuriLib/Helpers/Blocks/BuiltInBlockRegistry.cs`, `DescriptorsRepository.cs` |
+| "Desktop UI issue" | viewmodel under `Flux.Native/ViewModels/` → view under `Flux.Native/Views/` → delegated service |
+| "Config editor / debugger behavior" | [docs/config-menu.md](docs/config-menu.md) |
+| "Browser automation" | [docs/playwright.md](docs/playwright.md) |
+
+## Documentation
+
+| Document | Contents |
+|---|---|
+| [docs/architecture.md](docs/architecture.md) | Layer boundaries, config/job/HTTP pipelines, block model, persistence, deliberate duplication, gotchas |
+| [docs/development.md](docs/development.md) | Prerequisites, build/run/test commands, test conventions, migrations, validation, troubleshooting |
+| [docs/config-menu.md](docs/config-menu.md) | Desktop config pages, editor shell, stacker, LoliCode/C# views, debugger |
+| [docs/playwright.md](docs/playwright.md) | Playwright version pin, launch/cleanup flow, stealth layer, known limitations |
+| [docs/lolicode-snippets.md](docs/lolicode-snippets.md) | Example LoliCode blocks for exercising the parser and debugger |
+| [AGENTS.md](AGENTS.md) | Working rules and navigation for AI coding agents |
+
+## Diagnostics
+
+HTTP failures log transport name, exception chain, request context, timeout/proxy settings, and a stack trace in verbose mode (`RuriLib/Functions/Http/HttpRequestHandler.cs`, `HttpPipelineLogger.cs`). Sensitive headers and cookies are redacted.
+
+Verbose mode is a setting in `GlobalGeneralSettings.VerboseMode` (`RuriLib/Models/Settings/GlobalGeneralSettings.cs`), surfaced through `RuriLib/Providers/General/`.
+
 ## Search Shortcuts
-
-Use `rg`.
-
-Examples:
 
 ```powershell
 rg -n "HttpLibrary" RuriLib
@@ -213,12 +106,3 @@ rg -n "MultiRunJob" RuriLib Flux.Shared Flux.Native
 rg -n "ConfigDebugger" RuriLib
 rg -n "OnError" RuriLib Flux.Shared Flux.Native
 ```
-
-## Notes
-
-- `UserData/` contains local runtime data and is usually not the place to start for source changes.
-- `packages/` is a local NuGet cache.
-- `Changelog/` contains version history.
-- `Libraries/TlsClient.NET/` is lower-level transport code; only go there after confirming the bug is in the TLS transport path.
-
-For agent-specific working guidance, see [AGENTS.md](/c:/Users/user/Documents/Repo/OB2-Edited/AGENTS.md).

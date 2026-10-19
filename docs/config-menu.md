@@ -11,17 +11,22 @@ The Config menu is split into two main stages:
 2. `ConfigEditor`
    This is the editor shell for the currently selected config. It hosts the active editor page on the left and the debugger on the right.
 
-The first page opened after selecting a config depends on:
+The first page opened after selecting a config depends on `GeneralSettings.ConfigSectionOnLoad` and the selected config mode. The routing lives in `Flux.Native/Views/Pages/ConfigPages/Configs.xaml.cs` (`NavigateToConfigSection`):
 
-- `GeneralSettings.ConfigSectionOnLoad`
-- the selected config mode (`Stack`, `LoliCode`, or `CSharp`)
+| `ConfigSectionOnLoad` | Config mode | Opens |
+|---|---|---|
+| `Metadata` / `Readme` / `Settings` | any | `ConfigMetadata` / `ConfigReadme` / `ConfigSettings` |
+| `Stacker` | `Stack`, `LoliCode` | `ConfigStacker` |
+| `Stacker` | `CSharp` | `ConfigCSharpCode` |
+| `Stacker` | `DLL` | `ConfigMetadata` (fallback) |
+| `LoliCode` | `Stack`, `LoliCode` | `ConfigLoliCode` |
+| `LoliCode` | `CSharp` | `ConfigCSharpCode` |
+| `CSharpCode` | `Stack`, `LoliCode`, `CSharp` | `ConfigCSharpCode` |
+| `CSharpCode` | `DLL` | `ConfigMetadata` (fallback) |
 
-Mode-aware routing:
+One override: a `LoliCode` config with `ConfigSectionOnLoad = Stacker` whose script is at least 2000 lines opens `ConfigLoliCode` instead of the stacker (`ShouldOpenLargeLoliCodeInEditor`). Large scripts are unreadable in the visual editor.
 
-- `Stacker` opens the visual stacker for `Stack` and `LoliCode` configs
-- `LoliCode` opens the text editor for `Stack` and `LoliCode` configs
-- `C#` opens the generated/read-only C# page for every mode
-- if the config is already `CSharp`, both stacker- and LoliCode-related navigation fall back to the C# page
+`DLL` configs have no stacker, LoliCode, or C# view; they fall back to metadata.
 
 ## Config List
 
@@ -209,10 +214,11 @@ Keyboard shortcuts implemented in code include:
 
 - `Alt+A` focus input data
 - `Alt+S` start
-- `Ctrl+F` focus search
+- `Ctrl+F` focus search (ignored while an AvalonEdit text editor has focus)
 - `F3` / `Shift+F3` next/previous match
 - `Ctrl+Up` / `Ctrl+Down` previous/next block
 - `Ctrl+L` clear log
+- `Esc` clear search when a search term is active
 
 Key files:
 

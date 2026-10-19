@@ -295,19 +295,17 @@ Chromium stealth is implemented in two layers.
 ### 1. Context init script
 Applied through `AddInitScriptAsync(...)`.
 
-Current areas patched:
+Current areas patched (all inside `InjectChromiumStealthScriptAsync`):
 
-- `navigator.webdriver`
-- `navigator.permissions.query`
-- `window.chrome.runtime`
-- `navigator.plugins`
-- `navigator.languages`
-- `window.outerWidth`
-- `window.outerHeight`
-- console method wrappers
-- `performance.now`
-- `Function.prototype.toString`
-- deletion of some CDP-related globals
+- `navigator.webdriver` (on the instance and on its prototype)
+- `navigator.permissions.query` (notifications only)
+- `window.chrome.runtime` (`connect`, `sendMessage`, `id`)
+- `navigator.plugins` (a `PluginArray`-shaped object with five PDF plugin entries, `.item()`, `.namedItem()`, `.refresh()`)
+- `navigator.languages` (fixed to `['en-US', 'en']`)
+- `window.outerWidth` / `window.outerHeight` (width = `innerWidth`, height = `innerHeight + 85`)
+- `console.log/table/dir/debug/info/warn/error/trace` wrappers that eagerly stringify arguments and swallow getter traps
+- `Function.prototype.toString` (returns `[native code]` for the wrapped console methods)
+- deletion of `window.__cdp_bindings__` and `window._cdp`
 
 ### 2. Page-level CDP stealth
 Applied per page with a CDP session.
@@ -316,34 +314,33 @@ Current purpose:
 
 - enable the Debugger domain
 - skip all pauses so debugger statements do not stop execution
+- disable the CDP `Runtime` domain so runtime artifacts are not exposed
 
 Important limitation:
 
 - The fallback `New Page` path that creates a fresh context reapplies CDP stealth, but does not currently reapply the Chromium init script to that new context.
 
 ## Current Known Limitations
-These are real current constraints in this repo.
 
-1. `navigator.plugins` is obviously fake.
-The current patch returns `[1, 2, 3, 4, 5]`.
+These are real constraints in the current code. The stealth script has been hardened over time, so older notes about `navigator.plugins` returning `[1,2,3,4,5]`, an empty `window.chrome.runtime`, a dead `performance.now` patch, or a missing init script on fallback contexts no longer apply.
 
-2. Wrapped console functions do not look native.
-The `Function.prototype.toString` shim only protects itself, not wrapped console methods.
+1. **"Set User Agent" is not a real context UA.**
+   `PlaywrightSetUserAgent` sets the `User-Agent` request header with `SetExtraHTTPHeadersAsync`, then defines a `navigator.userAgent` getter and an init script for future navigations. The browser context itself keeps its original UA, so client hints (`Sec-CH-UA*`), HTTP/2 fingerprints, and the non-native getter can still expose the mismatch.
 
-3. `performance.now` patch is effectively dead code.
-It calls the original implementation unchanged.
+2. **Stealth is Chromium-only.**
+   The init script and CDP session are only applied when `BrowserType` is `Chromium`. Firefox and WebKit launches get no equivalent patches.
 
-4. Window metrics are unrealistic.
-`outerWidth` is forced to `innerWidth`, and `outerHeight` is `innerHeight + screenY`.
+3. **`navigator.languages` is hardcoded.**
+   It always reports `['en-US', 'en']`, regardless of proxy location or configured locale.
 
-5. New fallback context misses the init-script stealth.
-The page still gets CDP stealth, but not the context init script.
+4. **Window metrics are synthetic.**
+   `outerHeight` is `innerHeight + 85`. That matches a typical Chrome chrome height, but it is a constant, not the real window decoration.
 
-6. `window.chrome.runtime` is too sparse.
-It is just `{}`.
+5. **WebKit is not installed by the app.**
+   `RLSettingsViewModel.InstallPlaywrightBrowsers(...)` installs Chromium and Firefox only. WebKit needs a preinstalled runtime or a custom executable path.
 
-7. "Set User Agent" only changes request headers.
-The current implementation uses `SetExtraHTTPHeadersAsync(...)`. It does not recreate the context with a matching Playwright `UserAgent` option, so HTTP-level UA and JS-visible UA can drift.
+6. **Firefox new tabs go through `window.open`.**
+   `PlaywrightNewPage` uses `window.open('about:blank', '_blank')` for Firefox because `context.NewPageAsync()` opens a window there. Page-level popup handling can interfere with this path.
 
 ## Native App Integration
 
@@ -421,8 +418,9 @@ Until that full migration happens, the correct repo policy is:
 - `Flux.Native/Services/ZipProfileLauncher.cs`
 
 ### External rationale for the version pin
-- Playwright .NET releases:
-  - `v1.57` switched bundled Chromium to Chrome for Testing
-  - `v1.55` dropped Chromium Manifest V2 extension support
+The repo's stated rationale is that newer Playwright releases:
 
-Those upstream changes are exactly why this repo should not treat a Playwright update as a routine improvement.
+- switched the bundled Chromium to Chrome for Testing
+- dropped Chromium Manifest V2 extension support
+
+Those are the reasons this repo does not treat a Playwright update as a routine improvement. The exact release numbers for those changes were not re-verified when this document was last updated — confirm them against the upstream Playwright release notes before using them as a migration argument.

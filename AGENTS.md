@@ -1,297 +1,183 @@
 # AGENTS.md
-1. Think Before Coding
+
+Working rules and navigation for AI agents in this repository. Read this before editing code; read [docs/architecture.md](docs/architecture.md) before changing runtime behavior.
+
+## 1. Think Before Coding
+
 Don't assume. Don't hide confusion. Surface tradeoffs.
 
 Before implementing:
 
-State your assumptions explicitly. If uncertain, ask.
-If multiple interpretations exist, present them - don't pick silently.
-If a simpler approach exists, say so. Push back when warranted.
-If something is unclear, stop. Name what's confusing. Ask.
+- State your assumptions explicitly. If uncertain, ask.
+- If multiple interpretations exist, present them - don't pick silently.
+- If a simpler approach exists, say so. Push back when warranted.
+- If something is unclear, stop. Name what's confusing. Ask.
 
-2. Simplicity First
+## 2. Simplicity First
+
 Minimum code that solves the problem. Nothing speculative.
 
-No features beyond what was asked.
-No abstractions for single-use code.
-No "flexibility" or "configurability" that wasn't requested.
-No error handling for impossible scenarios.
-If you write 200 lines and it could be 50, rewrite it.
+- No features beyond what was asked.
+- No abstractions for single-use code.
+- No "flexibility" or "configurability" that wasn't requested.
+- No error handling for impossible scenarios.
+- If you write 200 lines and it could be 50, rewrite it.
+
 Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
 
-3. Surgical Changes
+## 3. Surgical Changes
+
 Touch only what you must. Clean up only your own mess.
 
 When editing existing code:
 
-Don't "improve" adjacent code, comments, or formatting.
-Don't refactor things that aren't broken.
-Match existing style, even if you'd do it differently.
-If you notice unrelated dead code, mention it - don't delete it.
-When your changes create orphans:
+- Don't "improve" adjacent code, comments, or formatting.
+- Don't refactor things that aren't broken.
+- Match existing style, even if you'd do it differently.
+- If you notice unrelated dead code, mention it - don't delete it.
 
-Remove imports/variables/functions that YOUR changes made unused.
-Don't remove pre-existing dead code unless asked.
+When your changes create orphans, remove imports/variables/functions that YOUR changes made unused. Don't remove pre-existing dead code unless asked.
+
 The test: Every changed line should trace directly to the user's request.
 
-4. Goal-Driven Execution
+## 4. Goal-Driven Execution
+
 Define success criteria. Loop until verified.
 
 Transform tasks into verifiable goals:
 
-"Add validation" -> "Write tests for invalid inputs, then make them pass"
-"Fix the bug" -> "Write a test that reproduces it, then make it pass"
-"Refactor X" -> "Ensure tests pass before and after"
-For multi-step tasks, state a brief plan:
+- "Add validation" -> "Write tests for invalid inputs, then make them pass"
+- "Fix the bug" -> "Write a test that reproduces it, then make it pass"
+- "Refactor X" -> "Ensure tests pass before and after"
 
+For multi-step tasks, state a brief plan:
 
 1. [Step] -> verify: [check]
 2. [Step] -> verify: [check]
 3. [Step] -> verify: [check]
+
 Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
 
+## 5. Use The Model Only For Judgment Calls
 
-5. Use the model only for judgment calls
 Use for: classification, drafting, summarization, extraction.
 Do NOT use for: routing, retries, status-code handling, deterministic transforms.
 If code can answer, code answers.
 
-6. Surface conflicts, don't average them
-If two patterns contradict, pick one (more recent / more tested).
-Explain why. Flag the other for cleanup.
-Don't blend conflicting patterns.
+## 6. Surface Conflicts, Don't Average Them
 
-7. Read before you write
-Before adding code, read exports, immediate callers, shared utilities.
-If unsure why existing code is structured a certain way, ask.
+If two patterns contradict, pick one (more recent / more tested). Explain why. Flag the other for cleanup. Don't blend conflicting patterns.
 
-8. Tests verify intent, not just behavior
-Tests must encode WHY behavior matters, not just WHAT it does.
-A test that can't fail when business logic changes is wrong.
+## 7. Read Before You Write
 
-9. Checkpoint after every significant step
-Summarize what was done, what's verified, what's left.
-Don't continue from a state you can't describe back.
-If you lose track, stop and restate.
+Before adding code, read exports, immediate callers, shared utilities. If unsure why existing code is structured a certain way, ask.
 
-10. Match the codebase's conventions, even if you disagree
-Conformance > taste inside the codebase.
-If you think a convention is harmful, surface it. Don't fork it silently.
+## 8. Tests Verify Intent, Not Just Behavior
 
-11. Fail loud
-"Completed" is wrong if anything was skipped silently.
-"Tests pass" is wrong if any were skipped.
-Default to surfacing uncertainty, not hiding it.
+Tests must encode WHY behavior matters, not just WHAT it does. A test that can't fail when business logic changes is wrong.
 
+## 9. Checkpoint After Every Significant Step
 
-# Flux Agent Guide
+Summarize what was done, what's verified, what's left. Don't continue from a state you can't describe back. If you lose track, stop and restate.
 
-This file is for AI agents and code assistants working in this repository.
-It is intentionally biased toward fast codebase navigation, common execution paths, and low-friction debugging.
+## 10. Match The Codebase's Conventions, Even If You Disagree
+
+Conformance > taste inside the codebase. If you think a convention is harmful, surface it. Don't fork it silently.
+
+## 11. Fail Loud
+
+"Completed" is wrong if anything was skipped silently. "Tests pass" is wrong if any were skipped. Default to surfacing uncertainty, not hiding it.
+
+---
+
+# Repository Guide
 
 ## Scope
 
-- Main solution: `Flux.sln`
-- Main backend/runtime code: `RuriLib/`, `RuriLib.Http/`, `RuriLib.Proxies/`, `Flux.Core/`, `Flux.Shared/`, `Flux.Native/`
-- Vendored TLS library: `Libraries/TlsClient.NET/`
+- Solution: `Flux.sln`. Every first-party project is in it; there is no web project.
+- Runtime: `RuriLib/`, `RuriLib.Http/`, `RuriLib.Proxies/`, `RuriLib.Parallelization/`.
+- App: `Flux.Core/` (persistence), `Flux.Shared/` (orchestration), `Flux.Native/` (WPF).
+- Vendored: `Libraries/TlsClient.NET/` (nested git repository, locally patched).
 
-If a task only concerns runtime logic, jobs, blocks, proxies, or HTTP, start in `RuriLib/` and `Flux.Shared/`.
+If a task concerns runtime logic, jobs, blocks, proxies, or HTTP, start in `RuriLib/` and `Flux.Shared/`. Do not start in `Flux.Native/`.
 
-## Fast Project Map
+## Dependency Rules
 
-- `RuriLib/`
-  Core automation/runtime library. Contains blocks, config execution, jobs, bot state, providers, settings, and scripting integration.
-- `RuriLib.Http/`
-  Custom HTTP transport implementation used by `HttpLibrary.RuriLibHttp`.
-- `RuriLib.Proxies/`
-  TCP/proxy connection layer used by `RuriLib.Http`.
-- `RuriLib.Tests/`
-  Runtime/debugger integration tests for `RuriLib`, including compiled script and HTTP execution regressions.
-- `Flux.Shared/`
-  Shared orchestration and DTO layer used by the application shell around `RuriLib`.
-- `Flux.Core/`
-  Persistence/domain layer for jobs, configs, hits, and repositories.
-- `Flux.Native/`
-  WPF desktop app. Many user-facing flows end here, but execution/runtime behavior usually delegates into `RuriLib` and `Flux.Shared`.
-- `Libraries/TlsClient.NET/`
-  External-but-included TLS transport. Useful when debugging `HttpLibrary.TlsClient`.
+`RuriLib` → `RuriLib.Http` / `RuriLib.Proxies` / `RuriLib.Parallelization` / `TlsClient.NET`.
+`Flux.Core` → `RuriLib`.
+`Flux.Shared` → `Flux.Core` + `RuriLib`.
+`Flux.Native` → `Flux.Core` + `Flux.Shared`.
+
+- `RuriLib` must never reference `Flux.*`.
+- `Flux.Native` is the only composition root (`App.xaml.cs`).
+- The desktop UI must not persist jobs or deserialize job options; that belongs to `Flux.Shared/Services/JobOrchestrator.cs`.
 
 ## High-Signal Entry Points
 
-### HTTP request block flow
+### HTTP request block
 
-1. `RuriLib/Blocks/Requests/Http/Methods.cs`
-2. `RuriLib/Functions/Http/*RequestHandler.cs`
-3. `RuriLib/Functions/Http/HttpRequestHandler.cs`
+1. `RuriLib/Blocks/Requests/Http/Methods.cs` (transport switch)
+2. `RuriLib/Functions/Http/HttpRequestHandler.cs` (shared pipeline)
+3. `HttpClientRequestHandler` / `RLHttpClientRequestHandler` / `TlsClientRequestHandler`
 4. `RuriLib/Functions/Http/HttpFactory.cs`
-5. `RuriLib.Http/` and `RuriLib.Proxies/` if the issue is transport-level
+5. `RuriLib.Http/` or `Libraries/TlsClient.NET/` only if the bug is transport-level
 
-Transport selection:
-- `SystemNet` -> `HttpClientRequestHandler`
-- `RuriLibHttp` -> `RLHttpClientRequestHandler`
-- `TlsClient` -> `TlsClientRequestHandler`
+`RuriLibHttp` can delegate to the TlsClient path when `UseTlsFingerprinting` is set. Check `RLHttpClientRequestHandler` before assuming a bug is in `RuriLib.Http`.
 
-### Job runtime flow
+### Job runtime
 
 1. `RuriLib/Models/Jobs/MultiRunJob.cs`
-2. `RuriLib/Models/Jobs/JobInitializer.cs`
-3. `RuriLib/Models/Jobs/JobLifecycleService.cs`
-4. `RuriLib/Models/Jobs/Execution/`
-5. `RuriLib/Models/Jobs/Execution/WorkItemFactory.cs`
-6. `RuriLib/Models/Jobs/Execution/JobResultProcessor.cs`
-7. `RuriLib/Models/Jobs/Execution/JobResourceScope.cs`
-8. `Flux.Shared/Services/JobOrchestrator.cs`
-9. `Flux.Shared/Services/JobProjectionService.cs`
-10. `Flux.Shared/Services/JobEventSubscriptionService.cs`
+2. `RuriLib/Models/Jobs/JobInitializer.cs`, `JobLifecycleService.cs`
+3. `RuriLib/Models/Jobs/Execution/` (`WorkItemFactory`, `JobResultProcessor`, `JobResourceScope`, `ExecutionHandlerFactory`)
+4. `Flux.Shared/Services/JobOrchestrator.cs` and `JobOrchestrator.Projections.cs`
+5. `Flux.Core/Services/JobManagerService.cs`, `JobFactoryService.cs`
 
-### Config execution / debugging flow
+### Config execution / debugging
 
 1. `RuriLib/Models/Debugger/ConfigDebugger.cs`
 2. `RuriLib/Models/Scripting/ScriptPreparationService.cs`
-3. `RuriLib/Models/Bots/BotSessionFactory.cs`
-4. `RuriLib/Helpers/Transpilers/`
-5. `RuriLib/Models/Blocks/`
-6. `RuriLib/Blocks/`
+3. `RuriLib/Helpers/Transpilers/` (`Loli2CSharpTranspiler`, `FastLoli2CSharpTranspiler`, `Stack2CSharpTranspiler`)
+4. `RuriLib/Helpers/CSharp/ScriptBuilder.cs` (Roslyn + script cache)
+5. `RuriLib/Models/Blocks/` then `RuriLib/Blocks/`
 
-Regression coverage for this path belongs in `RuriLib.Tests/`, especially when a bug crosses:
-- transpilation
-- compiled script cache/load
-- debugger execution
-- HTTP transport selection
+### Block registration
 
-### Bot state / providers
+- `RuriLib/Helpers/Blocks/BuiltInBlockRegistry.cs` (explicit built-in list + 4 custom descriptors)
+- `RuriLib/Helpers/Blocks/DescriptorsRepository.cs` (attribute reflection, descriptor id = method name)
+- `RuriLib/Helpers/Blocks/BlockFactory.cs` (thin lookup only)
 
-- `RuriLib/Models/Bots/BotData.cs`
-- `RuriLib/Models/Bots/Providers.cs`
-- `RuriLib/Providers/*`
-- `RuriLib/Services/RuriLibSettingsService.cs`
+Reflection-based discovery is the plugin path (`PluginRepository`), not the built-in path.
 
-## Where To Start By Task
+## Invariants
 
-### "HTTP block is broken"
+These look like cleanup targets and are not. Do not delete or merge them:
 
-Read in this order:
-1. `RuriLib/Blocks/Requests/Http/Methods.cs`
-2. `RuriLib/Functions/Http/HttpRequestHandler.cs`
-3. the selected concrete handler
-4. `RuriLib/Functions/Http/HttpFactory.cs`
-5. `RuriLib.Http/` or `Libraries/TlsClient.NET/` if needed
+- Two LoliCode→C# paths: `FastLoli2CSharpTranspiler` (production) and `Stack2CSharpTranspiler` (step-by-step debugging).
+- `Libraries/TlsClient.NET` submodule **and** the `TlsClient.Native.win-x64` NuGet package. The package is the native DLL only.
+- All ten icon font packages; they are referenced across XAML.
+- `DbRepository<T>` subclasses; the base carries save/attach behavior.
+- `HttpLibrary` enum numeric values (`TlsClient = 4`); they are persisted in configs.
 
-### "Job start/stop/progress is broken"
-
-Read in this order:
-1. `RuriLib/Models/Jobs/MultiRunJob.cs`
-2. `RuriLib/Models/Jobs/JobInitializer.cs`
-3. `RuriLib/Models/Jobs/JobLifecycleService.cs`
-4. `Flux.Shared/Services/JobOrchestrator.cs`
-5. `Flux.Shared/Services/JobProjectionService.cs`
-
-### "A block behavior is wrong"
-
-Read in this order:
-1. block descriptor / block instance under `RuriLib/Models/Blocks/`
-2. implementation under `RuriLib/Blocks/`
-3. transpiler glue under `RuriLib/Helpers/Transpilers/` if the block is emitted into generated C#
-
-If the issue is block registration or discovery, also read:
-- `RuriLib/Helpers/Blocks/BuiltInBlockRegistry.cs`
-- `RuriLib/Helpers/Blocks/DescriptorsRepository.cs`
-- `RuriLib/Helpers/Blocks/BlockFactory.cs`
-
-If the issue is custom block LC parsing/serialization or generated C#, start from:
-- `RuriLib/Models/Blocks/Custom/HttpRequestBlockInstance.cs`
-- `RuriLib/Models/Blocks/Custom/HttpRequestBlockInstance.LoliCode.cs`
-- `RuriLib/Models/Blocks/Custom/HttpRequestBlockInstance.CSharp.cs`
-- `RuriLib/Models/Blocks/Custom/ParseBlockInstance.cs`
-- `RuriLib/Models/Blocks/Custom/ParseBlockInstance.LoliCode.cs`
-- `RuriLib/Models/Blocks/Custom/ParseBlockInstance.CSharp.cs`
-
-### "Desktop UI issue"
-
-Read in this order:
-1. viewmodel under `Flux.Native/ViewModels/`
-2. view or code-behind under `Flux.Native/Views/`
-3. delegated service in `Flux.Shared/` or `RuriLib/`
-
-For recently split `Flux.Native` pages, start from the shell page and then move into feature controls/viewmodels:
-- Tools dashboard shell: `Flux.Native/Views/Pages/Tools/Monitor.xaml` and `Monitor.xaml.cs`
-- Tools dashboard state: `Flux.Native/ViewModels/Pages/ToolsPageViewModel.cs`
-- Individual tool cards: `Flux.Native/ViewModels/Tools/` and `Flux.Native/Views/Controls/Tools/`
-- Config stacker shell: `Flux.Native/Views/Pages/ConfigPages/ConfigStacker.xaml` and `ConfigStacker.xaml.cs`
-- Config stacker block list / inspector: `Flux.Native/Views/Controls/Config/`
-- Config stacker state: `Flux.Native/ViewModels/Config/ConfigStackerViewModel.cs`, `ConfigStackerViewModel.Selection.cs`, `ConfigStackerViewModel.Stack.cs`, `ConfigStackerViewModel.Search.cs`, `ConfigStackerViewModel.Tooling.cs`, and `ConfigStackerInspectorViewModel.cs`
-
-## Common Architecture Notes
-
-- `RuriLib` is the execution engine.
-- `Flux.Shared` is the orchestration/projection layer around running jobs.
-- `Flux.Native` is often UI glue over services from `Flux.Shared` and `RuriLib`.
-- `RuriLib.Http` and `RuriLib.Proxies` are lower-level infrastructure, not block-level APIs.
-- `TlsClient.NET` is effectively a separate transport stack.
-
-Recent runtime simplifications already in place:
-- Job initialization and lifecycle were extracted from `MultiRunJob`.
-- `MultiRunJob` now delegates work-item creation, result propagation, hit/stats updates, and runtime-owned cleanup to `WorkItemFactory`, `JobResultProcessor`, and `JobResourceScope`.
-- Shared runtime script preparation and bot/session setup now flow through `ScriptPreparationService` and `BotSessionFactory`, used by `JobInitializer`, `WorkItemFactory`, and `ConfigDebugger`.
-- Job projection and event subscriptions were extracted from `JobOrchestrator`.
-- Desktop job create/edit/clone/delete and job option loading now go through `Flux.Shared/Services/JobOrchestrator.cs`; `Flux.Native` jobs UI should not persist jobs or deserialize job options directly.
-- HTTP request execution is now centered on shared pipeline logic in `HttpRequestHandler`.
-- Built-in block registration now goes through `RuriLib/Helpers/Blocks/BuiltInBlockRegistry.cs`; reflection-based descriptor discovery remains for plugin assemblies only.
-- `BlockDescriptor` now owns block instance creation through a registered factory, so `BlockFactory` should stay thin and not grow new descriptor-type switches.
-- Legacy `HttpCloak` HTTP block settings now normalize to `TlsClient` during load/transpile.
-- `HttpRequestBlockInstance` and `ParseBlockInstance` are split into core state, LoliCode parsing/serialization, and C# emission partials.
-- Puppeteer browser blocks are now split across `RuriLib/Blocks/Puppeteer/Browser/Methods.cs`, `Methods.Helpers.cs`, `Methods.Cleanup.cs`, `Methods.Launch.cs`, and `Methods.LaunchOptions.cs`.
-- Runtime/global settings and config-scoped settings now use distinct model names: `GlobalGeneralSettings`/`GlobalProxySettings` and `ConfigGeneralSettings`/`ConfigProxySettings`.
-
-Recent desktop refactors already in place:
-- `Monitor` is now a shell page; tool-specific behavior lives in dedicated controls/viewmodels.
-- `ConfigStacker` is now a shell page; block list and inspector behavior are split into dedicated controls/viewmodels.
-- `Home` is now a thin page over `Flux.Native/ViewModels/Pages/HomeViewModel.cs`, with dashboard data pulled through `Flux.Shared/Abstractions/IDashboardService.cs`.
-
-## Logging And Debugging
-
-### HTTP
-
-The shared HTTP pipeline now logs transport-aware failure context from `RuriLib/Functions/Http/HttpRequestHandler.cs`.
-When debugging request failures, check for:
-- transport name
-- exception chain
-- request context
-- proxy/connect/read-write timeout settings
-- stack trace when verbose mode is enabled, or for framework argument/state errors
-
-### Verbose mode
-
-Verbose mode is controlled through:
-- `RuriLib/Models/Settings/GlobalGeneralSettings.cs`
-- provider access via `RuriLib/Providers/General/`
-
-It increases diagnostic output for config debugging and runtime failures.
+More detail and evidence: [docs/architecture.md](docs/architecture.md#deliberate-duplication--do-not-simplify).
 
 ## Build And Test
 
-Run from repo root:
-
 ```powershell
 dotnet build Flux.sln -c Debug
-dotnet test Flux.sln
-```
-
-Useful targeted commands:
-
-```powershell
-dotnet build RuriLib/RuriLib.csproj -c Debug --no-restore
-dotnet build Flux.Shared/Flux.Shared.csproj -c Debug --no-restore
 dotnet test RuriLib.Tests/RuriLib.Tests.csproj
 dotnet test RuriLib.Http.Tests/RuriLib.Http.Tests.csproj
 dotnet test Flux.Shared.Tests/Flux.Shared.Tests.csproj
 ```
 
+- SDK is pinned to 8.0.401 by `global.json`.
+- Restore writes to the repo-local `packages/` folder (`nuget.config`).
+- `RuriLib.Tests` sees `RuriLib` internals via `InternalsVisibleTo`.
+- Two HTTPS parity tests are `Skip`ped by design; don't claim full coverage.
+- For UI changes, publish with `Flux.Native\test_build\run_testing.bat`; tests cannot verify XAML.
+
+Details: [docs/development.md](docs/development.md).
+
 ## Search Tips
-
-Prefer `rg`.
-
-Examples:
 
 ```powershell
 rg -n "HttpLibrary" RuriLib
@@ -304,37 +190,15 @@ rg -n "ConfigDebugger" RuriLib
 ## Change Safety
 
 - Read the whole execution path before refactoring shared runtime code.
-- Changes in `HttpRequestHandler`, `HttpFactory`, `MultiRunJob`, or `JobOrchestrator` have large blast radius.
-- Prefer adding diagnostics before building one-off reproduction programs.
-- Avoid changing vendored `Libraries/TlsClient.NET/` unless the bug is clearly in that transport.
-- If a behavior differs between `SystemNet`, `RuriLibHttp`, and `TlsClient`, compare the three handlers first before going lower.
-
-## Files Worth Knowing
-
-- `RuriLib/Blocks/Requests/Http/Methods.cs`
-- `RuriLib/Functions/Http/HttpRequestHandler.cs`
-- `RuriLib/Functions/Http/HttpFactory.cs`
-- `RuriLib/Models/Bots/BotData.cs`
-- `RuriLib/Models/Bots/BotSessionFactory.cs`
-- `RuriLib/Models/Debugger/ConfigDebugger.cs`
-- `RuriLib/Models/Jobs/MultiRunJob.cs`
-- `RuriLib/Models/Jobs/JobInitializer.cs`
-- `RuriLib/Models/Jobs/JobLifecycleService.cs`
-- `RuriLib/Models/Jobs/Execution/WorkItemFactory.cs`
-- `RuriLib/Models/Jobs/Execution/JobResultProcessor.cs`
-- `RuriLib/Models/Jobs/Execution/JobResourceScope.cs`
-- `RuriLib/Models/Scripting/ScriptPreparationService.cs`
-- `Flux.Shared/Services/JobOrchestrator.cs`
-- `Flux.Shared/Services/JobProjectionService.cs`
-- `Flux.Shared/Services/JobEventSubscriptionService.cs`
+- `HttpRequestHandler`, `HttpFactory`, `MultiRunJob`, `JobOrchestrator`, and `ScriptBuilder` have large blast radius.
+- If behavior differs between `SystemNet`, `RuriLibHttp`, and `TlsClient`, compare the three handlers before going lower.
+- Avoid editing `Libraries/TlsClient.NET/` unless the bug is clearly in that transport; it is a nested repo with a local patch.
+- Config and script caches are hash-keyed (script text + `RuriLib` MVID + plugins). A load failure from the cache means a corrupt DLL in `UserData/CompiledScripts/`, not a stale source hash.
+- Never renumber serialized enums (`HttpLibrary`, `ConfigMode`, job/proxy enums). Values are persisted in configs, job options, and the SQLite database.
 
 ## Non-Code Directories
 
-- `UserData/`
-  Local runtime data, configs, wordlists, and outputs. Usually not source-controlled.
-- `Changelog/`
-  Version history.
-- `packages/`
-  Local NuGet cache.
-
-Keep this file practical. Prefer updating entry points and debugging guidance over adding broad marketing-style project descriptions.
+- `UserData/` — local runtime data (configs, settings, database). Not source.
+- `packages/` — NuGet global packages folder for this repo.
+- `Changelog/` — per-version notes.
+- `Flux.Native/test_build/` — local publish output and backups. Do not treat as source.

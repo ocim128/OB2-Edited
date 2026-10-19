@@ -50,6 +50,24 @@ public class DiskConfigRepository : IConfigRepository
     }
 
     /// <inheritdoc/>
+    public Task<int> CountAsync()
+    {
+        // Counting must not unpack the .opk archives: that would zip-open, JSON-deserialize the
+        // metadata/settings AND read the embedded script bytes just to produce an integer.
+        // GetFiles can throw (missing folder, denied access), so mirror GetAsync's contract of
+        // returning what can be read rather than failing the whole dashboard refresh.
+        try
+        {
+            return Task.FromResult(Directory.GetFiles(BaseFolder, "*.opk").Length);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Could not count configs in {BaseFolder}: {ex.Message}");
+            return Task.FromResult(0);
+        }
+    }
+
+    /// <inheritdoc/>
     public async Task<Config> GetAsync(string id)
     {
         var file = GetFileName(id);

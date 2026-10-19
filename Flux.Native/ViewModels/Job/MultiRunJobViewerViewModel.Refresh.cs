@@ -38,12 +38,66 @@ public partial class MultiRunJobViewerViewModel
                 return;
             }
 
-            await ApplySnapshotOnUiThreadAsync(latest, refreshResults: forceResultsRefresh || latest.Results.Count != allResults.Count)
+            await ApplySnapshotOnUiThreadAsync(latest, refreshResults: forceResultsRefresh || ResultsChanged(latest.Results))
                 .ConfigureAwait(false);
+
+            AdjustRefreshInterval(latest.Summary.Status);
         }
         finally
         {
             refreshLock.Release();
+        }
+    }
+
+    /// <summary>
+    /// Detects whether the projected result window changed.
+    /// Comparing only Count is not enough: the snapshot keeps the newest N hits, so once that
+    /// window is full the count stays constant while the contents keep rotating.
+    /// </summary>
+    private bool ResultsChanged(IReadOnlyList<JobRuntimeResultDto> latest)
+    {
+        if (latest.Count != allResults.Count)
+        {
+            return true;
+        }
+
+        // The window is ordered oldest-to-newest, so the newest element identifies the window.
+        if (latest.Count == 0)
+        {
+            return false;
+        }
+
+        return !string.Equals(latest[^1].Id, allResults[^1].Id, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Switches the poll interval between the active and idle rates without restarting the timer
+    /// on every tick. A finished job still refreshes, just far less often.
+    /// </summary>
+    private void AdjustRefreshInterval(JobStatus status)
+    {
+        var target = status is JobStatus.Running or JobStatus.Starting or JobStatus.Waiting
+            or JobStatus.Pausing or JobStatus.Paused or JobStatus.Stopping or JobStatus.Resuming
+            ? ActiveRefreshInterval
+            : IdleRefreshInterval;
+
+        if (target == currentRefreshInterval)
+        {
+            return;
+        }
+
+        currentRefreshInterval = target;
+
+        try
+        {
+            if (!disposed)
+            {
+                refreshTimer?.Change(target, target);
+            }
+        }
+        catch (ObjectDisposedException)
+        {
+            // The viewer was disposed between the check and the change; nothing to reschedule.
         }
     }
 

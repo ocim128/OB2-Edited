@@ -10,6 +10,7 @@
       Title="Hits">
 
     <Page.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
         <ContextMenu x:Key="ItemContextMenu" Style="{StaticResource {x:Type ContextMenu}}">
             <MenuItem x:Name="copyMenu" Header="Copy Selected">
                 <MenuItem Header="Data" Click="CopySelected"/>
@@ -78,6 +79,11 @@
                     <TextBox x:Name="searchTextbox" Text="{Binding SearchString, UpdateSourceTrigger=PropertyChanged, Delay=200}" Margin="0,0,5,0" Width="150" Style="{StaticResource MatchingTextBox}" ToolTip="Search in captured data"/>
                     <ComboBox ItemsSource="{Binding ConfigNames}" SelectedItem="{Binding ConfigFilter}" Margin="0,0,5,0" Width="150" Style="{StaticResource CleanComboBox}" ToolTip="Filter by config"/>
                     <ComboBox ItemsSource="{Binding HitTypes}" SelectedItem="{Binding TypeFilter}" Margin="0,0,5,0" Width="120" Style="{StaticResource CleanComboBox}" ToolTip="Filter by hit type"/>
+                    <TextBlock Text="{Binding TruncationNotice}"
+                               VerticalAlignment="Center"
+                               Margin="8,0,0,0"
+                               Foreground="Orange"
+                               Visibility="{Binding IsTruncated, Converter={StaticResource BoolToVis}}" />
                 </StackPanel>
             </Grid>
         </Border>

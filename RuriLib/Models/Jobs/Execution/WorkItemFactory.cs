@@ -21,6 +21,7 @@ internal sealed class WorkItemFactory
         var configSettings = job.Config.Settings;
         var customAnswers = job.CustomInputsAnswers;
         var scope = job.ResourceScope;
+        var logsEnabled = job.BotLoggingEnabled;
 
         long index = 0;
 
@@ -33,7 +34,7 @@ internal sealed class WorkItemFactory
                 BotData = _botSessionFactory.CreateBotData(
                     job.Providers,
                     configSettings,
-                    new BotLogger(),
+                    new BotLogger { Enabled = logsEnabled },
                     new DataLine(line, wordlistType),
                     useProxy: useProxies,
                     asyncLocker: scope.AsyncLocker,

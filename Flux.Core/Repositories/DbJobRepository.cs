@@ -20,11 +20,16 @@ public class DbJobRepository : DbRepository<JobEntity>, IJobRepository
 
     public override async Task<JobEntity> GetAsync(int id, CancellationToken cancellationToken = default)
     {
-        var entity = await context.Jobs
-            .Include(j => j.Owner)
-            .FirstOrDefaultAsync(j => j.Id == id, cancellationToken);
-        await context.Entry(entity).ReloadAsync(cancellationToken);
-        return entity;
+        // The previous implementation paid for an Include(Owner) join and then discarded it with
+        // ReloadAsync (which only refreshes scalars), so the join and a second SELECT were both
+        // wasted and it could still NRE when the job did not exist.
+        // AsNoTracking is consistent with this repository's UpdateAsync, which already detaches
+        // before marking Modified, and it keeps the result fresh instead of returning a cached
+        // tracked instance. Callers that need the owner use the OwnerId column.
+        return await context.Jobs
+            .AsNoTracking()
+            .FirstOrDefaultAsync(j => j.Id == id, cancellationToken)
+            .ConfigureAwait(false);
     }
 
     public async override Task UpdateAsync(JobEntity entity, CancellationToken cancellationToken = default)

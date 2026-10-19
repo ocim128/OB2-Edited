@@ -178,7 +178,9 @@ public class HomeViewModel : ViewModelBase, IDisposable
     {
         try
         {
-            if (DateTime.UtcNow - lastStatisticsUpdate < TimeSpan.FromSeconds(30))
+            // Drive the throttle from the configured interval instead of a hardcoded 30s, which
+            // silently overrode any StatisticsInterval below 30 seconds.
+            if (DateTime.UtcNow - lastStatisticsUpdate < _refreshOptions.StatisticsInterval)
             {
                 return;
             }

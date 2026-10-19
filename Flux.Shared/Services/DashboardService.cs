@@ -130,7 +130,7 @@ public class DashboardService : IDashboardService
     }
 
     private async Task<int> CountConfigsAsync()
-        => (await _configRepository.GetAllAsync().ConfigureAwait(false))?.Count() ?? 0;
+        => await _configRepository.CountAsync().ConfigureAwait(false);
 
     private async Task<int> CountProxiesAsync(CancellationToken cancellationToken)
         => await _proxyRepository.GetAll().CountAsync(cancellationToken).ConfigureAwait(false);

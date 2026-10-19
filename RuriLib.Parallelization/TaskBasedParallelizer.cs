@@ -127,6 +127,13 @@ namespace RuriLib.Parallelization
                 {
                     if (softCTS.IsCancellationRequested) break;
 
+                    // Honor the CPM cap. Without this the default parallelizer silently ignored
+                    // ConfigGeneralSettings.MaximumCPM and ran unthrottled.
+                    while (IsCPMLimited())
+                    {
+                        await Task.Delay(100, softCTS.Token).ConfigureAwait(false);
+                    }
+
                     await _semaphore.WaitAsync(softCTS.Token).ConfigureAwait(false);
 
                     var item = enumerator.Current;

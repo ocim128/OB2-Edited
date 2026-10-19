@@ -33,7 +33,6 @@ public class ProxyReloadService : IDisposable
     public async Task<IEnumerable<Proxy>> ReloadAsync(int groupId, int userId, CancellationToken cancellationToken = default)
     {
         using var scope = _scopeFactory.CreateScope();
-        var proxyGroupsRepo = scope.ServiceProvider.GetRequiredService<IProxyGroupRepository>();
         var proxyRepo = scope.ServiceProvider.GetRequiredService<IProxyRepository>();
 
         List<ProxyEntity> entities;
@@ -54,7 +53,9 @@ public class ProxyReloadService : IDisposable
             }
             else
             {
-                var group = await proxyGroupsRepo.GetAsync(groupId, cancellationToken).ConfigureAwait(false);
+                // The group entity itself is not needed: the filter below uses the groupId
+                // parameter. The previous version materialized the group (plus its owner) and
+                // never used the result, costing one extra query per reload.
                 entities = await proxyRepo.GetAll().AsNoTracking()
                     .Where(p => p.Group.Id == groupId)
                     .ToListAsync(cancellationToken).ConfigureAwait(false);

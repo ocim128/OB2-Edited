@@ -20,6 +20,37 @@ namespace Flux.Native.ViewModels.Data
         private readonly IHitRepository hitRepo;
         private bool initialized;
 
+        /// <summary>
+        /// Maximum number of hits materialized into the hits screen. The Hits table grows without
+        /// bound, and the previous implementation loaded every row into memory (and therefore into
+        /// a WPF collection) on each refresh. The newest rows are kept and the UI states that the
+        /// list was truncated instead of silently hiding data.
+        /// </summary>
+        private const int MaxLoadedHits = 5000;
+
+        private bool isTruncated;
+        /// <summary>
+        /// True when the table holds more hits than <see cref="MaxLoadedHits"/>.
+        /// </summary>
+        public bool IsTruncated
+        {
+            get => isTruncated;
+            private set
+            {
+                if (isTruncated == value) return;
+                isTruncated = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(TruncationNotice));
+            }
+        }
+
+        /// <summary>
+        /// Message shown when only the newest hits are displayed. Empty otherwise.
+        /// </summary>
+        public string TruncationNotice => isTruncated
+            ? $"Showing the newest {MaxLoadedHits} hits. Older hits are hidden by the display limit."
+            : string.Empty;
+
         private ObservableCollection<HitEntity> hitsCollection;
         public ObservableCollection<HitEntity> HitsCollection
         {
@@ -166,7 +197,15 @@ namespace Flux.Native.ViewModels.Data
                 System.Diagnostics.Debug.WriteLine("HitsViewModel: Starting RefreshListAsync");
                 // TODO: Make this not fail when hits are being written and we try to read them!
                 // A.k.a. make this use another repo, not the singleton, and refresh it when new hits come in
-                var items = await hitRepo.GetAll().AsNoTracking().ToListAsync();
+                var items = await hitRepo.GetAll()
+                    .AsNoTracking()
+                    .OrderByDescending(h => h.Date)
+                    .Take(MaxLoadedHits)
+                    .ToListAsync();
+
+                // A full page means there may be more rows; only count then, so the common case
+                // does not pay for a COUNT(*) on every refresh.
+                IsTruncated = items.Count == MaxLoadedHits;
                 System.Diagnostics.Debug.WriteLine($"HitsViewModel: Loaded {items.Count} hits from repository");
                 
                 HitsCollection = new ObservableCollection<HitEntity>(items);

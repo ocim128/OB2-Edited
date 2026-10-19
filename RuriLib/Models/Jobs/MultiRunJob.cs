@@ -172,6 +172,14 @@ public class MultiRunJob : Job, IDisposable
     internal bool ShouldPersistBotLogForHits
         => settings.RuriLibSettings.GeneralSettings.EnableBotLogging && Config.Mode != ConfigMode.DLL;
 
+    /// <summary>
+    /// Whether per-bot logs should be collected at all. Logging is off by default (the setting
+    /// documents itself as "debugging only, high RAM usage"), so bot loggers are created disabled
+    /// instead of accumulating 10k entries per bot that nothing will ever read.
+    /// </summary>
+    internal bool BotLoggingEnabled
+        => settings.RuriLibSettings.GeneralSettings.EnableBotLogging;
+
     internal CancellationTokenSource StartCancellationSource => _startCts;
 
     internal Timer TickTimer

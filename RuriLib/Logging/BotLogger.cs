@@ -1,6 +1,7 @@
 using RuriLib.Attributes;
 using RuriLib.Extensions;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -27,6 +28,10 @@ public class BotLogger : IBotLogger
     // Performance optimization: limit memory usage
     private const int MAX_ENTRIES = 10000;
     private const int TRIM_TO_ENTRIES = 8000;
+
+    // Caches the [Block] display name per calling method so LogHeader does not pay
+    // a GetCustomAttribute reflection call on every block execution.
+    private static readonly ConcurrentDictionary<MethodBase, string> _callerNameCache = new();
 
     /// <inheritdoc/>
     public event EventHandler<BotLoggerEntry> NewEntry;
@@ -155,11 +160,20 @@ public class BotLogger : IBotLogger
         try
         {
             var callingMethod = new StackFrame(1).GetMethod();
-            var attribute = callingMethod?.GetCustomAttribute<Block>();
 
-            if (attribute is { name: { } })
+            if (callingMethod is not null)
             {
-                caller = attribute.name;
+                // Cache the resolved display name: this runs once per block execution per bot,
+                // so the attribute lookup must not be repeated for the same call site.
+                // Empty string means "no [Block] attribute" so the CallerMemberName default is kept.
+                var cachedName = _callerNameCache.GetOrAdd(
+                    callingMethod,
+                    static m => m.GetCustomAttribute<Block>() is { name: { } name } ? name : string.Empty);
+
+                if (!string.IsNullOrEmpty(cachedName))
+                {
+                    caller = cachedName;
+                }
             }
 
             var entry = new BotLoggerEntry

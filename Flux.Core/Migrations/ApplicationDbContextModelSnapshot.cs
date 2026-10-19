@@ -85,6 +85,8 @@ namespace Flux.Core.Migrations
 
                     b.HasIndex("ConfigName", "Date");
 
+                    b.HasIndex("ConfigId", "WordlistId", "Date");
+
                     b.HasIndex("OwnerId", "ConfigName", "Date");
 
                     b.HasIndex("OwnerId", "Type", "Date");

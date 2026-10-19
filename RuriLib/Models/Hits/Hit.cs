@@ -1,4 +1,4 @@
-﻿using RuriLib.Logging;
+using RuriLib.Logging;
 using RuriLib.Models.Configs;
 using RuriLib.Models.Data;
 using RuriLib.Models.Proxies;
@@ -14,8 +14,27 @@ namespace RuriLib.Models.Hits
         public string Id { get; } = Guid.NewGuid().ToString();
         public DataLine Data { get; set; }
         public string DataString => Data.Data;
-        public Dictionary<string, object> CapturedData { get; set; }
-        public string CapturedDataString => ConvertCapturedData();
+
+        private Dictionary<string, object> _capturedData;
+        public Dictionary<string, object> CapturedData
+        {
+            get => _capturedData;
+            set
+            {
+                _capturedData = value;
+                // Invalidate the rendered form so it can never describe older captures.
+                _capturedDataString = null;
+            }
+        }
+
+        private string _capturedDataString;
+
+        /// <summary>
+        /// The captured variables rendered as "name = value | ...".
+        /// Computed lazily and cached: the job viewer reads this for every hit on every poll,
+        /// and rebuilding the variable list each time is pure allocation churn.
+        /// </summary>
+        public string CapturedDataString => _capturedDataString ??= ConvertCapturedData();
         public Proxy Proxy { get; set; }
         public string ProxyString => Proxy == null ? "" : Proxy.ToString();
         public DateTime Date { get; set; }

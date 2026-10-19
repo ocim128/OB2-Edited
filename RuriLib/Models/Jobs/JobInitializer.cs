@@ -169,7 +169,7 @@ internal sealed class JobInitializer
         var startupBotData = _botSessionFactory.CreateStartupBotData(
             job.Providers,
             job.Config.Settings,
-            new BotLogger(),
+            new BotLogger { Enabled = job.BotLoggingEnabled },
             wordlistType,
             cancellationToken,
             asyncLocker: runtimeContext.AsyncLocker,

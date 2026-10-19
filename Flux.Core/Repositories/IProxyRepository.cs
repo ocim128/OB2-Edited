@@ -1,4 +1,7 @@
 using Flux.Core.Entities;
+using RuriLib.Models.Proxies;
+using System;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Flux.Core.Repositories;
@@ -14,4 +17,16 @@ public interface IProxyRepository : IRepository<ProxyEntity>
     /// Returns the number of removed entries.
     /// </summary>
     Task<int> RemoveDuplicatesAsync(int groupId);
+
+    /// <summary>
+    /// Writes the result of a proxy check without reading the entity first.
+    /// Used by proxy check jobs, which update one row per checked proxy.
+    /// </summary>
+    Task<int> UpdateCheckResultAsync(
+        int proxyId,
+        string country,
+        DateTime lastChecked,
+        int ping,
+        ProxyWorkingStatus status,
+        CancellationToken cancellationToken = default);
 }

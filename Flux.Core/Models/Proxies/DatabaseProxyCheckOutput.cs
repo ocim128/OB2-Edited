@@ -26,26 +26,21 @@ public class DatabaseProxyCheckOutput : IProxyCheckOutput, IDisposable
     /// <inheritdoc/>
     public async Task StoreAsync(Proxy proxy)
     {
+        // Only allow updating one proxy at a time (multiple threads should
+        // not use the same DbContext at the same time).
+        await _semaphore.WaitAsync().ConfigureAwait(false);
+
         try
         {
-            var entity = await _proxyRepo.GetAsync(proxy.Id);
-            entity.Country = proxy.Country;
-            entity.LastChecked = proxy.LastChecked;
-            entity.Ping = proxy.Ping;
-            entity.Status = proxy.WorkingStatus;
-
-            // Only allow updating one proxy at a time (multiple threads should
-            // not use the same DbContext at the same time).
-            await _semaphore.WaitAsync();
-
-            try
-            {
-                await _proxyRepo.UpdateAsync(entity);
-            }
-            finally
-            {
-                _semaphore.Release();
-            }
+            // Single UPDATE statement: the previous implementation issued a SELECT to materialize
+            // the entity (and NRE'd if the proxy had been deleted meanwhile) and then an UPDATE,
+            // serialized behind this semaphore, once per checked proxy.
+            await _proxyRepo.UpdateCheckResultAsync(
+                proxy.Id,
+                proxy.Country,
+                proxy.LastChecked,
+                proxy.Ping,
+                proxy.WorkingStatus).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -60,6 +55,10 @@ public class DatabaseProxyCheckOutput : IProxyCheckOutput, IDisposable
             
             // TODO: Turn this into a log message using a logger
             Console.WriteLine($"Error while saving proxy {proxy.Id} to the database: {ex.Message}");
+        }
+        finally
+        {
+            _semaphore.Release();
         }
     }
 

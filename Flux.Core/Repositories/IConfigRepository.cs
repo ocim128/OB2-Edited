@@ -33,6 +33,11 @@ public interface IConfigRepository
     Task<IEnumerable<Config>> GetAllAsync();
 
     /// <summary>
+    /// Counts the configs in the repository without unpacking them.
+    /// </summary>
+    Task<int> CountAsync();
+
+    /// <summary>
     /// Retrieves the raw bytes of the OPK config from the repository.
     /// </summary>
     /// <param name="id"></param>

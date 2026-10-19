@@ -11,6 +11,7 @@ using RuriLib.Models.Data.DataPools;
 using RuriLib.Models.Jobs;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -24,11 +25,55 @@ public class JobManagerService : IDisposable
 {
     private static readonly JsonSerializerSettings SharedJsonSettings = new() { TypeNameHandling = TypeNameHandling.Auto };
 
+    // JsonConvert.Serialize/DeserializeObject(settings) builds a new JsonSerializer (and resolves
+    // its contract resolver) on every call. This path runs per job every 10 seconds and on every
+    // bots change, so the serializer is created once here instead. JsonSerializer is thread-safe
+    // for serialize/deserialize operations once its settings are frozen.
+    private static readonly JsonSerializer SharedJsonSerializer = JsonSerializer.Create(SharedJsonSettings);
+
+    private static JobOptionsWrapper? DeserializeOptions(string json)
+    {
+        using var reader = new StringReader(json);
+        using var jsonReader = new JsonTextReader(reader);
+        return SharedJsonSerializer.Deserialize<JobOptionsWrapper>(jsonReader);
+    }
+
+    private static string SerializeOptions(JobOptionsWrapper wrapper)
+    {
+        using var writer = new StringWriter();
+        using (var jsonWriter = new JsonTextWriter(writer))
+        {
+            SharedJsonSerializer.Serialize(jsonWriter, wrapper);
+        }
+
+        return writer.ToString();
+    }
+
     /// <summary>
     /// The list of all created jobs.
     /// </summary>
-    public IEnumerable<Job> Jobs => _jobs;
+    public IEnumerable<Job> Jobs => JobsSnapshot;
+
     private readonly List<Job> _jobs = new();
+
+    // _jobs is mutated by AddJob/RemoveJob/Clear while projection callbacks enumerate it from
+    // thread-pool timers. Enumerating a List<T> during a concurrent mutation throws, so readers
+    // take a snapshot under the same lock the writers use.
+    private readonly object _jobsLock = new();
+
+    /// <summary>
+    /// A point-in-time copy of the job list that is safe to enumerate from any thread.
+    /// </summary>
+    public IReadOnlyList<Job> JobsSnapshot
+    {
+        get
+        {
+            lock (_jobsLock)
+            {
+                return _jobs.ToArray();
+            }
+        }
+    }
     private readonly Dictionary<int, (DateTime LastSave, int LastDataTested)> _jobSaveStates = new();
 
     private readonly SemaphoreSlim _jobSemaphore = new(1, 1);
@@ -67,7 +112,13 @@ public class JobManagerService : IDisposable
                     await jobRepo.UpdateAsync(entity).ConfigureAwait(false);
                 }
 
-                var options = JsonConvert.DeserializeObject<JobOptionsWrapper>(entity.JobOptions, jsonSettings).Options;
+                var options = JsonConvert.DeserializeObject<JobOptionsWrapper>(entity.JobOptions, jsonSettings)?.Options;
+                if (options is null)
+                {
+                    _logger.LogWarning("Skipping job {JobId} because its options could not be deserialized", entity.Id);
+                    continue;
+                }
+
                 var job = await jobFactory.FromOptionsAsync(entity.Id, entity.Owner == null ? 0 : entity.Owner.Id, options).ConfigureAwait(false);
                 AddJob(job);
             }
@@ -113,12 +164,15 @@ public class JobManagerService : IDisposable
     }
 
     private Job GetJobById(int id)
-        => _jobs.FirstOrDefault(j => j.Id == id)
+        => JobsSnapshot.FirstOrDefault(j => j.Id == id)
             ?? throw new KeyNotFoundException($"Job {id} not found");
 
     public void AddJob(Job job)
     {
-        _jobs.Add(job);
+        lock (_jobsLock)
+        {
+            _jobs.Add(job);
+        }
 
         if (job is MultiRunJob mrj)
         {
@@ -130,7 +184,11 @@ public class JobManagerService : IDisposable
 
     public void RemoveJob(Job job)
     {
-        _jobs.Remove(job);
+        lock (_jobsLock)
+        {
+            _jobs.Remove(job);
+        }
+
         _jobSaveStates.Remove(job.Id);
 
         if (job is MultiRunJob mrj)
@@ -151,7 +209,12 @@ public class JobManagerService : IDisposable
     public void Clear()
     {
         UnbindAllEvents();
-        _jobs.Clear();
+
+        lock (_jobsLock)
+        {
+            _jobs.Clear();
+        }
+
         _jobSaveStates.Clear();
     }
 
@@ -280,9 +343,12 @@ public class JobManagerService : IDisposable
             }
 
             // Deserialize and unwrap the job options
-            var settings = SharedJsonSettings;
-            var wrapper = JsonConvert.DeserializeObject<JobOptionsWrapper>(entity.JobOptions, settings);
-            var options = (MultiRunJobOptions)wrapper.Options;
+            var wrapper = DeserializeOptions(entity.JobOptions);
+            if (wrapper?.Options is not MultiRunJobOptions options)
+            {
+                Console.WriteLine("Skipped job options save because the options could not be deserialized");
+                return;
+            }
 
             // Check if it's valid
             if (string.IsNullOrEmpty(options.ConfigId))
@@ -308,7 +374,7 @@ public class JobManagerService : IDisposable
 
             // Wrap and serialize again
             var newWrapper = new JobOptionsWrapper { Options = options };
-            entity.JobOptions = JsonConvert.SerializeObject(newWrapper, settings);
+            entity.JobOptions = SerializeOptions(newWrapper);
 
             // Update the job
             await jobRepo.UpdateAsync(entity);
@@ -325,7 +391,7 @@ public class JobManagerService : IDisposable
 
     private void UnbindAllEvents()
     {
-        foreach (var job in _jobs)
+        foreach (var job in JobsSnapshot)
         {
             if (job is MultiRunJob mrj)
             {

@@ -132,6 +132,20 @@ public partial class MultiRunJobViewerViewModel : ViewModelBase, IDisposable
         return vm;
     }
 
+    /// <summary>
+    /// Poll interval used while the job is actively running.
+    /// </summary>
+    private static readonly TimeSpan ActiveRefreshInterval = TimeSpan.FromMilliseconds(1000);
+
+    /// <summary>
+    /// Poll interval used once the job is no longer running. The snapshot is still refreshed so the
+    /// viewer stays correct if the job is restarted, but a finished/idle job no longer rebuilds its
+    /// hit projection every second for as long as the tab happens to stay open.
+    /// </summary>
+    private static readonly TimeSpan IdleRefreshInterval = TimeSpan.FromMilliseconds(5000);
+
+    private TimeSpan currentRefreshInterval = ActiveRefreshInterval;
+
     public async Task StartAsync()
     {
         if (!(snapshot?.HasConfig ?? false))

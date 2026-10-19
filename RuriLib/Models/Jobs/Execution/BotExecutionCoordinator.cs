@@ -185,7 +185,10 @@ public class BotExecutionCoordinator
             botData.STATUS = BotStatus.Error;
             lastException = ex;
             botData.Logger.Log($"[{botData.ExecutionInfo}] {ex.GetType().Name}: {ex.Message}", LogColors.Tomato);
-            input.Job.Statistics.IncrementErrors();
+            // Do not increment the error counter here: this method's result always reaches
+            // JobResultProcessor.HandleDataProcessed, which counts the final status via
+            // Statistics.UpdateForStatus. Incrementing on every failed attempt as well made
+            // Errors report (attempts + 1) instead of one per errored check.
         }
         finally
         {

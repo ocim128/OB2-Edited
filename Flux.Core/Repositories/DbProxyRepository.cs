@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Flux.Core.Entities;
+using RuriLib.Models.Proxies;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -33,6 +35,25 @@ public class DbProxyRepository : DbRepository<ProxyEntity>, IProxyRepository
 
         await base.UpdateAsync(entities, cancellationToken).ConfigureAwait(false);
     }
+
+    /// <inheritdoc/>
+    public async Task<int> UpdateCheckResultAsync(
+        int proxyId,
+        string country,
+        DateTime lastChecked,
+        int ping,
+        ProxyWorkingStatus status,
+        CancellationToken cancellationToken = default)
+        => await context.Proxies
+            .Where(p => p.Id == proxyId)
+            .ExecuteUpdateAsync(
+                setters => setters
+                    .SetProperty(p => p.Country, country)
+                    .SetProperty(p => p.LastChecked, lastChecked)
+                    .SetProperty(p => p.Ping, ping)
+                    .SetProperty(p => p.Status, status),
+                cancellationToken)
+            .ConfigureAwait(false);
 
     /// <inheritdoc/>
     public async Task<int> RemoveDuplicatesAsync(int groupId)

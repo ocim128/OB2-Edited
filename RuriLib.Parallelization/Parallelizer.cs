@@ -477,7 +477,29 @@ public abstract class Parallelizer<TInput, TOutput> : IDisposable
     /// <summary>
     /// Whether the CPM is limited to a certain amount (for throttling purposes).
     /// </summary>
-    protected bool IsCPMLimited() => CPMLimit > 0 && CPM > CPMLimit;
+    protected bool IsCPMLimited() => CPMLimit > 0 && GetRecentCPM() > CPMLimit;
+
+    /// <summary>
+    /// Computes the CPM over the trailing 60 second window directly from the slot ring.
+    /// <see cref="CPM"/> is only refreshed once per second by the progress timer, so relying on it
+    /// lets a fast dispatcher overshoot the cap by up to a second's worth of work before noticing.
+    /// </summary>
+    private int GetRecentCPM()
+    {
+        var nowSec = Environment.TickCount64 / 1000;
+        var cpm = 0;
+
+        for (var i = 0; i < _cpmSlots.Length; i++)
+        {
+            var slot = _cpmSlots[i];
+            if (slot.Second > nowSec - 60 && slot.Second <= nowSec)
+            {
+                cpm += Volatile.Read(ref slot.Count);
+            }
+        }
+
+        return cpm;
+    }
 
     /// <summary>
     /// Updates the CPM (safe to be called from multiple threads).

@@ -39,6 +39,9 @@ public class ApplicationDbContext : DbContext
             .IsUnique();
 
         modelBuilder.Entity<HitEntity>()
+            .HasIndex(h => new { h.ConfigId, h.WordlistId, h.Date });
+
+        modelBuilder.Entity<HitEntity>()
             .HasIndex(h => new { h.OwnerId, h.Type, h.Date });
 
         modelBuilder.Entity<HitEntity>()

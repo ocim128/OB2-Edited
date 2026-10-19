@@ -25,6 +25,12 @@ namespace Flux.Shared.Services;
 // Projection methods — moved from JobProjectionService (single consumer: JobOrchestrator)
 public partial class JobOrchestrator
 {
+    /// <summary>
+    /// Maximum number of in-flight hits projected into a job viewer snapshot. The hit queue grows
+    /// for the lifetime of the job and the viewer polls at 1 Hz, so projecting all of it would make
+    /// each poll cost O(total hits) instead of O(what the UI can actually render).
+    /// </summary>
+    private const int MaxRuntimeResults = 2000;
     private DesktopJobListItemDto ToDesktopListItem(Job job)
         => job switch
         {
@@ -148,7 +154,7 @@ public partial class JobOrchestrator
             multiRun.ProxiesBanned,
             multiRun.CaptchaCredit,
             BuildBotStates(multiRun),
-            multiRun.Hits.Select(ToRuntimeResult).ToList());
+            multiRun.Hits.TakeLast(MaxRuntimeResults).Select(ToRuntimeResult).ToList());
     }
 
     private JobQueueDto BuildQueueSnapshot(IEnumerable<Job> jobs)
@@ -239,8 +245,11 @@ public partial class JobOrchestrator
             return Array.Empty<BotStateDto>();
         }
 
-        var list = new List<BotStateDto>(multiRun.CurrentBotDatas.Length);
-        for (var i = 0; i < multiRun.CurrentBotDatas.Length; i++)
+        // CurrentBotDatas is allocated at BotLimit (default 500) but only slots [0, Bots) are ever
+        // populated, so walking the whole array would project hundreds of empty slots every second.
+        var slotsToScan = Math.Min(multiRun.Bots, multiRun.CurrentBotDatas.Length);
+        var list = new List<BotStateDto>(slotsToScan);
+        for (var i = 0; i < slotsToScan; i++)
         {
             var data = multiRun.CurrentBotDatas[i];
             if (data is null)

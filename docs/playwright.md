@@ -340,8 +340,8 @@ These are real constraints in the current code. The stealth script has been hard
 5. **WebKit is not installed by the app.**
    `RLSettingsViewModel.InstallPlaywrightBrowsers(...)` installs Chromium and Firefox only. WebKit needs a preinstalled runtime or a custom executable path.
 
-6. **Firefox new tabs go through `window.open`.**
-   `PlaywrightNewPage` uses `window.open('about:blank', '_blank')` for Firefox because `context.NewPageAsync()` opens a window there. Firefox blocks that popup by default (`dom.disable_open_during_load = true`), so `window.open` returns `null`, no page event fires, and the block used to wait forever. The wait is now bounded (5s) and falls back to `context.NewPageAsync()`. To make the native tab path actually win, the launch prefs disable the popup blocker and route popups to a tab (`dom.disable_open_during_load = false`, `browser.link.open_newwindow = 3`). Without those prefs the fallback fires and opens a separate *window*.
+6. **Firefox new tabs go through a trusted click.**
+   `PlaywrightNewPage` cannot use `context.NewPageAsync()` for Firefox because that opens a window there. It also cannot use `EvaluateAsync("window.open(...)")`: Firefox's popup blocker only allows `window.open()` when the document has transient user activation (`WindowContext::CanShowPopup`, `PopupBlocker::RevisePopupAbuseLevel`), and a scripted `EvaluateAsync` grants none, so `window.open` returns `null` and no page event fires. The block therefore injects a hidden `target="_blank"` anchor and clicks it with a real Playwright click, which does grant user activation. The wait is bounded (5s) and falls back to `context.NewPageAsync()`.
 
 7. **"Upload Files" needs a file input or the control that opens the chooser.**
    The block accepts a real `<input type="file">` (visible or hidden, including a `<label>` bound to one) and also a wrapper element whose only file input it can target. For icon-based composers it falls back to `RunAndWaitForFileChooserAsync`, so it must be pointed at the clickable button, not at the SVG icon inside it. XPath cannot match SVG child elements, so an XPath ending in `svg/path[n]` locates nothing in both Chromium and Firefox; drop the `svg/path` tail and select the button element.
@@ -382,7 +382,7 @@ Current behavior:
 - ensures sandbox-relaxing flags for Chromium
 - adds Chromium stealth-related flags
 - applies Firefox-safe defaults by disabling GPU-heavy or acceleration-heavy prefs
-- disables the Firefox popup blocker and routes popups to a tab, so `window.open` in `New Page` works
+- disables the Firefox popup blocker and routes popups to a tab, as a second line of defence for `New Page`
 - strips Chromium-only sandbox flags from Firefox launches
 
 This helper is shared between the normal Playwright launch path and the ZIP profile launcher.

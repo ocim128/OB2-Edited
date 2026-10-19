@@ -5,14 +5,14 @@ using RuriLib.Models.Settings;
 namespace RuriLib.Tests.Functions.Playwright;
 
 /// <summary>
-/// The "New Page" block opens Firefox tabs through window.open(), which Firefox refuses
-/// without a user gesture unless the popup blocker is disabled. These tests pin the launch
-/// prefs that make that tab open natively instead of falling back to a separate window.
+/// The "New Page" block opens Firefox tabs by clicking a target="_blank" anchor, because
+/// Firefox only allows a scripted window.open() when the document has transient user
+/// activation. These prefs are the second line of defence, so pin them here.
 /// </summary>
 public class PlaywrightLaunchConfiguratorFirefoxPrefsTests
 {
     [Fact]
-    public void PersistentContext_DisablesPopupBlocker_SoWindowOpenCreatesTheTab()
+    public void PersistentContext_DisablesPopupBlocker_SoTheTabClickIsNeverBlocked()
     {
         var options = new BrowserTypeLaunchPersistentContextOptions();
 

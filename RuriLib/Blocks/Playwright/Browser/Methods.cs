@@ -22,6 +22,23 @@ namespace RuriLib.Blocks.Playwright.Browser
         // How long to wait for a Firefox tab opened via window.open() before falling back.
         private const float FirefoxNewPageTimeoutMs = 5000;
 
+        // Temporary anchor that the New Page block clicks to open a tab in Firefox.
+        private const string FirefoxNewTabAnchorId = "ob2-new-tab-anchor";
+
+        private const string InjectFirefoxNewTabAnchorScript = @"() => {
+            document.getElementById('ob2-new-tab-anchor')?.remove();
+            const anchor = document.createElement('a');
+            anchor.id = 'ob2-new-tab-anchor';
+            anchor.href = 'about:blank';
+            anchor.target = '_blank';
+            anchor.textContent = '';
+            anchor.style.cssText = 'position:fixed;left:0;top:0;width:16px;height:16px;opacity:0.01;z-index:2147483647';
+            (document.body || document.documentElement).appendChild(anchor);
+        }";
+
+        private const string RemoveFirefoxNewTabAnchorScript =
+            @"() => document.getElementById('ob2-new-tab-anchor')?.remove()";
+
         [Block("Opens a new playwright browser", name = "Open Browser")]
         public static async Task PlaywrightOpenBrowser(BotData data, PlaywrightBrowserType? browserType = null,
             bool? headless = null, string[] extraArgs = null, string firefoxProfilePath = null, string extensionPath = null, string firefoxAddonPath = null, bool useBuildPath = true)
@@ -171,39 +188,11 @@ namespace RuriLib.Blocks.Playwright.Browser
             IPage page;
             if (targetContext != null)
             {
-                // Firefox has a quirk where context.NewPageAsync() opens a new window instead of a tab
-                // Use JavaScript window.open() to force opening as a tab in Firefox
+                // Firefox has a quirk where context.NewPageAsync() opens a new window instead of a tab,
+                // so a tab has to be requested from the page itself.
                 if (browserType == PlaywrightBrowserType.Firefox && currentPage != null)
                 {
-                    // Use window.open() which opens as a tab in Firefox.
-                    // window.open() returns null when Firefox blocks the popup (no user gesture),
-                    // so this wait must be bounded: otherwise the block hangs until some unrelated
-                    // page appears (e.g. the user pressing CTRL+T).
-                    var pageTask = targetContext.WaitForPageAsync(
-                        new BrowserContextWaitForPageOptions { Timeout = FirefoxNewPageTimeoutMs });
-
-                    await currentPage.EvaluateAsync("() => window.open('about:blank', '_blank')");
-
-                    IPage? openedTab = null;
-                    try
-                    {
-                        openedTab = await pageTask;
-                    }
-                    catch (TimeoutException)
-                    {
-                        // Popup was blocked, no tab was created: fall through to the fallback below
-                    }
-
-                    if (openedTab != null)
-                    {
-                        page = openedTab;
-                        data.Logger.Log("Created a new tab using window.open() for Firefox", LogColors.MediumPurple);
-                    }
-                    else
-                    {
-                        page = await targetContext.NewPageAsync();
-                        data.Logger.Log("window.open() did not open a tab (blocked by Firefox), created the page directly instead", LogColors.Yellow);
-                    }
+                    page = await OpenFirefoxTabAsync(targetContext, currentPage, data);
                 }
                 else
                 {
@@ -239,6 +228,55 @@ namespace RuriLib.Blocks.Playwright.Browser
             {
                 await ApplyChromiumCdpStealthAsync(page, data);
             }
+        }
+
+        /// <summary>
+        /// Opens a new tab in Firefox.
+        /// A trusted click on a target="_blank" anchor is used instead of evaluating window.open(),
+        /// because Firefox's popup blocker only permits window.open() when the document has transient
+        /// user activation (see WindowContext::CanShowPopup and PopupBlocker::RevisePopupAbuseLevel).
+        /// Playwright's click is a real input event, so it grants that activation; a plain
+        /// EvaluateAsync call does not, which is what made window.open() return null.
+        /// </summary>
+        private static async Task<IPage> OpenFirefoxTabAsync(
+            IBrowserContext context,
+            IPage currentPage,
+            BotData data)
+        {
+            var pageTask = context.WaitForPageAsync(
+                new BrowserContextWaitForPageOptions { Timeout = FirefoxNewPageTimeoutMs });
+
+            IPage? openedTab = null;
+            try
+            {
+                await currentPage.EvaluateAsync(InjectFirefoxNewTabAnchorScript);
+                await currentPage.ClickAsync($"#{FirefoxNewTabAnchorId}", new PageClickOptions { Timeout = FirefoxNewPageTimeoutMs });
+                openedTab = await pageTask;
+            }
+            catch (TimeoutException)
+            {
+                // Popup was blocked, no tab was created: fall through to the fallback below
+            }
+            finally
+            {
+                try
+                {
+                    await currentPage.EvaluateAsync(RemoveFirefoxNewTabAnchorScript);
+                }
+                catch
+                {
+                    // The page may have navigated or closed; the anchor dies with the document anyway
+                }
+            }
+
+            if (openedTab != null)
+            {
+                data.Logger.Log("Created a new tab for Firefox", LogColors.MediumPurple);
+                return openedTab;
+            }
+
+            data.Logger.Log("Could not open a Firefox tab, created the page directly instead", LogColors.Yellow);
+            return await context.NewPageAsync();
         }
 
         [Block("Closes the current page", name = "Close Page")]

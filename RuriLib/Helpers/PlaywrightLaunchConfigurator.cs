@@ -32,6 +32,12 @@ namespace RuriLib.Helpers.Playwright
             {
                 ["browser.tabs.remote.autostart"] = false,
                 ["dom.ipc.processCount"] = 1,
+                // Firefox blocks window.open() without a user gesture by default, which breaks
+                // the tab opened by the "New Page" block and forces it into a separate window.
+                ["dom.disable_open_during_load"] = false,
+                // Redirect popups into a tab instead of a new window (3 = tab).
+                ["browser.link.open_newwindow"] = 3,
+                ["browser.link.open_newwindow.restriction"] = 0,
                 ["gfx.canvas.azure.accelerated"] = false,
                 ["gfx.webrender.all"] = false,
                 ["gfx.webrender.enabled"] = false,

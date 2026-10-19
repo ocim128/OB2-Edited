@@ -341,7 +341,7 @@ These are real constraints in the current code. The stealth script has been hard
    `RLSettingsViewModel.InstallPlaywrightBrowsers(...)` installs Chromium and Firefox only. WebKit needs a preinstalled runtime or a custom executable path.
 
 6. **Firefox new tabs go through `window.open`.**
-   `PlaywrightNewPage` uses `window.open('about:blank', '_blank')` for Firefox because `context.NewPageAsync()` opens a window there. Page-level popup handling can interfere with this path.
+   `PlaywrightNewPage` uses `window.open('about:blank', '_blank')` for Firefox because `context.NewPageAsync()` opens a window there. Firefox blocks that popup by default (`dom.disable_open_during_load = true`), so `window.open` returns `null`, no page event fires, and the block used to wait forever. The wait is now bounded (5s) and falls back to `context.NewPageAsync()`. To make the native tab path actually win, the launch prefs disable the popup blocker and route popups to a tab (`dom.disable_open_during_load = false`, `browser.link.open_newwindow = 3`). Without those prefs the fallback fires and opens a separate *window*.
 
 7. **"Upload Files" needs a file input or the control that opens the chooser.**
    The block accepts a real `<input type="file">` (visible or hidden, including a `<label>` bound to one) and also a wrapper element whose only file input it can target. For icon-based composers it falls back to `RunAndWaitForFileChooserAsync`, so it must be pointed at the clickable button, not at the SVG icon inside it. XPath cannot match SVG child elements, so an XPath ending in `svg/path[n]` locates nothing in both Chromium and Firefox; drop the `svg/path` tail and select the button element.
@@ -382,6 +382,7 @@ Current behavior:
 - ensures sandbox-relaxing flags for Chromium
 - adds Chromium stealth-related flags
 - applies Firefox-safe defaults by disabling GPU-heavy or acceleration-heavy prefs
+- disables the Firefox popup blocker and routes popups to a tab, so `window.open` in `New Page` works
 - strips Chromium-only sandbox flags from Firefox launches
 
 This helper is shared between the normal Playwright launch path and the ZIP profile launcher.

@@ -19,6 +19,9 @@ namespace RuriLib.Blocks.Playwright.Browser
     {
         private static readonly TimeSpan ManualClosePollInterval = TimeSpan.FromMilliseconds(750);
 
+        // How long to wait for a Firefox tab opened via window.open() before falling back.
+        private const float FirefoxNewPageTimeoutMs = 5000;
+
         [Block("Opens a new playwright browser", name = "Open Browser")]
         public static async Task PlaywrightOpenBrowser(BotData data, PlaywrightBrowserType? browserType = null,
             bool? headless = null, string[] extraArgs = null, string firefoxProfilePath = null, string extensionPath = null, string firefoxAddonPath = null, bool useBuildPath = true)
@@ -172,11 +175,35 @@ namespace RuriLib.Blocks.Playwright.Browser
                 // Use JavaScript window.open() to force opening as a tab in Firefox
                 if (browserType == PlaywrightBrowserType.Firefox && currentPage != null)
                 {
-                    // Use window.open() which opens as a tab in Firefox
-                    var pageTask = targetContext.WaitForPageAsync();
+                    // Use window.open() which opens as a tab in Firefox.
+                    // window.open() returns null when Firefox blocks the popup (no user gesture),
+                    // so this wait must be bounded: otherwise the block hangs until some unrelated
+                    // page appears (e.g. the user pressing CTRL+T).
+                    var pageTask = targetContext.WaitForPageAsync(
+                        new BrowserContextWaitForPageOptions { Timeout = FirefoxNewPageTimeoutMs });
+
                     await currentPage.EvaluateAsync("() => window.open('about:blank', '_blank')");
-                    page = await pageTask;
-                    data.Logger.Log("Created a new tab using window.open() for Firefox", LogColors.MediumPurple);
+
+                    IPage? openedTab = null;
+                    try
+                    {
+                        openedTab = await pageTask;
+                    }
+                    catch (TimeoutException)
+                    {
+                        // Popup was blocked, no tab was created: fall through to the fallback below
+                    }
+
+                    if (openedTab != null)
+                    {
+                        page = openedTab;
+                        data.Logger.Log("Created a new tab using window.open() for Firefox", LogColors.MediumPurple);
+                    }
+                    else
+                    {
+                        page = await targetContext.NewPageAsync();
+                        data.Logger.Log("window.open() did not open a tab (blocked by Firefox), created the page directly instead", LogColors.Yellow);
+                    }
                 }
                 else
                 {

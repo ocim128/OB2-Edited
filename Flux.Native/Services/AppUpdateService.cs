@@ -37,10 +37,9 @@ internal class AppUpdateService : IAppUpdateService
     {
         if (!dispatcher.CheckAccess())
         {
-            await dispatcher.InvokeAsync(async () =>
-            {
-                await RunUpdateFlowOnStaAsync().ConfigureAwait(true);
-            }).Task.ConfigureAwait(true);
+            // Unwrap the nested Task returned by the async lambda, otherwise the
+            // caller returns before the update flow actually finishes.
+            await dispatcher.InvokeAsync(RunUpdateFlowOnStaAsync).Task.Unwrap().ConfigureAwait(true);
             return;
         }
 

@@ -154,7 +154,7 @@ public sealed class ZipProfileLauncher
                 $"Headless: {settings.Headless}\n" +
                 "Suggested solutions:\n" +
                 "1. Increase timeout in RL Settings > Playwright\n" +
-                "2. Use system Firefox: C\\Program Files\\Mozilla Firefox\\firefox.exe\n" +
+                "2. Use system Firefox: C:\\Program Files\\Mozilla Firefox\\firefox.exe\n" +
                 "3. Use Chromium browser instead",
                 ex);
         }
@@ -194,6 +194,11 @@ public sealed class ZipProfileLauncher
         var prefix = folderName.TrimEnd('/') + "/";
         Directory.CreateDirectory(destination);
 
+        var destinationRoot = Path.GetFullPath(destination);
+        var destinationRootWithSeparator = destinationRoot.EndsWith(Path.DirectorySeparatorChar)
+            ? destinationRoot
+            : destinationRoot + Path.DirectorySeparatorChar;
+
         foreach (var entry in archive.Entries)
         {
             var normalized = entry.FullName.Replace('\\', '/');
@@ -208,7 +213,14 @@ public sealed class ZipProfileLauncher
                 continue;
             }
 
-            var targetPath = Path.Combine(destination, relative.Replace('/', Path.DirectorySeparatorChar));
+            var targetPath = Path.GetFullPath(Path.Combine(destinationRoot, relative.Replace('/', Path.DirectorySeparatorChar)));
+
+            // Reject entries whose resolved path escapes the extraction root
+            // (Zip Slip: entries containing "../" would otherwise write anywhere).
+            if (!targetPath.StartsWith(destinationRootWithSeparator, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
 
             if (normalized.EndsWith("/", StringComparison.Ordinal))
             {

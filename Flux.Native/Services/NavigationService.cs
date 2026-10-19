@@ -52,6 +52,7 @@ public class NavigationEventArgs : EventArgs
 public class NavigationService : INavigationService
 {
     private readonly IPageFactory _pageFactory;
+    private readonly IServiceProvider _serviceProvider;
 
     // #COMPLETION_DRIVE: We replaced the unbounded Dictionary page cache with a
     // small LRU (MaxCachedPages entries) that disposes the evicted page's
@@ -73,9 +74,10 @@ public class NavigationService : INavigationService
     public Page? CurrentPage { get; private set; }
     public MainWindowPage CurrentPageEnum { get; private set; } = MainWindowPage.Home; // Default
 
-    public NavigationService(IPageFactory pageFactory)
+    public NavigationService(IPageFactory pageFactory, IServiceProvider serviceProvider)
     {
         _pageFactory = pageFactory;
+        _serviceProvider = serviceProvider;
     }
 
     public void NavigateTo(MainWindowPage pageEnum)
@@ -165,11 +167,17 @@ public class NavigationService : INavigationService
         }
     }
 
-    private static void DisposePage(Page page)
+    private void DisposePage(Page page)
     {
         try
         {
-            if (page.DataContext is IDisposable disposable)
+            // Only page-owned view models may be disposed here. View models that
+            // are registered as singletons in the DI container (Jobs, Proxies,
+            // Hits, ...) are shared by every page instance and must survive
+            // eviction, otherwise the page they belong to stays permanently
+            // broken after being navigated away from (e.g. JobsViewModel stops
+            // refreshing its timer forever once disposed).
+            if (page.DataContext is IDisposable disposable && !IsSharedViewModel(page.DataContext))
             {
                 disposable.Dispose();
             }
@@ -183,6 +191,20 @@ public class NavigationService : INavigationService
             // Drop the DataContext reference so the VM (and any singletons
             // it might be subscribing to) can be collected promptly.
             page.DataContext = null;
+        }
+    }
+
+    private bool IsSharedViewModel(object viewModel)
+    {
+        try
+        {
+            return ReferenceEquals(_serviceProvider.GetService(viewModel.GetType()), viewModel);
+        }
+        catch
+        {
+            // When in doubt, treat it as shared: leaking a transient VM is far
+            // less harmful than disposing a singleton.
+            return true;
         }
     }
 

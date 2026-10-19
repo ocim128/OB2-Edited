@@ -104,10 +104,9 @@ public partial class App : Application
 
 
         }
-        catch (UnauthorizedAccessException ex)
+        catch (Exception ex) when (ex is UnauthorizedAccessException or IOException)
         {
-
-            throw new InvalidOperationException($"UserData directory '{userDataPath}' is not writable. Please check folder permissions.");
+            throw new InvalidOperationException($"UserData directory '{userDataPath}' is not writable: {ex.Message}", ex);
         }
 
         Trace($"UserDataPath: {userDataPath}");

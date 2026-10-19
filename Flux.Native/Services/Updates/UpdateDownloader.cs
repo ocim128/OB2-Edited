@@ -33,7 +33,7 @@ internal sealed class UpdateDownloader
             }
         }
 
-        throw new InvalidOperationException("Download loop exited unexpectedly.");
+        throw new InvalidOperationException("No suitable update asset was found in the latest release.");
     }
 
     public async Task<bool> DownloadUpdateAsync(string url, string destination, IUpdateProgress progressUi, long expectedSize, CancellationToken cancellationToken)

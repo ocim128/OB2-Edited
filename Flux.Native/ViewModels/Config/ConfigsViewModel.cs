@@ -126,9 +126,11 @@ namespace Flux.Native.ViewModels.Configs
 
         public async Task CreateAsync(ConfigForCreationDto dto)
         {
-            // Create it in the repo
+            // Create it in the repo. The repository stores configs under the
+            // application directory, not the process working directory, so the
+            // duplicate-name check must look there as well.
             var fileName = FileUtils.ReplaceInvalidFileNameChars($"{dto.Name}.opk");
-            var filePath = Path.Combine(Directory.GetCurrentDirectory(), "UserData/Configs", fileName);
+            var filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "UserData", "Configs", fileName);
 
             if (File.Exists(filePath))
             {
@@ -159,6 +161,9 @@ namespace Flux.Native.ViewModels.Configs
             }
 
             configRepo.Delete(vm.Config);
+            // Keep the in-memory list in sync, otherwise the deleted config stays
+            // selectable (stacker / job dialogs) until the next full rescan.
+            configService.RemoveConfig(vm.Config);
             ConfigsCollection.Remove(vm);
         }
 

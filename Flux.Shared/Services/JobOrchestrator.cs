@@ -15,9 +15,7 @@ using Flux.Core.Services;
 using Flux.Shared.Abstractions;
 using Flux.Shared.Models;
 using Microsoft.EntityFrameworkCore;
-using RuriLib.Models.Hits;
 using RuriLib.Models.Jobs;
-using RuriLib.Models.Jobs.Status;
 
 namespace Flux.Shared.Services;
 
@@ -26,30 +24,21 @@ public partial class JobOrchestrator : IJobOrchestrator
     private readonly JobManagerService _jobManager;
     private readonly JobFactoryService _jobFactory;
     private readonly IServiceScopeFactory _scopeFactory;
-    private readonly INotificationService _notifications;
     private readonly ILogger<JobOrchestrator> _logger;
     private readonly JsonSerializerSettings _jsonSettings = new() { TypeNameHandling = TypeNameHandling.Auto };
     private readonly SemaphoreSlim _proxyGroupLock = new(1, 1);
     private IReadOnlyDictionary<int, string>? _proxyGroupNames;
 
-    // Subscription state (moved from JobEventSubscriptionService)
-    private readonly Dictionary<int, MultiRunJob> _subscribedJobs = new();
-    private readonly SemaphoreSlim _subscriptionLock = new(1, 1);
-
     public JobOrchestrator(
         JobManagerService jobManager,
         JobFactoryService jobFactory,
         IServiceScopeFactory scopeFactory,
-        INotificationService notifications,
         ILogger<JobOrchestrator> logger)
     {
         _jobManager = jobManager;
         _jobFactory = jobFactory;
         _scopeFactory = scopeFactory;
-        _notifications = notifications;
         _logger = logger;
-
-        SubscribeExistingJobs(_jobManager.Jobs.OfType<MultiRunJob>());
     }
 
     public async Task<JobDetailDto> CreateMultiRunJobAsync(JobCreateRequest request, CancellationToken cancellationToken = default)
@@ -86,12 +75,8 @@ public partial class JobOrchestrator : IJobOrchestrator
 
         job.Name = string.IsNullOrWhiteSpace(request.Name) ? $"{config.Metadata.Name} #{entity.Id}" : request.Name;
         _jobManager.AddJob(job);
-        if (job is MultiRunJob mrj) EnsureSubscribed(mrj);
 
         _logger.LogInformation("Created job {JobId} ({JobName})", entity.Id, job.Name);
-        await _notifications.PublishAsync(
-            new NotificationDto("jobs", $"Job '{job.Name}' created", "info", DateTime.UtcNow),
-            cancellationToken).ConfigureAwait(false);
 
         if (request.AutoStart)
         {
@@ -129,10 +114,8 @@ public partial class JobOrchestrator : IJobOrchestrator
         var job = await MaterializeJobAsync(entity.Id, options).ConfigureAwait(false);
 
         _jobManager.AddJob(job);
-        if (job is MultiRunJob mrj3) EnsureSubscribed(mrj3);
 
         _logger.LogInformation("Created job {JobId} ({JobName})", job.Id, job.Name);
-        await PublishJobNotificationAsync(job, $"Job '{job.Name}' created", "info", cancellationToken).ConfigureAwait(false);
         return job.Id;
     }
 
@@ -151,15 +134,12 @@ public partial class JobOrchestrator : IJobOrchestrator
         await jobRepo.UpdateAsync(entity, cancellationToken).ConfigureAwait(false);
 
         var oldJob = FindJob(jobId) ?? throw new InvalidOperationException($"Job {jobId} is not loaded");
-        UnsubscribeIfMultiRun(oldJob);
 
         var newJob = await MaterializeJobAsync(jobId, options).ConfigureAwait(false);
         _jobManager.RemoveJob(oldJob);
         _jobManager.AddJob(newJob);
-        if (newJob is MultiRunJob mrj2) EnsureSubscribed(mrj2);
 
         _logger.LogInformation("Updated job {JobId} ({JobName})", newJob.Id, newJob.Name);
-        await PublishJobNotificationAsync(newJob, $"Job '{newJob.Name}' updated", "info", cancellationToken).ConfigureAwait(false);
         return newJob.Id;
     }
 
@@ -253,10 +233,7 @@ public partial class JobOrchestrator : IJobOrchestrator
             await jobRepo.DeleteAsync(entity, cancellationToken).ConfigureAwait(false);
         }
 
-        UnsubscribeIfMultiRun(job);
-
         _jobManager.RemoveJob(job);
-        await PublishJobNotificationAsync(job, $"Job '{job.Name}' deleted", "warning", cancellationToken).ConfigureAwait(false);
         return true;
     }
 
@@ -273,15 +250,7 @@ public partial class JobOrchestrator : IJobOrchestrator
         var jobRepo = scope.ServiceProvider.GetRequiredService<IJobRepository>();
         jobRepo.Purge();
 
-        foreach (var job in jobs)
-        {
-            UnsubscribeIfMultiRun(job);
-        }
-
         _jobManager.Clear();
-        await _notifications.PublishAsync(
-            new NotificationDto("jobs", "All jobs deleted", "warning", DateTime.UtcNow),
-            cancellationToken).ConfigureAwait(false);
 
         return true;
     }
@@ -354,11 +323,6 @@ public partial class JobOrchestrator : IJobOrchestrator
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to start job {JobId}", job.Id);
-            await _notifications.PublishAsync(new NotificationDto(
-                "jobs",
-                $"Failed to start job '{job.Name}': {ex.Message}",
-                "error",
-                DateTime.UtcNow), cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -413,9 +377,6 @@ public partial class JobOrchestrator : IJobOrchestrator
         _ => throw new NotImplementedException()
     };
 
-    private Task PublishJobNotificationAsync(Job job, string message, string severity, CancellationToken cancellationToken)
-        => _notifications.PublishAsync(new NotificationDto("jobs", message, severity, DateTime.UtcNow), cancellationToken);
-
     private async Task<IReadOnlyDictionary<int, string>> GetProxyGroupNamesCachedAsync(CancellationToken cancellationToken)
     {
         if (_proxyGroupNames is not null)
@@ -461,79 +422,5 @@ public partial class JobOrchestrator : IJobOrchestrator
         {
             job.CustomInputsAnswers[answer.Key] = answer.Value;
         }
-    }
-
-    // ── Event subscriptions (moved from JobEventSubscriptionService) ─
-
-    private void SubscribeExistingJobs(IEnumerable<MultiRunJob> jobs)
-    {
-        foreach (var job in jobs)
-        {
-            EnsureSubscribed(job);
-        }
-    }
-
-    private void EnsureSubscribed(MultiRunJob job)
-    {
-        lock (_subscribedJobs)
-        {
-            if (_subscribedJobs.ContainsKey(job.Id))
-            {
-                return;
-            }
-
-            job.OnStatusChanged += HandleStatusChanged;
-            job.OnHit += HandleHit;
-            job.OnError += HandleError;
-            job.OnCompleted += HandleCompleted;
-            _subscribedJobs[job.Id] = job;
-        }
-    }
-
-    private void UnsubscribeIfMultiRun(Job job)
-    {
-        if (job is not MultiRunJob multiRun)
-        {
-            return;
-        }
-
-        lock (_subscribedJobs)
-        {
-            if (!_subscribedJobs.Remove(multiRun.Id))
-            {
-                return;
-            }
-
-            multiRun.OnStatusChanged -= HandleStatusChanged;
-            multiRun.OnHit -= HandleHit;
-            multiRun.OnError -= HandleError;
-            multiRun.OnCompleted -= HandleCompleted;
-        }
-    }
-
-    private void HandleStatusChanged(object sender, JobStatus status)
-    {
-        if (sender is not Job job) return;
-        _ = PublishJobNotificationAsync(job, $"Job '{job.Name}' status changed to {status}",
-            status is JobStatus.Running ? "success" : "info", CancellationToken.None);
-    }
-
-    private void HandleHit(object sender, Hit hit)
-    {
-        _ = _notifications.PublishAsync(
-            new NotificationDto("hits", $"[{hit.Type}] {hit.DataString}", "success", DateTime.UtcNow),
-            CancellationToken.None);
-    }
-
-    private void HandleError(object sender, Exception exception)
-    {
-        if (sender is not Job job) return;
-        _ = PublishJobNotificationAsync(job, $"Job '{job.Name}' error: {exception.Message}", "error", CancellationToken.None);
-    }
-
-    private void HandleCompleted(object sender, EventArgs e)
-    {
-        if (sender is not Job job) return;
-        _ = PublishJobNotificationAsync(job, $"Job '{job.Name}' completed", "success", CancellationToken.None);
     }
 }

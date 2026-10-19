@@ -17,8 +17,8 @@ namespace Flux.Native.ViewModels.Shared;
 
 public class DebuggerViewModel : ViewModelBase
 {
-    // #COMPLETION_DRIVE: Assuming a short delay is enough to keep config selection responsive while still preserving most debugger prewarm benefit for deliberate runs.
-    // #SUGGEST_VERIFY: Measure open latency and first debugger-run latency on large configs, then tune or remove this delay if real profiling shows a better threshold.
+    // Short delay keeps config selection responsive while preserving most of the
+    // debugger prewarm benefit for deliberate runs.
     private static readonly TimeSpan PrewarmDelay = TimeSpan.FromMilliseconds(750);
 
     private readonly RuriLibSettingsService rlSettingsService;

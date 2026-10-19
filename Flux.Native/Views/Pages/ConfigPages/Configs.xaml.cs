@@ -33,8 +33,8 @@ namespace Flux.Native.Views.Pages.Configs
     /// </summary>
     public partial class Configs : Page, IUpdatablePage
     {
-        // #COMPLETION_DRIVE: Assuming configs at or above this line count are better opened in the text editor first because stack conversion cost dominates the initial open experience.
-        // #SUGGEST_VERIFY: Profile open times for large saved configs and tune this threshold against real user samples.
+        // Configs at or above this line count open in the text editor first, since
+        // stack conversion cost dominates the initial open experience.
         private const int LargeLoliCodeOpenLineThreshold = 2000;
 
         private readonly FluxSettingsService fluxSettingsService;

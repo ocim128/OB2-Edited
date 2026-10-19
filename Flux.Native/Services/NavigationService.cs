@@ -54,13 +54,8 @@ public class NavigationService : INavigationService
     private readonly IPageFactory _pageFactory;
     private readonly IServiceProvider _serviceProvider;
 
-    // #COMPLETION_DRIVE: We replaced the unbounded Dictionary page cache with a
-    // small LRU (MaxCachedPages entries) that disposes the evicted page's
-    // DataContext. The shared ConfigEditor is held in a dedicated field and
-    // is never evicted.
-    // #SUGGEST_VERIFY: Long-running profile (start job, navigate Home -> Jobs ->
-    // Proxies -> Wordlists -> Configs -> Hits -> Plugins) and watch the
-    // working set stabilize at ~5 page VMs instead of growing per navigation.
+    // Bounded LRU page cache that disposes the evicted page's DataContext. The
+    // shared ConfigEditor lives in a dedicated field and is never evicted.
     private const int MaxCachedPages = 4;
 
     private readonly Dictionary<MainWindowPage, LruEntry> _lruCache = new();

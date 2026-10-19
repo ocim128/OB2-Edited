@@ -8,11 +8,7 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddFluxShared(this IServiceCollection services)
     {
-        services.AddSingleton<INotificationService, NotificationService>();
-        services.AddSingleton<AuthenticationService>();
         services.AddSingleton<IJobOrchestrator, JobOrchestrator>();
-        services.AddSingleton<SettingsFacade>();
-        services.AddSingleton<PluginService>();
         services.AddSingleton<IDashboardService, DashboardService>();
         return services;
     }

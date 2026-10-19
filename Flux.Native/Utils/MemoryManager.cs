@@ -18,14 +18,8 @@ namespace Flux.Native.Utils
         private static readonly TimeSpan _minGcInterval = TimeSpan.FromSeconds(30);
         private static readonly Process CurrentProcess = Process.GetCurrentProcess();
 
-        // #COMPLETION_DRIVE: We replaced Microsoft.VisualBasic.Devices.ComputerInfo with
-        // GlobalMemoryStatusEx P/Invoke so the process no longer needs the entire
-        // Microsoft.VisualBasic assembly on its load path.
-        // #SUGGEST_VERIFY: Confirm the "Total physical memory" / "Available physical memory"
-        // values shown in the Home dashboard match the OS task manager or
-        // `Get-CimInstance Win32_OperatingSystem` to within a few MB before trusting
-        // pressure thresholds.
-
+        // GlobalMemoryStatusEx P/Invoke keeps Microsoft.VisualBasic off the
+        // process load path (previously used ComputerInfo).
         [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
         private struct MEMORYSTATUSEX
         {

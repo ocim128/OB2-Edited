@@ -59,15 +59,10 @@ public partial class App : Application
 
     public static IServiceProvider ServiceProvider => ((App)Current)._serviceProvider;
 
-    // #COMPLETION_DRIVE: App is instantiated by the WPF runtime before any DI
-    // graph is built, so a constructor-injected ILogger<App> is not available
-    // to the static ReportCrash handler. We hold a private FileLogger here so
-    // crash logging still flows through the shared logging infrastructure
-    // (locking, formatting, category label) instead of the ad-hoc
-    // File.WriteAllText it used to do.
-    // #SUGGEST_VERIFY: Trigger an unhandled exception in a debug build, then
-    // confirm crash.log contains the new "[Critical] App: ..." line and that
-    // no extra "Failed to write crash log" Debug.WriteLine fires.
+    // App is instantiated by the WPF runtime before any DI graph is built, so a
+    // constructor-injected ILogger<App> is not available to the static ReportCrash
+    // handler. This FileLogger lets crash logging still flow through the shared
+    // logging infrastructure (locking, formatting, category label).
     private static readonly FileLogger CrashLogger = new(
         Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "crash.log"),
         overwrite: true,
@@ -79,9 +74,7 @@ public partial class App : Application
     {
         Trace("App constructor START");
 
-        // Startup diagnostics removed
-
-        // Legacy handlers kept for backward compatibility; centralized handler is initialized in OnStartup.
+        // These fire before the DI container exists, so they cannot use ILogger.
         Dispatcher.UnhandledException += OnDispatcherUnhandledException;
         TaskScheduler.UnobservedTaskException += OnTaskException;
 
@@ -286,7 +279,6 @@ public partial class App : Application
         services.AddSingleton<IJobRepository, DbJobRepository>();
         services.AddSingleton<IRecordRepository, DbRecordRepository>();
         services.AddSingleton<IGuestRepository, DbGuestRepository>();
-        services.AddSingleton<IUserRepository, DbUserRepository>();
         services.AddSingleton<IConfigRepository>(service =>
             new DiskConfigRepository(service.GetService<RuriLibSettingsService>(),
             Path.Combine(userDataPath, "Configs")));

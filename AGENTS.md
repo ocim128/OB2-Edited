@@ -93,8 +93,6 @@ It is intentionally biased toward fast codebase navigation, common execution pat
 
 - Main solution: `Flux.sln`
 - Main backend/runtime code: `RuriLib/`, `RuriLib.Http/`, `RuriLib.Proxies/`, `Flux.Core/`, `Flux.Shared/`, `Flux.Native/`
-- Frontend: `flux-web-client/`
-- Web API: `Flux.Web/`
 - Vendored TLS library: `Libraries/TlsClient.NET/`
 
 If a task only concerns runtime logic, jobs, blocks, proxies, or HTTP, start in `RuriLib/` and `Flux.Shared/`.
@@ -115,10 +113,6 @@ If a task only concerns runtime logic, jobs, blocks, proxies, or HTTP, start in 
   Persistence/domain layer for jobs, configs, hits, and repositories.
 - `Flux.Native/`
   WPF desktop app. Many user-facing flows end here, but execution/runtime behavior usually delegates into `RuriLib` and `Flux.Shared`.
-- `Flux.Web/`
-  ASP.NET API layer. Touch only when the task is explicitly about the web API.
-- `flux-web-client/`
-  Angular frontend.
 - `Libraries/TlsClient.NET/`
   External-but-included TLS transport. Useful when debugging `HttpLibrary.TlsClient`.
 
@@ -291,14 +285,6 @@ dotnet build Flux.Shared/Flux.Shared.csproj -c Debug --no-restore
 dotnet test RuriLib.Tests/RuriLib.Tests.csproj
 dotnet test RuriLib.Http.Tests/RuriLib.Http.Tests.csproj
 dotnet test Flux.Shared.Tests/Flux.Shared.Tests.csproj
-```
-
-For frontend:
-
-```powershell
-cd flux-web-client
-npm install
-npm run build
 ```
 
 ## Search Tips

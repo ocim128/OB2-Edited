@@ -54,8 +54,7 @@ internal static class BuiltInBlockRegistry
         typeof(global::RuriLib.Blocks.Utility.Conversion.Methods),
         typeof(global::RuriLib.Blocks.Utility.Files.Methods),
         typeof(global::RuriLib.Blocks.Utility.Images.Methods),
-        typeof(global::RuriLib.Blocks.Utility.Methods),
-        typeof(global::RuriLib.Blocks.Utility.PairTrading.Methods)
+        typeof(global::RuriLib.Blocks.Utility.Methods)
     ];
 
     public static void RegisterBuiltIns(DescriptorsRepository repository)

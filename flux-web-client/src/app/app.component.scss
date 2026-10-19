@@ -1,5 +1,0 @@
-@import "../styles/variables.scss";
-
-.p-toast-message:has(.err-500-wrapper) {
-    border: 1px solid var(--fg-bad) !important;
-}

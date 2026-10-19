@@ -8,5 +8,4 @@ public record JobDetailDto(
     string DataPool,
     IEnumerable<JobResultDto> RecentResults,
     JobCountersDto Counters,
-    IEnumerable<BotStateDto> Bots,
-    IEnumerable<NotificationDto> Notifications);
+    IEnumerable<BotStateDto> Bots);

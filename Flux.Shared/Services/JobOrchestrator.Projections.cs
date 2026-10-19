@@ -229,8 +229,7 @@ public partial class JobOrchestrator
             dataPool,
             results,
             counters,
-            bots,
-            Array.Empty<NotificationDto>());
+            bots);
     }
 
     private static IReadOnlyList<BotStateDto> BuildBotStates(Job job)

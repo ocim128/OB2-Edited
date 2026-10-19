@@ -1,6 +1,6 @@
 # Flux
 
-Flux is a .NET 8 automation platform built around `RuriLib`, with desktop, shared orchestration, and web/API layers in the same repository.
+Flux is a .NET 8 automation platform built around `RuriLib`, with a WPF desktop application and a shared orchestration layer in the same repository.
 
 This root README is optimized for fast orientation. If you are trying to understand behavior, start from execution flow and project boundaries before reading individual files.
 
@@ -17,15 +17,11 @@ This root README is optimized for fast orientation. If you are trying to underst
 - `RuriLib.Tests/`
   Runtime and debugger integration tests for `RuriLib`.
 - `Flux.Shared/`
-  Shared application services, job orchestration, DTO projection, notifications.
+  Shared application services, job orchestration, DTO projection.
 - `Flux.Core/`
   Persistence/domain layer.
 - `Flux.Native/`
   WPF desktop application.
-- `Flux.Web/`
-  ASP.NET web/API layer.
-- `flux-web-client/`
-  Angular frontend.
 - `Libraries/TlsClient.NET/`
   Included TLS client transport used by `HttpLibrary.TlsClient`.
 
@@ -202,14 +198,6 @@ dotnet build Flux.Shared/Flux.Shared.csproj -c Debug --no-restore
 dotnet test RuriLib.Tests/RuriLib.Tests.csproj
 dotnet test RuriLib.Http.Tests/RuriLib.Http.Tests.csproj
 dotnet test Flux.Shared.Tests/Flux.Shared.Tests.csproj
-```
-
-Frontend:
-
-```powershell
-cd flux-web-client
-npm install
-npm run build
 ```
 
 ## Search Shortcuts

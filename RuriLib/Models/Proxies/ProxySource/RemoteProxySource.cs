@@ -30,7 +30,7 @@ namespace RuriLib.Models.Proxies.ProxySources
 
             return lines
                 .Select(l => Proxy.TryParse(l, out var proxy, DefaultType, DefaultUsername, DefaultPassword) ? proxy : null)
-                .Where(p => p != null);
+                .OfType<Proxy>();
         }
     }
 }

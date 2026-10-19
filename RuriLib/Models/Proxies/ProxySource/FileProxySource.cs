@@ -45,7 +45,7 @@ namespace RuriLib.Models.Proxies.ProxySources
 
             return lines
                 .Select(l => Proxy.TryParse(l.Trim(), out var proxy, DefaultType, DefaultUsername, DefaultPassword) ? proxy : null)
-                .Where(p => p != null);
+                .OfType<Proxy>();
         }
 
         public override void Dispose()

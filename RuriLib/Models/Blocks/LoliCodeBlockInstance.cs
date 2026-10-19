@@ -17,7 +17,6 @@ namespace RuriLib.Models.Blocks;
 
 public partial class LoliCodeBlockInstance(LoliCodeBlockDescriptor descriptor) : BlockInstance(descriptor)
 {
-    private readonly string _validTokenRegex = "[A-Za-z][A-Za-z0-9_]*";
     public string Script { get; set; }
     public int StartingLineNumber { get; set; }
 

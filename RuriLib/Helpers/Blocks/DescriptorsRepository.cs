@@ -283,13 +283,13 @@ namespace RuriLib.Helpers.Blocks
                 },
 
                 { typeof(int), () => new IntParameter
-                    { DefaultValue = parameter.HasDefaultValue ? (int)parameter.DefaultValue : 0 } },
+                    { DefaultValue = parameter.DefaultValue is int intDefault ? intDefault : 0 } },
 
                 { typeof(float), () => new FloatParameter
-                    { DefaultValue = parameter.HasDefaultValue ? (float)parameter.DefaultValue : 0.0f } },
+                    { DefaultValue = parameter.DefaultValue is float floatDefault ? floatDefault : 0.0f } },
 
                 { typeof(bool), () => new BoolParameter
-                    { DefaultValue = parameter.HasDefaultValue ? (bool)parameter.DefaultValue : false } },
+                    { DefaultValue = parameter.DefaultValue is bool boolDefault ? boolDefault : false } },
 
                 { typeof(bool?), () => new BoolParameter
                     { DefaultValue = parameter.HasDefaultValue && parameter.DefaultValue != null ? (bool)parameter.DefaultValue : false } },

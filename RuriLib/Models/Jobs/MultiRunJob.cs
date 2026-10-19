@@ -109,7 +109,6 @@ public class MultiRunJob : Job, IDisposable
     public event EventHandler<ErrorDetails<MultiRunInput>> OnTaskError;
     public event EventHandler<ResultDetails<MultiRunInput, CheckResult>> OnResult;
     public event EventHandler<Exception> OnError;
-    public event EventHandler<float> OnProgress;
     public event EventHandler<JobStatus> OnStatusChanged;
     public event EventHandler OnBotsChanged;
     public event EventHandler OnCompleted;

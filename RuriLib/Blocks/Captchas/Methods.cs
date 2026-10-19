@@ -496,9 +496,9 @@ public static class Methods
         }
         catch (Exception ex) // This unwraps aggregate exceptions
         {
-            if (ex is AggregateException { InnerException: not null } aggEx)
+            if (ex is AggregateException { InnerException: { } innerException })
             {
-                throw aggEx.InnerException;
+                throw innerException;
             }
             
             throw;

@@ -161,7 +161,7 @@ namespace RuriLib.Blocks.Selenium.Elements
             data.Logger.LogHeader();
 
             var elements = GetElements(data, findBy, identifier);
-            var values = elements.Select(e => e.GetAttribute(attributeName)).ToList();
+            var values = elements.Select(e => e.GetAttribute(attributeName) ?? string.Empty).ToList();
 
             data.Logger.Log($"Got {values.Count} values for attribute {attributeName}", LogColors.JuneBud);
             return values;

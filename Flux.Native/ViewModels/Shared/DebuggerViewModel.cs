@@ -361,6 +361,20 @@ public class DebuggerViewModel : ViewModelBase
         LogCleared?.Invoke(this, EventArgs.Empty);
     }
 
+    /// <summary>
+    /// Appends an error entry to the debugger log instead of interrupting the user with a dialog.
+    /// </summary>
+    public void LogError(string message)
+    {
+        NewLogEntry?.Invoke(this, new BotLoggerEntry
+        {
+            Message = message,
+            Color = LogColors.Tomato,
+            Level = LogLevel.Error,
+            Timestamp = DateTime.Now
+        });
+    }
+
     private void OnStatusChanged(object? sender, ConfigDebuggerStatus status) => Status = status;
     private void OnNewLogEntry(object? sender, BotLoggerEntry e)
     {

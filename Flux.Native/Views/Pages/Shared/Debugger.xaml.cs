@@ -1,7 +1,6 @@
 using ICSharpCode.AvalonEdit;
 using Flux.Core.Models.Settings;
 using Flux.Core.Services;
-using Flux.Native.Helpers;
 
 using Flux.Native.ViewModels.Shared;
 using RuriLib.Logging;
@@ -307,7 +306,9 @@ public partial class Debugger : Page
         }
         catch (Exception ex)
         {
-            Alert.Exception(ex);
+            // Report in the debugger log instead of a modal dialog so repeated runs don't require dismissing popups
+            tabControl.SelectedIndex = 0;
+            _viewModel.LogError($"Debugger error: {ex.Message}");
         }
     }
 

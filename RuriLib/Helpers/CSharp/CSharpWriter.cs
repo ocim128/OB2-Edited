@@ -168,7 +168,9 @@ namespace RuriLib.Helpers.CSharp
         }
 
         /// <summary>
-        /// Serializes a literal without splitting it on multiple lines like <see cref="ToPrimitive(object)"/> does..
+        /// Serializes a literal without splitting it on multiple lines like <see cref="ToPrimitive(object)"/> does.
+        /// Newlines and other control characters are escaped, otherwise a multi-line setting value would be
+        /// emitted as a raw multi-line string literal and the generated script would not compile.
         /// </summary>
         public static string SerializeString(string value)
         {
@@ -188,8 +190,32 @@ namespace RuriLib.Helpers.CSharp
                     case '"':
                         sb.Append("\\\"");
                         break;
+                    case '\n':
+                        sb.Append("\\n");
+                        break;
+                    case '\r':
+                        sb.Append("\\r");
+                        break;
+                    case '\t':
+                        sb.Append("\\t");
+                        break;
+                    case '\0':
+                        sb.Append("\\0");
+                        break;
+                    case '\u0085': // NEL
+                    case '\u2028': // Line separator
+                    case '\u2029': // Paragraph separator
+                        AppendUnicodeEscape(sb, ch);
+                        break;
                     default:
-                        sb.Append(ch);
+                        if (char.IsControl(ch))
+                        {
+                            AppendUnicodeEscape(sb, ch);
+                        }
+                        else
+                        {
+                            sb.Append(ch);
+                        }
                         break;
                 }
             }
@@ -197,6 +223,9 @@ namespace RuriLib.Helpers.CSharp
             sb.Append('"');
             return sb.ToString();
         }
+
+        private static void AppendUnicodeEscape(StringBuilder sb, char ch)
+            => sb.Append("\\u").Append(((int)ch).ToString("x4", invariantCulture));
 
         /// <summary>
         /// Serializes an interpolated string where &lt;var&gt; is a variable (and sanitizes the '{' and '}' characters).

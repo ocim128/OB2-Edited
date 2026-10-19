@@ -232,30 +232,79 @@ namespace RuriLib.Blocks.Playwright.Browser
 
         /// <summary>
         /// Opens a new tab in Firefox.
-        /// A trusted click on a target="_blank" anchor is used instead of evaluating window.open(),
-        /// because Firefox's popup blocker only permits window.open() when the document has transient
-        /// user activation (see WindowContext::CanShowPopup and PopupBlocker::RevisePopupAbuseLevel).
-        /// Playwright's click is a real input event, so it grants that activation; a plain
-        /// EvaluateAsync call does not, which is what made window.open() return null.
+        /// Firefox's popup blocker only permits a scripted window.open() when the document has
+        /// transient user activation (WindowContext::CanShowPopup + PopupBlocker::RevisePopupAbuseLevel),
+        /// and a plain EvaluateAsync grants none. So two techniques are attempted in order and the
+        /// result is verified against the context page count, because a custom Firefox profile can
+        /// break either one on its own:
+        ///   1. window.open() through EvaluateAsync - works when the profile allows popups.
+        ///   2. A trusted Playwright click on a target="_blank" anchor - grants user activation,
+        ///      needed when the profile keeps the popup blocker on, but it hangs in profiles whose
+        ///      prefs make mouse input unreliable, so it must never be the only attempt.
         /// </summary>
         private static async Task<IPage> OpenFirefoxTabAsync(
             IBrowserContext context,
             IPage currentPage,
             BotData data)
         {
+            var pagesBefore = context.Pages.Count;
+
+            var tab = await TryOpenTabAsync(context, currentPage, pagesBefore, OpenTabViaWindowOpenAsync);
+            if (tab == null)
+            {
+                tab = await TryOpenTabAsync(context, currentPage, pagesBefore, OpenTabViaClickAsync);
+            }
+
+            if (tab != null)
+            {
+                data.Logger.Log("Created a new tab for Firefox", LogColors.MediumPurple);
+                return tab;
+            }
+
+            data.Logger.Log("Could not open a Firefox tab, created the page directly instead", LogColors.Yellow);
+            return await context.NewPageAsync();
+        }
+
+        private static async Task<IPage?> TryOpenTabAsync(
+            IBrowserContext context,
+            IPage currentPage,
+            int pagesBefore,
+            Func<IBrowserContext, IPage, Task> technique)
+        {
+            try
+            {
+                await technique(context, currentPage);
+            }
+            catch (Exception ex) when (ex is TimeoutException or PlaywrightException)
+            {
+                // Technique is unavailable in this profile; let the caller try the next one
+                return null;
+            }
+
+            return context.Pages.Skip(pagesBefore).LastOrDefault(p => !p.IsClosed);
+        }
+
+        private static async Task OpenTabViaWindowOpenAsync(IBrowserContext context, IPage currentPage)
+        {
             var pageTask = context.WaitForPageAsync(
                 new BrowserContextWaitForPageOptions { Timeout = FirefoxNewPageTimeoutMs });
 
-            IPage? openedTab = null;
+            await currentPage.EvaluateAsync("() => window.open('about:blank', '_blank')");
+
+            await pageTask;
+        }
+
+        private static async Task OpenTabViaClickAsync(IBrowserContext context, IPage currentPage)
+        {
+            var pageTask = context.WaitForPageAsync(
+                new BrowserContextWaitForPageOptions { Timeout = FirefoxNewPageTimeoutMs });
+
             try
             {
                 await currentPage.EvaluateAsync(InjectFirefoxNewTabAnchorScript);
-                await currentPage.ClickAsync($"#{FirefoxNewTabAnchorId}", new PageClickOptions { Timeout = FirefoxNewPageTimeoutMs });
-                openedTab = await pageTask;
-            }
-            catch (TimeoutException)
-            {
-                // Popup was blocked, no tab was created: fall through to the fallback below
+                await currentPage.ClickAsync(
+                    $"#{FirefoxNewTabAnchorId}",
+                    new PageClickOptions { Timeout = FirefoxNewPageTimeoutMs });
             }
             finally
             {
@@ -269,14 +318,7 @@ namespace RuriLib.Blocks.Playwright.Browser
                 }
             }
 
-            if (openedTab != null)
-            {
-                data.Logger.Log("Created a new tab for Firefox", LogColors.MediumPurple);
-                return openedTab;
-            }
-
-            data.Logger.Log("Could not open a Firefox tab, created the page directly instead", LogColors.Yellow);
-            return await context.NewPageAsync();
+            await pageTask;
         }
 
         [Block("Closes the current page", name = "Close Page")]

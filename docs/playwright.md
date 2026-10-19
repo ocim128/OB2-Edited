@@ -340,8 +340,12 @@ These are real constraints in the current code. The stealth script has been hard
 5. **WebKit is not installed by the app.**
    `RLSettingsViewModel.InstallPlaywrightBrowsers(...)` installs Chromium and Firefox only. WebKit needs a preinstalled runtime or a custom executable path.
 
-6. **Firefox new tabs go through a trusted click.**
-   `PlaywrightNewPage` cannot use `context.NewPageAsync()` for Firefox because that opens a window there. It also cannot use `EvaluateAsync("window.open(...)")`: Firefox's popup blocker only allows `window.open()` when the document has transient user activation (`WindowContext::CanShowPopup`, `PopupBlocker::RevisePopupAbuseLevel`), and a scripted `EvaluateAsync` grants none, so `window.open` returns `null` and no page event fires. The block therefore injects a hidden `target="_blank"` anchor and clicks it with a real Playwright click, which does grant user activation. The wait is bounded (5s) and falls back to `context.NewPageAsync()`.
+6. **Firefox new tabs use a two-step strategy.**
+   `PlaywrightNewPage` cannot use `context.NewPageAsync()` for Firefox because that opens a window there. It also cannot rely on a single technique, because a custom Firefox profile can break either one:
+   1. `window.open('about:blank', '_blank')` via `EvaluateAsync` — works when the profile allows popups.
+   2. A trusted Playwright click on an injected `target="_blank"` anchor — grants the transient user activation Firefox requires (`WindowContext::CanShowPopup`, `PopupBlocker::RevisePopupAbuseLevel`), but hangs in profiles whose prefs make mouse input unreliable (observed with a real profile whose `prefs.js` alone reproduces it), so it is never the only attempt.
+
+   Each step's result is verified against the context page count rather than trusted, and the final fallback is `context.NewPageAsync()`.
 
 7. **"Upload Files" needs a file input or the control that opens the chooser.**
    The block accepts a real `<input type="file">` (visible or hidden, including a `<label>` bound to one) and also a wrapper element whose only file input it can target. For icon-based composers it falls back to `RunAndWaitForFileChooserAsync`, so it must be pointed at the clickable button, not at the SVG icon inside it. XPath cannot match SVG child elements, so an XPath ending in `svg/path[n]` locates nothing in both Chromium and Firefox; drop the `svg/path` tail and select the button element.

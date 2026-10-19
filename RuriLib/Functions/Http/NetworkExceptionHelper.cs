@@ -18,11 +18,12 @@ namespace RuriLib.Functions.Http
         /// </summary>
         /// <param name="ex">The exception to check</param>
         /// <returns>True if the exception is network-related, false otherwise</returns>
-        // Cache frequently used exception types for faster comparison
+        // Cache frequently used exception types for faster comparison.
+        // WebException is deliberately absent: it is retryable only for the statuses in
+        // NetworkWebStatuses, so it is classified below instead of short-circuiting here.
         private static readonly HashSet<Type> NetworkExceptionTypes = new()
         {
             typeof(HttpRequestException),
-            typeof(WebException),
             typeof(SocketException),
             typeof(TimeoutException)
         };

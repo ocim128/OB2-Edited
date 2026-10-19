@@ -17,14 +17,17 @@ namespace RuriLib.Functions.Http
 
             var exType = ex.GetType();
             if (exType == typeof(HttpRequestException) ||
-                exType == typeof(WebException) ||
                 exType == typeof(SocketException) ||
                 exType == typeof(TimeoutException))
             {
                 return true;
             }
 
-            if (exType == typeof(OperationCanceledException) || exType == typeof(IOException))
+            // WebException is only network-related for specific statuses, so it is classified by
+            // NetworkExceptionHelper instead of being accepted here on type alone.
+            if (ex is WebException ||
+                exType == typeof(OperationCanceledException) ||
+                exType == typeof(IOException))
             {
                 return NetworkExceptionHelper.IsNetworkException(ex);
             }

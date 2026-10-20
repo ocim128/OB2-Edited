@@ -91,7 +91,6 @@ namespace RuriLib.Blocks.Playwright.Browser
             if (config.BrowserType == PlaywrightBrowserType.Firefox)
             {
                 config.FirefoxProcessesBeforeLaunch = CaptureFirefoxProcessSnapshot();
-                data.Logger.Log("Firefox GPU disabled and sandbox relaxed to avoid RADAR_PRE_LEAK_64.", LogColors.MediumPurple);
             }
 
             // Create Playwright instance

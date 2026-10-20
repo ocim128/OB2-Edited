@@ -30,7 +30,12 @@ namespace RuriLib.Helpers.Playwright
         private static readonly IReadOnlyDictionary<string, object> FirefoxSafePreferences =
             new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
             {
-                ["browser.tabs.remote.autostart"] = false,
+                // Multi-process must stay ENABLED. Setting this to false (disabling e10s) is
+                // persisted into the profile's prefs.js, and from the next launch onwards every
+                // Playwright mouse action hangs (click/hover time out while keyboard keeps working).
+                // That silently breaks "New Page" and every click/fill block for reused profiles,
+                // which is exactly what Firefox profile paths produce.
+                ["browser.tabs.remote.autostart"] = true,
                 ["dom.ipc.processCount"] = 1,
                 // Firefox blocks window.open() without a user gesture by default, which breaks
                 // the tab opened by the "New Page" block and forces it into a separate window.

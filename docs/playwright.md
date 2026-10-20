@@ -386,6 +386,7 @@ Current behavior:
 - ensures sandbox-relaxing flags for Chromium
 - adds Chromium stealth-related flags
 - applies Firefox-safe defaults by disabling GPU-heavy or acceleration-heavy prefs
+- keeps Firefox multi-process enabled (`browser.tabs.remote.autostart`); disabling it is persisted into a reused profile's `prefs.js` and makes every later Playwright mouse action hang, while keyboard input keeps working
 - disables the Firefox popup blocker and routes popups to a tab, as a second line of defence for `New Page`
 - strips Chromium-only sandbox flags from Firefox launches
 

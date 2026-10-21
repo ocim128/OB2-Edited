@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using RuriLib.Helpers;
 using RuriLib.Helpers.Blocks;
+using RuriLib.Helpers.Transpilers;
 using RuriLib.Models.Blocks;
 using RuriLib.Models.Blocks.Custom;
 using RuriLib.Models.Blocks.Settings;
@@ -32,6 +33,9 @@ public partial class ConfigStackerViewModel
         ShowNotification("Copy", $"Copied {state.ClipboardBlocks.Count} block(s)");
     }
 
+    // The clipboard text has to survive the paste parser, so it follows the same canonical
+    // LoliCode form the stack transpilers use for configs (Stack2LoliTranspiler):
+    // BLOCK:{id} ... ENDBLOCK for blocks, raw script for LoliCode blocks.
     private static string CreateDetailedBlockText(BlockInstance block)
     {
         if (block is null)
@@ -39,101 +43,20 @@ public partial class ConfigStackerViewModel
             return "Unknown Block";
         }
 
-        if (block is LoliCodeBlockInstance loliBlock)
+        try
         {
-            return loliBlock.Script ?? string.Empty;
+            if (block is LoliCodeBlockInstance loliBlock)
+            {
+                return loliBlock.Script ?? string.Empty;
+            }
+
+            return $"BLOCK:{block.Id}\n{block.ToLC(true)}ENDBLOCK";
         }
-
-        if (block is ScriptBlockInstance or KeycheckBlockInstance or ParseBlockInstance or HttpRequestBlockInstance)
+        catch (Exception ex)
         {
-            try
-            {
-                var loliCode = block.ToLC(true);
-                return block is not LoliCodeBlockInstance ? $"BLOCK:{block.Id}\n{loliCode}ENDBLOCK" : loliCode;
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"[ConfigStacker] Failed to convert block to LoliCode: {ex.Message}");
-                return string.Empty;
-            }
+            System.Diagnostics.Debug.WriteLine($"[ConfigStacker] Failed to convert block to LoliCode: {ex.Message}");
+            return string.Empty;
         }
-
-        var details = new List<string>();
-        var blockType = block.Descriptor?.Name ?? "Unknown";
-        var label = !string.IsNullOrEmpty(block.Label) ? block.Label : blockType;
-
-        details.Add($"BLOCK: {blockType}");
-        details.Add($"LABEL: {label}");
-
-        if (block.Disabled)
-        {
-            details.Add("DISABLED: true");
-        }
-
-        AddBlockSettingsDetails(block, details);
-        return string.Join(Environment.NewLine, details);
-    }
-
-    private static void AddBlockSettingsDetails(BlockInstance block, List<string> details)
-    {
-        if (block.Settings == null)
-        {
-            return;
-        }
-
-        var importantSettings = new[] { "url", "method", "input", "script", "leftDelim", "rightDelim", "content", "username", "password" };
-        var addedSettings = 0;
-
-        foreach (var settingName in importantSettings)
-        {
-            if (addedSettings >= 5)
-            {
-                break;
-            }
-
-            if (block.Settings.TryGetValue(settingName, out var setting))
-            {
-                var value = GetSettingDisplayValue(setting);
-                if (!string.IsNullOrEmpty(value))
-                {
-                    details.Add($"{settingName}: {value}");
-                    addedSettings++;
-                }
-            }
-        }
-
-        foreach (var setting in block.Settings)
-        {
-            if (addedSettings >= 8 || importantSettings.Contains(setting.Key, StringComparer.OrdinalIgnoreCase))
-            {
-                continue;
-            }
-
-            var value = GetSettingDisplayValue(setting.Value);
-            if (!string.IsNullOrEmpty(value))
-            {
-                details.Add($"{setting.Key}: {value}");
-                addedSettings++;
-            }
-        }
-    }
-
-    private static string GetSettingDisplayValue(BlockSetting setting)
-    {
-        return setting.InputMode switch
-        {
-            SettingInputMode.Variable => $"@{setting.InputVariableName}",
-            SettingInputMode.Interpolated => setting.InterpolatedSetting is InterpolatedStringSetting interpolatedString
-                ? interpolatedString.Value
-                : string.Empty,
-            _ => setting.FixedSetting switch
-            {
-                RuriLib.Models.Blocks.Settings.StringSetting stringSetting => stringSetting.Value,
-                RuriLib.Models.Blocks.Settings.IntSetting intSetting => intSetting.Value.ToString(),
-                RuriLib.Models.Blocks.Settings.BoolSetting boolSetting => boolSetting.Value.ToString(),
-                _ => string.Empty
-            }
-        };
     }
 
     private void PasteBlocks()
@@ -145,10 +68,13 @@ public partial class ConfigStackerViewModel
             return;
         }
 
+        // Clear the search filter before computing the insertion index: Stack then
+        // mirrors OriginalStack, so one index addresses both lists (selection is kept).
+        ClearSearch();
+
         var insertIndex = GetPasteInsertionIndex();
         var undoInfo = new List<(int index, BlockViewModel blockVm)>();
         PerformBlockPasting(blocksToPaste, insertIndex, undoInfo);
-        ClearSearch();
 
         var source = isFromSystemClipboard ? "system clipboard" : "internal clipboard";
         ShowNotification("Paste", $"Pasted {blocksToPaste.Count} block(s) from {source}");
@@ -156,28 +82,26 @@ public partial class ConfigStackerViewModel
 
     private (List<BlockInstance> blocks, bool isFromSystemClipboard) GetBlocksToPasteFromClipboard()
     {
-        var blocksToPaste = new List<BlockInstance>();
-        var isFromSystemClipboard = false;
+        // Exact clones of a copy made in this session round-trip every block type, so they
+        // take priority over re-parsing the clipboard text (which can only approximate
+        // LoliCode blocks, since consecutive raw scripts merge into one block).
+        if (state.ClipboardBlocks.Any())
+        {
+            var internalBlocks = state.ClipboardBlocks.Select(block => Cloner.Clone<BlockInstance>(block)).ToList();
+            return (internalBlocks, false);
+        }
 
         if (clipboardAdapter.TryGetText(out var clipboardText))
         {
-            var parsedBlocks = ParseBlocksFromText(clipboardText);
+            var parsedBlocks = TryTranspileClipboardText(clipboardText) ?? ParseBlocksFromText(clipboardText);
 
             if (parsedBlocks.Any())
             {
-                blocksToPaste = parsedBlocks;
-                isFromSystemClipboard = true;
-                state.ClipboardBlocks.Clear();
+                return (parsedBlocks, true);
             }
         }
 
-        if (!blocksToPaste.Any() && state.ClipboardBlocks.Any())
-        {
-            blocksToPaste = state.ClipboardBlocks.Select(block => Cloner.Clone<BlockInstance>(block)).ToList();
-            isFromSystemClipboard = false;
-        }
-
-        return (blocksToPaste, isFromSystemClipboard);
+        return ([], false);
     }
 
     private int GetPasteInsertionIndex()
@@ -201,6 +125,19 @@ public partial class ConfigStackerViewModel
             if (insertIndex >= 0 && insertIndex <= (Stack?.Count ?? 0))
             {
                 Stack?.Insert(insertIndex, newBlockVm);
+
+                // Mirror the insert into OriginalStack: SaveStack() persists this list and
+                // ApplySearchFilter rebuilds Stack from it, so a block that only lives in
+                // Stack disappears on the next filter change or view switch.
+                if (insertIndex <= OriginalStack.Count)
+                {
+                    OriginalStack.Insert(insertIndex, newBlockVm);
+                }
+                else
+                {
+                    OriginalStack.Add(newBlockVm);
+                }
+
                 pastedBlocks.Add(newBlockVm);
                 undoInfo.Add((insertIndex, newBlockVm));
                 insertIndex++;
@@ -265,16 +202,13 @@ public partial class ConfigStackerViewModel
                 {
                     Stack.RemoveAt(index);
                 }
+
+                // Keep OriginalStack in sync, otherwise the undone blocks come back on
+                // the next filter change or view switch.
+                OriginalStack.Remove(blockVm);
             }
 
-            if (Stack != null)
-            {
-                configService.SelectedConfig.Stack = Stack
-                    .Where(block => block is not null && block.Block is not null)
-                    .Select(block => block.Block)
-                    .ToList();
-            }
-
+            SaveStack();
             state.LastPasteOperation.Clear();
             ShowNotification("Undo", "Paste operation undone");
             RaiseToolCommandStateChanged();
@@ -283,6 +217,29 @@ public partial class ConfigStackerViewModel
 
         Undo();
         RaiseToolCommandStateChanged();
+    }
+
+    // Text written by the copy path (or any LoliCode script) is parsed with the stack
+    // transpiler, which handles whole BLOCK:...ENDBLOCK blocks including bodies that
+    // contain blank lines (multi-line LoliCode scripts, C# script blocks). Returns null
+    // so the legacy text parser can still try when the text is not valid LoliCode.
+    private static List<BlockInstance>? TryTranspileClipboardText(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return null;
+        }
+
+        try
+        {
+            var blocks = Loli2StackTranspiler.Transpile(text);
+            return blocks.Count > 0 ? blocks : null;
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[ConfigStacker] Clipboard text is not valid LoliCode: {ex.Message}");
+            return null;
+        }
     }
 
     private static List<BlockInstance> ParseBlocksFromText(string text)

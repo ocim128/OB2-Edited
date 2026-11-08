@@ -90,6 +90,8 @@ namespace RuriLib.Functions.Http
             clientOptions.MaxNumberOfRedirects = 0;
 
             var pooledClient = GetOrCreateClient(data, clientOptions);
+            // The pipeline token enforces the block timeout for the entire response.
+            pooledClient.Client.ReceiveTimeout = Timeout.InfiniteTimeSpan;
             FileStream? fileStream = null;
 
             try

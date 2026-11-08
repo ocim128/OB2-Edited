@@ -70,11 +70,11 @@ namespace RuriLib.Functions.Http
             {
                 data.Logger.LogHeader();
                 HttpPipelineLogger.LogRequest(data, request);
+                using var linkedCts = CreateLinkedTimeoutTokenSource(data.CancellationToken, request.TimeoutMilliseconds);
 
                 try
                 {
                     Activity.Current = null;
-                    using var linkedCts = CreateLinkedTimeoutTokenSource(data.CancellationToken, request.TimeoutMilliseconds);
 
                     var response = await sendAsync(request, linkedCts.Token).ConfigureAwait(false);
                     HttpResponseMapper.Apply(data, response, request);
@@ -85,6 +85,13 @@ namespace RuriLib.Functions.Http
                     }
 
                     request = redirectRequest;
+                }
+                catch (OperationCanceledException ex) when (
+                    !data.CancellationToken.IsCancellationRequested && linkedCts.IsCancellationRequested)
+                {
+                    var timeoutException = new TimeoutException($"HTTP request timed out after {request.TimeoutMilliseconds}ms.", ex);
+                    HttpPipelineLogger.LogException(data, request, timeoutException, transportName);
+                    throw timeoutException;
                 }
                 catch (Exception ex)
                 {

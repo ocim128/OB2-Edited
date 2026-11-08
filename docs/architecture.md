@@ -106,6 +106,8 @@ All three handlers inherit `HttpRequestHandler` and share one pipeline (`Execute
 
 `HttpFactory` (`RuriLib/Functions/Http/HttpFactory.cs`) caches `SystemNet` clients by proxy + options, leases them per request, and disposes idle entries after three minutes. `HttpOptions` defaults are connect 5s, read/write 10s, auto-redirect on, 8 redirects.
 
+HTTP blocks use their `TimeoutMilliseconds` for receiving the response, including its body; the internal `RuriLibHttp` receive timer and pooled `SystemNet` client timer are disabled so the global proxy read/write setting cannot shorten that limit. Connection and proxy setup retain their own limits. A block deadline is reported as `TimeoutException`, while job cancellation remains `OperationCanceledException`.
+
 The `HttpLibrary` enum has numeric gaps (`TlsClient = 4`). Those values were persisted in configs, so do not renumber the enum; the legacy `HttpCloak` value is normalized to `TlsClient` when loading and transpiling (`HttpRequestBlockInstance`).
 
 ## Block Model

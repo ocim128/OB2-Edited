@@ -68,6 +68,8 @@ public sealed class TestHttpResponse
     /// </summary>
     public bool CloseConnection { get; init; } = true;
 
+    public TimeSpan ResponseDelay { get; init; }
+
     // -----------------------------------------------------------------
     // Convenience factory helpers
     // -----------------------------------------------------------------

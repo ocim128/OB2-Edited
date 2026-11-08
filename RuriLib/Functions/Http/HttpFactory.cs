@@ -146,7 +146,11 @@ namespace RuriLib.Functions.Http
             {
                 var lazy = SharedHttpClients.GetOrAdd(key, _ => new Lazy<SharedHttpClientEntry>(() => new SharedHttpClientEntry
                 {
-                    Client = GetHttpClient(proxy, options, null)
+                    // HTTP blocks enforce their timeout through the pipeline token.
+                    Client = new HttpClient(GetHttpMessageHandler(proxy, options, null))
+                    {
+                        Timeout = Timeout.InfiniteTimeSpan
+                    }
                 }, LazyThreadSafetyMode.ExecutionAndPublication));
 
                 try

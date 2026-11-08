@@ -181,6 +181,7 @@ internal sealed class TestHttpServer : IAsyncDisposable
                     recordedQueue.Enqueue(recorded);
 
                     var response = ResolveResponse(scenario, recorded, requestIndex);
+                    await Task.Delay(response.ResponseDelay, cancellationToken).ConfigureAwait(false);
                     var responseBytes = response.Serialize();
 
                     await stream.WriteAsync(responseBytes, cancellationToken).ConfigureAwait(false);

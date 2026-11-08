@@ -53,7 +53,7 @@ namespace Flux.Native.Views.Dialogs.Updates
 
                 try
                 {
-                    using var response = await SharedClient.Value.GetAsync($"https://raw.githubusercontent.com/openbullet/Flux/master/Changelog/{currentVersion}.md").ConfigureAwait(false);
+                    using var response = await SharedClient.Value.GetAsync($"https://raw.githubusercontent.com/ocim128/OB2-Edited/master/Changelog/{currentVersion}.md").ConfigureAwait(false);
                     Text = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                 }
                 catch

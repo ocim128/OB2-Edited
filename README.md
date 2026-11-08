@@ -21,7 +21,7 @@ Flux is a Windows desktop automation platform for building and running configs a
 | `RuriLib.Tests/`, `RuriLib.Http.Tests/`, `Flux.Shared.Tests/` | xUnit test projects |
 | `Libraries/TlsClient.NET/` | Vendored TLS-fingerprint transport (nested git repo, locally patched) |
 | `docs/` | Architecture, development, UI and Playwright documentation |
-| `Changelog/` | Per-version release notes, inherited from upstream OpenBullet. Entries that mention the web app or Windows Forms describe upstream history, not the current code. |
+| `Changelog/` | Per-version release notes, inherited from upstream. Entries that mention the web app or Windows Forms describe upstream history, not the current code. |
 
 `UserData/` (local configs and settings) and `packages/` (NuGet cache redirected by `nuget.config`) are runtime artifacts, not source.
 

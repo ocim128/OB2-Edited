@@ -108,22 +108,10 @@
                         <TextBlock VerticalAlignment="Center">License</TextBlock>
                     </StackPanel>
                 </Button>
-                <Button x:Name="donateButton" Style="{StaticResource StyledButton}" Click="OpenDonation" Margin="0,0,8,0">
-                    <StackPanel Orientation="Horizontal">
-                        <iconPacks:PackIconMaterial Kind="Bitcoin" Margin="0,0,4,0"/>
-                        <TextBlock VerticalAlignment="Center">Donate</TextBlock>
-                    </StackPanel>
-                </Button>
                 <Button x:Name="repoButton" Style="{StaticResource StyledButton}" Click="OpenRepository" Margin="0,0,8,0">
                     <StackPanel Orientation="Horizontal">
                         <iconPacks:PackIconMaterial Kind="Git" Margin="0,0,4,0"/>
                         <TextBlock VerticalAlignment="Center">Repository</TextBlock>
-                    </StackPanel>
-                </Button>
-                <Button x:Name="forumButton" Style="{StaticResource StyledButton}" Click="OpenForum" Margin="0,0,8,0">
-                    <StackPanel Orientation="Horizontal">
-                        <iconPacks:PackIconForkAwesome Kind="Users" Margin="0,0,4,0"/>
-                        <TextBlock VerticalAlignment="Center">Official Forum</TextBlock>
                     </StackPanel>
                 </Button>
                 <Button x:Name="issuesButton" Style="{StaticResource StyledButton}" Click="OpenIssues">

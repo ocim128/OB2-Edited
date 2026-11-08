@@ -17,11 +17,7 @@ namespace Flux.Native.Views.Pages.About
 
         private void OpenLicense(object sender, RoutedEventArgs e) => new MainDialog(new LicenseDialog(), "License", true).ShowDialog();
 
-        private void OpenDonation(object sender, RoutedEventArgs e) => Url.Open(AppConstants.DonationUrl);
-
         private void OpenRepository(object sender, RoutedEventArgs e) => Url.Open(AppConstants.RepositoryUrl);
-
-        private void OpenForum(object sender, RoutedEventArgs e) => Url.Open(AppConstants.ForumUrl);
 
         private void OpenIssues(object sender, RoutedEventArgs e) => Url.Open(AppConstants.IssuesUrl);
     }

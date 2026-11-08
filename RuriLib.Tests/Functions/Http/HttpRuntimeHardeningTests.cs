@@ -120,7 +120,7 @@ public class HttpRuntimeHardeningTests
     }
 
     [Fact]
-    public async Task HttpLogs_RedactSensitiveHeadersCookiesAndPayloads()
+    public async Task HttpLogs_ShowRawHeadersCookiesAndTruncateLargePayloads()
     {
         const string authSecret = "Bearer secret-token";
         const string cookieSecret = "session=secret-cookie";
@@ -141,10 +141,10 @@ public class HttpRuntimeHardeningTests
             });
 
         var log = string.Join("\n", context.Data.Logger.Entries.Select(e => e.Message));
-        Assert.DoesNotContain(authSecret, log);
-        Assert.DoesNotContain(cookieSecret, log);
-        Assert.DoesNotContain("secret-set-cookie", log);
-        Assert.Contains("[redacted]", log);
+        Assert.Contains(authSecret, log);
+        Assert.Contains(cookieSecret, log);
+        Assert.Contains("secret-set-cookie", log);
+        Assert.DoesNotContain("[redacted]", log);
         Assert.Contains("[TRUNCATED", log);
     }
 }

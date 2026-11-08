@@ -98,7 +98,7 @@ Entry point: `RuriLib/Blocks/Requests/Http/Methods.cs`. Transport selection is a
 All three handlers inherit `HttpRequestHandler` and share one pipeline (`ExecutePipelineAsync`):
 
 1. `HttpRequestNormalizer.Validate` + `Create*` builds a `NormalizedHttpRequest` (headers, cookies, body, timeout, redirect budget).
-2. `HttpPipelineLogger.LogRequest` logs the request with sensitive headers and cookies redacted.
+2. `HttpPipelineLogger.LogRequest` logs the request, including raw header and cookie values.
 3. A linked `CancellationTokenSource` applies `TimeoutMilliseconds` on top of `BotData.CancellationToken`.
 4. The transport sends; `HttpResponseMapper.Apply` writes status, headers, body, and cookies back into `BotData`.
 5. `HttpRedirectPolicy` follows redirects manually: bounded by `MaxNumberOfRedirects`, `Authorization` is only replayed to the same host, and HTTPS → HTTP redirects are refused unless `AllowHttpsToHttpRedirect` is enabled.

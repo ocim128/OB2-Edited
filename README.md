@@ -93,7 +93,7 @@ Transport mapping: `SystemNet` → `HttpClient`, `RuriLibHttp` → `RuriLib.Http
 
 ## Diagnostics
 
-HTTP failures log transport name, exception chain, request context, timeout/proxy settings, and a stack trace in verbose mode (`RuriLib/Functions/Http/HttpRequestHandler.cs`, `HttpPipelineLogger.cs`). Sensitive headers and cookies are redacted.
+HTTP failures log transport name, exception chain, request context, timeout/proxy settings, and a stack trace in verbose mode (`RuriLib/Functions/Http/HttpRequestHandler.cs`, `HttpPipelineLogger.cs`). Headers and cookies are logged raw, so debugger output contains credentials sent to and received from the server.
 
 Verbose mode is a setting in `GlobalGeneralSettings.VerboseMode` (`RuriLib/Models/Settings/GlobalGeneralSettings.cs`), surfaced through `RuriLib/Providers/General/`.
 

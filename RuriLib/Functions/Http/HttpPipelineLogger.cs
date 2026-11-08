@@ -12,7 +12,6 @@ namespace RuriLib.Functions.Http
     internal static class HttpPipelineLogger
     {
         private const int MaxLoggedPayloadChars = 16 * 1024;
-        private const string RedactedValue = "[redacted]";
 
         public static void LogRequest(BotData data, NormalizedHttpRequest request)
         {
@@ -31,12 +30,13 @@ namespace RuriLib.Functions.Http
 
             foreach (var header in request.Headers)
             {
-                writer.WriteLine(FormatHeaderForLog(header.Key, header.Value));
+                writer.WriteLine($"{header.Key}: {header.Value}");
             }
 
-            if (request.Cookies.Any(static c => !string.IsNullOrEmpty(c.Value)))
+            var cookies = request.Cookies.Where(static c => !string.IsNullOrEmpty(c.Value)).Select(c => $"{c.Key}={c.Value}");
+            if (cookies.Any())
             {
-                writer.WriteLine($"Cookie: {RedactedValue}");
+                writer.WriteLine($"Cookie: {string.Join("; ", cookies)}");
             }
 
             if (!string.IsNullOrEmpty(request.LoggedContent))
@@ -97,14 +97,6 @@ namespace RuriLib.Functions.Http
         private static string FormatTimeSpan(TimeSpan timeout)
             => timeout == Timeout.InfiniteTimeSpan ? "disabled" : $"{timeout.TotalMilliseconds:0}ms";
 
-        internal static string FormatHeaderForLog(string name, string value)
-            => IsSensitiveHeaderName(name)
-                ? $"{name}: {RedactedValue}"
-                : $"{name}: {value}";
-
-        internal static string FormatCookieForLog(string name)
-            => $"{name}: {RedactedValue}";
-
         internal static string FormatPayloadForLog(string payload)
         {
             if (string.IsNullOrEmpty(payload) || payload.Length <= MaxLoggedPayloadChars)
@@ -113,24 +105,6 @@ namespace RuriLib.Functions.Http
             }
 
             return $"{payload[..MaxLoggedPayloadChars]}... [TRUNCATED - {payload.Length} total chars]";
-        }
-
-        private static bool IsSensitiveHeaderName(string name)
-        {
-            if (string.IsNullOrWhiteSpace(name))
-            {
-                return false;
-            }
-
-            return name.Equals("Authorization", StringComparison.OrdinalIgnoreCase)
-                || name.Equals("Proxy-Authorization", StringComparison.OrdinalIgnoreCase)
-                || name.Equals("Cookie", StringComparison.OrdinalIgnoreCase)
-                || name.Equals("Set-Cookie", StringComparison.OrdinalIgnoreCase)
-                || name.Equals("Set-Cookie2", StringComparison.OrdinalIgnoreCase)
-                || name.Equals("X-Api-Key", StringComparison.OrdinalIgnoreCase)
-                || name.Contains("token", StringComparison.OrdinalIgnoreCase)
-                || name.Contains("password", StringComparison.OrdinalIgnoreCase)
-                || name.EndsWith("-Key", StringComparison.OrdinalIgnoreCase);
         }
 
         private static bool TryGetHeaderValue(Dictionary<string, string> headers, string headerName, out string value)
